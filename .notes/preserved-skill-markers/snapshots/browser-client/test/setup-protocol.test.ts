@@ -1,0 +1,142 @@
+import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
+import { test } from 'node:test';
+import { canPlaceReserve, decodeSetupState, decodeSetupStateValue } from '../src/setup-protocol.ts';
+
+const state = { matchId: '12345678-1234-1234-1234-123456789abc', revision: 2, callerRole: 'home', phase: 'SETUP', actor: 'home', prompt: null, players: [{ id: 'p1', name: 'Captain', slot: 1, role: 'home', x: 3, y: 4, state: 'standing' }, { id: 'p2', name: 'Reserve', slot: 2, role: 'home', x: null, y: null, state: 'reserve' }], weather: 'Nice', homeRerolls: 2, awayRerolls: 1, actions: [], turn: 0, turnMode: 'setup', ball: null, activePlayerId: null, half: 1, homeTurn: 0, awayTurn: 0, homeScore: 0, awayScore: 0, drive: 1 };
+const response = { version: 1, type: 'setupState', requestId: 'load', code: 'ACCEPTED', duplicate: false, state };
+test('decodes a complete authoritative setup snapshot', () => assert.equal(decodeSetupState(JSON.stringify(response)).state?.players[1].x, null));
+test('legacy setup decoder accepts native illegal-setup diagnostics without admitting private fields', () => {
+  const illegal = {...response,code:'ILLEGAL_SETUP',setupErrors:['Too many players in a wide zone.']};
+  assert.doesNotThrow(() => decodeSetupState(JSON.stringify(illegal)));
+  assert.throws(() => decodeSetupState(JSON.stringify({...illegal,setupErrors:[null]})));
+  assert.throws(() => decodeSetupState(JSON.stringify({...illegal,code:'ACCEPTED'})));
+  assert.throws(() => decodeSetupState(JSON.stringify({...illegal,privateDice:['hidden']})));
+});
+test('versioned public art identity accepts known values and null fallback, but rejects malformed fields', () => {
+  const versioned = { ...state, projectionVersion: 2, players: state.players.map((player, index) => ({ ...player, art: index === 0 ? { rosterId: 'human', positionId: 'lineman' } : null })) };
+  assert.deepEqual(decodeSetupStateValue(versioned).players[0].art, { rosterId: 'human', positionId: 'lineman' });
+  assert.equal(decodeSetupStateValue({ ...versioned, callerRole: 'spectator' }, true).players[1].art, null);
+  assert.throws(() => decodeSetupStateValue({ ...versioned, projectionVersion: 4 }));
+  assert.throws(() => decodeSetupStateValue({ ...versioned, players: [{ ...versioned.players[0], art: { rosterId: 'human', positionId: 'lineman', owner: 'private' } }, versioned.players[1]] }));
+  assert.throws(() => decodeSetupStateValue({ ...versioned, players: [{ ...versioned.players[0], art: { rosterId: 'human' } }, versioned.players[1]] }));
+  assert.throws(() => decodeSetupStateValue({ ...state, players: [{ ...state.players[0], art: null }, state.players[1]] }));
+});
+test('version-three actions require bounded server target metadata', () => {
+  const players = state.players.map(player => ({ ...player, art: null }));
+  const versioned = { ...state, projectionVersion: 3, players, actions: [
+    { id: '2:select-p1', label: 'Move Captain', actor: 'home', kind: 'select', target: { playerId: 'p1' } },
+    { id: '2:move-4-4', label: 'Move to 4, 4', actor: 'home', kind: 'move', target: { x: 4, y: 4 } },
+    { id: '2:end-turn', label: 'End turn', actor: 'home', kind: 'endTurn', target: null }
+  ] };
+  assert.deepEqual(decodeSetupStateValue(versioned).actions[1].target, { x: 4, y: 4 });
+  assert.throws(() => decodeSetupStateValue({ ...versioned, actions: [{ ...versioned.actions[0], target: { playerId: 'secret' } }] }));
+  assert.throws(() => decodeSetupStateValue({ ...versioned, actions: [{ ...versioned.actions[1], target: { x: 26, y: 4 } }] }));
+  assert.throws(() => decodeSetupStateValue({ ...versioned, actions: [{ ...versioned.actions[2], target: { x: 4, y: 4, odds: 99 } }] }));
+  assert.throws(() => decodeSetupStateValue({ ...versioned, actions: [{ id: '2:end-turn', label: 'End turn', actor: 'home', kind: 'endTurn' }] }));
+});
+test('version-four match details are strict and role-consistent', () => {
+  const frames = JSON.parse(readFileSync(new URL('./fixtures/m5a-blitz-projections.json', import.meta.url), 'utf8'));
+  const live = frames[0].actor;
+  const decoded = decodeSetupStateValue(live);
+  assert.equal(decoded.projectionVersion, 4);
+  assert.equal(decoded.homeTeamName, 'Home Team');
+  assert.equal(decoded.players[0].number, 1);
+  assert.equal(decoded.players[0].offPitch, 'pitch');
+  assert.equal(decoded.actions.find(action => action.kind === 'blitz')?.sourcePlayerId, decoded.players[0].id);
+  assert.throws(() => decodeSetupStateValue({ ...live, homeTeamName: '' }));
+  assert.equal(decodeSetupStateValue({ ...live, homeResources: { ...live.homeResources, bribes: 1 } }).homeResources?.bribes, 1);
+  assert.throws(() => decodeSetupStateValue({ ...live, homeResources: { ...live.homeResources, secret: 1 } }));
+  assert.throws(() => decodeSetupStateValue({ ...live, players: [{ ...live.players[0], offPitch: 'reserve' }, ...live.players.slice(1)] }));
+  assert.throws(() => decodeSetupStateValue({ ...live, actions: [{ ...live.actions[0], sourcePlayerId: live.players[1].id }, ...live.actions.slice(1)] }));
+  assert.throws(() => decodeSetupStateValue({ ...live, actions: [{ ...live.actions[0], sourcePlayerId: 'missing' }, ...live.actions.slice(1)] }));
+});
+
+test('version-four player card fields accept authoritative subtypes and status only', () => {
+  const frames = JSON.parse(readFileSync(new URL('./fixtures/m5a-blitz-projections.json', import.meta.url), 'utf8'));
+  const live = frames[0].actor;
+  const player = { ...live.players[0], positionRace: 'Human', positionRole: 'Lineman', status: 'Distracted' };
+  assert.equal(decodeSetupStateValue({ ...live, players: [player, ...live.players.slice(1)] }).players[0].status, 'Distracted');
+  assert.throws(() => decodeSetupStateValue({ ...live, players: [{ ...player, positionRole: undefined }, ...live.players.slice(1)] }));
+  assert.throws(() => decodeSetupStateValue({ ...live, players: [{ ...player, cardSecret: true }, ...live.players.slice(1)] }));
+});
+
+test('version-four clock projection accepts bounded times and rejects malformed roles', () => {
+  const frames = JSON.parse(readFileSync(new URL('./fixtures/m5a-blitz-projections.json', import.meta.url), 'utf8'));
+  const live = frames[0].actor;
+  const clock = { activeRole: 'home', turnElapsedMs: 15_000, homeReserveMs: 600_000, awayReserveMs: 600_000 };
+  assert.deepEqual(decodeSetupStateValue({ ...live, clock }).clock, clock);
+  assert.throws(() => decodeSetupStateValue({ ...live, clock: { ...clock, activeRole: 'spectator' } }));
+  assert.throws(() => decodeSetupStateValue({ ...live, clock: { ...clock, homeReserveMs: 600_001 } }));
+  assert.throws(() => decodeSetupStateValue({ ...live, clock: { ...clock, privateTime: 1 } }));
+});
+test('decodes the versioned save/resume status and rejects malformed proposal data', () => {
+  const saveResume = { status: 'SAVE_PENDING', proposalId: '12345678-1234-1234-1234-123456789abc', proposer: 'away', expiresAt: 1_700_000_000_000 };
+  assert.equal(decodeSetupState(JSON.stringify({ ...response, state: { ...state, saveResume } })).state?.saveResume?.status, 'SAVE_PENDING');
+  assert.throws(() => decodeSetupState(JSON.stringify({ ...response, state: { ...state, saveResume: { ...saveResume, proposer: 'spectator' } } })));
+  assert.throws(() => decodeSetupState(JSON.stringify({ ...response, state: { ...state, saveResume: { status: 'SUSPENDED', proposalId: saveResume.proposalId, proposer: 'away', expiresAt: null } } })));
+});
+test('decodes server-issued play actions and board state', () => {
+  const play = { ...state, phase: 'PLAY', turn: 3, turnMode: 'home', ball: { x: 12, y: 7 }, activePlayerId: 'p1', actions: [{ id: 'kick:12,7', label: 'Kick to 12, 7', actor: 'home', kind: 'kickoff' }, { id: 'end', label: 'End turn', actor: 'home', kind: 'endTurn' }] };
+  const decoded = decodeSetupState(JSON.stringify({ ...response, state: play })).state!;
+  assert.equal(decoded.actions[0].kind, 'kickoff'); assert.deepEqual(decoded.ball, { x: 12, y: 7 }); assert.equal(decoded.players[0].state, 'standing');
+});
+test('accepts broadcasts and validates prompt option shape', () => { const broadcast = { ...response, requestId: null, state: { ...state, prompt: { id: 'coin-1', actor: 'away', kind: 'coin', options: ['heads','tails'] } } }; assert.equal(decodeSetupState(JSON.stringify(broadcast)).state?.prompt?.kind, 'coin'); assert.throws(() => decodeSetupState(JSON.stringify({ ...broadcast, state: { ...broadcast.state, prompt: { ...broadcast.state.prompt, options: ['heads','kick'] } } }))); });
+test('fails closed for unknown fields, illegal coordinates, and rejected state payloads', () => { assert.throws(() => decodeSetupState(JSON.stringify({ ...response, extra: true }))); assert.throws(() => decodeSetupState(JSON.stringify({ ...response, state: { ...state, players: [{ ...state.players[0], x: 26 }] } }))); assert.throws(() => decodeSetupState(JSON.stringify({ ...response, code: 'STALE_REVISION' }))); });
+test('rejects malformed server action and gameplay fields', () => {
+  assert.throws(() => decodeSetupState(JSON.stringify({ ...response, state: { ...state, actions: [{ id: '', label: 'End turn', actor: 'home', kind: 'endTurn' }] } })));
+  assert.throws(() => decodeSetupState(JSON.stringify({ ...response, state: { ...state, actions: [{ id: 'a', label: 'End turn', actor: 'spectator', kind: 'endTurn' }] } })));
+  assert.throws(() => decodeSetupState(JSON.stringify({ ...response, state: { ...state, actions: Array.from({ length: 8193 }, (_, index) => ({ id: String(index), label: 'Action', actor: 'home', kind: 'move' })) } })));
+  assert.throws(() => decodeSetupState(JSON.stringify({ ...response, state: { ...state, ball: { x: 26, y: 7 } } })));
+  assert.throws(() => decodeSetupState(JSON.stringify({ ...response, state: { ...state, half: 0 } })));
+  assert.throws(() => decodeSetupState(JSON.stringify({ ...response, state: { ...state, drive: 0 } })));
+});
+test('only enables placement for a caller-owned player on an empty own-half square', () => { const decoded = decodeSetupState(JSON.stringify(response)).state!; assert.equal(canPlaceReserve(decoded, 'p2', 8, 7), true); assert.equal(canPlaceReserve(decoded, 'p1', 8, 7), true); assert.equal(canPlaceReserve(decoded, 'p2', 3, 4), false); assert.equal(canPlaceReserve(decoded, 'p2', 13, 7), false); });
+
+test('phase and persisted decision owner gate placement even for an owned player', () => {
+  const decoded = decodeSetupState(JSON.stringify(response)).state!;
+  assert.equal(canPlaceReserve({ ...decoded, actor: 'away' }, 'p2', 8, 7), false);
+  assert.equal(canPlaceReserve({ ...decoded, phase: 'PRE_MATCH' }, 'p2', 8, 7), false);
+  assert.equal(canPlaceReserve({ ...decoded, phase: 'READY_FOR_KICKOFF' }, 'p2', 8, 7), false);
+  assert.equal(canPlaceReserve(decoded, 'p1', 3, 4), false);
+});
+test('illegal formation replies and retries preserve their authoritative correction snapshot', () => {
+  assert.equal(decodeSetupState(JSON.stringify({ ...response, code: 'ILLEGAL_SETUP' })).state?.revision, 2);
+  assert.equal(decodeSetupState(JSON.stringify({ ...response, code: 'ILLEGAL_SETUP', duplicate: true })).duplicate, true);
+  assert.equal(decodeSetupState(JSON.stringify({ ...response, code: 'SESSION_UNAVAILABLE', state: null })).state, null);
+  assert.throws(() => decodeSetupState(JSON.stringify({ ...response, code: 'SESSION_UNAVAILABLE' })));
+});
+test('accepts bounded recovery error codes without accepting unknown codes', () => {
+  for (const code of ['RECOVERY_UNSUPPORTED', 'RECOVERY_CORRUPT', 'RECOVERY_CONFLICT', 'RECOVERY_LIMIT', 'ACTIVATION_LIMIT']) {
+    assert.equal(decodeSetupState(JSON.stringify({ ...response, code, state: null })).code, code);
+  }
+  assert.throws(() => decodeSetupState(JSON.stringify({ ...response, code: 'RECOVERY_UNKNOWN', state: null })));
+});
+
+
+test('frozen team art is a paired optional v4 identity even with no pitch players', () => {
+  const live = JSON.parse(readFileSync(new URL('./fixtures/m5a-blitz-projections.json', import.meta.url), 'utf8'))[0].actor;
+  const homeTeamArt = { rosterId: 'human', league: 'Old World Classic' };
+  const awayTeamArt = { rosterId: 'orc', league: 'Badlands Brawl' };
+  const empty = { ...live, players: [], actions: [], playerActionMenu: [], activePlayerId: null };
+  delete empty.homeTeamArt; delete empty.awayTeamArt; // Retained legacy v4 form.
+  assert.equal(decodeSetupStateValue(empty).homeTeamArt, undefined);
+  assert.deepEqual(decodeSetupStateValue({ ...empty, homeTeamArt, awayTeamArt }).awayTeamArt, awayTeamArt);
+  assert.throws(() => decodeSetupStateValue({ ...empty, homeTeamArt }));
+  assert.throws(() => decodeSetupStateValue({ ...empty, homeTeamArt, awayTeamArt: { ...awayTeamArt, secret: 1 } }));
+  assert.throws(() => decodeSetupStateValue({ ...empty, homeTeamArt: { ...homeTeamArt, league: '' }, awayTeamArt }));
+  assert.throws(() => decodeSetupStateValue({ ...state, homeTeamArt, awayTeamArt }));
+});
+
+test('skill marker facts validate core identity, category and provenance in live and replay snapshots', () => {
+  const live = JSON.parse(readFileSync(new URL('./fixtures/m5a-blitz-projections.json', import.meta.url), 'utf8'))[0].actor;
+  const data = { version: 1, entries: [{ id: 'block', category: 'GENERAL', origin: 'acquired' }], details: ['Block', 'Loner (4+)', 'Star ability'] };
+  const snapshot = (skillMarkers: unknown) => ({ ...live, players: [{ ...live.players[0], skillMarkers }, ...live.players.slice(1)] });
+  assert.deepEqual(decodeSetupStateValue(snapshot(data)).players[0].skillMarkers, data);
+  assert.deepEqual(decodeSetupStateValue({ ...snapshot(data), callerRole: 'spectator' }, true).players[0].skillMarkers, data);
+  for (const entry of [ { id: 'star-ability', category: 'TRAIT', origin: 'base' },
+    { id: 'block', category: 'TRAIT', origin: 'base' }, { id: 'block', category: 'GENERAL', origin: 'unknown' } ])
+    assert.throws(() => decodeSetupStateValue(snapshot({ ...data, entries: [entry] })));
+  for (const invalid of [{ ...data, version: 2 }, { ...data, entries: [...data.entries, ...data.entries] }, { ...data, privateDice: [] }, { ...data, details: [''] }])
+    assert.throws(() => decodeSetupStateValue(snapshot(invalid)));
+});

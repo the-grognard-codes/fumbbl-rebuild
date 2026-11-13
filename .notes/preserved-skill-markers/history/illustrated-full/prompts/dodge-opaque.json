@@ -1,0 +1,8 @@
+{
+  "id": "dodge",
+  "prompt": "Create an opaque export master of this revised DODGE marker. Keep the exact approved boot, curved evasion swoosh, gold #E9BF43 panel, portrait frame and pale keyline. The incoming shin/ankle arrow was intentionally removed: DO NOT add any arrow. Repair ONLY the muddy transparent-looking patch where the arrow used to be, filling it with clean solid opaque gold matching the panel. The whole image including exterior navy #091726 must be opaque; standard export supplies clipped transparent corners. Preserve the simple cream/navy style and all remaining artwork. No text, numbers, tiny detail or additional symbols.",
+  "mode": "built-in image_gen",
+  "source": "sources/dodge-opaque.png",
+  "opaqueMaster": true,
+  "generatedPath": "C:\\Users\\jaken\\.codex\\generated_images\\01a147d8-07c0-70f3-b9cf-9059b8f3c38a\\exec-f3ea6343-4cc7-48b1-8939-cf151ec3af05.png"
+}

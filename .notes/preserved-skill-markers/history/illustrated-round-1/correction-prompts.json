@@ -1,0 +1,20 @@
+{
+  "mode": "built-in image_gen",
+  "corrections": [
+    {
+      "id": "dirty-player",
+      "prompt": "Precise-object-edit of the provided generated skill badge. Preserve its exact central emblem, portrait shape, frame, pale keyline, and exterior transparency. Repair ONLY the category background: replace every muddy blotch, black/green noisy patch, and accidental interior transparent hole with one absolutely solid opaque flat color #E7AA6A. Every pixel inside the category panel must be fully opaque. Keep all drawn emblem contours and cel shading intact. Do not alter the overall composition. No letters, numbers or text. Exterior outside clipped-corner badge remains genuinely transparent.",
+      "filename": "dirty-player-clean.png"
+    },
+    {
+      "id": "secret-weapon",
+      "prompt": "Precise-object-edit of the provided generated skill badge. Preserve its exact central emblem, portrait shape, frame, pale keyline, and exterior transparency. Repair ONLY the category background: replace every muddy blotch, black/green noisy patch, and accidental interior transparent hole with one absolutely solid opaque flat color #10141A. Every pixel inside the category panel must be fully opaque. Keep all drawn emblem contours and cel shading intact. Do not alter the overall composition. No letters, numbers or text. Exterior outside clipped-corner badge remains genuinely transparent.",
+      "filename": "secret-weapon-clean.png"
+    },
+    {
+      "id": "pass",
+      "prompt": "Use case: stylized-concept. Generate ONE illustrated fantasy-football PASS skill marker. Use the reference only for the navy clipped-corner portrait frame and cream flat cel-shaded style. Change interior to a perfectly flat opaque sage green #7AC59C. A single very large ivory fantasy football with bold dark laces flies diagonally upward above one broad ivory curved trajectory swoosh. Strong silhouette; only two tones per object; thick navy outline. No extra objects, no text, numbers, specks, blotches, gradients, transparency or holes anywhere in the green panel. Full card front facing, centered, 3:4 portrait, frame fills nearly whole canvas. Use solid dark navy #091726 outside the clipped card corners. This is an opaque master intended for standard frame-clipped icon exports. Original symbol, do not copy videogame artwork.",
+      "filename": "pass-opaque.png"
+    }
+  ]
+}

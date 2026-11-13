@@ -1,0 +1,31 @@
+{
+  "status": "passed",
+  "identities": 108,
+  "categorySkills": 72,
+  "coreTraits": 36,
+  "svgCount": 108,
+  "pngCount": 432,
+  "screenshots": [
+    "all-text-markers.png",
+    "agility-text-markers.png",
+    "devious-text-markers.png",
+    "general-text-markers.png",
+    "mutation-text-markers.png",
+    "passing-text-markers.png",
+    "strength-text-markers.png",
+    "trait-text-markers.png"
+  ],
+  "approvedSamplesUnchanged": 19,
+  "manifestExactMatch": true,
+  "letterOnlyUniqueLabels": true,
+  "transparentPngs": true,
+  "searchAndCategoryFilters": true,
+  "responsiveWidths": [
+    1600,
+    915,
+    390
+  ],
+  "browserErrors": [],
+  "failedResponses": [],
+  "scope": "Artwork exports and review gallery only; no live-play, replay or recovery code changed."
+}

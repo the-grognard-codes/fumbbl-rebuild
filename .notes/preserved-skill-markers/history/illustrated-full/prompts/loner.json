@@ -1,0 +1,8 @@
+{
+  "id": "loner",
+  "mode": "approved round-2 reuse",
+  "source": "sources/loner.png",
+  "reference": ".notes\\player-skill-markers\\illustrated-round-2\\loner.png",
+  "sha256": "ffe1b3e88b8a5b9370294024d3a099b675b40c77ca50d924f27dfea0d94b1194",
+  "opaqueMaster": false
+}

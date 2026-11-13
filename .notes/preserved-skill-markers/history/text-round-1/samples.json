@@ -1,0 +1,100 @@
+[
+  {
+    "id": "block",
+    "name": "Block",
+    "label": "B",
+    "category": "GENERAL",
+    "fill": "#49DFFF"
+  },
+  {
+    "id": "dodge",
+    "name": "Dodge",
+    "label": "D",
+    "category": "AGILITY",
+    "fill": "#FFE17B"
+  },
+  {
+    "id": "tackle",
+    "name": "Tackle",
+    "label": "T",
+    "category": "GENERAL",
+    "fill": "#49DFFF"
+  },
+  {
+    "id": "guard",
+    "name": "Guard",
+    "label": "G",
+    "category": "STRENGTH",
+    "fill": "#E4777F"
+  },
+  {
+    "id": "mighty-blow",
+    "name": "Mighty Blow",
+    "label": "MB",
+    "category": "STRENGTH",
+    "fill": "#E4777F"
+  },
+  {
+    "id": "claws",
+    "name": "Claws",
+    "label": "CL",
+    "category": "MUTATION",
+    "fill": "#B696DE"
+  },
+  {
+    "id": "pass",
+    "name": "Pass",
+    "label": "PS",
+    "category": "PASSING",
+    "fill": "#7AC59C"
+  },
+  {
+    "id": "dirty-player",
+    "name": "Dirty Player",
+    "label": "DP",
+    "category": "DEVIOUS",
+    "fill": "#E7AA6A"
+  },
+  {
+    "id": "loner",
+    "name": "Loner",
+    "label": "LO",
+    "category": "TRAIT",
+    "fill": "#10141A"
+  },
+  {
+    "id": "bone-head",
+    "name": "Bone Head",
+    "label": "BHD",
+    "category": "TRAIT",
+    "fill": "#10141A"
+  },
+  {
+    "id": "hail-mary-pass",
+    "name": "Hail Mary Pass",
+    "label": "HMP",
+    "category": "PASSING",
+    "fill": "#7AC59C"
+  },
+  {
+    "id": "very-long-legs",
+    "name": "Very Long Legs",
+    "label": "VLL",
+    "category": "MUTATION",
+    "fill": "#B696DE"
+  },
+  {
+    "id": "safe-pair-of-hands",
+    "name": "Safe Pair Of Hands",
+    "label": "SPH",
+    "category": "AGILITY",
+    "fill": "#FFE17B"
+  },
+  {
+    "id": "animosity",
+    "name": "Animosity",
+    "label": "ANI",
+    "category": "TRAIT",
+    "fill": "#10141A"
+  }
+]

@@ -1,0 +1,1730 @@
+[
+  {
+    "id": "catch",
+    "name": "Catch",
+    "label": "C",
+    "category": "AGILITY",
+    "fill": "#E9BF43",
+    "source": "sources/catch.png",
+    "opaqueMaster": true,
+    "concept": "One open ivory catching palm below a descending football, fingers spread upward into a cup; no closed gripping fist.",
+    "png": {
+      "master": "png/master/catch.png",
+      "small": "png/small/catch.png",
+      "medium": "png/medium/catch.png",
+      "large": "png/large/catch.png"
+    }
+  },
+  {
+    "id": "diving-catch",
+    "name": "Diving Catch",
+    "label": "DC",
+    "category": "AGILITY",
+    "fill": "#E9BF43",
+    "source": "sources/diving-catch.png",
+    "opaqueMaster": true,
+    "concept": "One horizontal diving player silhouette with a fully outstretched hand meeting a football; long horizontal body and ball form one clear action.",
+    "png": {
+      "master": "png/master/diving-catch.png",
+      "small": "png/small/diving-catch.png",
+      "medium": "png/medium/diving-catch.png",
+      "large": "png/large/diving-catch.png"
+    }
+  },
+  {
+    "id": "diving-tackle",
+    "name": "Diving Tackle",
+    "label": "DT",
+    "category": "AGILITY",
+    "fill": "#E9BF43",
+    "source": "sources/diving-tackle.png",
+    "opaqueMaster": true,
+    "concept": "A horizontal diving figure clutching an upright boot at the ankle; body-to-ankle L silhouette, no football.",
+    "png": {
+      "master": "png/master/diving-tackle.png",
+      "small": "png/small/diving-tackle.png",
+      "medium": "png/medium/diving-tackle.png",
+      "large": "png/large/diving-tackle.png"
+    }
+  },
+  {
+    "id": "dodge",
+    "name": "Dodge",
+    "label": "D",
+    "category": "AGILITY",
+    "fill": "#E9BF43",
+    "source": "sources/dodge-opaque.png",
+    "opaqueMaster": true,
+    "concept": "Owner-directed revision",
+    "png": {
+      "master": "png/master/dodge.png",
+      "small": "png/small/dodge.png",
+      "medium": "png/medium/dodge.png",
+      "large": "png/large/dodge.png"
+    }
+  },
+  {
+    "id": "defensive",
+    "name": "Defensive",
+    "label": "DEF",
+    "category": "AGILITY",
+    "fill": "#E9BF43",
+    "source": "sources/defensive.png",
+    "opaqueMaster": true,
+    "concept": "One broad shield breaking a short link between two small opposing helmet silhouettes; shield and snapped assist-link, no teammate shelter pose.",
+    "png": {
+      "master": "png/master/defensive.png",
+      "small": "png/small/defensive.png",
+      "medium": "png/medium/defensive.png",
+      "large": "png/large/defensive.png"
+    }
+  },
+  {
+    "id": "hit-and-run",
+    "name": "Hit And Run",
+    "label": "HR",
+    "category": "AGILITY",
+    "fill": "#E9BF43",
+    "source": "sources/hit-and-run.png",
+    "opaqueMaster": true,
+    "concept": "A compact shoulder-impact burst above one large departing boot heel; one sweeping exit curve suggests escaping after the hit.",
+    "png": {
+      "master": "png/master/hit-and-run.png",
+      "small": "png/small/hit-and-run.png",
+      "medium": "png/medium/hit-and-run.png",
+      "large": "png/large/hit-and-run.png"
+    }
+  },
+  {
+    "id": "jump-up",
+    "name": "Jump Up",
+    "label": "JU",
+    "category": "AGILITY",
+    "fill": "#E9BF43",
+    "source": "sources/jump-up.png",
+    "opaqueMaster": true,
+    "concept": "A prone player silhouette springing into an upright pose on one broad upward chevron; flat ground below, no pole or spring boot.",
+    "png": {
+      "master": "png/master/jump-up.png",
+      "small": "png/small/jump-up.png",
+      "medium": "png/medium/jump-up.png",
+      "large": "png/large/jump-up.png"
+    }
+  },
+  {
+    "id": "leap",
+    "name": "Leap",
+    "label": "L",
+    "category": "AGILITY",
+    "fill": "#E9BF43",
+    "source": "sources/leap.png",
+    "opaqueMaster": true,
+    "concept": "Two airborne boots clearing a single tall curved obstacle arch; clear gap beneath the feet, no running footprints.",
+    "png": {
+      "master": "png/master/leap.png",
+      "small": "png/small/leap.png",
+      "medium": "png/medium/leap.png",
+      "large": "png/large/leap.png"
+    }
+  },
+  {
+    "id": "safe-pair-of-hands",
+    "name": "Safe Pair Of Hands",
+    "label": "SPH",
+    "category": "AGILITY",
+    "fill": "#E9BF43",
+    "source": "sources/safe-pair-of-hands.png",
+    "opaqueMaster": true,
+    "concept": "TWO open armored hands forming a deep basket around one football; symmetric paired catching palms, no shield.",
+    "png": {
+      "master": "png/master/safe-pair-of-hands.png",
+      "small": "png/small/safe-pair-of-hands.png",
+      "medium": "png/medium/safe-pair-of-hands.png",
+      "large": "png/large/safe-pair-of-hands.png"
+    }
+  },
+  {
+    "id": "sidestep",
+    "name": "Sidestep",
+    "label": "SS",
+    "category": "AGILITY",
+    "fill": "#E9BF43",
+    "source": "sources/sidestep.png",
+    "opaqueMaster": true,
+    "concept": "Two large bootprints offset sideways across a single horizontal zigzag track; lateral displacement, no incoming arrow or leg armor.",
+    "png": {
+      "master": "png/master/sidestep.png",
+      "small": "png/small/sidestep.png",
+      "medium": "png/medium/sidestep.png",
+      "large": "png/large/sidestep.png"
+    }
+  },
+  {
+    "id": "sprint",
+    "name": "Sprint",
+    "label": "SPR",
+    "category": "AGILITY",
+    "fill": "#E9BF43",
+    "source": "sources/sprint.png",
+    "opaqueMaster": true,
+    "concept": "Three staggered forward bootprints shrinking into the distance with one broad straight speed stroke; clear running track.",
+    "png": {
+      "master": "png/master/sprint.png",
+      "small": "png/small/sprint.png",
+      "medium": "png/medium/sprint.png",
+      "large": "png/large/sprint.png"
+    }
+  },
+  {
+    "id": "sure-feet",
+    "name": "Sure Feet",
+    "label": "SFE",
+    "category": "AGILITY",
+    "fill": "#E9BF43",
+    "source": "sources/sure-feet.png",
+    "opaqueMaster": true,
+    "concept": "Two parallel boot soles planted squarely on a flat ground bar, each with one broad tread stripe; stable pair, no rock or anchor.",
+    "png": {
+      "master": "png/master/sure-feet.png",
+      "small": "png/small/sure-feet.png",
+      "medium": "png/medium/sure-feet.png",
+      "large": "png/large/sure-feet.png"
+    }
+  },
+  {
+    "id": "dirty-player",
+    "name": "Dirty Player",
+    "label": "DP",
+    "category": "DEVIOUS",
+    "fill": "#CE853B",
+    "source": "sources/dirty-player.png",
+    "opaqueMaster": true,
+    "concept": "Approved round 2 artwork",
+    "png": {
+      "master": "png/master/dirty-player.png",
+      "small": "png/small/dirty-player.png",
+      "medium": "png/medium/dirty-player.png",
+      "large": "png/large/dirty-player.png"
+    }
+  },
+  {
+    "id": "eye-gouge",
+    "name": "Eye Gouge",
+    "label": "EG",
+    "category": "DEVIOUS",
+    "fill": "#CE853B",
+    "source": "sources/eye-gouge-v2.png",
+    "opaqueMaster": true,
+    "concept": "One connected armored hand with a visible palm, folded thumb and two angular segmented fingers targeting one stylized eye.",
+    "png": {
+      "master": "png/master/eye-gouge.png",
+      "small": "png/small/eye-gouge.png",
+      "medium": "png/medium/eye-gouge.png",
+      "large": "png/large/eye-gouge.png"
+    }
+  },
+  {
+    "id": "fumblerooski",
+    "name": "Fumblerooski",
+    "label": "FUM",
+    "category": "DEVIOUS",
+    "fill": "#CE853B",
+    "source": "sources/fumblerooski.png",
+    "opaqueMaster": true,
+    "concept": "An open palm placing a football onto a flat ground line with one short downward chevron; deliberate ball drop, no foot.",
+    "png": {
+      "master": "png/master/fumblerooski.png",
+      "small": "png/small/fumblerooski.png",
+      "medium": "png/medium/fumblerooski.png",
+      "large": "png/large/fumblerooski.png"
+    }
+  },
+  {
+    "id": "lethal-flight",
+    "name": "Lethal Flight",
+    "label": "LF",
+    "category": "DEVIOUS",
+    "fill": "#CE853B",
+    "source": "sources/lethal-flight.png",
+    "opaqueMaster": true,
+    "concept": "A tiny helmeted goblin flying headfirst as a diagonal projectile into one broad impact star; streamlined body, no ball or bomb.",
+    "png": {
+      "master": "png/master/lethal-flight.png",
+      "small": "png/small/lethal-flight.png",
+      "medium": "png/medium/lethal-flight.png",
+      "large": "png/large/lethal-flight.png"
+    }
+  },
+  {
+    "id": "lone-fouler",
+    "name": "Lone Fouler",
+    "label": "LFO",
+    "category": "DEVIOUS",
+    "fill": "#CE853B",
+    "source": "sources/lone-fouler.png",
+    "opaqueMaster": true,
+    "concept": "ONE solitary studded boot inside a wide broken isolation ring; no helmet, second boot or opponent figure.",
+    "png": {
+      "master": "png/master/lone-fouler.png",
+      "small": "png/small/lone-fouler.png",
+      "medium": "png/medium/lone-fouler.png",
+      "large": "png/large/lone-fouler.png"
+    }
+  },
+  {
+    "id": "pile-driver",
+    "name": "Pile Driver",
+    "label": "PD",
+    "category": "DEVIOUS",
+    "fill": "#CE853B",
+    "source": "sources/pile-driver.png",
+    "opaqueMaster": true,
+    "concept": "A broad armored elbow descending onto a low prone helmet dome; strong bent-arm corner silhouette, no foot or closed fist.",
+    "png": {
+      "master": "png/master/pile-driver.png",
+      "small": "png/small/pile-driver.png",
+      "medium": "png/medium/pile-driver.png",
+      "large": "png/large/pile-driver.png"
+    }
+  },
+  {
+    "id": "put-the-boot-in",
+    "name": "Put the Boot In",
+    "label": "PBI",
+    "category": "DEVIOUS",
+    "fill": "#CE853B",
+    "source": "sources/put-the-boot-in.png",
+    "opaqueMaster": true,
+    "concept": "Owner-directed revision",
+    "png": {
+      "master": "png/master/put-the-boot-in.png",
+      "small": "png/small/put-the-boot-in.png",
+      "medium": "png/medium/put-the-boot-in.png",
+      "large": "png/large/put-the-boot-in.png"
+    }
+  },
+  {
+    "id": "quick-foul",
+    "name": "Quick Foul",
+    "label": "QF",
+    "category": "DEVIOUS",
+    "fill": "#CE853B",
+    "source": "sources/quick-foul.png",
+    "opaqueMaster": true,
+    "concept": "One kicking boot heel beside a large simple stopwatch face with ONE plain hand and NO numerals; heel-and-clock speed silhouette.",
+    "png": {
+      "master": "png/master/quick-foul.png",
+      "small": "png/small/quick-foul.png",
+      "medium": "png/medium/quick-foul.png",
+      "large": "png/large/quick-foul.png"
+    }
+  },
+  {
+    "id": "saboteur",
+    "name": "Saboteur",
+    "label": "SAB",
+    "category": "DEVIOUS",
+    "fill": "#CE853B",
+    "source": "sources/saboteur.png",
+    "opaqueMaster": true,
+    "concept": "One large broken gear with two separated teeth and a short cut fuse protruding from its side; disabled machinery, no full vehicle or bomb.",
+    "png": {
+      "master": "png/master/saboteur.png",
+      "small": "png/small/saboteur.png",
+      "medium": "png/medium/saboteur.png",
+      "large": "png/large/saboteur.png"
+    }
+  },
+  {
+    "id": "shadowing",
+    "name": "Shadowing",
+    "label": "SHA",
+    "category": "DEVIOUS",
+    "fill": "#CE853B",
+    "source": "sources/shadowing.png",
+    "opaqueMaster": true,
+    "concept": "Two overlapping bootprints with one long dark trailing shadow shape; stalking footprint silhouette, no cloak, hood or dagger.",
+    "png": {
+      "master": "png/master/shadowing.png",
+      "small": "png/small/shadowing.png",
+      "medium": "png/medium/shadowing.png",
+      "large": "png/large/shadowing.png"
+    }
+  },
+  {
+    "id": "sneaky-git",
+    "name": "Sneaky Git",
+    "label": "SG",
+    "category": "DEVIOUS",
+    "fill": "#CE853B",
+    "source": "sources/sneaky-git.png",
+    "opaqueMaster": true,
+    "concept": "A tiptoeing boot peeking behind one small brick wall corner, with two broad stealth curves; concealed sneaking foot, no helmet or clock.",
+    "png": {
+      "master": "png/master/sneaky-git.png",
+      "small": "png/small/sneaky-git.png",
+      "medium": "png/medium/sneaky-git.png",
+      "large": "png/large/sneaky-git.png"
+    }
+  },
+  {
+    "id": "violent-innovator",
+    "name": "Violent Innovator",
+    "label": "VI",
+    "category": "DEVIOUS",
+    "fill": "#CE853B",
+    "source": "sources/violent-innovator.png",
+    "opaqueMaster": true,
+    "concept": "A chunky wrench crossed with a spiked knuckle-duster and one simple idea spark; improvised violent invention, no gears or bomb.",
+    "png": {
+      "master": "png/master/violent-innovator.png",
+      "small": "png/small/violent-innovator.png",
+      "medium": "png/medium/violent-innovator.png",
+      "large": "png/large/violent-innovator.png"
+    }
+  },
+  {
+    "id": "block",
+    "name": "Block",
+    "label": "B",
+    "category": "GENERAL",
+    "fill": "#25B9DC",
+    "source": "sources/block.png",
+    "opaqueMaster": false,
+    "concept": "Approved round 2 artwork",
+    "png": {
+      "master": "png/master/block.png",
+      "small": "png/small/block.png",
+      "medium": "png/medium/block.png",
+      "large": "png/large/block.png"
+    }
+  },
+  {
+    "id": "dauntless",
+    "name": "Dauntless",
+    "label": "DA",
+    "category": "GENERAL",
+    "fill": "#25B9DC",
+    "source": "sources/dauntless.png",
+    "opaqueMaster": true,
+    "concept": "A small ivory clenched fist confronting an enormous dark horned helmet; clear small-versus-large courage silhouette, only two objects.",
+    "png": {
+      "master": "png/master/dauntless.png",
+      "small": "png/small/dauntless.png",
+      "medium": "png/medium/dauntless.png",
+      "large": "png/large/dauntless.png"
+    }
+  },
+  {
+    "id": "fend",
+    "name": "Fend",
+    "label": "FE",
+    "category": "GENERAL",
+    "fill": "#25B9DC",
+    "source": "sources/fend.png",
+    "opaqueMaster": true,
+    "concept": "One large open armored palm pushing a much smaller helmet away; upright stop-hand dominates, no shield or football.",
+    "png": {
+      "master": "png/master/fend.png",
+      "small": "png/small/fend.png",
+      "medium": "png/medium/fend.png",
+      "large": "png/large/fend.png"
+    }
+  },
+  {
+    "id": "frenzy",
+    "name": "Frenzy",
+    "label": "F",
+    "category": "GENERAL",
+    "fill": "#25B9DC",
+    "source": "sources/frenzy.png",
+    "opaqueMaster": true,
+    "concept": "Two successive clenched fists arranged diagonally with one broad repeating impact arc; repeated attacking strikes, no crossed forearms.",
+    "png": {
+      "master": "png/master/frenzy.png",
+      "small": "png/small/frenzy.png",
+      "medium": "png/medium/frenzy.png",
+      "large": "png/large/frenzy.png"
+    }
+  },
+  {
+    "id": "kick",
+    "name": "Kick",
+    "label": "K",
+    "category": "GENERAL",
+    "fill": "#25B9DC",
+    "source": "sources/kick.png",
+    "opaqueMaster": true,
+    "concept": "One side-on boot striking a football horizontally; clear boot-left ball-right composition, one short straight motion stroke.",
+    "png": {
+      "master": "png/master/kick.png",
+      "small": "png/small/kick.png",
+      "medium": "png/medium/kick.png",
+      "large": "png/large/kick.png"
+    }
+  },
+  {
+    "id": "pro",
+    "name": "Pro",
+    "label": "P",
+    "category": "GENERAL",
+    "fill": "#25B9DC",
+    "source": "sources/pro.png",
+    "opaqueMaster": true,
+    "concept": "A single large five-point ivory star inside a broad laurel wreath; calm mastery emblem, no letters or numbers.",
+    "png": {
+      "master": "png/master/pro.png",
+      "small": "png/small/pro.png",
+      "medium": "png/medium/pro.png",
+      "large": "png/large/pro.png"
+    }
+  },
+  {
+    "id": "steady-footing",
+    "name": "Steady Footing",
+    "label": "STF",
+    "category": "GENERAL",
+    "fill": "#25B9DC",
+    "source": "sources/steady-footing.png",
+    "opaqueMaster": true,
+    "concept": "A single boot balanced securely atop a cracked uneven stone, one broad horizontal balance stroke; no anchor or padlock.",
+    "png": {
+      "master": "png/master/steady-footing.png",
+      "small": "png/small/steady-footing.png",
+      "medium": "png/medium/steady-footing.png",
+      "large": "png/large/steady-footing.png"
+    }
+  },
+  {
+    "id": "strip-ball",
+    "name": "Strip Ball",
+    "label": "SB",
+    "category": "GENERAL",
+    "fill": "#25B9DC",
+    "source": "sources/strip-ball.png",
+    "opaqueMaster": true,
+    "concept": "An open hooked glove peeling a football out of a second small cupped glove; the separating ball and hooked hand dominate.",
+    "png": {
+      "master": "png/master/strip-ball.png",
+      "small": "png/small/strip-ball.png",
+      "medium": "png/medium/strip-ball.png",
+      "large": "png/large/strip-ball.png"
+    }
+  },
+  {
+    "id": "sure-hands",
+    "name": "Sure Hands",
+    "label": "SH",
+    "category": "GENERAL",
+    "fill": "#25B9DC",
+    "source": "sources/sure-hands.png",
+    "opaqueMaster": true,
+    "concept": "A single huge closed glove gripping a football tightly; three broad finger shapes wrap around its sides, no open catching palm.",
+    "png": {
+      "master": "png/master/sure-hands.png",
+      "small": "png/small/sure-hands.png",
+      "medium": "png/medium/sure-hands.png",
+      "large": "png/large/sure-hands.png"
+    }
+  },
+  {
+    "id": "tackle",
+    "name": "Tackle",
+    "label": "T",
+    "category": "GENERAL",
+    "fill": "#25B9DC",
+    "source": "sources/tackle.png",
+    "opaqueMaster": true,
+    "concept": "Two chunky armored hands locked around an opponent's upright lower leg; vertical ankle-capture silhouette, no diving body.",
+    "png": {
+      "master": "png/master/tackle.png",
+      "small": "png/small/tackle.png",
+      "medium": "png/medium/tackle.png",
+      "large": "png/large/tackle.png"
+    }
+  },
+  {
+    "id": "taunt",
+    "name": "Taunt",
+    "label": "TA",
+    "category": "GENERAL",
+    "fill": "#25B9DC",
+    "source": "sources/taunt.png",
+    "opaqueMaster": true,
+    "concept": "An exaggerated grinning mouth with tongue protruding above one small beckoning index finger; clean cheeky provocation emblem.",
+    "png": {
+      "master": "png/master/taunt.png",
+      "small": "png/small/taunt.png",
+      "medium": "png/medium/taunt.png",
+      "large": "png/large/taunt.png"
+    }
+  },
+  {
+    "id": "wrestle",
+    "name": "Wrestle",
+    "label": "W",
+    "category": "GENERAL",
+    "fill": "#25B9DC",
+    "source": "sources/wrestle.png",
+    "opaqueMaster": true,
+    "concept": "Two opposing arms interlocked in a rounded grappling knot; elbows form a circular silhouette, no X-shaped crossed gauntlets.",
+    "png": {
+      "master": "png/master/wrestle.png",
+      "small": "png/small/wrestle.png",
+      "medium": "png/medium/wrestle.png",
+      "large": "png/large/wrestle.png"
+    }
+  },
+  {
+    "id": "big-hand",
+    "name": "Big Hand",
+    "label": "BH",
+    "category": "MUTATION",
+    "fill": "#9268C3",
+    "source": "sources/big-hand.png",
+    "opaqueMaster": true,
+    "concept": "One enormous open hand dwarfing a tiny football in its palm; dramatically oversized fingers, no second hand.",
+    "png": {
+      "master": "png/master/big-hand.png",
+      "small": "png/small/big-hand.png",
+      "medium": "png/medium/big-hand.png",
+      "large": "png/large/big-hand.png"
+    }
+  },
+  {
+    "id": "claws",
+    "name": "Claws",
+    "label": "CL",
+    "category": "MUTATION",
+    "fill": "#9268C3",
+    "source": "sources/claws.png",
+    "opaqueMaster": false,
+    "concept": "Owner-directed revision",
+    "png": {
+      "master": "png/master/claws.png",
+      "small": "png/small/claws.png",
+      "medium": "png/medium/claws.png",
+      "large": "png/large/claws.png"
+    }
+  },
+  {
+    "id": "disturbing-presence",
+    "name": "Disturbing Presence",
+    "label": "DIS",
+    "category": "MUTATION",
+    "fill": "#9268C3",
+    "source": "sources/disturbing-presence.png",
+    "opaqueMaster": true,
+    "concept": "A small faceless player silhouette inside a large jagged radiating aura ring; the disruptive aura dominates, no detailed face.",
+    "png": {
+      "master": "png/master/disturbing-presence.png",
+      "small": "png/small/disturbing-presence.png",
+      "medium": "png/medium/disturbing-presence.png",
+      "large": "png/large/disturbing-presence.png"
+    }
+  },
+  {
+    "id": "extra-arms",
+    "name": "Extra Arms",
+    "label": "EA",
+    "category": "MUTATION",
+    "fill": "#9268C3",
+    "source": "sources/extra-arms.png",
+    "opaqueMaster": true,
+    "concept": "One simple torso with FOUR broad ivory arms fanning out, two per side; no heads or extra fingers, clear multi-arm silhouette.",
+    "png": {
+      "master": "png/master/extra-arms.png",
+      "small": "png/small/extra-arms.png",
+      "medium": "png/medium/extra-arms.png",
+      "large": "png/large/extra-arms.png"
+    }
+  },
+  {
+    "id": "foul-appearance",
+    "name": "Foul Appearance",
+    "label": "FA",
+    "category": "MUTATION",
+    "fill": "#9268C3",
+    "source": "sources/foul-appearance.png",
+    "opaqueMaster": true,
+    "concept": "One broad lopsided ugly monster face with a single swollen eye and two large warts; repellent expression, no hollow forehead or blood.",
+    "png": {
+      "master": "png/master/foul-appearance.png",
+      "small": "png/small/foul-appearance.png",
+      "medium": "png/medium/foul-appearance.png",
+      "large": "png/large/foul-appearance.png"
+    }
+  },
+  {
+    "id": "horns",
+    "name": "Horns",
+    "label": "H",
+    "category": "MUTATION",
+    "fill": "#9268C3",
+    "source": "sources/horns.png",
+    "opaqueMaster": true,
+    "concept": "Two huge forward-curving ivory horns on a low armored brow; horns dominate the entire badge, no full face or smoke.",
+    "png": {
+      "master": "png/master/horns.png",
+      "small": "png/small/horns.png",
+      "medium": "png/medium/horns.png",
+      "large": "png/large/horns.png"
+    }
+  },
+  {
+    "id": "iron-hard-skin",
+    "name": "Iron Hard Skin",
+    "label": "IHS",
+    "category": "MUTATION",
+    "fill": "#9268C3",
+    "source": "sources/iron-hard-skin.png",
+    "opaqueMaster": true,
+    "concept": "Three broad overlapping metal scales forming one thick armored skin patch; layered angular hide silhouette, no skull or helmet.",
+    "png": {
+      "master": "png/master/iron-hard-skin.png",
+      "small": "png/small/iron-hard-skin.png",
+      "medium": "png/medium/iron-hard-skin.png",
+      "large": "png/large/iron-hard-skin.png"
+    }
+  },
+  {
+    "id": "monstrous-mouth",
+    "name": "Monstrous Mouth",
+    "label": "MM",
+    "category": "MUTATION",
+    "fill": "#9268C3",
+    "source": "sources/monstrous-mouth.png",
+    "opaqueMaster": true,
+    "concept": "One enormous round monster maw enclosing a tiny football, with four broad blunt fangs and a deep dark interior; no blood drop.",
+    "png": {
+      "master": "png/master/monstrous-mouth.png",
+      "small": "png/small/monstrous-mouth.png",
+      "medium": "png/medium/monstrous-mouth.png",
+      "large": "png/large/monstrous-mouth.png"
+    }
+  },
+  {
+    "id": "prehensile-tail",
+    "name": "Prehensile Tail",
+    "label": "PT",
+    "category": "MUTATION",
+    "fill": "#9268C3",
+    "source": "sources/prehensile-tail.png",
+    "opaqueMaster": true,
+    "concept": "One long S-shaped animal tail curling firmly around a small opponent boot; tail loop dominates, no suckers or claws.",
+    "png": {
+      "master": "png/master/prehensile-tail.png",
+      "small": "png/small/prehensile-tail.png",
+      "medium": "png/medium/prehensile-tail.png",
+      "large": "png/large/prehensile-tail.png"
+    }
+  },
+  {
+    "id": "tentacles",
+    "name": "Tentacles",
+    "label": "TE",
+    "category": "MUTATION",
+    "fill": "#9268C3",
+    "source": "sources/tentacles.png",
+    "opaqueMaster": true,
+    "concept": "Two long looping tentacles encircling a small dark boot, with just three large round suckers; rounded coils and blunt ends, no sharp claw tips.",
+    "png": {
+      "master": "png/master/tentacles.png",
+      "small": "png/small/tentacles.png",
+      "medium": "png/medium/tentacles.png",
+      "large": "png/large/tentacles.png"
+    }
+  },
+  {
+    "id": "two-heads",
+    "name": "Two Heads",
+    "label": "TH",
+    "category": "MUTATION",
+    "fill": "#9268C3",
+    "source": "sources/two-heads.png",
+    "opaqueMaster": true,
+    "concept": "Two simple helmetless monster heads looking in opposite directions from one shared neck; clear joined double-head silhouette.",
+    "png": {
+      "master": "png/master/two-heads.png",
+      "small": "png/small/two-heads.png",
+      "medium": "png/medium/two-heads.png",
+      "large": "png/large/two-heads.png"
+    }
+  },
+  {
+    "id": "very-long-legs",
+    "name": "Very Long Legs",
+    "label": "VLL",
+    "category": "MUTATION",
+    "fill": "#9268C3",
+    "source": "sources/very-long-legs.png",
+    "opaqueMaster": true,
+    "concept": "Two extremely elongated bent legs with small boots at the bottom and high knees; tall thin zigzag silhouette, no pogo spring.",
+    "png": {
+      "master": "png/master/very-long-legs.png",
+      "small": "png/small/very-long-legs.png",
+      "medium": "png/medium/very-long-legs.png",
+      "large": "png/large/very-long-legs.png"
+    }
+  },
+  {
+    "id": "accurate",
+    "name": "Accurate",
+    "label": "AC",
+    "category": "PASSING",
+    "fill": "#4D9F76",
+    "source": "sources/accurate.png",
+    "opaqueMaster": true,
+    "concept": "A football perfectly centered in one broad targeting crosshair; ball silhouette and four target brackets, no extra rings.",
+    "png": {
+      "master": "png/master/accurate.png",
+      "small": "png/small/accurate.png",
+      "medium": "png/medium/accurate.png",
+      "large": "png/large/accurate.png"
+    }
+  },
+  {
+    "id": "cannoneer",
+    "name": "Cannoneer",
+    "label": "CAN",
+    "category": "PASSING",
+    "fill": "#4D9F76",
+    "source": "sources/cannoneer.png",
+    "opaqueMaster": true,
+    "concept": "One short broad cannon barrel launching a small football; circular muzzle and one bold recoil stroke, no machine wheels or chimney.",
+    "png": {
+      "master": "png/master/cannoneer.png",
+      "small": "png/small/cannoneer.png",
+      "medium": "png/medium/cannoneer.png",
+      "large": "png/large/cannoneer.png"
+    }
+  },
+  {
+    "id": "cloud-burster",
+    "name": "Cloud Burster",
+    "label": "CB",
+    "category": "PASSING",
+    "fill": "#4D9F76",
+    "source": "sources/cloud-burster.png",
+    "opaqueMaster": true,
+    "concept": "A football bursting through one large split cloud shape; cloud halves make a wide opening around the ascending ball.",
+    "png": {
+      "master": "png/master/cloud-burster.png",
+      "small": "png/small/cloud-burster.png",
+      "medium": "png/medium/cloud-burster.png",
+      "large": "png/large/cloud-burster.png"
+    }
+  },
+  {
+    "id": "dump-off",
+    "name": "Dump-Off",
+    "label": "DO",
+    "category": "PASSING",
+    "fill": "#4D9F76",
+    "source": "sources/dump-off.png",
+    "opaqueMaster": true,
+    "concept": "A gloved hand releasing a football behind a small shoulder plate, with one short backward dropping arc; compact under-pressure release.",
+    "png": {
+      "master": "png/master/dump-off.png",
+      "small": "png/small/dump-off.png",
+      "medium": "png/medium/dump-off.png",
+      "large": "png/large/dump-off.png"
+    }
+  },
+  {
+    "id": "give-and-go",
+    "name": "Give and Go",
+    "label": "GG",
+    "category": "PASSING",
+    "fill": "#4D9F76",
+    "source": "sources/give-and-go.png",
+    "opaqueMaster": true,
+    "concept": "Two opposing gloved hands and a central football linked by one broad returning loop; clear pass-and-move circuit, no numbers.",
+    "png": {
+      "master": "png/master/give-and-go.png",
+      "small": "png/small/give-and-go.png",
+      "medium": "png/medium/give-and-go.png",
+      "large": "png/large/give-and-go.png"
+    }
+  },
+  {
+    "id": "hail-mary-pass",
+    "name": "Hail Mary Pass",
+    "label": "HMP",
+    "category": "PASSING",
+    "fill": "#4D9F76",
+    "source": "sources/hail-mary-pass.png",
+    "opaqueMaster": true,
+    "concept": "One small football at the apex of an extremely tall sweeping throw arc ending at a distant ivory star; huge flight arc dominates.",
+    "png": {
+      "master": "png/master/hail-mary-pass.png",
+      "small": "png/small/hail-mary-pass.png",
+      "medium": "png/medium/hail-mary-pass.png",
+      "large": "png/large/hail-mary-pass.png"
+    }
+  },
+  {
+    "id": "leader",
+    "name": "Leader",
+    "label": "LE",
+    "category": "PASSING",
+    "fill": "#4D9F76",
+    "source": "sources/leader.png",
+    "opaqueMaster": true,
+    "concept": "One helmet beneath a tall simple rally flag on a pole; bold raised banner silhouette, no crown, letters or star wreath.",
+    "png": {
+      "master": "png/master/leader.png",
+      "small": "png/small/leader.png",
+      "medium": "png/medium/leader.png",
+      "large": "png/large/leader.png"
+    }
+  },
+  {
+    "id": "nerves-of-steel",
+    "name": "Nerves of Steel",
+    "label": "NOS",
+    "category": "PASSING",
+    "fill": "#4D9F76",
+    "source": "sources/nerves-of-steel.png",
+    "opaqueMaster": true,
+    "concept": "A calm front-facing helmet held between two heavy steel beam shapes pressing inward; one unwavering dark visor, broad calm symmetrical silhouette.",
+    "png": {
+      "master": "png/master/nerves-of-steel.png",
+      "small": "png/small/nerves-of-steel.png",
+      "medium": "png/medium/nerves-of-steel.png",
+      "large": "png/large/nerves-of-steel.png"
+    }
+  },
+  {
+    "id": "on-the-ball",
+    "name": "On The Ball",
+    "label": "OTB",
+    "category": "PASSING",
+    "fill": "#4D9F76",
+    "source": "sources/on-the-ball.png",
+    "opaqueMaster": true,
+    "concept": "A helmeted head tracking a nearby football with two broad curved awareness brackets; attentive head and ball, no target crosshair or isolation ring.",
+    "png": {
+      "master": "png/master/on-the-ball.png",
+      "small": "png/small/on-the-ball.png",
+      "medium": "png/medium/on-the-ball.png",
+      "large": "png/large/on-the-ball.png"
+    }
+  },
+  {
+    "id": "pass",
+    "name": "Pass",
+    "label": "PS",
+    "category": "PASSING",
+    "fill": "#4D9F76",
+    "source": "sources/pass.png",
+    "opaqueMaster": true,
+    "concept": "Approved round 2 artwork",
+    "png": {
+      "master": "png/master/pass.png",
+      "small": "png/small/pass.png",
+      "medium": "png/medium/pass.png",
+      "large": "png/large/pass.png"
+    }
+  },
+  {
+    "id": "punt",
+    "name": "Punt",
+    "label": "PU",
+    "category": "PASSING",
+    "fill": "#4D9F76",
+    "source": "sources/punt.png",
+    "opaqueMaster": true,
+    "concept": "A boot directly below a football sending it steeply upward on one broad vertical flight arc; upward kick silhouette distinct from horizontal Kick.",
+    "png": {
+      "master": "png/master/punt.png",
+      "small": "png/small/punt.png",
+      "medium": "png/medium/punt.png",
+      "large": "png/large/punt.png"
+    }
+  },
+  {
+    "id": "safe-pass",
+    "name": "Safe Pass",
+    "label": "SP",
+    "category": "PASSING",
+    "fill": "#4D9F76",
+    "source": "sources/safe-pass.png",
+    "opaqueMaster": true,
+    "concept": "A large football enclosed within a protective shield outline; ball-in-shield emblem, no player helmets or hands.",
+    "png": {
+      "master": "png/master/safe-pass.png",
+      "small": "png/small/safe-pass.png",
+      "medium": "png/medium/safe-pass.png",
+      "large": "png/large/safe-pass.png"
+    }
+  },
+  {
+    "id": "arm-bar",
+    "name": "Arm Bar",
+    "label": "AB",
+    "category": "STRENGTH",
+    "fill": "#C94F5C",
+    "source": "sources/arm-bar.png",
+    "opaqueMaster": true,
+    "concept": "A large bent armored elbow held by one opposing glove at a sharp right angle; unmistakable elbow-lock L shape, no football.",
+    "png": {
+      "master": "png/master/arm-bar.png",
+      "small": "png/small/arm-bar.png",
+      "medium": "png/medium/arm-bar.png",
+      "large": "png/large/arm-bar.png"
+    }
+  },
+  {
+    "id": "brawler",
+    "name": "Brawler",
+    "label": "BR",
+    "category": "STRENGTH",
+    "fill": "#C94F5C",
+    "source": "sources/brawler.png",
+    "opaqueMaster": true,
+    "concept": "One sideways armored fist inside a broad curved repeat arc, with a single short impact wedge in front; no downward punch.",
+    "png": {
+      "master": "png/master/brawler.png",
+      "small": "png/small/brawler.png",
+      "medium": "png/medium/brawler.png",
+      "large": "png/large/brawler.png"
+    }
+  },
+  {
+    "id": "break-tackle",
+    "name": "Break Tackle",
+    "label": "BT",
+    "category": "STRENGTH",
+    "fill": "#C94F5C",
+    "source": "sources/break-tackle.png",
+    "opaqueMaster": true,
+    "concept": "One powerful boot bursting through a thick broken chain loop; two large separated chain ends, no rock or opponent hands.",
+    "png": {
+      "master": "png/master/break-tackle.png",
+      "small": "png/small/break-tackle.png",
+      "medium": "png/medium/break-tackle.png",
+      "large": "png/large/break-tackle.png"
+    }
+  },
+  {
+    "id": "bullseye",
+    "name": "Bullseye",
+    "label": "BE",
+    "category": "STRENGTH",
+    "fill": "#C94F5C",
+    "source": "sources/bullseye.png",
+    "opaqueMaster": true,
+    "concept": "One large circular target with a tiny thrown helmet exactly at its center; two broad target rings, no numerals or football.",
+    "png": {
+      "master": "png/master/bullseye.png",
+      "small": "png/small/bullseye.png",
+      "medium": "png/medium/bullseye.png",
+      "large": "png/large/bullseye.png"
+    }
+  },
+  {
+    "id": "grab",
+    "name": "Grab",
+    "label": "GR",
+    "category": "STRENGTH",
+    "fill": "#C94F5C",
+    "source": "sources/grab.png",
+    "opaqueMaster": true,
+    "concept": "A single large glove gripping a clearly folded jersey collar; the stretched fabric creates a wide fan below the hand.",
+    "png": {
+      "master": "png/master/grab.png",
+      "small": "png/small/grab.png",
+      "medium": "png/medium/grab.png",
+      "large": "png/large/grab.png"
+    }
+  },
+  {
+    "id": "guard",
+    "name": "Guard",
+    "label": "G",
+    "category": "STRENGTH",
+    "fill": "#C94F5C",
+    "source": "sources/guard.png",
+    "opaqueMaster": true,
+    "concept": "A large broad protective shield sheltering two small helmet shapes beneath its lower corners; simple teammate protection silhouette.",
+    "png": {
+      "master": "png/master/guard.png",
+      "small": "png/small/guard.png",
+      "medium": "png/medium/guard.png",
+      "large": "png/large/guard.png"
+    }
+  },
+  {
+    "id": "juggernaut",
+    "name": "Juggernaut",
+    "label": "J",
+    "category": "STRENGTH",
+    "fill": "#C94F5C",
+    "source": "sources/juggernaut.png",
+    "opaqueMaster": true,
+    "concept": "A massive blunt armored battering ram with two sweeping horns charging forward through one broad impact wedge; heavy unstoppable wedge silhouette.",
+    "png": {
+      "master": "png/master/juggernaut.png",
+      "small": "png/small/juggernaut.png",
+      "medium": "png/medium/juggernaut.png",
+      "large": "png/large/juggernaut.png"
+    }
+  },
+  {
+    "id": "mighty-blow",
+    "name": "Mighty Blow",
+    "label": "MB",
+    "category": "STRENGTH",
+    "fill": "#C94F5C",
+    "source": "sources/mighty-blow.png",
+    "opaqueMaster": true,
+    "concept": "Approved round 2 artwork",
+    "png": {
+      "master": "png/master/mighty-blow.png",
+      "small": "png/small/mighty-blow.png",
+      "medium": "png/medium/mighty-blow.png",
+      "large": "png/large/mighty-blow.png"
+    }
+  },
+  {
+    "id": "multiple-block",
+    "name": "Multiple Block",
+    "label": "MUL",
+    "category": "STRENGTH",
+    "fill": "#C94F5C",
+    "source": "sources/multiple-block.png",
+    "opaqueMaster": true,
+    "concept": "TWO broad armored fists thrust outward in opposite directions from one shared central shoulder plate; symmetrical double-strike silhouette.",
+    "png": {
+      "master": "png/master/multiple-block.png",
+      "small": "png/small/multiple-block.png",
+      "medium": "png/medium/multiple-block.png",
+      "large": "png/large/multiple-block.png"
+    }
+  },
+  {
+    "id": "stand-firm",
+    "name": "Stand Firm",
+    "label": "SF",
+    "category": "STRENGTH",
+    "fill": "#C94F5C",
+    "source": "sources/stand-firm.png",
+    "opaqueMaster": true,
+    "concept": "Two heavy planted boots locked to one broad ground platform by a single central anchor shape; low immovable base, no uneven stone.",
+    "png": {
+      "master": "png/master/stand-firm.png",
+      "small": "png/small/stand-firm.png",
+      "medium": "png/medium/stand-firm.png",
+      "large": "png/large/stand-firm.png"
+    }
+  },
+  {
+    "id": "strong-arm",
+    "name": "Strong Arm",
+    "label": "SA",
+    "category": "STRENGTH",
+    "fill": "#C94F5C",
+    "source": "sources/strong-arm.png",
+    "opaqueMaster": true,
+    "concept": "A huge flexed biceps and upper arm supporting a small football in the fist; curved muscle silhouette dominates, no flying arc.",
+    "png": {
+      "master": "png/master/strong-arm.png",
+      "small": "png/small/strong-arm.png",
+      "medium": "png/medium/strong-arm.png",
+      "large": "png/large/strong-arm.png"
+    }
+  },
+  {
+    "id": "thick-skull",
+    "name": "Thick Skull",
+    "label": "TS",
+    "category": "STRENGTH",
+    "fill": "#C94F5C",
+    "source": "sources/thick-skull.png",
+    "opaqueMaster": true,
+    "concept": "A clean skull cross-section with an exaggerated double-thick ivory cranium band; broad bone cap, no gore or helmet visor.",
+    "png": {
+      "master": "png/master/thick-skull.png",
+      "small": "png/small/thick-skull.png",
+      "medium": "png/medium/thick-skull.png",
+      "large": "png/large/thick-skull.png"
+    }
+  },
+  {
+    "id": "always-hungry",
+    "name": "Always Hungry",
+    "label": "AH",
+    "category": "TRAIT",
+    "fill": "#10141A",
+    "source": "sources/always-hungry.png",
+    "opaqueMaster": true,
+    "concept": "One enormous monster mouth poised to swallow a tiny teammate boot; drooling jaw and tiny boot, no separate blood drop or football.",
+    "png": {
+      "master": "png/master/always-hungry.png",
+      "small": "png/small/always-hungry.png",
+      "medium": "png/medium/always-hungry.png",
+      "large": "png/large/always-hungry.png"
+    }
+  },
+  {
+    "id": "animal-savagery",
+    "name": "Animal Savagery",
+    "label": "AS",
+    "category": "TRAIT",
+    "fill": "#10141A",
+    "source": "sources/animal-savagery.png",
+    "opaqueMaster": true,
+    "concept": "A large beastly fist striking a small teammate shoulder pad, with one jagged aggression wedge; uncontrolled attack, no blood or biting mouth.",
+    "png": {
+      "master": "png/master/animal-savagery.png",
+      "small": "png/small/animal-savagery.png",
+      "medium": "png/medium/animal-savagery.png",
+      "large": "png/large/animal-savagery.png"
+    }
+  },
+  {
+    "id": "animosity",
+    "name": "Animosity",
+    "label": "ANI",
+    "category": "TRAIT",
+    "fill": "#10141A",
+    "source": "sources/animosity.png",
+    "opaqueMaster": true,
+    "concept": "Two helmet profiles turned away from each other across one thick jagged dividing crack; mutual refusal, no ring or footprints.",
+    "png": {
+      "master": "png/master/animosity.png",
+      "small": "png/small/animosity.png",
+      "medium": "png/medium/animosity.png",
+      "large": "png/large/animosity.png"
+    }
+  },
+  {
+    "id": "ball-and-chain",
+    "name": "Ball and Chain",
+    "label": "BC",
+    "category": "TRAIT",
+    "fill": "#10141A",
+    "source": "sources/ball-and-chain.png",
+    "opaqueMaster": true,
+    "concept": "One huge spiked iron ball hanging from three thick chain links; dangling flail silhouette, no boiler, engine or smoke.",
+    "png": {
+      "master": "png/master/ball-and-chain.png",
+      "small": "png/small/ball-and-chain.png",
+      "medium": "png/medium/ball-and-chain.png",
+      "large": "png/large/ball-and-chain.png"
+    }
+  },
+  {
+    "id": "bloodlust",
+    "name": "Bloodlust",
+    "label": "BL",
+    "category": "TRAIT",
+    "fill": "#10141A",
+    "source": "sources/bloodlust.png",
+    "opaqueMaster": true,
+    "concept": "Two broad vampire fangs above ONE large dark crimson blood drop; simple fang-and-drop emblem, no face or talon shapes.",
+    "png": {
+      "master": "png/master/bloodlust.png",
+      "small": "png/small/bloodlust.png",
+      "medium": "png/medium/bloodlust.png",
+      "large": "png/large/bloodlust.png"
+    }
+  },
+  {
+    "id": "bombardier",
+    "name": "Bombardier",
+    "label": "BOM",
+    "category": "TRAIT",
+    "fill": "#10141A",
+    "source": "sources/bombardier.png",
+    "opaqueMaster": true,
+    "concept": "One gloved hand tossing a round bomb with a short lit fuse and one broad flight arc; bomb-and-hand silhouette, no vehicle or cannon.",
+    "png": {
+      "master": "png/master/bombardier.png",
+      "small": "png/small/bombardier.png",
+      "medium": "png/medium/bombardier.png",
+      "large": "png/large/bombardier.png"
+    }
+  },
+  {
+    "id": "bone-head",
+    "name": "Bone Head",
+    "label": "BHD",
+    "category": "TRAIT",
+    "fill": "#10141A",
+    "source": "sources/bone-head.png",
+    "opaqueMaster": false,
+    "concept": "Approved round 2 artwork",
+    "png": {
+      "master": "png/master/bone-head.png",
+      "small": "png/small/bone-head.png",
+      "medium": "png/medium/bone-head.png",
+      "large": "png/large/bone-head.png"
+    }
+  },
+  {
+    "id": "breathe-fire",
+    "name": "Breathe Fire",
+    "label": "BF",
+    "category": "TRAIT",
+    "fill": "#10141A",
+    "source": "sources/breathe-fire.png",
+    "opaqueMaster": true,
+    "concept": "One simple reptilian snout breathing a single broad two-pronged flame plume; cream flame with restrained warm orange accent, no gore.",
+    "png": {
+      "master": "png/master/breathe-fire.png",
+      "small": "png/small/breathe-fire.png",
+      "medium": "png/medium/breathe-fire.png",
+      "large": "png/large/breathe-fire.png"
+    }
+  },
+  {
+    "id": "chainsaw",
+    "name": "Chainsaw",
+    "label": "CHA",
+    "category": "TRAIT",
+    "fill": "#10141A",
+    "source": "sources/chainsaw.png",
+    "opaqueMaster": true,
+    "concept": "One clearly hand-held chainsaw with a chunky engine handle and long exposed toothed blade; blade dominates, no cloak, wheels or boiler chimney.",
+    "png": {
+      "master": "png/master/chainsaw.png",
+      "small": "png/small/chainsaw.png",
+      "medium": "png/medium/chainsaw.png",
+      "large": "png/large/chainsaw.png"
+    }
+  },
+  {
+    "id": "decay",
+    "name": "Decay",
+    "label": "DEC",
+    "category": "TRAIT",
+    "fill": "#10141A",
+    "source": "sources/decay.png",
+    "opaqueMaster": true,
+    "concept": "One brittle skeletal hand crumbling into three large falling bone fragments; downward decay silhouette, no green healing sprout.",
+    "png": {
+      "master": "png/master/decay.png",
+      "small": "png/small/decay.png",
+      "medium": "png/medium/decay.png",
+      "large": "png/large/decay.png"
+    }
+  },
+  {
+    "id": "drunkard",
+    "name": "Drunkard",
+    "label": "DRU",
+    "category": "TRAIT",
+    "fill": "#10141A",
+    "source": "sources/drunkard.png",
+    "opaqueMaster": true,
+    "concept": "One tipped broad tankard with two large foam bubbles and a crooked sloshing liquid line; simple drunken mug emblem.",
+    "png": {
+      "master": "png/master/drunkard.png",
+      "small": "png/small/drunkard.png",
+      "medium": "png/medium/drunkard.png",
+      "large": "png/large/drunkard.png"
+    }
+  },
+  {
+    "id": "hatred",
+    "name": "Hatred",
+    "label": "HAT",
+    "category": "TRAIT",
+    "fill": "#10141A",
+    "source": "sources/hatred.png",
+    "opaqueMaster": true,
+    "concept": "One pair of sharply angry brows above a small enemy helmet inside two bold hostility brackets; focused hostile glare, no spiral eye.",
+    "png": {
+      "master": "png/master/hatred.png",
+      "small": "png/small/hatred.png",
+      "medium": "png/medium/hatred.png",
+      "large": "png/large/hatred.png"
+    }
+  },
+  {
+    "id": "hypnotic-gaze",
+    "name": "Hypnotic Gaze",
+    "label": "HG",
+    "category": "TRAIT",
+    "fill": "#10141A",
+    "source": "sources/hypnotic-gaze.png",
+    "opaqueMaster": true,
+    "concept": "One enormous stylized eye with a single broad spiral pupil; clean eye silhouette and thick spiral, no fingers or extra face.",
+    "png": {
+      "master": "png/master/hypnotic-gaze.png",
+      "small": "png/small/hypnotic-gaze.png",
+      "medium": "png/medium/hypnotic-gaze.png",
+      "large": "png/large/hypnotic-gaze.png"
+    }
+  },
+  {
+    "id": "insignificant",
+    "name": "Insignificant",
+    "label": "INS",
+    "category": "TRAIT",
+    "fill": "#10141A",
+    "source": "sources/insignificant.png",
+    "opaqueMaster": true,
+    "concept": "A tiny plain helmet underneath an enormous broad dismissive pointing glove; tiny-versus-large dismissal silhouette, no footprints or body.",
+    "png": {
+      "master": "png/master/insignificant.png",
+      "small": "png/small/insignificant.png",
+      "medium": "png/medium/insignificant.png",
+      "large": "png/large/insignificant.png"
+    }
+  },
+  {
+    "id": "kick-team-mate",
+    "name": "Kick Team-Mate",
+    "label": "KTM",
+    "category": "TRAIT",
+    "fill": "#10141A",
+    "source": "sources/kick-team-mate.png",
+    "opaqueMaster": true,
+    "concept": "One huge boot kicking a tiny helmeted teammate upward along one short curved arc; distinct boot-and-small-person silhouette, no football.",
+    "png": {
+      "master": "png/master/kick-team-mate.png",
+      "small": "png/small/kick-team-mate.png",
+      "medium": "png/medium/kick-team-mate.png",
+      "large": "png/large/kick-team-mate.png"
+    }
+  },
+  {
+    "id": "loner",
+    "name": "Loner",
+    "label": "LO",
+    "category": "TRAIT",
+    "fill": "#10141A",
+    "source": "sources/loner.png",
+    "opaqueMaster": false,
+    "concept": "Approved round 2 artwork",
+    "png": {
+      "master": "png/master/loner.png",
+      "small": "png/small/loner.png",
+      "medium": "png/medium/loner.png",
+      "large": "png/large/loner.png"
+    }
+  },
+  {
+    "id": "my-ball",
+    "name": "My Ball",
+    "label": "MYB",
+    "category": "TRAIT",
+    "fill": "#10141A",
+    "source": "sources/my-ball.png",
+    "opaqueMaster": true,
+    "concept": "Two protective arms tightly clutching a football with one simple padlock shape on the ball; possessive locked grip, no passing arc.",
+    "png": {
+      "master": "png/master/my-ball.png",
+      "small": "png/small/my-ball.png",
+      "medium": "png/medium/my-ball.png",
+      "large": "png/large/my-ball.png"
+    }
+  },
+  {
+    "id": "no-ball",
+    "name": "No Ball",
+    "label": "NB",
+    "category": "TRAIT",
+    "fill": "#10141A",
+    "source": "sources/no-ball.png",
+    "opaqueMaster": true,
+    "concept": "One large football crossed by a single broad diagonal prohibition bar inside a simple circle; no letters or numerals.",
+    "png": {
+      "master": "png/master/no-ball.png",
+      "small": "png/small/no-ball.png",
+      "medium": "png/medium/no-ball.png",
+      "large": "png/large/no-ball.png"
+    }
+  },
+  {
+    "id": "pick-me-up",
+    "name": "Pick-me-up",
+    "label": "PMU",
+    "category": "TRAIT",
+    "fill": "#10141A",
+    "source": "sources/pick-me-up.png",
+    "opaqueMaster": true,
+    "concept": "Two hands clasping at the wrist, one pulling a tiny seated teammate upward; strong helping-hand diagonal, no football or prone helmet.",
+    "png": {
+      "master": "png/master/pick-me-up.png",
+      "small": "png/small/pick-me-up.png",
+      "medium": "png/medium/pick-me-up.png",
+      "large": "png/large/pick-me-up.png"
+    }
+  },
+  {
+    "id": "plague-ridden",
+    "name": "Plague Ridden",
+    "label": "PR",
+    "category": "TRAIT",
+    "fill": "#10141A",
+    "source": "sources/plague-ridden.png",
+    "opaqueMaster": true,
+    "concept": "One simple unhealthy skull surrounded by three broad spore bubbles; restrained sickly green accent inside the spores, no gore.",
+    "png": {
+      "master": "png/master/plague-ridden.png",
+      "small": "png/small/plague-ridden.png",
+      "medium": "png/medium/plague-ridden.png",
+      "large": "png/large/plague-ridden.png"
+    }
+  },
+  {
+    "id": "pogo",
+    "name": "Pogo",
+    "label": "PG",
+    "category": "TRAIT",
+    "fill": "#10141A",
+    "source": "sources/pogo.png",
+    "opaqueMaster": true,
+    "concept": "One boot mounted on a single broad coiled pogo spring above a flat ground line; spring dominates, no tall legs or wings.",
+    "png": {
+      "master": "png/master/pogo.png",
+      "small": "png/small/pogo.png",
+      "medium": "png/medium/pogo.png",
+      "large": "png/large/pogo.png"
+    }
+  },
+  {
+    "id": "projectile-vomit",
+    "name": "Projectile Vomit",
+    "label": "PV",
+    "category": "TRAIT",
+    "fill": "#10141A",
+    "source": "sources/projectile-vomit.png",
+    "opaqueMaster": true,
+    "concept": "One side-on monster face expelling a single broad curved sickly-green stream; clean cartoon vomit silhouette, no gore or flame shape.",
+    "png": {
+      "master": "png/master/projectile-vomit.png",
+      "small": "png/small/projectile-vomit.png",
+      "medium": "png/medium/projectile-vomit.png",
+      "large": "png/large/projectile-vomit.png"
+    }
+  },
+  {
+    "id": "really-stupid",
+    "name": "Really Stupid",
+    "label": "RS",
+    "category": "TRAIT",
+    "fill": "#10141A",
+    "source": "sources/really-stupid.png",
+    "opaqueMaster": true,
+    "concept": "One broad ivory brain wrapped in a single thick chain and large padlock; locked-away thinking silhouette, no ogre face or empty forehead.",
+    "png": {
+      "master": "png/master/really-stupid.png",
+      "small": "png/small/really-stupid.png",
+      "medium": "png/medium/really-stupid.png",
+      "large": "png/large/really-stupid.png"
+    }
+  },
+  {
+    "id": "regeneration",
+    "name": "Regeneration",
+    "label": "REG",
+    "category": "TRAIT",
+    "fill": "#10141A",
+    "source": "sources/regeneration.png",
+    "opaqueMaster": true,
+    "concept": "One split bone with a large fresh ivory half growing back and a tiny muted green healing sprout at its seam; rebuilding, no falling fragments.",
+    "png": {
+      "master": "png/master/regeneration.png",
+      "small": "png/small/regeneration.png",
+      "medium": "png/medium/regeneration.png",
+      "large": "png/large/regeneration.png"
+    }
+  },
+  {
+    "id": "right-stuff",
+    "name": "Right Stuff",
+    "label": "RST",
+    "category": "TRAIT",
+    "fill": "#10141A",
+    "source": "sources/right-stuff.png",
+    "opaqueMaster": true,
+    "concept": "One giant open horizontal palm supporting a tiny upright helmeted teammate; still support pose, no throw arc, wings or boot kick.",
+    "png": {
+      "master": "png/master/right-stuff.png",
+      "small": "png/small/right-stuff.png",
+      "medium": "png/medium/right-stuff.png",
+      "large": "png/large/right-stuff.png"
+    }
+  },
+  {
+    "id": "secret-weapon",
+    "name": "Secret Weapon",
+    "label": "SW",
+    "category": "TRAIT",
+    "fill": "#10141A",
+    "source": "sources/secret-weapon.png",
+    "opaqueMaster": true,
+    "concept": "Owner-directed revision",
+    "png": {
+      "master": "png/master/secret-weapon.png",
+      "small": "png/small/secret-weapon.png",
+      "medium": "png/medium/secret-weapon.png",
+      "large": "png/large/secret-weapon.png"
+    }
+  },
+  {
+    "id": "stab",
+    "name": "Stab",
+    "label": "STB",
+    "category": "TRAIT",
+    "fill": "#10141A",
+    "source": "sources/stab.png",
+    "opaqueMaster": true,
+    "concept": "One large exposed dagger thrusting into a small plain armor plate with one short impact wedge; direct stabbing action, no cloak or hood.",
+    "png": {
+      "master": "png/master/stab.png",
+      "small": "png/small/stab.png",
+      "medium": "png/medium/stab.png",
+      "large": "png/large/stab.png"
+    }
+  },
+  {
+    "id": "stunty",
+    "name": "Stunty",
+    "label": "STU",
+    "category": "TRAIT",
+    "fill": "#10141A",
+    "source": "sources/stunty.png",
+    "opaqueMaster": true,
+    "concept": "One squat broad short-limbed player ducking beneath a low arch; low wide silhouette, no oversized hand or tall footprints.",
+    "png": {
+      "master": "png/master/stunty.png",
+      "small": "png/small/stunty.png",
+      "medium": "png/medium/stunty.png",
+      "large": "png/large/stunty.png"
+    }
+  },
+  {
+    "id": "swoop",
+    "name": "Swoop",
+    "label": "SWO",
+    "category": "TRAIT",
+    "fill": "#10141A",
+    "source": "sources/swoop.png",
+    "opaqueMaster": true,
+    "concept": "A tiny goblin-like figure with TWO wide membrane wings spread into a clean gliding V; no arrows, football or spring.",
+    "png": {
+      "master": "png/master/swoop.png",
+      "small": "png/small/swoop.png",
+      "medium": "png/medium/swoop.png",
+      "large": "png/large/swoop.png"
+    }
+  },
+  {
+    "id": "take-root",
+    "name": "Take Root",
+    "label": "TR",
+    "category": "TRAIT",
+    "fill": "#10141A",
+    "source": "sources/take-root.png",
+    "opaqueMaster": true,
+    "concept": "Two tree-like feet merging into three large branching roots gripping the ground; roots dominate, no falling trunk or helpers.",
+    "png": {
+      "master": "png/master/take-root.png",
+      "small": "png/small/take-root.png",
+      "medium": "png/medium/take-root.png",
+      "large": "png/large/take-root.png"
+    }
+  },
+  {
+    "id": "throw-team-mate",
+    "name": "Throw Team-Mate",
+    "label": "TTM",
+    "category": "TRAIT",
+    "fill": "#10141A",
+    "source": "sources/throw-team-mate.png",
+    "opaqueMaster": true,
+    "concept": "One enormous throwing hand releasing a tiny helmeted teammate along a broad upward flight arc; dynamic release, no boot kick or football.",
+    "png": {
+      "master": "png/master/throw-team-mate.png",
+      "small": "png/small/throw-team-mate.png",
+      "medium": "png/medium/throw-team-mate.png",
+      "large": "png/large/throw-team-mate.png"
+    }
+  },
+  {
+    "id": "timmm-ber",
+    "name": "Timmm-ber!",
+    "label": "TIM",
+    "category": "TRAIT",
+    "fill": "#10141A",
+    "source": "sources/timmm-ber.png",
+    "opaqueMaster": true,
+    "concept": "One leaning broad tree trunk supported from below by two tiny helping hands; clear falling-tree-and-assistance silhouette, no branching root feet.",
+    "png": {
+      "master": "png/master/timmm-ber.png",
+      "small": "png/small/timmm-ber.png",
+      "medium": "png/medium/timmm-ber.png",
+      "large": "png/large/timmm-ber.png"
+    }
+  },
+  {
+    "id": "titchy",
+    "name": "Titchy",
+    "label": "TCH",
+    "category": "TRAIT",
+    "fill": "#10141A",
+    "source": "sources/titchy.png",
+    "opaqueMaster": true,
+    "concept": "One extremely tiny upright figure slipping between TWO enormous boot soles; tiny central body and giant-foot gap, no low arch.",
+    "png": {
+      "master": "png/master/titchy.png",
+      "small": "png/small/titchy.png",
+      "medium": "png/medium/titchy.png",
+      "large": "png/large/titchy.png"
+    }
+  },
+  {
+    "id": "trickster",
+    "name": "Trickster",
+    "label": "TRI",
+    "category": "TRAIT",
+    "fill": "#10141A",
+    "source": "sources/trickster.png",
+    "opaqueMaster": true,
+    "concept": "Two simple helmet silhouettes swapping positions around ONE broad curved loop with a single small spark; mischievous exchange, no dividing crack.",
+    "png": {
+      "master": "png/master/trickster.png",
+      "small": "png/small/trickster.png",
+      "medium": "png/medium/trickster.png",
+      "large": "png/large/trickster.png"
+    }
+  },
+  {
+    "id": "unchannelled-fury",
+    "name": "Unchannelled Fury",
+    "label": "UF",
+    "category": "TRAIT",
+    "fill": "#10141A",
+    "source": "sources/unchannelled-fury.png",
+    "opaqueMaster": true,
+    "concept": "A broad bull-like snout below two angry eyes, blowing two large steam puffs outward; rage and snorting muzzle, no fists or tiny teammate.",
+    "png": {
+      "master": "png/master/unchannelled-fury.png",
+      "small": "png/small/unchannelled-fury.png",
+      "medium": "png/medium/unchannelled-fury.png",
+      "large": "png/large/unchannelled-fury.png"
+    }
+  },
+  {
+    "id": "unsteady",
+    "name": "Unsteady",
+    "label": "UNS",
+    "category": "TRAIT",
+    "fill": "#10141A",
+    "source": "sources/unsteady.png",
+    "opaqueMaster": true,
+    "concept": "A football wobbling on an unstable narrow support between two large tilting balance strokes; off-balance ball silhouette, no prohibition bar or footprints.",
+    "png": {
+      "master": "png/master/unsteady.png",
+      "small": "png/small/unsteady.png",
+      "medium": "png/medium/unsteady.png",
+      "large": "png/large/unsteady.png"
+    }
+  }
+]

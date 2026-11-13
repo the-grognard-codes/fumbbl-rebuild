@@ -1,0 +1,10 @@
+{
+  "id": "eye-gouge",
+  "name": "Eye Gouge",
+  "mode": "built-in image_gen",
+  "source": "sources/eye-gouge-v2.png",
+  "opaqueMaster": true,
+  "prompt": "Use case: precise-object-edit. Revise ONLY the central EYE GOUGE emblem of this fantasy-football skill marker. Keep its exact deeper orange #CE853B category panel, pale inset keyline, clipped 3:4 portrait frame, opaque navy exterior, cream/navy flat cel shading and thick outlines. REPLACE the two detached rounded fingertips completely. New symbol: ONE CLEARLY CONNECTED ARMORED HAND entering diagonally from lower left, with a broad visible palm, obvious folded thumb and two raised BENT angular index/middle fingers in a V aimed toward ONE stylized eye at upper right. Both fingers must visibly join the same palm. Use rectangular articulated metal finger plates with a pronounced knuckle bend and FLAT SQUARE tips, not smooth rounded tubes. A dark gap must separate the two fingers; a short wrist cuff establishes that this is a gauntlet. Eye remains clearly legible. Strong compact silhouette designed for 20px, just one shadow plane per object. No detached fingertip shapes, no smooth cylinders, no flesh-colored skin, no gore, no text, numerals or extra symbols. Preserve the opaque master format; the export pipeline supplies transparent clipped corners.",
+  "generatedPath": "C:\\Users\\jaken\\.codex\\generated_images\\01a147d8-07c0-70f3-b9cf-9059b8f3c38a\\exec-e0cab849-2121-436d-83c4-90039b75535b.png",
+  "reason": "Owner requested unmistakable gauntlet anatomy instead of detached rounded fingertips."
+}

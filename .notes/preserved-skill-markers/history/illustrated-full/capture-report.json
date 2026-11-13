@@ -1,0 +1,67 @@
+{
+  "status": "passed",
+  "round": "complete pack",
+  "candidates": 108,
+  "paletteCategories": 7,
+  "approvedSourcesReused": 6,
+  "gallerySearchAndCategoryFilters": true,
+  "minimumIllustratedHeight": 20,
+  "nativeExportSizes": [
+    [
+      "master",
+      216,
+      288
+    ],
+    [
+      "small",
+      15,
+      20
+    ],
+    [
+      "medium",
+      15,
+      20
+    ],
+    [
+      "large",
+      18,
+      24
+    ]
+  ],
+  "pngExports": 432,
+  "screenshots": [
+    "all-illustrated-markers.png",
+    "art-direction-review.png",
+    "agility-illustrated-markers.png",
+    "devious-illustrated-markers.png",
+    "general-illustrated-markers.png",
+    "mutation-illustrated-markers.png",
+    "passing-illustrated-markers.png",
+    "strength-illustrated-markers.png",
+    "trait-illustrated-markers.png",
+    "illustrated-contact-sheet.png",
+    "pitch-small.png",
+    "pitch-medium.png",
+    "pitch-large.png",
+    "pitch-overview.png",
+    "pitch-detail.png",
+    "pitch-crowded.png",
+    "pitch-player-card.png",
+    "pitch-traits-filtered.png",
+    "pitch-android-landscape.png"
+  ],
+  "projectedZoomHeights": [
+    20,
+    28.125
+  ],
+  "opaquePanels": true,
+  "transparentFrameCorners": true,
+  "playerSprites": 12,
+  "overflow": true,
+  "fullPlayerCard": true,
+  "bigGuyFilterPreservesLoner": true,
+  "touchCard": true,
+  "browserErrors": [],
+  "failedAssets": [],
+  "environment": "Transient Windows Chrome artwork capture; managed debug services remain stopped."
+}

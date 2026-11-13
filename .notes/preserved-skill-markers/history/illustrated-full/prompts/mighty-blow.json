@@ -1,0 +1,8 @@
+{
+  "id": "mighty-blow",
+  "mode": "approved round-2 reuse",
+  "source": "sources/mighty-blow.png",
+  "reference": ".notes\\player-skill-markers\\illustrated-round-2\\mighty-blow-opaque.png",
+  "sha256": "20b8978350be398fee82bf68dc5ec8ddb132a2c07462446dc029507531fdee6f",
+  "opaqueMaster": true
+}

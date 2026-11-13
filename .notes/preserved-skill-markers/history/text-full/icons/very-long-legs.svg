@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="88" height="96" viewBox="0 0 88 96" role="img" aria-labelledby="title">
+<title id="title">Very Long Legs (VLL) - Mutation</title>
+<path d="M8 1H80L87 8V88L80 95H8L1 88V8Z" fill="#091726"/>
+<path d="M9 5H79L83 9V87L79 91H9L5 87V9Z" fill="#D9E9F7"/>
+<path d="M10 8H78L80 10V86L78 88H10L8 86V10Z" fill="#B696DE"/>
+<path d="M12 12H76M12 12V21" fill="none" stroke="#FFFFFF" stroke-opacity=".46" stroke-width="2"/>
+<path d="M12 82H76" stroke="#091726" stroke-opacity=".35" stroke-width="3"/>
+<g fill="#091726"><path d="M11.164000000000001 36.400000000000006H16.204L22.468000000000004 55.768H22.54L28.804000000000002 36.400000000000006H33.844L24.880000000000003 61.6H20.128Z"/><path d="M37.843999999999994 36.400000000000006H42.739999999999995V57.46H55.339999999999996V61.6H37.843999999999994Z"/><path d="M59.34 36.400000000000006H64.236V57.46H76.836V61.6H59.34Z"/></g>
+</svg>

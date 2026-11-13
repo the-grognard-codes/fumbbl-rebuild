@@ -1,0 +1,12 @@
+{
+  "id": "claws",
+  "fill": "#9268C3",
+  "reference": "claws.png",
+  "transparent": true,
+  "subject": "Preserve the approved three cream hooked talons, broad negative-space gaps, purple category panel, frame and simple two-tone silhouette. Add a restrained amount of fantasy gore: a dark crimson smear across the three tips and ONE small red droplet below. Blood must be visible at 20px but not cover the talon shapes. No body parts, anatomy, extra wounds or detailed gore.",
+  "prompt": "Use case: precise-object-edit. ONE original fantasy-football skill badge for a 20px minimum pitch UI. Preserve the approved three cream hooked talons, broad negative-space gaps, purple category panel, frame and simple two-tone silhouette. Add a restrained amount of fantasy gore: a dark crimson smear across the three tips and ONE small red droplet below. Blood must be visible at 20px but not cover the talon shapes. No body parts, anatomy, extra wounds or detailed gore. Category fill #9268C3; creamy ivory art, very thick dark navy outlines, no more than one broad shadow plane per object. Bold flat cel shading, original fantasy-sports UI. NO typography, letters, numerals, watermark or scenery. Keep portrait 3:4 clipped corners and pale keyline.",
+  "mode": "built-in image_gen",
+  "generatedPath": "C:\\Users\\jaken\\.codex\\generated_images\\01a147d8-07c0-70f3-b9cf-9059b8f3c38a\\exec-c5136584-8969-47ac-a43a-ef21829396e9.png",
+  "source": "sources/claws.png",
+  "opaqueMaster": false
+}
