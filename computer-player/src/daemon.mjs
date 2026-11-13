@@ -80,8 +80,9 @@ function startQueued() {
         queued.add(matchId);
         log(`Match ${matchId} yielded its idle worker; queued for a fresh state load.`);
       } else if (code === persistenceExhaustedExitCode && !stopped) {
-        failures.set(matchId, { retryAt: Infinity });
-        log(`Match ${matchId} exhausted persistence recovery; restart the daemon to retry it.`);
+        const reason = `Match ${matchId} exhausted persistence recovery`;
+        console.error(`[computer-daemon] ${reason}; worker stopped with status ${code}.`);
+        markFailure(matchId, reason);
       } else if (code !== 0 && !stopped) markFailure(matchId, `Match ${matchId} stopped with status ${code}`);
       else if (code === 0) { completed.add(matchId); failures.delete(matchId); log(`Match ${matchId} completed.`); }
       startQueued();

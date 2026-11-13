@@ -575,65 +575,72 @@ foreach ($client in $clients) {
   }
 });
 
-test('daemon rediscovers an active match and retries after its client exits before an apothecary choice', { timeout: 15000 }, async () => {
-  const server = createServer();
-  let registrations = 0;
-  let loads = 0;
-  let resolveAction;
-  const actionReceived = new Promise(resolve => { resolveAction = resolve; });
-  server.on('upgrade', (request, socket) => {
-    socket.on('error', () => {});
-    const accept = createHash('sha1').update(
-      `${request.headers['sec-websocket-key']}258EAFA5-E914-47DA-95CA-C5AB0DC85B11`).digest('base64');
-    socket.write(`HTTP/1.1 101 Switching Protocols\r\nUpgrade: websocket\r\nConnection: Upgrade\r\nSec-WebSocket-Accept: ${accept}\r\n\r\n`);
-    readFrames(socket, body => {
-      if (body.type === 'authenticateComputer') {
-        send(socket, { version: 2, type: 'computerAuthentication', requestId: body.requestId, code: 'ACCEPTED' });
-      } else if (body.type === 'computer' && body.operation === 'register') {
-        registrations++;
-        send(socket, { version: 2, type: 'computer', requestId: body.requestId, code: 'READY' });
-        if (registrations > 1) send(socket, { version: 2, type: 'computerJobs', requestId: null,
-          code: 'AVAILABLE', matches: [matchId] });
-      } else if (body.operation === 'load') {
-        loads++;
-        if (loads === 1) {
-          send(socket, { version: 2, type: 'setupState', requestId: body.requestId,
-            code: 'SESSION_UNAVAILABLE', duplicate: false, state: null });
-        } else {
-          send(socket, response(body.requestId, { ...state, revision: 26, callerRole: 'away',
-            actor: 'away', phase: 'PLAY', prompt: null,
-            actions: [{ id: '26:apothecary:TEAM', label: 'Use TEAM', actor: 'away', kind: 'apothecary', target: null },
-              { id: '26:apothecary:no', label: 'Decline apothecary', actor: 'away', kind: 'apothecary', target: null }] }));
+for (const persistenceExhausted of [false, true]) {
+  test(`daemon retries an active match after ${persistenceExhausted ? 'persistence exhaustion' : 'a failed worker'}`, { timeout: 18000 }, async () => {
+    const server = createServer();
+    let registrations = 0;
+    let loads = 0;
+    const rejectedLoads = persistenceExhausted ? 4 : 1;
+    let resolveAction;
+    const actionReceived = new Promise(resolve => { resolveAction = resolve; });
+    server.on('upgrade', (request, socket) => {
+      socket.on('error', () => {});
+      const accept = createHash('sha1').update(
+        `${request.headers['sec-websocket-key']}258EAFA5-E914-47DA-95CA-C5AB0DC85B11`).digest('base64');
+      socket.write(`HTTP/1.1 101 Switching Protocols\r\nUpgrade: websocket\r\nConnection: Upgrade\r\nSec-WebSocket-Accept: ${accept}\r\n\r\n`);
+      readFrames(socket, body => {
+        if (body.type === 'authenticateComputer') {
+          send(socket, { version: 2, type: 'computerAuthentication', requestId: body.requestId, code: 'ACCEPTED' });
+        } else if (body.type === 'computer' && body.operation === 'register') {
+          registrations++;
+          send(socket, { version: 2, type: 'computer', requestId: body.requestId, code: 'READY' });
+          if (registrations > 1) send(socket, { version: 2, type: 'computerJobs', requestId: null,
+            code: 'AVAILABLE', matches: [matchId] });
+        } else if (body.operation === 'load') {
+          loads++;
+          if (loads <= rejectedLoads) {
+            send(socket, { version: 2, type: 'setupState', requestId: body.requestId,
+              code: persistenceExhausted ? 'PERSISTENCE_FAILED' : 'SESSION_UNAVAILABLE', duplicate: false, state: null });
+          } else {
+            send(socket, response(body.requestId, { ...state, revision: 26, callerRole: 'away',
+              actor: 'away', phase: 'PLAY', prompt: null,
+              actions: [{ id: '26:apothecary:TEAM', label: 'Use TEAM', actor: 'away', kind: 'apothecary', target: null },
+                { id: '26:apothecary:no', label: 'Decline apothecary', actor: 'away', kind: 'apothecary', target: null }] }));
+          }
+        } else if (body.operation === 'action') {
+          resolveAction(body);
+          send(socket, response(body.requestId, { ...state, revision: 27, callerRole: 'away',
+            actor: 'away', phase: 'FULL_TIME', prompt: null }));
         }
-      } else if (body.operation === 'action') {
-        resolveAction(body);
-        send(socket, response(body.requestId, { ...state, revision: 27, callerRole: 'away',
-          actor: 'away', phase: 'FULL_TIME', prompt: null }));
-      }
+      });
     });
+    server.listen(0, '127.0.0.1');
+    await once(server, 'listening');
+    const child = spawn(process.execPath, ['src/daemon.mjs', '--url',
+      `ws://127.0.0.1:${server.address().port}/browser/v2`, '--origin', origin, '--refresh-ms', '1000'], {
+      cwd: new URL('..', import.meta.url), windowsHide: true,
+      env: { ...process.env, FFB_COMPUTER_SERVICE_TOKEN: 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa' }
+    });
+    let output = '', errors = '';
+    child.stdout.on('data', chunk => { output += chunk; });
+    child.stderr.on('data', chunk => { errors += chunk; });
+    let timer;
+    try {
+      const action = await Promise.race([actionReceived, new Promise((_, reject) => {
+        timer = setTimeout(() => reject(Error(`Timed out: ${output}\n${errors}`)), 14000);
+      })]);
+      assert.ok(['26:apothecary:TEAM', '26:apothecary:no'].includes(action.actionId));
+      assert.equal(action.expectedRevision, 26);
+      assert.equal(loads, rejectedLoads + 1);
+      assert.ok(registrations >= 3);
+      if (persistenceExhausted) {
+        assert.match(errors, /\[computer-daemon\].*exhausted persistence recovery/);
+        assert.match(output, /retrying active match .* after 1000 ms/);
+      }
+    } finally {
+      clearTimeout(timer);
+      try { await stopChild(child); }
+      finally { server.closeAllConnections(); server.close(); }
+    }
   });
-  server.listen(0, '127.0.0.1');
-  await once(server, 'listening');
-  const child = spawn(process.execPath, ['src/daemon.mjs', '--url',
-    `ws://127.0.0.1:${server.address().port}/browser/v2`, '--origin', origin, '--refresh-ms', '1000'], {
-    cwd: new URL('..', import.meta.url), windowsHide: true,
-    env: { ...process.env, FFB_COMPUTER_SERVICE_TOKEN: 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa' }
-  });
-  let output = '';
-  child.stdout.on('data', chunk => { output += chunk; });
-  child.stderr.on('data', chunk => { output += chunk; });
-  let timer;
-  try {
-    const action = await Promise.race([actionReceived, new Promise((_, reject) => {
-      timer = setTimeout(() => reject(Error(`Timed out: ${output}`)), 9000);
-    })]);
-    assert.ok(['26:apothecary:TEAM', '26:apothecary:no'].includes(action.actionId));
-    assert.equal(action.expectedRevision, 26);
-    assert.equal(loads, 2);
-    assert.ok(registrations >= 3);
-  } finally {
-    clearTimeout(timer);
-    try { await stopChild(child); }
-    finally { server.closeAllConnections(); server.close(); }
-  }
-});
+}
