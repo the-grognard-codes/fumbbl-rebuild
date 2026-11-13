@@ -1,6 +1,9 @@
 package com.fumbbl.ffb.server.match;
 
 import com.fumbbl.ffb.server.FantasyFootballServer;
+import com.fumbbl.ffb.server.db.JdbcConnections;
+import com.fumbbl.ffb.server.local.BrowserRequestTiming;
+import com.fumbbl.ffb.server.local.CaptureRequestProbe;
 import com.fumbbl.ffb.server.skilluse.SkillUsePreferenceService;
 import com.fumbbl.ffb.server.skilluse.SkillUsePreferences;
 
@@ -15,6 +18,7 @@ import java.time.Instant;
 import java.time.ZoneOffset;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -188,7 +192,7 @@ class SetupApplicationCheckpointTest {
 			assertEquals("proposal-expired", fixture.durable.get().json);
 			when(fixture.session().expireSaveResumeProposal(NOW)).thenReturn(false);
 			fixture.application.handle("home", load());
-			verify(fixture.session(), times(2)).recoveryArtifact();
+			verify(fixture.session()).recoveryArtifact();
 			verify(fixture.recovery).save(any(RecoveryRepository.Record.class), eq(4L));
 		}
 	}
@@ -202,6 +206,35 @@ class SetupApplicationCheckpointTest {
 			fixture.application.handle("home", load());
 			verify(fixture.session()).recoveryArtifact();
 			verify(fixture.recovery).save(any(RecoveryRepository.Record.class), eq(4L));
+		}
+	}
+
+	@Test void coldLoadDefersNormalizationEvenWithSomeJdbcAllowanceRemaining() throws Exception {
+		try (Fixture fixture = new Fixture()) {
+			AtomicLong nanos = new AtomicLong();
+			BrowserRequestTiming timing = new BrowserRequestTiming();
+			when(fixture.recovery.find(MATCH)).thenAnswer(call -> {
+				nanos.addAndGet(1_800_000_000);
+				return fixture.durable.get();
+			});
+			fixture.normalizedArtifact = "restore-normalization";
+			fixture.beforeSave = () -> {
+				assertEquals(50, timing.budget().allowanceMillis(1000, JdbcConnections.WORK_RESERVE_MILLIS));
+				nanos.addAndGet(51_000_000);
+				throw new JdbcConnections.NotStarted();
+			};
+			JsonObject request = load();
+			CaptureRequestProbe.Measurement loaded = new CaptureRequestProbe().measure(request, nanos::get,
+				() -> fixture.application.handle("home", request));
+			assertEquals(1800.0, loaded.timing().getDouble("recoveryRestoreMs", -1));
+			assertEquals("ACCEPTED", loaded.response().getString("code", null));
+			assertEquals("before", fixture.durable.get().json);
+			verify(fixture.recovery, never()).save(any(RecoveryRepository.Record.class), anyLong());
+			fixture.beforeSave = () -> { };
+			assertEquals("ACCEPTED", fixture.application.handle("home", load()).getString("code", null));
+			assertEquals("restore-normalization", fixture.durable.get().json);
+			verify(fixture.recovery).save(any(RecoveryRepository.Record.class), eq(4L));
+			assertEquals(1, fixture.construction.constructed().size());
 		}
 	}
 
@@ -272,6 +305,8 @@ class SetupApplicationCheckpointTest {
 		final MockedConstruction<SetupSession> construction;
 		final SetupApplication application;
 		String failure;
+		String normalizedArtifact;
+		SetupApplication.StorageAdmission beforeSave = () -> { };
 		boolean unknownCommitted = true;
 		Fixture() throws Exception {
 			MatchDocument document = new MatchDocument(MATCH, 3, "away", MatchDocument.Lifecycle.ACTIVATED,
@@ -282,6 +317,7 @@ class SetupApplicationCheckpointTest {
 			when(recovery.save(any(RecoveryRepository.Record.class), anyLong())).thenAnswer(call -> {
 				RecoveryRepository.Record record = call.getArgument(0);
 				assertEquals(durable.get().generation, ((Long) call.getArgument(1)).longValue());
+				beforeSave.requireAvailable();
 				if ("RECOVERY_CONFLICT".equals(failure)) return false;
 				if ("PERSISTENCE_FAILED".equals(failure)) throw new SQLException("unavailable");
 				if ("MATCH_OUTCOME_UNKNOWN".equals(failure) && !unknownCommitted) throw new RecoveryRepository.OutcomeUnknown(record, new SQLException("unknown"));
@@ -290,7 +326,7 @@ class SetupApplicationCheckpointTest {
 				return true;
 			});
 			construction = mockConstruction(SetupSession.class, (session, context) -> {
-				artifact.set((String) context.arguments().get(2));
+				artifact.set(normalizedArtifact == null ? (String) context.arguments().get(2) : normalizedArtifact);
 				when(session.recoveryArtifact()).thenAnswer(call -> artifact.get());
 				when(session.reply(anyString(), anyString(), anyBoolean(), anyString())).thenReturn(reply(false));
 				when(session.decorateSaveResume(any(JsonObject.class))).thenAnswer(call -> call.getArgument(0));

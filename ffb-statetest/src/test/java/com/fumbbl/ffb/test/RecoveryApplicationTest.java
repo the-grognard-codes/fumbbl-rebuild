@@ -251,6 +251,30 @@ class RecoveryApplicationTest {
 		assertEquals(reads + 1, fixture.recovery.reads, "Completed requests read the recovery record once");
 	}
 
+	@Test void engineTimerCompletesTheDurableFinalDecisionWithoutAnyClientLoad() throws Exception {
+		Fixture fixture = fixture();
+		SetupApplication application = new SetupApplication(new TestServer().getServer(), fixture.matches, fixture.recovery, true);
+		accepted(application.activate("home", activate(fixture.id, "activate").toString()));
+		fixture.repository.completionBudgetRefused = true;
+		FinishedMatch finished = finishWithResponse(application, fixture.id);
+		assertEquals("COMPLETION_PENDING", finished.response.getString("code", null));
+		RecoveryRepository.Record checkpoint = fixture.recovery.rows.get(fixture.id);
+		int attempts = fixture.repository.completionAttempts;
+		assertTrue(application.expireReactiveDecisions().isEmpty(), "A refused timer attempt cannot publish");
+		assertEquals(attempts + 1, fixture.repository.completionAttempts);
+		assertEquals("ACTIVATED", fixture.matches.load("home", fixture.id).document.lifecycle.name());
+
+		fixture.repository.completionBudgetRefused = false;
+		JsonObject published = application.expireReactiveDecisions().get(fixture.id);
+		assertNotNull(published, "The timer publishes the durable final state without a client request");
+		assertEquals("FULL_TIME", published.getString("phase", null));
+		assertEquals(fixture.matches.result("home", fixture.id).json(), fixture.matches.result("away", fixture.id).json());
+		assertEquals(checkpoint, fixture.recovery.rows.get(fixture.id));
+		assertEquals(0, application.lifecycleMetrics().getInt("residentSessions", -1));
+		assertTrue(application.expireReactiveDecisions().isEmpty());
+		assertEquals(attempts + 2, fixture.repository.completionAttempts);
+	}
+
 	@Test void completedRecoveryLoadKeepsLiveSaveResumeAndClockDecorationWithoutChangingFrozenResult() throws Exception {
 		Fixture fixture = fixture();
 		MutableClock clock = new MutableClock(1_700_000_000_000L);
@@ -723,10 +747,12 @@ class RecoveryApplicationTest {
 		private boolean failCompletion;
 		private boolean completionBudgetRefused;
 		private boolean unknownCompletion;
+		private int completionAttempts;
 		private final Map<String, Record> rows = new LinkedHashMap<>();
 		public Record find(String id) { return rows.get(id); }
 		public void insert(Record record) { rows.put(record.matchId, record); }
 		public boolean replace(Record record, int expected) throws SQLException {
+			if (expected == 3) completionAttempts++;
 			if (completionBudgetRefused && expected == 3) throw new com.fumbbl.ffb.server.db.JdbcConnections.NotStarted();
 			if (failCompletion && expected == 3) throw new SQLException("injected completion write failure");
 			Record prior = rows.get(record.matchId); if (prior == null || prior.documentVersion != expected) return false;
