@@ -5,7 +5,7 @@ import { execFileSync, spawn } from 'node:child_process';
 import { once } from 'node:events';
 import { test } from 'node:test';
 import { solidDefenceState } from '../../browser-client/test/fixtures/solid-defence-state.ts';
-import { idleWorkerExitCode } from '../src/worker-lifecycle.mjs';
+import { idleWorkerExitCode, persistenceExhaustedExitCode } from '../src/worker-lifecycle.mjs';
 
 const matchId = '00000000-0000-0000-0000-000000000001';
 const secondMatchId = '00000000-0000-0000-0000-000000000002';
@@ -63,6 +63,69 @@ function readFrames(socket, onMessage) {
       onMessage(JSON.parse(payload.toString()));
     }
   });
+}
+
+for (const persistent of [false, true]) {
+  test(`computer worker ${persistent ? 'stops after three persistence retries' : 'reloads before retrying a rejected decision'}`,
+    { timeout: 12000 }, async t => {
+      const server = createServer();
+      const sockets = new Set();
+      const requests = [];
+      let applied = 0;
+      const rejected = (socket, request, type) => send(socket, { version: 2, type, requestId: request.requestId,
+        code: 'PERSISTENCE_FAILED', ...(type === 'setupState' ? { duplicate: false, state: null } : {}) });
+      server.on('upgrade', (request, socket) => {
+        sockets.add(socket); socket.on('error', () => {});
+        const accept = createHash('sha1').update(`${request.headers['sec-websocket-key']}258EAFA5-E914-47DA-95CA-C5AB0DC85B11`).digest('base64');
+        socket.write(`HTTP/1.1 101 Switching Protocols\r\nUpgrade: websocket\r\nConnection: Upgrade\r\nSec-WebSocket-Accept: ${accept}\r\n\r\n`);
+        readFrames(socket, body => {
+          if (body.type === 'authenticateComputer') {
+            send(socket, { version: 2, type: 'computerAuthentication', requestId: body.requestId, code: 'ACCEPTED' });
+            return;
+          }
+          requests.push({ ...body, at: Date.now() });
+          if (body.operation === 'load') {
+            if (persistent || requests.length === 1) rejected(socket, body, 'error');
+            else send(socket, response(body.requestId, { ...state, revision: requests.length === 2 ? 20 : 21 }));
+          } else if (body.expectedRevision === 20) {
+            rejected(socket, body, 'setupState');
+            send(socket, response(null, { ...state, revision: 20 }));
+            send(socket, { version: 2, type: 'publicationDelayed', requestId: null, code: 'PUBLICATION_DELAYED', matchId, family: 'STATE' });
+          } else {
+            applied++;
+            send(socket, response(body.requestId, { ...state, revision: 22, phase: 'FULL_TIME', prompt: null }));
+          }
+        });
+      });
+      server.listen(0, '127.0.0.1'); await once(server, 'listening');
+      const child = spawn(process.execPath, ['src/main.mjs', '--match', matchId,
+        '--url', `ws://127.0.0.1:${server.address().port}/browser/v2`, '--origin', origin], {
+        cwd: new URL('..', import.meta.url), windowsHide: true,
+        env: { ...process.env, FFB_COMPUTER_SERVICE_TOKEN: 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa' }
+      });
+      t.after(async () => {
+        await stopChild(child);
+        for (const socket of sockets) socket.destroy();
+        server.close();
+      });
+      let output = '';
+      child.stdout.on('data', chunk => { output += chunk; });
+      child.stderr.on('data', chunk => { output += chunk; });
+      const [code] = await once(child, 'close');
+      assert.equal(code, persistent ? persistenceExhaustedExitCode : 0, output);
+      if (persistent) {
+        assert.deepEqual(requests.map(request => request.operation), ['load', 'load', 'load', 'load']);
+        assert.match(output, /Persistence recovery exhausted after 3 retries/);
+        assert.ok(requests[3].at - requests[0].at >= 6900);
+        assert.equal(applied, 0);
+      } else {
+        assert.deepEqual(requests.map(request => request.operation), ['load', 'load', 'choice', 'load', 'choice']);
+        assert.deepEqual([requests[2].expectedRevision, requests[4].expectedRevision], [20, 21]);
+        assert.notEqual(requests[2].requestId, requests[4].requestId);
+        assert.ok(requests[3].at - requests[2].at >= 1900);
+        assert.equal(applied, 1);
+      }
+    });
 }
 
 test('computer worker reloads a delayed large Solid Defence state while waiting for its opponent', { timeout: 10000 }, async () => {

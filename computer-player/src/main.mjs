@@ -4,7 +4,7 @@ import { decodeSetupStateValue } from '../../browser-client/src/setup-protocol.t
 import { assertV2Projection } from '../../browser-client/src/v2-projection.ts';
 import { parseV2Response } from '../../browser-client/src/v2-response.ts';
 import { chooseComputerDecision, isComputerGameOperation } from './computer-policy.mjs';
-import { idleWorkerExitCode } from './worker-lifecycle.mjs';
+import { idleWorkerExitCode, persistenceExhaustedExitCode } from './worker-lifecycle.mjs';
 
 const uuid = /^[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}$/;
 const matchId = value('--match');
@@ -38,6 +38,9 @@ let sentAt = 0;
 let setupKey;
 let setupVariant = 0;
 let idleTimer;
+const persistenceBackoffMs = [1000, 2000, 4000];
+let persistenceRetries = 0;
+let persistenceTimer;
 
 function value(flag, required = true) {
   const index = process.argv.indexOf(flag);
@@ -67,12 +70,12 @@ function yieldIdleWorker() {
   stop();
 }
 function requestLoad() {
-  if (!authenticated || !socket || socket.readyState !== WebSocket.OPEN || loadId || pending) return;
+  if (!authenticated || !socket || socket.readyState !== WebSocket.OPEN || loadId || pending || persistenceTimer) return;
   loadId = randomUUID();
   send({ version: 2, type: 'setup', operation: 'load', requestId: loadId, matchId });
 }
 function decide() {
-  if (!state || pending || loadId || !authenticated || socket?.readyState !== WebSocket.OPEN) return;
+  if (!state || pending || loadId || persistenceTimer || !authenticated || socket?.readyState !== WebSocket.OPEN) return;
   if (state.phase === 'FULL_TIME') { log(`Match complete at revision ${state.revision}.`); stop(); return; }
   if (!waitingForHuman()) clearIdleTimer();
   else if (idleTimeoutMs && !idleTimer) idleTimer = setTimeout(yieldIdleWorker, idleTimeoutMs);
@@ -106,6 +109,30 @@ function applyState(raw) {
   if (next.matchId !== matchId || next.callerRole === 'spectator') throw Error('Unexpected match or role');
   if (!state || next.revision >= state.revision) state = next;
 }
+function recoverPersistence(operation) {
+  // This is a definite rejection. Discard the decision and wait for a correlated load
+  // before choosing again. Unanswered requests still use the exact reconnect retry.
+  pending = null;
+  loadId = null;
+  state = null;
+  lastDecisionKey = undefined;
+  sentAt = 0;
+  clearIdleTimer();
+  if (persistenceRetries === persistenceBackoffMs.length) {
+    console.error(`[computer-player] Match ${matchId}: Persistence recovery exhausted after ${persistenceRetries} retries (${operation}: PERSISTENCE_FAILED).`);
+    process.exitCode = persistenceExhaustedExitCode;
+    stop();
+    return;
+  }
+  const delay = persistenceBackoffMs[persistenceRetries++];
+  log(`Match ${matchId}: ${operation} rejected with PERSISTENCE_FAILED; reloading in ${delay} ms.`);
+  persistenceTimer = setTimeout(() => {
+    persistenceTimer = undefined;
+    // Broadcasts during backoff cannot establish the revision for a retry.
+    state = null;
+    requestLoad();
+  }, delay);
+}
 function receive(raw) {
   const message = parseV2Response(raw);
   assertV2Projection(message);
@@ -120,6 +147,10 @@ function receive(raw) {
   if (message.type === 'publicationDelayed') {
     if (message.requestId !== null || message.code !== 'PUBLICATION_DELAYED' || message.matchId !== matchId || message.family !== 'STATE') throw Error('Invalid publication notification');
     requestLoad(); return;
+  }
+  if ((message.type === 'error' || message.type === 'setupState') && message.code === 'PERSISTENCE_FAILED') {
+    if (message.requestId === pending?.requestId) { recoverPersistence(pending.operation); return; }
+    if (loadId && message.requestId === loadId) { recoverPersistence('load'); return; }
   }
   if (message.type === 'error') {
     if (message.requestId === authenticationId || ['AUTHENTICATION_REQUIRED', 'AUTHENTICATION_FAILED', 'CONNECTION_REPLACED', 'AUTHORIZATION'].includes(message.code)) {
@@ -139,6 +170,7 @@ function receive(raw) {
     pending = null;
     sentAt = 0;
     if (message.code === 'ACCEPTED') {
+      persistenceRetries = 0;
       if (old.operation === 'action') actionsThisTurn++;
     } else if (message.code === 'ILLEGAL_SETUP' && old.operation === 'confirm') {
       setupVariant++;
@@ -151,6 +183,9 @@ function receive(raw) {
     sentAt = 0;
     if (message.code === 'NOT_ACTIVATED') { setTimeout(requestLoad, 3000); return; }
     if (message.code !== 'ACCEPTED') throw Error(`Load rejected: ${message.code}`);
+    decide();
+    if (!pending) persistenceRetries = 0;
+    return;
   }
   decide();
 }
@@ -184,7 +219,7 @@ function fail(error) {
   stop();
   process.exitCode = 1;
 }
-function stop() { stopped = true; clearIdleTimer(); try { socket?.close(); } catch { /* A connecting socket may already be closing. */ } socket = null; }
+function stop() { stopped = true; clearIdleTimer(); clearTimeout(persistenceTimer); try { socket?.close(); } catch { /* A connecting socket may already be closing. */ } socket = null; }
 process.on('SIGINT', stop);
 process.on('SIGTERM', stop);
 setInterval(requestLoad, 30000).unref();

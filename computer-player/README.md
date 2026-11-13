@@ -48,7 +48,7 @@ node src/main.mjs --match <match-uuid> --url ws://127.0.0.1:22232/browser/v2 --o
 
 Gobbo's `src/policy.mjs` keeps its random football choices, base formation, reserve substitutions and 30-action turn limit. Apothecary, Bribe and Argue the Call offers each receive an independent 50/50 acceptance draw before selecting among the offered uses. Both coaches keep the least harmful Apothecary result: temporary match removal before missing the next game, then niggling injury, permanent attribute loss and death. Equally harmful results keep the original injury. `src/computer-policy.mjs` dispatches Bogruk to `src/bogruk-policy.mjs`; `src/bogruk-board.mjs` supplies visible board estimates and bounded paths. The server alone resolves rolls and legality.
 
-Each game client retains an unanswered request in memory, reconnects after a lost socket, and retries that exact request ID before making another decision. It stops on an explicit rejected action, invalid projection, lost access, or match completion. The service token is read again on every connection.
+Each game client retains an unanswered request in memory, reconnects after a lost socket, and retries that exact request ID before making another decision. On `PERSISTENCE_FAILED` it reloads after a one-, two-, or four-second delay and uses the current revision to choose again. Three failed recovery attempts put the match into a terminal state in the daemon. Restart the daemon to retry an exhausted match. The client also stops on an invalid projection, lost access, or match completion. The service token is read again on every connection.
 
 Run `npm test` for policy and transport checks. No package installation is required.
 

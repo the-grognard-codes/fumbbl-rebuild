@@ -27,6 +27,7 @@ import com.eclipsesource.json.JsonValue;
 public final class MatchJson {
 	public JsonObject handle(MatchService service, String owner, String text) {
 		String requestId = null;
+		String activationMatchId = null;
 		try {
 			JsonObject request = parse(text, 16384, 8);
 			requestId = request.get("requestId").asString();
@@ -45,7 +46,8 @@ public final class MatchJson {
 					break;
 				case "activate":
 					exact(request, "version", "type", "operation", "requestId", "matchId", "expectedRevision");
-					result = service.activate(owner, requestId, uuid(request.get("matchId")), positive(request.get("expectedRevision")));
+				activationMatchId = uuid(request.get("matchId"));
+				result = service.activate(owner, requestId, activationMatchId, positive(request.get("expectedRevision")));
 					break;
 				case "load":
 					exact(request, "version", "type", "operation", "requestId", "matchId");
@@ -61,6 +63,7 @@ public final class MatchJson {
 		} catch (SavedTeamService.Failure failure) {
 			return response(requestId, failure.code, false, null, null, null);
 		} catch (SQLException failure) {
+			if (activationMatchId != null) new MatchPersistenceLog().rejected("activate-match", activationMatchId, requestId, failure);
 			return response(requestId, "PERSISTENCE_FAILED", false, null, null, null);
 		} catch (RuntimeException failure) {
 			return response(requestId, "INVALID_REQUEST", false, null, null, null);
