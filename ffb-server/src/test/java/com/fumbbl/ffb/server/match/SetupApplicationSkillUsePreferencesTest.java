@@ -112,6 +112,7 @@ class SetupApplicationSkillUsePreferencesTest {
 			MatchDocument document = new MatchDocument(MATCH, 3, "away", MatchDocument.Lifecycle.ACTIVATED,
 				new MatchDocument.Member("home", "home", null), new MatchDocument.Member("away", "away", null));
 			when(matches.load("home", MATCH)).thenReturn(new MatchService.Result(document, false));
+			when(matches.loadForSetup("home", MATCH)).thenReturn(new MatchService.Result(document, false));
 			when(session.apply(eq("home"), any(JsonObject.class), eq(NOW))).thenReturn(reply());
 			when(session.reply("deadline", "ACCEPTED", false, "home")).thenReturn(reply());
 			when(session.decorateSaveResume(any(JsonObject.class))).thenAnswer(call -> call.getArgument(0));

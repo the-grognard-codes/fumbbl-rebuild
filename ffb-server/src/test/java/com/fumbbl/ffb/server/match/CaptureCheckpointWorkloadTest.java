@@ -1,6 +1,8 @@
 package com.fumbbl.ffb.server.match;
 
 import com.fumbbl.ffb.server.local.CaptureRequestProbe;
+import com.fumbbl.ffb.server.local.BrowserRequestTiming;
+import com.fumbbl.ffb.server.db.JdbcConnections;
 
 import com.eclipsesource.json.JsonArray;
 import com.eclipsesource.json.JsonObject;
@@ -8,18 +10,97 @@ import com.eclipsesource.json.JsonValue;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicLong;
 
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 /** Native cold/warm append/compaction workload. SQL and provider latency are measured separately. */
 class CaptureCheckpointWorkloadTest {
+	@Test void longMatchColdLoadAndBudgetRefusedWriteReconcileAtTheDurableRevision() throws Exception {
+		SetupSessionMovementTest.Fixture fixture = new SetupSessionMovementTest.Fixture(0, true);
+		JsonObject view = fixture.session.reply("opening", "ACCEPTED", false, "home").get("state").asObject();
+		for (int index = 0; !"SETUP".equals(view.getString("phase", null)) && index < 12; index++)
+			view = fixture.session.apply(view.getString("actor", null), next(fixture, view, index)).get("state").asObject();
+		assertEquals("SETUP", view.getString("phase", null));
+		String id = fixture.document.matchId;
+		String role = view.getString("actor", null);
+		view = fixture.session.reply("opening", "ACCEPTED", false, role).get("state").asObject();
+		String playerId = null;
+		JsonObject origin = null;
+		for (JsonValue value : view.get("players").asArray()) {
+			JsonObject player = value.asObject();
+			if (role.equals(player.getString("role", null)) && player.get("x").isNumber() && player.get("y").isNumber()) {
+				playerId = player.getString("id", null);
+				origin = new JsonObject().add("x", player.get("x")).add("y", player.get("y"));
+				break;
+			}
+		}
+		assertTrue(playerId != null, () -> "Expected a placed player in the setup projection");
+		JsonObject alternate = new JsonObject().add("x", "home".equals(role) ? 1 : 24).add("y", 0);
+		fixture.session.startSaveResumeRetention(System.currentTimeMillis());
+		for (int index = view.getInt("revision", 0); index < 268; index++) {
+			JsonObject request = placement(fixture, view, index, playerId, index % 2 == 0 ? alternate : origin);
+			view = fixture.session.apply(role, request).get("state").asObject();
+		}
+		String base = fixture.session.recoveryArtifact();
+		assertTrue(base.getBytes(java.nio.charset.StandardCharsets.UTF_8).length >= 440 * 1024);
+		AtomicLong nanos = new AtomicLong();
+		BrowserRequestTiming timing = new BrowserRequestTiming();
+		Memory recovery = new Memory(new RecoveryRepository.Record(id, 268, base));
+		MatchService matches = mock(MatchService.class);
+		when(matches.load(role, id)).thenReturn(new MatchService.Result(fixture.document, false));
+		when(matches.loadForSetup(role, id)).thenReturn(new MatchService.Result(fixture.document, false));
+		SetupApplication application = new SetupApplication(fixture.server, matches, recovery);
+		for (int index = 268; index < 275; index++) {
+			JsonObject request = placement(fixture, view, index, playerId, index % 2 == 0 ? alternate : origin);
+			JsonObject accepted = application.handle(role, request);
+			assertEquals("ACCEPTED", accepted.getString("code", null));
+			view = accepted.get("state").asObject();
+		}
+		assertEquals(7, recovery.entries.size());
+		assertEquals(275, view.getInt("revision", -1));
+		long committed = recovery.generation;
+		JsonObject action = placement(fixture, view, 275, playerId, origin);
+		JsonObject load = fixture.request("load", "cold-load", view).remove("expectedRevision");
+		CaptureRequestProbe probe = new CaptureRequestProbe();
+		recovery.beforeWrite = () -> {
+			nanos.addAndGet(BrowserRequestTiming.REQUEST_BUDGET_NANOS);
+			if (timing.budget().allowanceMillis(1, JdbcConnections.WORK_RESERVE_MILLIS) == 0) throw new JdbcConnections.NotStarted();
+		};
+		JsonObject failed = probe.measure(action, nanos::get, () -> application.handle(role, action)).response();
+		assertEquals("PERSISTENCE_FAILED", failed.getString("code", null));
+		assertEquals(committed, recovery.generation);
+		assertEquals(0, application.lifecycleMetrics().getInt("residentSessions", -1));
+		application.configureStorageAdmission(() -> {
+			if (timing.budget().allowanceMillis(1, JdbcConnections.WORK_RESERVE_MILLIS) == 0) throw new JdbcConnections.NotStarted();
+		});
+		recovery.afterRead = () -> nanos.addAndGet(BrowserRequestTiming.REQUEST_BUDGET_NANOS);
+		CaptureRequestProbe.Measurement loaded = probe.measure(load, nanos::get, () -> application.handle(role, load));
+		assertEquals(2000.0, loaded.timing().getDouble("recoveryRestoreMs", -1));
+		assertEquals("ACCEPTED", loaded.response().getString("code", null));
+		assertEquals(275, loaded.response().get("state").asObject().getInt("revision", -1));
+		assertEquals(committed, recovery.generation);
+		recovery.beforeWrite = () -> { };
+		JsonObject accepted = probe.measure(action, nanos::get, () -> application.handle(role, action)).response();
+		assertEquals("ACCEPTED", accepted.getString("code", null));
+		assertFalse(accepted.getBoolean("duplicate", true));
+		assertEquals(276, accepted.get("state").asObject().getInt("revision", -1));
+		assertTrue(probe.measure(action, nanos::get, () -> application.handle(role, action)).response().getBoolean("duplicate", false));
+		assertEquals(committed + 1, recovery.generation);
+	}
+
+	private JsonObject placement(SetupSessionMovementTest.Fixture fixture, JsonObject view, int index, String playerId, JsonObject square) {
+		return fixture.request("place", "long-" + index, view).add("playerId", playerId).add("to", square);
+	}
 
 	@Test void nativeActionsRemainRecoverableAcrossRepeatedJournalCompaction() throws Exception {
 		JsonArray runs = new JsonArray();
@@ -41,8 +122,10 @@ class CaptureCheckpointWorkloadTest {
 			session.startSaveResumeRetention(System.currentTimeMillis());
 			Memory recovery = new Memory(new RecoveryRepository.Record(fixture.document.matchId, 1, session.recoveryArtifact()));
 			MatchService matches = mock(MatchService.class);
-			for (String role : new String[] { "home", "away" })
+			for (String role : new String[] { "home", "away" }) {
 				when(matches.load(role, fixture.document.matchId)).thenReturn(new MatchService.Result(fixture.document, false));
+				when(matches.loadForSetup(role, fixture.document.matchId)).thenReturn(new MatchService.Result(fixture.document, false));
+			}
 			SetupApplication application = new SetupApplication(fixture.server, matches, recovery);
 			CaptureRequestProbe probe = new CaptureRequestProbe();
 			JsonObject view = application.handle("home", new JsonObject().add("version", 1).add("type", "setup")
@@ -97,15 +180,23 @@ class CaptureCheckpointWorkloadTest {
 		private Record base;
 		private long generation;
 		private int saves;
+		private SetupApplication.StorageAdmission beforeWrite = () -> { };
+		private Runnable afterRead = () -> { };
 		Memory(Record initial) { base = initial; generation = initial.generation; }
 		@Override public boolean supportsJournal() { return true; }
 		@Override public Long generation(String id) { return generation; }
-		@Override public Record find(String id) { return journal.restore(id, generation, base.generation, base.json, entries); }
-		@Override public boolean append(Record next, long expected) {
+		@Override public Record find(String id) {
+			Record result = journal.restore(id, generation, base.generation, base.json, entries);
+			afterRead.run();
+			return result;
+		}
+		@Override public boolean append(Record next, long expected) throws SQLException {
+			beforeWrite.requireAvailable();
 			if (generation != expected) return false;
 			entries.add(next); generation = next.generation; return true;
 		}
-		@Override public boolean save(Record next, long expected) {
+		@Override public boolean save(Record next, long expected) throws SQLException {
+			beforeWrite.requireAvailable();
 			if (generation != expected) return false;
 			base = next; generation = next.generation; entries.clear(); saves++; return true;
 		}

@@ -229,6 +229,28 @@ class RecoveryApplicationTest {
 		assertEquals(0, application.lifecycleMetrics().getInt("residentSessions", -1));
 	}
 
+	@Test void refusedResultWriteReportsPendingAndKeepsTheDurableFinalDecisionAcrossRestart() throws Exception {
+		Fixture fixture = fixture();
+		SetupApplication application = new SetupApplication(new TestServer().getServer(), fixture.matches, fixture.recovery, true);
+		accepted(application.activate("home", activate(fixture.id, "activate").toString()));
+		fixture.repository.completionBudgetRefused = true;
+		JsonObject terminal = finish(application, fixture.id);
+		String role = terminal.getString("testRole", null);
+		terminal.remove("testRole");
+		SetupApplication.HandleOutcome refused = application.handleWithOutcome(role, terminal);
+		assertEquals("COMPLETION_PENDING", refused.response().getString("code", null));
+		assertFalse(refused.publish());
+		long durable = fixture.recovery.rows.get(fixture.id).generation;
+		fixture.repository.completionBudgetRefused = false;
+		SetupApplication restarted = app(fixture);
+		JsonObject loaded = accepted(restarted.handle("home", load(fixture.id, "finish-recovery"))).get("state").asObject();
+		assertEquals("FULL_TIME", loaded.getString("phase", null));
+		assertEquals(durable, fixture.recovery.rows.get(fixture.id).generation);
+		int reads = fixture.recovery.reads;
+		assertTrue(accepted(restarted.handle(role, terminal)).getBoolean("duplicate", false));
+		assertEquals(reads + 1, fixture.recovery.reads, "Completed requests read the recovery record once");
+	}
+
 	@Test void completedRecoveryLoadKeepsLiveSaveResumeAndClockDecorationWithoutChangingFrozenResult() throws Exception {
 		Fixture fixture = fixture();
 		MutableClock clock = new MutableClock(1_700_000_000_000L);
@@ -414,7 +436,7 @@ class RecoveryApplicationTest {
 			if (response.get("state") != null && !response.get("state").isNull())
 				maxSnapshotBytes = Math.max(maxSnapshotBytes, response.get("state").toString().getBytes(java.nio.charset.StandardCharsets.UTF_8).length);
 			sampledHeapPeak = Math.max(sampledHeapPeak, java.lang.management.ManagementFactory.getMemoryMXBean().getHeapMemoryUsage().getUsed());
-			if (!session.isComplete() || !("PERSISTENCE_FAILED".equals(response.getString("code", null))
+			if (!session.isComplete() || !("COMPLETION_PENDING".equals(response.getString("code", null)) || "PERSISTENCE_FAILED".equals(response.getString("code", null))
 				|| "MATCH_OUTCOME_UNKNOWN".equals(response.getString("code", null)))) accepted(response);
 		}
 		assertTrue(session.isComplete());
@@ -688,11 +710,13 @@ class RecoveryApplicationTest {
 
 	private static final class Matches implements MatchRepository {
 		private boolean failCompletion;
+		private boolean completionBudgetRefused;
 		private boolean unknownCompletion;
 		private final Map<String, Record> rows = new LinkedHashMap<>();
 		public Record find(String id) { return rows.get(id); }
 		public void insert(Record record) { rows.put(record.matchId, record); }
 		public boolean replace(Record record, int expected) throws SQLException {
+			if (completionBudgetRefused && expected == 3) throw new com.fumbbl.ffb.server.db.JdbcConnections.NotStarted();
 			if (failCompletion && expected == 3) throw new SQLException("injected completion write failure");
 			Record prior = rows.get(record.matchId); if (prior == null || prior.documentVersion != expected) return false;
 			rows.put(record.matchId, record);

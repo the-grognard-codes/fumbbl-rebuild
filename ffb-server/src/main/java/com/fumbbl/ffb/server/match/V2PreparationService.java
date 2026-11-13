@@ -81,6 +81,14 @@ public final class V2PreparationService {
 		}
 	}
 
+	/** Setup validates the frozen computer coach after the registered service membership check. */
+	public boolean hasComputerMembership(String matchId) throws SQLException {
+		if (matchId == null || !matchId.matches("[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}")) return false;
+		try (Connection connection = connections.open()) {
+			return member(connection, matchId, computers.memberId(), "away");
+		}
+	}
+
 	/** Active jobs are replayed when the independent computer process reconnects. */
 	public List<String> activeComputerMatches() throws SQLException {
 		List<String> result = new ArrayList<>();

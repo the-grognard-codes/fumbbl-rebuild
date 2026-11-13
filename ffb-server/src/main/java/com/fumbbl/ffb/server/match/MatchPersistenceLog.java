@@ -17,9 +17,17 @@ public final class MatchPersistenceLog {
 		"Unexpected recovery write count", "Unexpected recovery journal write count", "Unexpected lobby recovery row count");
 
 	public void rejected(String phase, String matchId, String requestId, SQLException failure) {
+		write("PERSISTENCE_FAILED", phase, matchId, requestId, failure);
+	}
+
+	void completionPending(String matchId, String requestId, SQLException failure) {
+		write("COMPLETION_PENDING", "completion", matchId, requestId, failure);
+	}
+
+	private void write(String code, String phase, String matchId, String requestId, SQLException failure) {
 		String message = failure.getMessage();
 		String sqlState = failure.getSQLState();
-		LOG.warning("PERSISTENCE_FAILED phase=" + phase
+		LOG.warning(code + " phase=" + phase
 			+ " matchId=" + correlation(matchId, "[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}")
 			+ " requestId=" + correlation(requestId, "[A-Za-z0-9_-]{1,100}")
 			+ " exception=" + failure.getClass().getSimpleName()

@@ -35,7 +35,6 @@ import java.util.regex.Pattern;
 
 /** The sole runtime JDBC boundary: fresh properties, one request deadline and cancellable driver I/O. */
 public final class JdbcRequestConnections implements JdbcConnections, AutoCloseable {
-	static final int WORK_RESERVE_MILLIS = 150; // 100 ms native/CPU plus 50 ms transaction/cleanup reserve.
 	static final int COMMIT_RESERVE_MILLIS = 50;
 	static final int CLEANUP_CAP_MILLIS = 50;
 	private final BrowserRequestTiming timing = new BrowserRequestTiming();

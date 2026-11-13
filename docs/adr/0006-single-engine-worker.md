@@ -274,6 +274,13 @@ Timeouts during native mutation, such as rookie generation, must not cause blind
 reexecution of partial work. Any fallback or abort must preserve the owner,
 native sequence, and checkpoint contract; its follow-up ticket must prove this.
 
+Cold setup recovery reads skill preferences before reconstruction and closes
+the recovery SQL snapshot before decoding the checkpoint and assembling the
+journal. A load can return the durable revision and defer checkpoint maintenance
+when reconstruction leaves less than the existing JDBC reserve. A refused
+terminal result write after the final checkpoint returns `COMPLETION_PENDING`.
+The next load can reconcile that checkpoint using its own request budget.
+
 ### Watchdog and shutdown are separate from operation deadlines
 
 The transport has one daemon `browser-match-write-watchdog` per transport

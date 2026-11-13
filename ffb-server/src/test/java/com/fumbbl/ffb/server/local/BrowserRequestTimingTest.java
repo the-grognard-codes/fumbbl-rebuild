@@ -405,6 +405,7 @@ class BrowserRequestTimingTest {
 			Constructor<MatchService.Result> constructor = MatchService.Result.class.getDeclaredConstructor(MatchDocument.class, boolean.class);
 			constructor.setAccessible(true);
 			when(matches.load("home", MATCH)).thenReturn(constructor.newInstance(document, false));
+			when(matches.loadForSetup("home", MATCH)).thenReturn(constructor.newInstance(document, false));
 			put(application, "sessions", MATCH, session); put(application, "generations", MATCH, 4L);
 			put(application, "committedFingerprints", MATCH, MessageDigest.getInstance("SHA-256").digest("before".getBytes(StandardCharsets.UTF_8)));
 			when(session.recoveryArtifact()).thenReturn("after");
@@ -439,6 +440,7 @@ class BrowserRequestTimingTest {
 		Constructor<MatchService.Result> constructor = MatchService.Result.class.getDeclaredConstructor(MatchDocument.class, boolean.class);
 		constructor.setAccessible(true);
 		when(matches.load("home", MATCH)).thenReturn(constructor.newInstance(document, false));
+		when(matches.loadForSetup("home", MATCH)).thenReturn(constructor.newInstance(document, false));
 		when(recovery.find(MATCH)).thenAnswer(call -> {
 			nanos.addAndGet(6000000); throw new SQLException("private recovery failure");
 		});

@@ -38,7 +38,9 @@ class ComputerPolicyRecoveryTest {
 		MemoryRecovery recovery = new MemoryRecovery(fixture.document.matchId, fixture.session.recoveryArtifact());
 		MatchService matches = mock(MatchService.class);
 		when(matches.load("away", fixture.document.matchId)).thenReturn(new MatchService.Result(fixture.document, false));
+		when(matches.loadForSetup("away", fixture.document.matchId)).thenReturn(new MatchService.Result(fixture.document, false));
 		when(matches.load("home", fixture.document.matchId)).thenReturn(new MatchService.Result(fixture.document, false));
+		when(matches.loadForSetup("home", fixture.document.matchId)).thenReturn(new MatchService.Result(fixture.document, false));
 		SetupApplication application = new SetupApplication(fixture.server, matches, recovery, true, true);
 		JsonObject initial = application.handleComputerWithOutcome(load(fixture)).response().get("state").asObject();
 		JsonObject prompt = initial.get("prompt").asObject();

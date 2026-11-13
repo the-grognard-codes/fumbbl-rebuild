@@ -98,10 +98,12 @@ class RetainedConcessionTest {
             };
             when(recovery.save(any(), anyLong())).thenAnswer(save);
             MatchService matches = mock(MatchService.class);
-            when(matches.load(anyString(), anyString())).thenAnswer(call -> {
+            org.mockito.stubbing.Answer<MatchService.Result> load = call -> {
                 if (!"home".equals(call.getArgument(0)) && !"away".equals(call.getArgument(0))) throw new MatchService.Failure("NOT_FOUND");
                 return new MatchService.Result(document.get(), false);
-            });
+            };
+            when(matches.load(anyString(), anyString())).thenAnswer(load);
+            when(matches.loadForSetup(anyString(), anyString())).thenAnswer(load);
             when(matches.result(anyString(), anyString())).thenAnswer(call -> document.get().completion);
             AtomicInteger commits = new AtomicInteger();
             doAnswer(call -> {

@@ -14,8 +14,10 @@ import java.util.List;
 public final class CompletedMatch {
 	public static final String ENGINE_VERSION = "ffb-3.4.0-bb2025-m3d.1";
 	public static final int MAX_BYTES = 64 * 1024 * 1024;
-	private final String json;
+	private String json;
 	private final String validatedPreparation;
+	private JsonObject retainedArtifact;
+	private MatchDocument retainedPreparation;
 
 	public CompletedMatch(String json) { this.json = canonical(json); validatedPreparation = null; }
 	/** Freeze an existing artifact without parsing or copying its retained history. */
@@ -27,11 +29,25 @@ public final class CompletedMatch {
 		codec.validateCompletion(artifact, document);
 		validatedPreparation = codec.completionScope(document);
 	}
+	/** Setup loads finish recovery JDBC reads before validating a retained result. */
+	CompletedMatch(MatchDocument document, JsonObject artifact) {
+		retainedPreparation = document;
+		retainedArtifact = artifact;
+		validatedPreparation = null;
+	}
 	boolean validatedFor(String preparation) { return validatedPreparation != null && validatedPreparation.equals(preparation); }
-	public String json() { return json; }
-	@Override public String toString() { return json; }
-	@Override public boolean equals(Object other) { return other instanceof CompletedMatch && json.equals(((CompletedMatch) other).json); }
-	@Override public int hashCode() { return json.hashCode(); }
+	public synchronized String json() {
+		if (retainedArtifact != null) {
+			new MatchJson().validateCompletion(retainedArtifact, retainedPreparation);
+			json = canonical(retainedArtifact);
+			retainedArtifact = null;
+			retainedPreparation = null;
+		}
+		return json;
+	}
+	@Override public String toString() { return json(); }
+	@Override public boolean equals(Object other) { return other instanceof CompletedMatch && json().equals(((CompletedMatch) other).json()); }
+	@Override public int hashCode() { return json().hashCode(); }
 
 	private static String canonical(String text) {
 		if (text == null || new Utf8Size().bytes(text) > MAX_BYTES) throw new IllegalArgumentException("Invalid completed match");

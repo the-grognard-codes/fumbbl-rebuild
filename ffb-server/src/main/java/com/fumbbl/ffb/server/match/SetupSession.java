@@ -544,11 +544,15 @@ public final class SetupSession {
 
 	/** Expiry is durable and fail-closed; it is never a background deletion or an inferred consent. */
 	public boolean abandonIfInactive(long now) {
-		if (!saveResume || saveResumeState.abandoned || isComplete() || failed) return false;
-		if (now - saveResumeState.lastPlayerActivityAt < SaveResumeState.RETENTION_MILLIS) return false;
+		if (!abandonmentDue(now)) return false;
 		saveResumeState.abandoned = true;
 		saveResumeState.proposal = null;
 		return true;
+	}
+
+	boolean abandonmentDue(long now) {
+		return saveResume && !saveResumeState.abandoned && !isComplete() && !failed
+			&& now - saveResumeState.lastPlayerActivityAt >= SaveResumeState.RETENTION_MILLIS;
 	}
 
 	/** A successful native action invalidates a pending proposal and refreshes the one-month activity period. */

@@ -135,6 +135,7 @@ class SetupApplicationReadOnlyLoadTest {
 			engine.session.startSaveResumeRetention(now.get());
 			recovery = new MemoryRecovery(id, engine.session.recoveryArtifact());
 			when(matches.load("home", id)).thenReturn(new MatchService.Result(engine.document, false));
+			when(matches.loadForSetup("home", id)).thenReturn(new MatchService.Result(engine.document, false));
 			when(preferences.loadForMatch(eq(id), anyString())).thenReturn(SkillUsePreferences.defaults());
 		}
 		SetupApplication application() {

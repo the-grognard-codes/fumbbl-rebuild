@@ -113,11 +113,21 @@ public final class MatchService {
 		return new Result(required(owner, matchId), false);
 	}
 
+	public Result loadForSetup(String owner, String matchId) throws SQLException {
+		identity(owner); selection(matchId, 1);
+		return new Result(required(owner, matchId, true), false);
+	}
+
 	/** Atomically persists the terminal replay artifact after the one activation transition. */
 	public void complete(String owner, String matchId, CompletedMatch completed) throws SQLException {
 		identity(owner); selection(matchId, 1);
 		if (completed == null) throw new Failure("INVALID_REQUEST");
-		MatchDocument document = required(owner, matchId);
+		completeLoaded(owner, required(owner, matchId), completed);
+	}
+
+	/** Complete the preparation already authorized in this worker request; the CAS guards concurrent changes. */
+	void completeLoaded(String owner, MatchDocument document, CompletedMatch completed) throws SQLException {
+		String matchId = document.matchId;
 		if (document.lifecycle == MatchDocument.Lifecycle.COMPLETED) {
 			if (completed.equals(document.completion)) return;
 			throw new Failure("COMPLETION_CONFLICT");
@@ -160,9 +170,13 @@ public final class MatchService {
 	}
 
 	private MatchDocument required(String owner, String id) throws SQLException {
+		return required(owner, id, false);
+	}
+
+	private MatchDocument required(String owner, String id, boolean deferCompletionValidation) throws SQLException {
 		MatchRepository.Record record = matches.find(id);
 		if (record == null) throw new Failure("NOT_FOUND");
-		MatchDocument document = json.decodeAuthorized(owner, record.json, record.documentVersion);
+		MatchDocument document = json.decodeAuthorized(owner, record.json, record.documentVersion, deferCompletionValidation);
 		if (!id.equals(document.matchId) || !id.equals(record.matchId)) throw new Failure("SNAPSHOT_UNSUPPORTED");
 		return document;
 	}

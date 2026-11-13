@@ -1,7 +1,9 @@
 package com.fumbbl.ffb.server.match;
 
 import com.fumbbl.ffb.server.FantasyFootballServer;
+import com.fumbbl.ffb.server.db.JdbcConnections;
 import com.fumbbl.ffb.server.local.BrowserRequestTiming;
+import com.fumbbl.ffb.server.skilluse.SkillUsePreferences;
 import com.fumbbl.ffb.server.skilluse.SkillUsePreferenceService;
 
 import com.eclipsesource.json.JsonObject;
@@ -39,9 +41,19 @@ public final class SetupApplication {
 	}
 
 	private void refreshSkillUsePreferences(String id, SetupSession session) throws SQLException {
+		applySkillUsePreferences(session, readSkillUsePreferences(id));
+	}
+
+	private record MatchPreferences(SkillUsePreferences home, SkillUsePreferences away) { }
+
+	private MatchPreferences readSkillUsePreferences(String id) throws SQLException {
 		storageAdmission.requireAvailable();
-		if (skillUsePreferences != null) session.configureSkillUsePreferences(
+		return skillUsePreferences == null ? null : new MatchPreferences(
 			skillUsePreferences.loadForMatch(id, "home"), skillUsePreferences.loadForMatch(id, "away"));
+	}
+
+	private void applySkillUsePreferences(SetupSession session, MatchPreferences preferences) {
+		if (preferences != null) session.configureSkillUsePreferences(preferences.home(), preferences.away());
 	}
 	private static final long IDLE_MILLIS = 30 * 60 * 1000L;
 	private final Map<String, Long> lastAccess = new LinkedHashMap<>();
@@ -224,7 +236,7 @@ public final class SetupApplication {
 			generations.put(id, record.generation);
 			committedFingerprints.put(id, fingerprint);
 			if (recovery.supportsJournal()) journalCursors.put(id, journal.cursor(record, session));
-			pendingRestoreCheckpoints.add(id);
+			if (!session.isComplete()) pendingRestoreCheckpoints.add(id);
 			lastAccess.put(id, clock.millis());
 			restoredSessions++;
 			return session;
@@ -284,7 +296,6 @@ public final class SetupApplication {
 			timing.value(BrowserRequestTiming.Value.REVISION, session.revision());
 		} } catch (RuntimeException unavailable) { /* Diagnostic context must not affect checkpoint behavior. */ }
 		try (BrowserRequestTiming.Scope ignored = timing.span(BrowserRequestTiming.Phase.CHECKPOINT)) {
-			matches.load(owner, id); // Reauthorize before the durable mutation as well as before engine execution.
 			RecoveryJournal.Cursor cursor = journalCursors.get(id);
 			if (cursor != null) { timing.value(BrowserRequestTiming.Value.JOURNAL_ENTRIES, cursor.entries); timing.value(BrowserRequestTiming.Value.JOURNAL_BYTES, cursor.journalBytes); }
 			long generation = generations.get(id);
@@ -296,6 +307,7 @@ public final class SetupApplication {
 				}
 				if (change == null) { timing.value(BrowserRequestTiming.Value.CHECKPOINT_PATH, 0); pendingRestoreCheckpoints.remove(id); return; }
 				if (!change.compact) {
+					matches.load(owner, id); // Reauthorize before writing the durable generation.
 					timing.value(BrowserRequestTiming.Value.CHECKPOINT_PATH, 1);
 					try (BrowserRequestTiming.Scope store = timing.span(BrowserRequestTiming.Phase.CHECKPOINT_STORE)) {
 						if (!recovery.append(new RecoveryRepository.Record(id, generation + 1, change.json), generation))
@@ -320,6 +332,7 @@ public final class SetupApplication {
 				timing.value(BrowserRequestTiming.Value.CHECKPOINT_PATH, 0);
 				pendingRestoreCheckpoints.remove(id); return;
 			}
+			matches.load(owner, id);
 			try (BrowserRequestTiming.Scope store = timing.span(BrowserRequestTiming.Phase.CHECKPOINT_STORE)) {
 				if (!recovery.save(new RecoveryRepository.Record(id, generation + 1, after), generation))
 					throw new MatchService.Failure("RECOVERY_CONFLICT");
@@ -406,7 +419,7 @@ public final class SetupApplication {
 		try {
 			validate(request, computerChannel);
 			String id = request.getString("matchId", null);
-			MatchDocument document = matches.load(owner, id).document;
+			MatchDocument document = matches.loadForSetup(owner, id).document;
 			if (computerChannel && new ComputerOpponentService(null).coach(document) == null)
 				throw new MatchService.Failure("NOT_FOUND");
 			String role = owner.equals(document.home.owner) ? "home"
@@ -414,16 +427,26 @@ public final class SetupApplication {
 			if (role == null) throw new MatchService.Failure("NOT_FOUND");
 			String operation = request.getString("operation", null);
 			phase = "retained-concession";
-			HandleOutcome retained = retainedConcessionOutcome(owner, document, role, request);
-			if (retained != null) return retained;
+			boolean completed = document.lifecycle == MatchDocument.Lifecycle.COMPLETED;
+			RecoveryRepository.Record retainedRecord = null;
+			if (recovery != null && (completed || document.lifecycle == MatchDocument.Lifecycle.ACTIVATED
+				&& ("concede".equals(operation) || "concessionStatus".equals(operation)))) {
+				retainedRecord = completed ? recoveryRecord(id, false) : findRecovery(id);
+				HandleOutcome retained = retainedConcessionOutcome(owner, document, role, request, retainedRecord);
+				if (retained != null) return retained;
+			}
 			releaseIdle();
 			phase = "completion";
-			if (recovery != null && document.lifecycle == MatchDocument.Lifecycle.COMPLETED)
-				return completedReplyWithOutcome(document, role, request);
+			if (recovery != null && completed) return completedReplyWithOutcome(document, role, request, retainedRecord);
 			SetupSession recovered = null;
-			phase = "restore";
-			if (recovery != null && !sessions.containsKey(id)
-				&& document.lifecycle == MatchDocument.Lifecycle.ACTIVATED) recovered = restore(id, document);
+			boolean cold = recovery != null && !sessions.containsKey(id) && document.lifecycle == MatchDocument.Lifecycle.ACTIVATED;
+			MatchPreferences preferences = null;
+			if (cold) {
+				phase = "skill-use-preferences";
+				preferences = readSkillUsePreferences(id);
+				phase = "restore";
+				recovered = restore(id, document);
+			}
 			if (document.lifecycle == MatchDocument.Lifecycle.COMPLETED && !sessions.containsKey(id)) {
                 if (!"load".equals(operation) && !"concessionStatus".equals(operation)) throw new MatchService.Failure("MATCH_COMPLETED");
                 JsonObject artifact = JsonObject.readFrom(document.completion.json());
@@ -437,9 +460,23 @@ public final class SetupApplication {
 			if (session == null) throw new MatchService.Failure("SESSION_UNAVAILABLE");
 			if (session.isFailed()) throw new MatchService.Failure("SESSION_UNAVAILABLE");
 			phase = "skill-use-preferences";
-			refreshSkillUsePreferences(id, session);
+			if (cold) applySkillUsePreferences(session, preferences);
+			else refreshSkillUsePreferences(id, session);
 			phase = "checkpoint";
 			if (recovery != null) lastAccess.put(id, clock.millis());
+			if (session.isComplete() && recovery != null && "load".equals(operation)) {
+				phase = "completion";
+				complete(owner, document, session);
+				JsonObject response = session.decorateSaveResume(session.reply(requestId, "ACCEPTED", false, role));
+				release(id);
+				completedReleases++;
+				return outcome(response, true);
+			}
+			// A slow cold read may serve the restored durable state and leave maintenance for the
+			// next worker task. No input or clock decision has been applied at this point.
+			if (cold && "load".equals(operation) && !session.isComplete() && !session.abandonmentDue(clock.millis())
+				&& timing.budget() != null && timing.budget().allowanceMillis(1, JdbcConnections.WORK_RESERVE_MILLIS) == 0)
+				return outcome(session.decorateSaveResume(session.reply(requestId, "ACCEPTED", false, role)), false);
 			if (session.abandonIfInactive(clock.millis())) {
 				checkpoint(owner, id, session);
 				release(id);
@@ -458,7 +495,7 @@ public final class SetupApplication {
 				checkpoint(owner, id, session);
 				if (session.isComplete()) {
 					phase = "completion";
-					matches.complete(owner, id, session.completedMatch());
+					complete(owner, document, session);
 				}
 				JsonObject expired = session.reply(requestId, "load".equals(operation) ? "ACCEPTED" : "STALE_REVISION", false, role);
 				session.decorateSaveResume(expired);
@@ -486,8 +523,8 @@ public final class SetupApplication {
 			}
 			// Resident reads cannot change history. Retain the first restored checkpoint and any
 			// proposal/reaction/clock maintenance even when no native decision was executed.
-			if (!readOnly || pendingRestoreCheckpoints.contains(id) || expiredProposal
-				|| !java.util.Objects.equals(maintenanceBefore, session.reactiveMaintenanceState()))
+			if (!(session.isComplete() && recovered != null) && (!readOnly || pendingRestoreCheckpoints.contains(id) || expiredProposal
+				|| !java.util.Objects.equals(maintenanceBefore, session.reactiveMaintenanceState())))
 				checkpoint(owner, id, session);
 			session.decorateSaveResume(response);
             // Persist before acknowledging terminal success. A retry/load reconciles without executing the engine again.
@@ -495,12 +532,15 @@ public final class SetupApplication {
 				&& !response.getBoolean("duplicate", false) && !"load".equals(operation) && !"concessionStatus".equals(operation);
 			if (session.isComplete()) {
 				phase = "completion";
-				matches.complete(owner, id, session.completedMatch());
+				complete(owner, document, session);
 				publish = recovery == null ? legacyCompletionBroadcasted.add(id)
 					: document.lifecycle != MatchDocument.Lifecycle.COMPLETED;
 				if (recovery != null) { release(id); completedReleases++; }
 			}
             return outcome(response, publish);
+		} catch (CompletionPending failure) {
+			persistenceLog.completionPending(request.getString("matchId", null), requestId, failure.sqlFailure);
+			return outcome(failure(requestId, "COMPLETION_PENDING"), false);
 		} catch (RecoveryRepository.OutcomeUnknown failure) { return outcome(failure(requestId, "MATCH_OUTCOME_UNKNOWN"), false); }
 		catch (MatchService.OutcomeUnknown failure) { return outcome(failure(requestId, "MATCH_OUTCOME_UNKNOWN"), false); }
         catch (MatchService.Failure failure) { return outcome(failure(requestId, failure.code), false); }
@@ -511,40 +551,46 @@ public final class SetupApplication {
 		catch (RuntimeException failure) { return outcome(failure(requestId, "INVALID_REQUEST"), false); }
 	}
 
+	private void complete(String owner, MatchDocument document, SetupSession session) throws SQLException {
+		try { matches.completeLoaded(owner, document, session.completedMatch()); }
+		catch (JdbcConnections.NotStarted | JdbcConnections.DeadlineExpired failure) {
+			if (recovery == null) throw failure;
+			throw new CompletionPending(failure);
+		}
+	}
+
+	private static final class CompletionPending extends RuntimeException {
+		private final SQLException sqlFailure;
+		CompletionPending(SQLException failure) { super(failure); sqlFailure = failure; }
+	}
+
 	/** Keep large retained administrative history outside the terminal engine reconstruction frame. */
-	private HandleOutcome retainedConcessionOutcome(String owner, MatchDocument document, String role, JsonObject request) throws SQLException {
+	private HandleOutcome retainedConcessionOutcome(String owner, MatchDocument document, String role, JsonObject request,
+		RecoveryRepository.Record record) throws SQLException {
 		String id = document.matchId;
 		String requestId = request.getString("requestId", null);
 		String operation = request.getString("operation", null);
-		if (recovery != null && (document.lifecycle == MatchDocument.Lifecycle.ACTIVATED || document.lifecycle == MatchDocument.Lifecycle.COMPLETED)
-			&& ("concede".equals(operation) || "concessionStatus".equals(operation)
-			|| document.lifecycle == MatchDocument.Lifecycle.COMPLETED)) {
-			RecoveryRepository.Record record = findRecovery(id);
-			if (record != null) {
-				RetainedConcession retained = new RetainedConcession(record, document);
-				if ("concessionStatus".equals(operation)) {
-					SetupSession resident = sessions.get(id);
-					return outcome(resident == null ? retainedReply(requestId, role, retained, false)
-						: resident.reply(requestId, "ACCEPTED", false, role), false);
-				}
-				if (retained.closed() || "concede".equals(operation) && retained.unsupported()) {
-					boolean duplicate = retained.closed() && !"load".equals(operation) && retained.duplicate(role, request);
-					if (!retained.closed()) {
-						duplicate = retained.close(role, request, clock.millis());
-						matches.load(owner, id);
-						try (BrowserRequestTiming.Scope ignored = timing.span(BrowserRequestTiming.Phase.CHECKPOINT)) {
-							if (!recovery.save(new RecoveryRepository.Record(id, record.generation + 1, retained.artifact()), record.generation))
-								throw new MatchService.Failure("RECOVERY_CONFLICT");
-						}
-					}
-					boolean publish = document.lifecycle != MatchDocument.Lifecycle.COMPLETED;
-					if (publish) { matches.complete(owner, id, retained.completed()); release(id); completedReleases++; }
-					else if (!retained.completed().equals(document.completion)) throw new MatchService.Failure("RECOVERY_CORRUPT");
-					return outcome(retainedReply(requestId, role, retained, duplicate), publish);
-				}
+		if (record == null) return null;
+		RetainedConcession retained = new RetainedConcession(record, document);
+		if ("concessionStatus".equals(operation)) {
+			SetupSession resident = sessions.get(id);
+			return outcome(resident == null ? retainedReply(requestId, role, retained, false)
+				: resident.reply(requestId, "ACCEPTED", false, role), false);
+		}
+		if (!retained.closed() && !("concede".equals(operation) && retained.unsupported())) return null;
+		boolean duplicate = retained.closed() && !"load".equals(operation) && retained.duplicate(role, request);
+		if (!retained.closed()) {
+			duplicate = retained.close(role, request, clock.millis());
+			matches.load(owner, id);
+			try (BrowserRequestTiming.Scope ignored = timing.span(BrowserRequestTiming.Phase.CHECKPOINT)) {
+				if (!recovery.save(new RecoveryRepository.Record(id, record.generation + 1, retained.artifact()), record.generation))
+					throw new MatchService.Failure("RECOVERY_CONFLICT");
 			}
 		}
-		return null;
+		boolean publish = document.lifecycle != MatchDocument.Lifecycle.COMPLETED;
+		if (publish) { matches.complete(owner, id, retained.completed()); release(id); completedReleases++; }
+		else if (!retained.completed().equals(document.completion)) throw new MatchService.Failure("RECOVERY_CORRUPT");
+		return outcome(retainedReply(requestId, role, retained, duplicate), publish);
 	}
 
 	private JsonObject retainedReply(String requestId, String role, RetainedConcession retained, boolean duplicate) {
@@ -552,8 +598,8 @@ public final class SetupApplication {
 			.add("code", "ACCEPTED").add("duplicate", duplicate).add("state", retained.view(role));
 	}
 
-	private HandleOutcome completedReplyWithOutcome(MatchDocument document, String role, JsonObject request) throws SQLException {
-		RecoveryRepository.Record record = recoveryRecord(document.matchId, false);
+	private HandleOutcome completedReplyWithOutcome(MatchDocument document, String role, JsonObject request,
+		RecoveryRepository.Record record) {
 		if (record == null) {
 			if (!"load".equals(request.getString("operation", null)) && !"concessionStatus".equals(request.getString("operation", null))) throw new MatchService.Failure("MATCH_COMPLETED");
 			JsonObject artifact = JsonObject.readFrom(document.completion.json());

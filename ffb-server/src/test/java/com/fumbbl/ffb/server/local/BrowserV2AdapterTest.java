@@ -109,6 +109,7 @@ class BrowserV2AdapterTest {
 		java.lang.reflect.Constructor<MatchService.Result> resultConstructor = MatchService.Result.class.getDeclaredConstructor(MatchDocument.class, boolean.class);
 		resultConstructor.setAccessible(true);
 		when(matches.load("home", MATCH)).thenReturn(resultConstructor.newInstance(active, false));
+		when(matches.loadForSetup("home", MATCH)).thenReturn(resultConstructor.newInstance(active, false));
 		when(setup.browseDocument(MATCH)).thenReturn(active);
 		BrowserV2Adapter adapter = new BrowserV2Adapter(bearer -> player, access, setup, matches, preparation,
 			mock(BrowserSavedTeamJson.class), new com.fumbbl.ffb.server.match.ComputerOpponentService(null), clock);
@@ -350,6 +351,7 @@ class BrowserV2AdapterTest {
 		V2PreparationService preparation = mock(V2PreparationService.class);
 		when(preparation.activeComputerMatches()).thenReturn(java.util.Collections.singletonList(MATCH));
 		when(preparation.isComputerMatch(MATCH)).thenReturn(true);
+		when(preparation.hasComputerMembership(MATCH)).thenReturn(true);
 		SetupApplication setup = mock(SetupApplication.class);
 		when(setup.handleComputerWithOutcome(any(JsonObject.class))).thenAnswer(call -> {
 			JsonObject request = call.getArgument(0);
@@ -398,6 +400,7 @@ class BrowserV2AdapterTest {
 		when(access.playerRole(home, MATCH)).thenReturn("home");
 		V2PreparationService preparation = mock(V2PreparationService.class);
 		when(preparation.isComputerMatch(MATCH)).thenReturn(true);
+		when(preparation.hasComputerMembership(MATCH)).thenReturn(true);
 		SetupApplication setup = mock(SetupApplication.class);
 		when(setup.activate(eq("home"), any(String.class))).thenAnswer(call -> preparedResponse());
 		BrowserV2Adapter adapter = new BrowserV2Adapter(bearer -> home, access, setup,

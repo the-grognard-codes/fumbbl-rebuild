@@ -77,6 +77,7 @@ class SetupApplicationCheckpointTest {
 			verify(fixture.recovery, never()).find(MATCH);
 			assertEquals(0, fixture.construction.constructed().size());
 			when(fixture.matches.load("home", MATCH)).thenThrow(new MatchService.Failure("NOT_FOUND"));
+			when(fixture.matches.loadForSetup("home", MATCH)).thenThrow(new MatchService.Failure("NOT_FOUND"));
 			assertThrows(MatchService.Failure.class, () -> fixture.application.publishedState(MATCH, "home", false));
 		}
 	}
@@ -276,6 +277,7 @@ class SetupApplicationCheckpointTest {
 			MatchDocument document = new MatchDocument(MATCH, 3, "away", MatchDocument.Lifecycle.ACTIVATED,
 				new MatchDocument.Member("home", "home", null), new MatchDocument.Member("away", "away", null));
 			when(matches.load("home", MATCH)).thenReturn(new MatchService.Result(document, false));
+			when(matches.loadForSetup("home", MATCH)).thenReturn(new MatchService.Result(document, false));
 			when(recovery.find(MATCH)).thenAnswer(call -> durable.get());
 			when(recovery.save(any(RecoveryRepository.Record.class), anyLong())).thenAnswer(call -> {
 				RecoveryRepository.Record record = call.getArgument(0);
