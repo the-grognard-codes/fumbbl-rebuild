@@ -21,6 +21,8 @@ import com.fumbbl.ffb.server.team.bb2025.RosterCatalog;
 import org.eclipse.jetty.ee8.servlet.ServletContextHandler;
 import org.eclipse.jetty.ee8.servlet.ServletHolder;
 
+import java.net.InetAddress;
+import java.net.UnknownHostException;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.time.Clock;
@@ -85,13 +87,23 @@ public final class BrowserV2Runtime {
 
 		@Override protected void doGet(HttpServletRequest request, HttpServletResponse response) {
 			String remoteAddress = request.getRemoteAddr();
-			if (!"127.0.0.1".equals(remoteAddress) && !"::1".equals(remoteAddress)) {
+			if (!loopback(remoteAddress)) {
 				response.setStatus(HttpServletResponse.SC_NOT_FOUND);
 				return;
 			}
 			response.setHeader("Cache-Control", "no-store");
 			response.setStatus(server.getCommunication().isHealthy()
 				? HttpServletResponse.SC_NO_CONTENT : HttpServletResponse.SC_SERVICE_UNAVAILABLE);
+		}
+
+		private boolean loopback(String address) {
+			// Servlet peer addresses are numeric. Reject hostnames before parsing so this cannot perform DNS I/O.
+			if (address == null || address.length() > 128) return false;
+			int zone = address.indexOf('%');
+			if (zone >= 0 && address.contains(":")) address = address.substring(0, zone);
+			if (!address.matches("[0-9a-fA-F:.]+") || !address.contains(":") && !address.matches("[0-9.]+")) return false;
+			try { return InetAddress.getByName(address).isLoopbackAddress(); }
+			catch (UnknownHostException invalid) { return false; }
 		}
 	}
 }

@@ -72,6 +72,33 @@ class BrowserV2RouteTest {
 		assertTrue(http("/health/engine").startsWith("HTTP/1.1 503"));
 	}
 
+	@Test void healthAcceptsAllNumericLoopbackFormsWithoutUsingForwardedHeaders() {
+		for (String address : new String[] { "127.0.0.1", "127.0.0.2", "::1", "0:0:0:0:0:0:0:1", "::1%0" }) {
+			FantasyFootballServer server = mock(FantasyFootballServer.class);
+			ServerCommunication worker = mock(ServerCommunication.class);
+			when(server.getCommunication()).thenReturn(worker);
+			when(worker.isHealthy()).thenReturn(true);
+			HttpServletRequest request = mock(HttpServletRequest.class);
+			HttpServletResponse response = mock(HttpServletResponse.class);
+			when(request.getRemoteAddr()).thenReturn(address);
+			when(request.getHeader("X-Forwarded-For")).thenReturn("192.0.2.10");
+			new BrowserV2Runtime.EngineHealthServlet(server).doGet(request, response);
+			verify(response).setStatus(HttpServletResponse.SC_NO_CONTENT);
+		}
+	}
+
+	@Test void healthRejectsHostnamesAndMalformedAddressesWithoutResolvingThem() {
+		for (String address : new String[] { "localhost", "bad.invalid", "deadbeef", "zzz:1", "", "::invalid", "192.0.2.10", "2001:db8::1" }) {
+			FantasyFootballServer server = mock(FantasyFootballServer.class);
+			HttpServletRequest request = mock(HttpServletRequest.class);
+			HttpServletResponse response = mock(HttpServletResponse.class);
+			when(request.getRemoteAddr()).thenReturn(address);
+			new BrowserV2Runtime.EngineHealthServlet(server).doGet(request, response);
+			verify(response).setStatus(HttpServletResponse.SC_NOT_FOUND);
+			verifyNoInteractions(server);
+		}
+	}
+
 	@Test void healthHidesStatusFromNonLoopbackPeersEvenWithForwardedLoopbackAddress() {
 		FantasyFootballServer server = mock(FantasyFootballServer.class);
 		HttpServletRequest request = mock(HttpServletRequest.class);

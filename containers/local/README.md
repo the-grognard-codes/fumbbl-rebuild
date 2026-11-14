@@ -7,7 +7,9 @@ V2 uses existing Firebase authentication and the separately provisioned browser 
 No remote publication is performed.
 
 The dev-local server restarts on a nonzero exit, including a fatal engine
-worker failure. A JVM heap OOM writes a private `java-<unique-id>.hprof` before
+worker failure, with at most three automatic retries (`on-failure:3`). A
+persistent startup failure stops after that bound so its original error remains
+visible; correct the configuration or dependency and start it explicitly. A JVM heap OOM writes a private `java-<unique-id>.hprof` before
 exiting. Find the files on the host at `.tools/dev-local/heap-dumps/`, or set
 `DEV_LOCAL_HEAP_DUMP_DIR` to an absolute host path. This bind mount survives a
 container restart or recreation. On Linux, create the directory with mode

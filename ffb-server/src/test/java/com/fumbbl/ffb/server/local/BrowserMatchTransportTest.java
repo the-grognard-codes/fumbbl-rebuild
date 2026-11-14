@@ -35,6 +35,16 @@ public class BrowserMatchTransportTest {
 		} finally { fixture.transport.destroy(); }
 	}
 
+	@Test void uppercaseMatchIdsRemainCanonicalInFatalLogContext() {
+		QueueFixture fixture = new QueueFixture();
+		try {
+			fixture.transport.submit("{\"version\":2,\"type\":\"setup\",\"matchId\":\"ABCDEF12-ABCD-ABCD-ABCD-ABCDEF123456\"}",
+				() -> { throw new AssertionError("injected"); }, () -> { });
+			assertThrows(AssertionError.class, fixture::drain);
+			verify(fixture.communication).describeWork("setup", "abcdef12-abcd-abcd-abcd-abcdef123456");
+		} finally { fixture.transport.destroy(); }
+	}
+
 	@Test public void lobbyReadsYieldToGameplayAndShareTheExistingAdvisoryAllowance() {
 		QueueFixture fixture = new QueueFixture();
 		List<String> handled = new ArrayList<>();

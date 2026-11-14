@@ -24,7 +24,7 @@ enum BrowserV2RequestType {
 	SKILL_USE_PREFERENCES("skillUsePreferences"),
 	VALIDATE_TEAM("validateTeam"),
 	WATCH("watch"),
-	UNKNOWN("INGRESS");
+	UNKNOWN(null);
 
 	private static final Map<String, BrowserV2RequestType> BY_WIRE_NAME;
 	static {
@@ -44,4 +44,5 @@ enum BrowserV2RequestType {
 	}
 
 	String wireName() { return wireName; }
+	String logName() { return this == UNKNOWN ? "INGRESS" : wireName; }
 }
