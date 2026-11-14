@@ -52,7 +52,7 @@ const summary = { version: 1, provenance, javaVersion: runs[0].javaVersion,
   reproductionGate: 'History-dependent slowdown signal: longest-history handling median exceeds fresh by both 2x and 50 ms; this is an experimental discriminator, not a product SLA',
   comparisons, rows, limitations: [...provenance.limitations,
     'Reported medians/p95/max use equal-count duration samples from three independent JVMs; absolute clocks are never aligned',
-    'Twelve samples per cohort are too few for stable long-term tail estimates; per-run medians are retained',
+    `${expectedSamples * runs.length} samples per cohort are too few for stable long-term tail estimates; per-run medians are retained`,
     'Initial recovery verification uses a separate 2 GiB process to avoid duplicating live state in the measurement JVM',
     'This isolates history-length sensitivity, not elapsed turn number or live end-to-end latency'] };
 writeFileSync(resolve(directory, 'summary.json'), JSON.stringify(summary, null, 2));
