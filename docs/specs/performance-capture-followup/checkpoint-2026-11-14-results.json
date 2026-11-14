@@ -1,0 +1,2353 @@
+{
+  "version": 1,
+  "provenance": {
+    "startedAtUtc": "2026-11-14T07:28:09.384Z",
+    "sourceCommit": "65ed24fdb7f242645d5c4673a3aebce7b4b92110",
+    "harnessSha256": "cebeb8483070396fe16d275f57c1c932d19de93fd9f37207bfefa46df72ab768",
+    "runnerSha256": "b95985a67d599f57247591b36b6b5df48f512c83b1f571dc84d0eea21869d44a",
+    "cpu": "AMD Ryzen 7 260 w/ Radeon 780M Graphics",
+    "platform": "win32",
+    "levels": "0,128,512,1024",
+    "samplesPerCohort": 8,
+    "measurementHeapMiB": 768,
+    "preparationVerificationHeapMiB": 2048,
+    "warmup": "One excluded native action per history/action/storage cohort; a fresh JVM per repetition",
+    "limitations": [
+      "Legal out-and-back setup placements create synthetic long histories, not a complete competitive match",
+      "Identical current two-player pitch and forced successful pass/catch dice; 22-player match roster remains",
+      "Real SetupApplication action/checkpoint/reply with in-memory repository; SQL, transport and browser excluded",
+      "Cold load and recovery verification are outside measured action handling",
+      "Compaction cohorts set the resident journal cursor to its 31-entry boundary immediately before the action; payload and current pitch are unchanged"
+    ]
+  },
+  "javaVersion": "21.0.11",
+  "maxHeapBytes": 805306368,
+  "verifiedCombinations": 16,
+  "analyzerSha256": "cde8d470baef8536a9fd19847b44c84d32afbccb0735739113b14bb578ef8426",
+  "processFirst": [
+    {
+      "addedDecisions": 0,
+      "action": "move",
+      "storagePath": "journal",
+      "phases": {
+        "handlingMs": 186.2956,
+        "sessionApplyMs": 127.2479,
+        "checkpointMs": 55.2494,
+        "recoverySerializeMs": 53.2892,
+        "recoveryCursorMs": 0,
+        "recoveryFingerprintMs": 0,
+        "checkpointStoreMs": 0.0271
+      }
+    },
+    {
+      "addedDecisions": 1024,
+      "action": "move",
+      "storagePath": "journal",
+      "phases": {
+        "handlingMs": 149.6576,
+        "sessionApplyMs": 106.8876,
+        "checkpointMs": 38.3205,
+        "recoverySerializeMs": 37.2969,
+        "recoveryCursorMs": 0,
+        "recoveryFingerprintMs": 0,
+        "checkpointStoreMs": 0.0206
+      }
+    },
+    {
+      "addedDecisions": 512,
+      "action": "move",
+      "storagePath": "journal",
+      "phases": {
+        "handlingMs": 107.9598,
+        "sessionApplyMs": 82.2822,
+        "checkpointMs": 23.4489,
+        "recoverySerializeMs": 22.2447,
+        "recoveryCursorMs": 0,
+        "recoveryFingerprintMs": 0,
+        "checkpointStoreMs": 0.0135
+      }
+    }
+  ],
+  "rows": [
+    {
+      "addedDecisions": 0,
+      "action": "move",
+      "storagePath": "journal",
+      "temperature": "cohort-first",
+      "phases": {
+        "handlingMs": {
+          "count": 3,
+          "median": 18.5677,
+          "p95": 186.2956,
+          "max": 186.2956
+        },
+        "sessionApplyMs": {
+          "count": 3,
+          "median": 9.7962,
+          "p95": 127.2479,
+          "max": 127.2479
+        },
+        "checkpointMs": {
+          "count": 3,
+          "median": 10.7429,
+          "p95": 55.2494,
+          "max": 55.2494
+        },
+        "recoverySerializeMs": {
+          "count": 3,
+          "median": 10.6286,
+          "p95": 53.2892,
+          "max": 53.2892
+        },
+        "recoveryCursorMs": {
+          "count": 3,
+          "median": 0,
+          "p95": 0,
+          "max": 0
+        },
+        "recoveryFingerprintMs": {
+          "count": 3,
+          "median": 0,
+          "p95": 0,
+          "max": 0
+        },
+        "checkpointStoreMs": {
+          "count": 3,
+          "median": 0.006,
+          "p95": 0.0271,
+          "max": 0.0271
+        }
+      },
+      "coldRestoreMs": {
+        "count": 3,
+        "median": 22.9809,
+        "p95": 321.5694,
+        "max": 321.5694
+      },
+      "allocatedBytes": {
+        "count": 3,
+        "median": 23007712,
+        "p95": 24989664,
+        "max": 24989664
+      },
+      "slowestCheckpoint": {
+        "handlingMs": 186.2956,
+        "sessionApplyMs": 127.2479,
+        "checkpointMs": 55.2494,
+        "recoverySerializeMs": 53.2892,
+        "recoveryCursorMs": 0,
+        "recoveryFingerprintMs": 0,
+        "checkpointStoreMs": 0.0271
+      }
+    },
+    {
+      "addedDecisions": 0,
+      "action": "move",
+      "storagePath": "journal",
+      "temperature": "warm",
+      "phases": {
+        "handlingMs": {
+          "count": 24,
+          "median": 13.383099999999999,
+          "p95": 46.1211,
+          "max": 66.5161
+        },
+        "sessionApplyMs": {
+          "count": 24,
+          "median": 7.0386500000000005,
+          "p95": 23.4359,
+          "max": 31.6322
+        },
+        "checkpointMs": {
+          "count": 24,
+          "median": 6.173,
+          "p95": 22.3273,
+          "max": 34.4864
+        },
+        "recoverySerializeMs": {
+          "count": 24,
+          "median": 6.0634999999999994,
+          "p95": 21.798,
+          "max": 34.2831
+        },
+        "recoveryCursorMs": {
+          "count": 24,
+          "median": 0,
+          "p95": 0,
+          "max": 0
+        },
+        "recoveryFingerprintMs": {
+          "count": 24,
+          "median": 0,
+          "p95": 0,
+          "max": 0
+        },
+        "checkpointStoreMs": {
+          "count": 24,
+          "median": 0.0066,
+          "p95": 0.0113,
+          "max": 0.0119
+        }
+      },
+      "coldRestoreMs": {
+        "count": 24,
+        "median": 24.8078,
+        "p95": 42.9229,
+        "max": 72.5063
+      },
+      "allocatedBytes": {
+        "count": 24,
+        "median": 23006716,
+        "p95": 23733104,
+        "max": 23733536
+      },
+      "slowestCheckpoint": {
+        "handlingMs": 66.5161,
+        "sessionApplyMs": 31.6322,
+        "checkpointMs": 34.4864,
+        "recoverySerializeMs": 34.2831,
+        "recoveryCursorMs": 0,
+        "recoveryFingerprintMs": 0,
+        "checkpointStoreMs": 0.01
+      }
+    },
+    {
+      "addedDecisions": 0,
+      "action": "move",
+      "storagePath": "compaction",
+      "temperature": "cohort-first",
+      "phases": {
+        "handlingMs": {
+          "count": 3,
+          "median": 21.2658,
+          "p95": 48.2816,
+          "max": 48.2816
+        },
+        "sessionApplyMs": {
+          "count": 3,
+          "median": 7.183,
+          "p95": 22.6679,
+          "max": 22.6679
+        },
+        "checkpointMs": {
+          "count": 3,
+          "median": 13.8882,
+          "p95": 25.3292,
+          "max": 25.3292
+        },
+        "recoverySerializeMs": {
+          "count": 3,
+          "median": 12.0035,
+          "p95": 20.3633,
+          "max": 20.3633
+        },
+        "recoveryCursorMs": {
+          "count": 3,
+          "median": 1.3754,
+          "p95": 4.3338,
+          "max": 4.3338
+        },
+        "recoveryFingerprintMs": {
+          "count": 3,
+          "median": 0.2921,
+          "p95": 0.4652,
+          "max": 0.4652
+        },
+        "checkpointStoreMs": {
+          "count": 3,
+          "median": 0.0048,
+          "p95": 0.0129,
+          "max": 0.0129
+        }
+      },
+      "coldRestoreMs": {
+        "count": 3,
+        "median": 22.7454,
+        "p95": 48.3544,
+        "max": 48.3544
+      },
+      "allocatedBytes": {
+        "count": 3,
+        "median": 31242640,
+        "p95": 32037648,
+        "max": 32037648
+      },
+      "slowestCheckpoint": {
+        "handlingMs": 48.2816,
+        "sessionApplyMs": 22.6679,
+        "checkpointMs": 25.3292,
+        "recoverySerializeMs": 20.3633,
+        "recoveryCursorMs": 4.3338,
+        "recoveryFingerprintMs": 0.4652,
+        "checkpointStoreMs": 0.0129
+      }
+    },
+    {
+      "addedDecisions": 0,
+      "action": "move",
+      "storagePath": "compaction",
+      "temperature": "warm",
+      "phases": {
+        "handlingMs": {
+          "count": 24,
+          "median": 21.33635,
+          "p95": 42.4211,
+          "max": 47.6038
+        },
+        "sessionApplyMs": {
+          "count": 24,
+          "median": 6.760149999999999,
+          "p95": 18.6645,
+          "max": 18.8537
+        },
+        "checkpointMs": {
+          "count": 24,
+          "median": 13.57705,
+          "p95": 23.5362,
+          "max": 28.5281
+        },
+        "recoverySerializeMs": {
+          "count": 24,
+          "median": 11.7684,
+          "p95": 19.5997,
+          "max": 22.9566
+        },
+        "recoveryCursorMs": {
+          "count": 24,
+          "median": 1.4933,
+          "p95": 3.2869,
+          "max": 4.7973
+        },
+        "recoveryFingerprintMs": {
+          "count": 24,
+          "median": 0.3074,
+          "p95": 0.5426,
+          "max": 0.9125
+        },
+        "checkpointStoreMs": {
+          "count": 24,
+          "median": 0.00525,
+          "p95": 0.0083,
+          "max": 0.0094
+        }
+      },
+      "coldRestoreMs": {
+        "count": 24,
+        "median": 24.25745,
+        "p95": 37.2214,
+        "max": 52.9606
+      },
+      "allocatedBytes": {
+        "count": 24,
+        "median": 31242632,
+        "p95": 32040200,
+        "max": 32052032
+      },
+      "slowestCheckpoint": {
+        "handlingMs": 47.6038,
+        "sessionApplyMs": 18.8537,
+        "checkpointMs": 28.5281,
+        "recoverySerializeMs": 22.9566,
+        "recoveryCursorMs": 4.7973,
+        "recoveryFingerprintMs": 0.5426,
+        "checkpointStoreMs": 0.0094
+      }
+    },
+    {
+      "addedDecisions": 0,
+      "action": "pass",
+      "storagePath": "journal",
+      "temperature": "cohort-first",
+      "phases": {
+        "handlingMs": {
+          "count": 3,
+          "median": 14.0774,
+          "p95": 35.8769,
+          "max": 35.8769
+        },
+        "sessionApplyMs": {
+          "count": 3,
+          "median": 10.575,
+          "p95": 32.2038,
+          "max": 32.2038
+        },
+        "checkpointMs": {
+          "count": 3,
+          "median": 3.3733,
+          "p95": 3.4956,
+          "max": 3.4956
+        },
+        "recoverySerializeMs": {
+          "count": 3,
+          "median": 3.3059,
+          "p95": 3.4111,
+          "max": 3.4111
+        },
+        "recoveryCursorMs": {
+          "count": 3,
+          "median": 0,
+          "p95": 0,
+          "max": 0
+        },
+        "recoveryFingerprintMs": {
+          "count": 3,
+          "median": 0,
+          "p95": 0,
+          "max": 0
+        },
+        "checkpointStoreMs": {
+          "count": 3,
+          "median": 0.0045,
+          "p95": 0.0054,
+          "max": 0.0054
+        }
+      },
+      "coldRestoreMs": {
+        "count": 3,
+        "median": 23.1106,
+        "p95": 29.6111,
+        "max": 29.6111
+      },
+      "allocatedBytes": {
+        "count": 3,
+        "median": 14599920,
+        "p95": 15634736,
+        "max": 15634736
+      },
+      "slowestCheckpoint": {
+        "handlingMs": 35.8769,
+        "sessionApplyMs": 32.2038,
+        "checkpointMs": 3.4956,
+        "recoverySerializeMs": 3.4111,
+        "recoveryCursorMs": 0,
+        "recoveryFingerprintMs": 0,
+        "checkpointStoreMs": 0.0054
+      }
+    },
+    {
+      "addedDecisions": 0,
+      "action": "pass",
+      "storagePath": "journal",
+      "temperature": "warm",
+      "phases": {
+        "handlingMs": {
+          "count": 24,
+          "median": 14.635100000000001,
+          "p95": 19.2358,
+          "max": 19.4476
+        },
+        "sessionApplyMs": {
+          "count": 24,
+          "median": 10.9707,
+          "p95": 14.265,
+          "max": 15.7408
+        },
+        "checkpointMs": {
+          "count": 24,
+          "median": 3.29975,
+          "p95": 5.0282,
+          "max": 5.6704
+        },
+        "recoverySerializeMs": {
+          "count": 24,
+          "median": 3.2178,
+          "p95": 4.9103,
+          "max": 5.5268
+        },
+        "recoveryCursorMs": {
+          "count": 24,
+          "median": 0,
+          "p95": 0,
+          "max": 0
+        },
+        "recoveryFingerprintMs": {
+          "count": 24,
+          "median": 0,
+          "p95": 0,
+          "max": 0
+        },
+        "checkpointStoreMs": {
+          "count": 24,
+          "median": 0.0052,
+          "p95": 0.0108,
+          "max": 0.0171
+        }
+      },
+      "coldRestoreMs": {
+        "count": 24,
+        "median": 24.94885,
+        "p95": 30.6159,
+        "max": 31.7348
+      },
+      "allocatedBytes": {
+        "count": 24,
+        "median": 14599124,
+        "p95": 14761616,
+        "max": 14774176
+      },
+      "slowestCheckpoint": {
+        "handlingMs": 19.2358,
+        "sessionApplyMs": 13.2898,
+        "checkpointMs": 5.6704,
+        "recoverySerializeMs": 5.5268,
+        "recoveryCursorMs": 0,
+        "recoveryFingerprintMs": 0,
+        "checkpointStoreMs": 0.0079
+      }
+    },
+    {
+      "addedDecisions": 0,
+      "action": "pass",
+      "storagePath": "compaction",
+      "temperature": "cohort-first",
+      "phases": {
+        "handlingMs": {
+          "count": 3,
+          "median": 22.2477,
+          "p95": 31.8159,
+          "max": 31.8159
+        },
+        "sessionApplyMs": {
+          "count": 3,
+          "median": 12.4255,
+          "p95": 14.3115,
+          "max": 14.3115
+        },
+        "checkpointMs": {
+          "count": 3,
+          "median": 10.5302,
+          "p95": 17.3214,
+          "max": 17.3214
+        },
+        "recoverySerializeMs": {
+          "count": 3,
+          "median": 9.2947,
+          "p95": 15.9846,
+          "max": 15.9846
+        },
+        "recoveryCursorMs": {
+          "count": 3,
+          "median": 0.8917,
+          "p95": 0.9176,
+          "max": 0.9176
+        },
+        "recoveryFingerprintMs": {
+          "count": 3,
+          "median": 0.2457,
+          "p95": 0.3093,
+          "max": 0.3093
+        },
+        "checkpointStoreMs": {
+          "count": 3,
+          "median": 0.004,
+          "p95": 0.0076,
+          "max": 0.0076
+        }
+      },
+      "coldRestoreMs": {
+        "count": 3,
+        "median": 26.3641,
+        "p95": 27.04,
+        "max": 27.04
+      },
+      "allocatedBytes": {
+        "count": 3,
+        "median": 19549840,
+        "p95": 19928936,
+        "max": 19928936
+      },
+      "slowestCheckpoint": {
+        "handlingMs": 31.8159,
+        "sessionApplyMs": 14.3115,
+        "checkpointMs": 17.3214,
+        "recoverySerializeMs": 15.9846,
+        "recoveryCursorMs": 0.8917,
+        "recoveryFingerprintMs": 0.3093,
+        "checkpointStoreMs": 0.004
+      }
+    },
+    {
+      "addedDecisions": 0,
+      "action": "pass",
+      "storagePath": "compaction",
+      "temperature": "warm",
+      "phases": {
+        "handlingMs": {
+          "count": 24,
+          "median": 20.24185,
+          "p95": 27.6244,
+          "max": 30.3272
+        },
+        "sessionApplyMs": {
+          "count": 24,
+          "median": 11.4324,
+          "p95": 17.6054,
+          "max": 20.4984
+        },
+        "checkpointMs": {
+          "count": 24,
+          "median": 9.025500000000001,
+          "p95": 14.0138,
+          "max": 14.0205
+        },
+        "recoverySerializeMs": {
+          "count": 24,
+          "median": 7.33985,
+          "p95": 12.3273,
+          "max": 12.694
+        },
+        "recoveryCursorMs": {
+          "count": 24,
+          "median": 0.8145,
+          "p95": 1.1431,
+          "max": 1.3696
+        },
+        "recoveryFingerprintMs": {
+          "count": 24,
+          "median": 0.2683,
+          "p95": 0.4085,
+          "max": 3.4196
+        },
+        "checkpointStoreMs": {
+          "count": 24,
+          "median": 0.0051,
+          "p95": 0.0116,
+          "max": 0.0638
+        }
+      },
+      "coldRestoreMs": {
+        "count": 24,
+        "median": 25.6018,
+        "p95": 31.0716,
+        "max": 32.9822
+      },
+      "allocatedBytes": {
+        "count": 24,
+        "median": 19550304,
+        "p95": 19931792,
+        "max": 20462040
+      },
+      "slowestCheckpoint": {
+        "handlingMs": 23.429,
+        "sessionApplyMs": 9.2504,
+        "checkpointMs": 14.0205,
+        "recoverySerializeMs": 12.694,
+        "recoveryCursorMs": 0.8539,
+        "recoveryFingerprintMs": 0.2379,
+        "checkpointStoreMs": 0.0091
+      }
+    },
+    {
+      "addedDecisions": 128,
+      "action": "move",
+      "storagePath": "journal",
+      "temperature": "cohort-first",
+      "phases": {
+        "handlingMs": {
+          "count": 3,
+          "median": 17.3058,
+          "p95": 19.703,
+          "max": 19.703
+        },
+        "sessionApplyMs": {
+          "count": 3,
+          "median": 6.922,
+          "p95": 9.1627,
+          "max": 9.1627
+        },
+        "checkpointMs": {
+          "count": 3,
+          "median": 7.9481,
+          "p95": 12.586,
+          "max": 12.586
+        },
+        "recoverySerializeMs": {
+          "count": 3,
+          "median": 7.8454,
+          "p95": 12.4848,
+          "max": 12.4848
+        },
+        "recoveryCursorMs": {
+          "count": 3,
+          "median": 0,
+          "p95": 0,
+          "max": 0
+        },
+        "recoveryFingerprintMs": {
+          "count": 3,
+          "median": 0,
+          "p95": 0,
+          "max": 0
+        },
+        "checkpointStoreMs": {
+          "count": 3,
+          "median": 0.0059,
+          "p95": 0.0059,
+          "max": 0.0059
+        }
+      },
+      "coldRestoreMs": {
+        "count": 3,
+        "median": 120.2295,
+        "p95": 169.0436,
+        "max": 169.0436
+      },
+      "allocatedBytes": {
+        "count": 3,
+        "median": 23042632,
+        "p95": 23346608,
+        "max": 23346608
+      },
+      "slowestCheckpoint": {
+        "handlingMs": 19.703,
+        "sessionApplyMs": 6.922,
+        "checkpointMs": 12.586,
+        "recoverySerializeMs": 12.4848,
+        "recoveryCursorMs": 0,
+        "recoveryFingerprintMs": 0,
+        "checkpointStoreMs": 0.0059
+      }
+    },
+    {
+      "addedDecisions": 128,
+      "action": "move",
+      "storagePath": "journal",
+      "temperature": "warm",
+      "phases": {
+        "handlingMs": {
+          "count": 24,
+          "median": 16.976399999999998,
+          "p95": 25.132,
+          "max": 47.2278
+        },
+        "sessionApplyMs": {
+          "count": 24,
+          "median": 8.66315,
+          "p95": 14.0165,
+          "max": 22.2593
+        },
+        "checkpointMs": {
+          "count": 24,
+          "median": 8.23725,
+          "p95": 14.7657,
+          "max": 24.4711
+        },
+        "recoverySerializeMs": {
+          "count": 24,
+          "median": 8.0798,
+          "p95": 14.6264,
+          "max": 24.1308
+        },
+        "recoveryCursorMs": {
+          "count": 24,
+          "median": 0,
+          "p95": 0,
+          "max": 0
+        },
+        "recoveryFingerprintMs": {
+          "count": 24,
+          "median": 0,
+          "p95": 0,
+          "max": 0
+        },
+        "checkpointStoreMs": {
+          "count": 24,
+          "median": 0.0073,
+          "p95": 0.0138,
+          "max": 0.0164
+        }
+      },
+      "coldRestoreMs": {
+        "count": 24,
+        "median": 137.77735,
+        "p95": 193.4448,
+        "max": 205.3352
+      },
+      "allocatedBytes": {
+        "count": 24,
+        "median": 23042368,
+        "p95": 23344400,
+        "max": 23346832
+      },
+      "slowestCheckpoint": {
+        "handlingMs": 47.2278,
+        "sessionApplyMs": 22.2593,
+        "checkpointMs": 24.4711,
+        "recoverySerializeMs": 24.1308,
+        "recoveryCursorMs": 0,
+        "recoveryFingerprintMs": 0,
+        "checkpointStoreMs": 0.0138
+      }
+    },
+    {
+      "addedDecisions": 128,
+      "action": "move",
+      "storagePath": "compaction",
+      "temperature": "cohort-first",
+      "phases": {
+        "handlingMs": {
+          "count": 3,
+          "median": 59.2205,
+          "p95": 111.1163,
+          "max": 111.1163
+        },
+        "sessionApplyMs": {
+          "count": 3,
+          "median": 15.8316,
+          "p95": 21.9853,
+          "max": 21.9853
+        },
+        "checkpointMs": {
+          "count": 3,
+          "median": 51.332,
+          "p95": 88.7695,
+          "max": 88.7695
+        },
+        "recoverySerializeMs": {
+          "count": 3,
+          "median": 46.5861,
+          "p95": 82.9256,
+          "max": 82.9256
+        },
+        "recoveryCursorMs": {
+          "count": 3,
+          "median": 1.9526,
+          "p95": 3.4194,
+          "max": 3.4194
+        },
+        "recoveryFingerprintMs": {
+          "count": 3,
+          "median": 2.0893,
+          "p95": 2.5423,
+          "max": 2.5423
+        },
+        "checkpointStoreMs": {
+          "count": 3,
+          "median": 0.0078,
+          "p95": 0.0121,
+          "max": 0.0121
+        }
+      },
+      "coldRestoreMs": {
+        "count": 3,
+        "median": 126.4052,
+        "p95": 245.3473,
+        "max": 245.3473
+      },
+      "allocatedBytes": {
+        "count": 3,
+        "median": 63721296,
+        "p95": 65722136,
+        "max": 65722136
+      },
+      "slowestCheckpoint": {
+        "handlingMs": 111.1163,
+        "sessionApplyMs": 21.9853,
+        "checkpointMs": 88.7695,
+        "recoverySerializeMs": 82.9256,
+        "recoveryCursorMs": 3.4194,
+        "recoveryFingerprintMs": 2.0893,
+        "checkpointStoreMs": 0.0121
+      }
+    },
+    {
+      "addedDecisions": 128,
+      "action": "move",
+      "storagePath": "compaction",
+      "temperature": "warm",
+      "phases": {
+        "handlingMs": {
+          "count": 24,
+          "median": 46.68445,
+          "p95": 58.1828,
+          "max": 58.1845
+        },
+        "sessionApplyMs": {
+          "count": 24,
+          "median": 6.8113,
+          "p95": 11.3128,
+          "max": 11.6308
+        },
+        "checkpointMs": {
+          "count": 24,
+          "median": 39.04705,
+          "p95": 50.9413,
+          "max": 51.7424
+        },
+        "recoverySerializeMs": {
+          "count": 24,
+          "median": 34.59075,
+          "p95": 46.0705,
+          "max": 47.1986
+        },
+        "recoveryCursorMs": {
+          "count": 24,
+          "median": 1.701,
+          "p95": 3.3995,
+          "max": 6.4763
+        },
+        "recoveryFingerprintMs": {
+          "count": 24,
+          "median": 1.88235,
+          "p95": 2.6882,
+          "max": 2.7274
+        },
+        "checkpointStoreMs": {
+          "count": 24,
+          "median": 0.006500000000000001,
+          "p95": 0.0112,
+          "max": 0.0157
+        }
+      },
+      "coldRestoreMs": {
+        "count": 24,
+        "median": 118.48115,
+        "p95": 125.6246,
+        "max": 127.4581
+      },
+      "allocatedBytes": {
+        "count": 24,
+        "median": 63718932,
+        "p95": 65721848,
+        "max": 65721904
+      },
+      "slowestCheckpoint": {
+        "handlingMs": 58.1845,
+        "sessionApplyMs": 6.1769,
+        "checkpointMs": 51.7424,
+        "recoverySerializeMs": 46.0705,
+        "recoveryCursorMs": 3.3995,
+        "recoveryFingerprintMs": 1.9881,
+        "checkpointStoreMs": 0.01
+      }
+    },
+    {
+      "addedDecisions": 128,
+      "action": "pass",
+      "storagePath": "journal",
+      "temperature": "cohort-first",
+      "phases": {
+        "handlingMs": {
+          "count": 3,
+          "median": 21.5267,
+          "p95": 21.8336,
+          "max": 21.8336
+        },
+        "sessionApplyMs": {
+          "count": 3,
+          "median": 17.0663,
+          "p95": 18.5128,
+          "max": 18.5128
+        },
+        "checkpointMs": {
+          "count": 3,
+          "median": 4.1341,
+          "p95": 7.4404,
+          "max": 7.4404
+        },
+        "recoverySerializeMs": {
+          "count": 3,
+          "median": 3.9401,
+          "p95": 7.322,
+          "max": 7.322
+        },
+        "recoveryCursorMs": {
+          "count": 3,
+          "median": 0,
+          "p95": 0,
+          "max": 0
+        },
+        "recoveryFingerprintMs": {
+          "count": 3,
+          "median": 0,
+          "p95": 0,
+          "max": 0
+        },
+        "checkpointStoreMs": {
+          "count": 3,
+          "median": 0.0062,
+          "p95": 0.0246,
+          "max": 0.0246
+        }
+      },
+      "coldRestoreMs": {
+        "count": 3,
+        "median": 119.4987,
+        "p95": 131.0417,
+        "max": 131.0417
+      },
+      "allocatedBytes": {
+        "count": 3,
+        "median": 16411656,
+        "p95": 16509664,
+        "max": 16509664
+      },
+      "slowestCheckpoint": {
+        "handlingMs": 19.7452,
+        "sessionApplyMs": 12.1474,
+        "checkpointMs": 7.4404,
+        "recoverySerializeMs": 7.322,
+        "recoveryCursorMs": 0,
+        "recoveryFingerprintMs": 0,
+        "checkpointStoreMs": 0.0246
+      }
+    },
+    {
+      "addedDecisions": 128,
+      "action": "pass",
+      "storagePath": "journal",
+      "temperature": "warm",
+      "phases": {
+        "handlingMs": {
+          "count": 24,
+          "median": 16.849800000000002,
+          "p95": 25.5062,
+          "max": 26.2855
+        },
+        "sessionApplyMs": {
+          "count": 24,
+          "median": 12.64315,
+          "p95": 20.4773,
+          "max": 20.9009
+        },
+        "checkpointMs": {
+          "count": 24,
+          "median": 3.11005,
+          "p95": 7.7185,
+          "max": 11.5937
+        },
+        "recoverySerializeMs": {
+          "count": 24,
+          "median": 3.0293,
+          "p95": 7.5969,
+          "max": 11.504
+        },
+        "recoveryCursorMs": {
+          "count": 24,
+          "median": 0,
+          "p95": 0,
+          "max": 0
+        },
+        "recoveryFingerprintMs": {
+          "count": 24,
+          "median": 0,
+          "p95": 0,
+          "max": 0
+        },
+        "checkpointStoreMs": {
+          "count": 24,
+          "median": 0.00485,
+          "p95": 0.0078,
+          "max": 0.0158
+        }
+      },
+      "coldRestoreMs": {
+        "count": 24,
+        "median": 121.475,
+        "p95": 139.589,
+        "max": 145.0925
+      },
+      "allocatedBytes": {
+        "count": 24,
+        "median": 16411424,
+        "p95": 16509416,
+        "max": 16509672
+      },
+      "slowestCheckpoint": {
+        "handlingMs": 22.9147,
+        "sessionApplyMs": 11.1255,
+        "checkpointMs": 11.5937,
+        "recoverySerializeMs": 11.504,
+        "recoveryCursorMs": 0,
+        "recoveryFingerprintMs": 0,
+        "checkpointStoreMs": 0.005
+      }
+    },
+    {
+      "addedDecisions": 128,
+      "action": "pass",
+      "storagePath": "compaction",
+      "temperature": "cohort-first",
+      "phases": {
+        "handlingMs": {
+          "count": 3,
+          "median": 55.9082,
+          "p95": 66.7323,
+          "max": 66.7323
+        },
+        "sessionApplyMs": {
+          "count": 3,
+          "median": 12.1225,
+          "p95": 12.4236,
+          "max": 12.4236
+        },
+        "checkpointMs": {
+          "count": 3,
+          "median": 45.4718,
+          "p95": 54.0154,
+          "max": 54.0154
+        },
+        "recoverySerializeMs": {
+          "count": 3,
+          "median": 39.3678,
+          "p95": 50.4747,
+          "max": 50.4747
+        },
+        "recoveryCursorMs": {
+          "count": 3,
+          "median": 1.0847,
+          "p95": 1.149,
+          "max": 1.149
+        },
+        "recoveryFingerprintMs": {
+          "count": 3,
+          "median": 2.1486,
+          "p95": 4.6664,
+          "max": 4.6664
+        },
+        "checkpointStoreMs": {
+          "count": 3,
+          "median": 0.0117,
+          "p95": 0.014,
+          "max": 0.014
+        }
+      },
+      "coldRestoreMs": {
+        "count": 3,
+        "median": 119.3947,
+        "p95": 148.2258,
+        "max": 148.2258
+      },
+      "allocatedBytes": {
+        "count": 3,
+        "median": 54877152,
+        "p95": 56579280,
+        "max": 56579280
+      },
+      "slowestCheckpoint": {
+        "handlingMs": 66.7323,
+        "sessionApplyMs": 12.4236,
+        "checkpointMs": 54.0154,
+        "recoverySerializeMs": 50.4747,
+        "recoveryCursorMs": 1.0847,
+        "recoveryFingerprintMs": 2.1486,
+        "checkpointStoreMs": 0.0117
+      }
+    },
+    {
+      "addedDecisions": 128,
+      "action": "pass",
+      "storagePath": "compaction",
+      "temperature": "warm",
+      "phases": {
+        "handlingMs": {
+          "count": 24,
+          "median": 44.841899999999995,
+          "p95": 54.2314,
+          "max": 58.9105
+        },
+        "sessionApplyMs": {
+          "count": 24,
+          "median": 12.555150000000001,
+          "p95": 18.9193,
+          "max": 20.4372
+        },
+        "checkpointMs": {
+          "count": 24,
+          "median": 30.7545,
+          "p95": 38.0361,
+          "max": 48.488
+        },
+        "recoverySerializeMs": {
+          "count": 24,
+          "median": 28.14015,
+          "p95": 35.2967,
+          "max": 39.3943
+        },
+        "recoveryCursorMs": {
+          "count": 24,
+          "median": 0.80555,
+          "p95": 0.9783,
+          "max": 1.4545
+        },
+        "recoveryFingerprintMs": {
+          "count": 24,
+          "median": 1.7265000000000001,
+          "p95": 1.9838,
+          "max": 8.0364
+        },
+        "checkpointStoreMs": {
+          "count": 24,
+          "median": 0.00665,
+          "p95": 0.0101,
+          "max": 0.0102
+        }
+      },
+      "coldRestoreMs": {
+        "count": 24,
+        "median": 120.12915000000001,
+        "p95": 130.5578,
+        "max": 131.6253
+      },
+      "allocatedBytes": {
+        "count": 24,
+        "median": 54876940,
+        "p95": 56579448,
+        "max": 56579528
+      },
+      "slowestCheckpoint": {
+        "handlingMs": 58.9105,
+        "sessionApplyMs": 10.2089,
+        "checkpointMs": 48.488,
+        "recoverySerializeMs": 39.3943,
+        "recoveryCursorMs": 0.852,
+        "recoveryFingerprintMs": 8.0364,
+        "checkpointStoreMs": 0.009
+      }
+    },
+    {
+      "addedDecisions": 512,
+      "action": "move",
+      "storagePath": "journal",
+      "temperature": "cohort-first",
+      "phases": {
+        "handlingMs": {
+          "count": 3,
+          "median": 20.1707,
+          "p95": 107.9598,
+          "max": 107.9598
+        },
+        "sessionApplyMs": {
+          "count": 3,
+          "median": 12.7222,
+          "p95": 82.2822,
+          "max": 82.2822
+        },
+        "checkpointMs": {
+          "count": 3,
+          "median": 8.0213,
+          "p95": 23.4489,
+          "max": 23.4489
+        },
+        "recoverySerializeMs": {
+          "count": 3,
+          "median": 7.9103,
+          "p95": 22.2447,
+          "max": 22.2447
+        },
+        "recoveryCursorMs": {
+          "count": 3,
+          "median": 0,
+          "p95": 0,
+          "max": 0
+        },
+        "recoveryFingerprintMs": {
+          "count": 3,
+          "median": 0,
+          "p95": 0,
+          "max": 0
+        },
+        "checkpointStoreMs": {
+          "count": 3,
+          "median": 0.0079,
+          "p95": 0.0135,
+          "max": 0.0135
+        }
+      },
+      "coldRestoreMs": {
+        "count": 3,
+        "median": 466.5854,
+        "p95": 882.8583,
+        "max": 882.8583
+      },
+      "allocatedBytes": {
+        "count": 3,
+        "median": 23339512,
+        "p95": 24605512,
+        "max": 24605512
+      },
+      "slowestCheckpoint": {
+        "handlingMs": 107.9598,
+        "sessionApplyMs": 82.2822,
+        "checkpointMs": 23.4489,
+        "recoverySerializeMs": 22.2447,
+        "recoveryCursorMs": 0,
+        "recoveryFingerprintMs": 0,
+        "checkpointStoreMs": 0.0135
+      }
+    },
+    {
+      "addedDecisions": 512,
+      "action": "move",
+      "storagePath": "journal",
+      "temperature": "warm",
+      "phases": {
+        "handlingMs": {
+          "count": 24,
+          "median": 18.47635,
+          "p95": 36.7559,
+          "max": 38.9112
+        },
+        "sessionApplyMs": {
+          "count": 24,
+          "median": 9.4222,
+          "p95": 21.0623,
+          "max": 24.316
+        },
+        "checkpointMs": {
+          "count": 24,
+          "median": 8.238199999999999,
+          "p95": 14.0986,
+          "max": 15.1008
+        },
+        "recoverySerializeMs": {
+          "count": 24,
+          "median": 8.1156,
+          "p95": 13.9457,
+          "max": 14.8623
+        },
+        "recoveryCursorMs": {
+          "count": 24,
+          "median": 0,
+          "p95": 0,
+          "max": 0
+        },
+        "recoveryFingerprintMs": {
+          "count": 24,
+          "median": 0,
+          "p95": 0,
+          "max": 0
+        },
+        "checkpointStoreMs": {
+          "count": 24,
+          "median": 0.0068,
+          "p95": 0.0088,
+          "max": 0.0106
+        }
+      },
+      "coldRestoreMs": {
+        "count": 24,
+        "median": 442.94735000000003,
+        "p95": 540.2694,
+        "max": 648.6913
+      },
+      "allocatedBytes": {
+        "count": 24,
+        "median": 23166928,
+        "p95": 23339536,
+        "max": 23339696
+      },
+      "slowestCheckpoint": {
+        "handlingMs": 36.7559,
+        "sessionApplyMs": 21.0623,
+        "checkpointMs": 15.1008,
+        "recoverySerializeMs": 14.8623,
+        "recoveryCursorMs": 0,
+        "recoveryFingerprintMs": 0,
+        "checkpointStoreMs": 0.0088
+      }
+    },
+    {
+      "addedDecisions": 512,
+      "action": "move",
+      "storagePath": "compaction",
+      "temperature": "cohort-first",
+      "phases": {
+        "handlingMs": {
+          "count": 3,
+          "median": 132.4277,
+          "p95": 135.9139,
+          "max": 135.9139
+        },
+        "sessionApplyMs": {
+          "count": 3,
+          "median": 10.6026,
+          "p95": 13.0948,
+          "max": 13.0948
+        },
+        "checkpointMs": {
+          "count": 3,
+          "median": 122.5039,
+          "p95": 123.395,
+          "max": 123.395
+        },
+        "recoverySerializeMs": {
+          "count": 3,
+          "median": 113.4859,
+          "p95": 114.2046,
+          "max": 114.2046
+        },
+        "recoveryCursorMs": {
+          "count": 3,
+          "median": 1.727,
+          "p95": 2.5707,
+          "max": 2.5707
+        },
+        "recoveryFingerprintMs": {
+          "count": 3,
+          "median": 7.2344,
+          "p95": 7.2586,
+          "max": 7.2586
+        },
+        "checkpointStoreMs": {
+          "count": 3,
+          "median": 0.011,
+          "p95": 0.0289,
+          "max": 0.0289
+        }
+      },
+      "coldRestoreMs": {
+        "count": 3,
+        "median": 426.6548,
+        "p95": 495.9511,
+        "max": 495.9511
+      },
+      "allocatedBytes": {
+        "count": 3,
+        "median": 168420280,
+        "p95": 174491384,
+        "max": 174491384
+      },
+      "slowestCheckpoint": {
+        "handlingMs": 132.4277,
+        "sessionApplyMs": 8.5655,
+        "checkpointMs": 123.395,
+        "recoverySerializeMs": 114.2046,
+        "recoveryCursorMs": 1.7145,
+        "recoveryFingerprintMs": 7.2344,
+        "checkpointStoreMs": 0.011
+      }
+    },
+    {
+      "addedDecisions": 512,
+      "action": "move",
+      "storagePath": "compaction",
+      "temperature": "warm",
+      "phases": {
+        "handlingMs": {
+          "count": 24,
+          "median": 132.03655,
+          "p95": 165.9386,
+          "max": 204.1162
+        },
+        "sessionApplyMs": {
+          "count": 24,
+          "median": 8.424949999999999,
+          "p95": 16.6934,
+          "max": 17.8988
+        },
+        "checkpointMs": {
+          "count": 24,
+          "median": 122.3176,
+          "p95": 156.1369,
+          "max": 186.8474
+        },
+        "recoverySerializeMs": {
+          "count": 24,
+          "median": 112.71605,
+          "p95": 144.7758,
+          "max": 176.8143
+        },
+        "recoveryCursorMs": {
+          "count": 24,
+          "median": 1.956,
+          "p95": 2.5283,
+          "max": 3.3594
+        },
+        "recoveryFingerprintMs": {
+          "count": 24,
+          "median": 7.43095,
+          "p95": 17.5282,
+          "max": 19.0822
+        },
+        "checkpointStoreMs": {
+          "count": 24,
+          "median": 0.00885,
+          "p95": 0.0151,
+          "max": 0.0194
+        }
+      },
+      "coldRestoreMs": {
+        "count": 24,
+        "median": 436.33005,
+        "p95": 523.0646,
+        "max": 539.9975
+      },
+      "allocatedBytes": {
+        "count": 24,
+        "median": 168382088,
+        "p95": 174491432,
+        "max": 174492032
+      },
+      "slowestCheckpoint": {
+        "handlingMs": 204.1162,
+        "sessionApplyMs": 16.6934,
+        "checkpointMs": 186.8474,
+        "recoverySerializeMs": 176.8143,
+        "recoveryCursorMs": 2.297,
+        "recoveryFingerprintMs": 7.4723,
+        "checkpointStoreMs": 0.009
+      }
+    },
+    {
+      "addedDecisions": 512,
+      "action": "pass",
+      "storagePath": "journal",
+      "temperature": "cohort-first",
+      "phases": {
+        "handlingMs": {
+          "count": 3,
+          "median": 36.957,
+          "p95": 38.0041,
+          "max": 38.0041
+        },
+        "sessionApplyMs": {
+          "count": 3,
+          "median": 29.3527,
+          "p95": 32.7451,
+          "max": 32.7451
+        },
+        "checkpointMs": {
+          "count": 3,
+          "median": 4.3275,
+          "p95": 8.3215,
+          "max": 8.3215
+        },
+        "recoverySerializeMs": {
+          "count": 3,
+          "median": 4.2285,
+          "p95": 8.1516,
+          "max": 8.1516
+        },
+        "recoveryCursorMs": {
+          "count": 3,
+          "median": 0,
+          "p95": 0,
+          "max": 0
+        },
+        "recoveryFingerprintMs": {
+          "count": 3,
+          "median": 0,
+          "p95": 0,
+          "max": 0
+        },
+        "checkpointStoreMs": {
+          "count": 3,
+          "median": 0.0049,
+          "p95": 0.009,
+          "max": 0.009
+        }
+      },
+      "coldRestoreMs": {
+        "count": 3,
+        "median": 434.6781,
+        "p95": 543.8862,
+        "max": 543.8862
+      },
+      "allocatedBytes": {
+        "count": 3,
+        "median": 21758824,
+        "p95": 22528224,
+        "max": 22528224
+      },
+      "slowestCheckpoint": {
+        "handlingMs": 38.0041,
+        "sessionApplyMs": 29.3527,
+        "checkpointMs": 8.3215,
+        "recoverySerializeMs": 8.1516,
+        "recoveryCursorMs": 0,
+        "recoveryFingerprintMs": 0,
+        "checkpointStoreMs": 0.009
+      }
+    },
+    {
+      "addedDecisions": 512,
+      "action": "pass",
+      "storagePath": "journal",
+      "temperature": "warm",
+      "phases": {
+        "handlingMs": {
+          "count": 24,
+          "median": 23.9005,
+          "p95": 36.6266,
+          "max": 37.6367
+        },
+        "sessionApplyMs": {
+          "count": 24,
+          "median": 19.50555,
+          "p95": 29.8241,
+          "max": 31.3135
+        },
+        "checkpointMs": {
+          "count": 24,
+          "median": 3.9194999999999998,
+          "p95": 6.4338,
+          "max": 6.6125
+        },
+        "recoverySerializeMs": {
+          "count": 24,
+          "median": 3.82585,
+          "p95": 6.2912,
+          "max": 6.4883
+        },
+        "recoveryCursorMs": {
+          "count": 24,
+          "median": 0,
+          "p95": 0,
+          "max": 0
+        },
+        "recoveryFingerprintMs": {
+          "count": 24,
+          "median": 0,
+          "p95": 0,
+          "max": 0
+        },
+        "checkpointStoreMs": {
+          "count": 24,
+          "median": 0.00575,
+          "p95": 0.0079,
+          "max": 0.0081
+        }
+      },
+      "coldRestoreMs": {
+        "count": 24,
+        "median": 439.8313,
+        "p95": 624.7587,
+        "max": 744.1186
+      },
+      "allocatedBytes": {
+        "count": 24,
+        "median": 21746600,
+        "p95": 21759216,
+        "max": 21978864
+      },
+      "slowestCheckpoint": {
+        "handlingMs": 36.2906,
+        "sessionApplyMs": 29.1644,
+        "checkpointMs": 6.6125,
+        "recoverySerializeMs": 6.4883,
+        "recoveryCursorMs": 0,
+        "recoveryFingerprintMs": 0,
+        "checkpointStoreMs": 0.007
+      }
+    },
+    {
+      "addedDecisions": 512,
+      "action": "pass",
+      "storagePath": "compaction",
+      "temperature": "cohort-first",
+      "phases": {
+        "handlingMs": {
+          "count": 3,
+          "median": 130.1791,
+          "p95": 218.7527,
+          "max": 218.7527
+        },
+        "sessionApplyMs": {
+          "count": 3,
+          "median": 18.8775,
+          "p95": 37.6425,
+          "max": 37.6425
+        },
+        "checkpointMs": {
+          "count": 3,
+          "median": 114.1323,
+          "p95": 180.6291,
+          "max": 180.6291
+        },
+        "recoverySerializeMs": {
+          "count": 3,
+          "median": 96.4688,
+          "p95": 170.566,
+          "max": 170.566
+        },
+        "recoveryCursorMs": {
+          "count": 3,
+          "median": 1.0471,
+          "p95": 1.7752,
+          "max": 1.7752
+        },
+        "recoveryFingerprintMs": {
+          "count": 3,
+          "median": 7.9653,
+          "p95": 16.4004,
+          "max": 16.4004
+        },
+        "checkpointStoreMs": {
+          "count": 3,
+          "median": 0.0119,
+          "p95": 0.0148,
+          "max": 0.0148
+        }
+      },
+      "coldRestoreMs": {
+        "count": 3,
+        "median": 432.4979,
+        "p95": 526.6698,
+        "max": 526.6698
+      },
+      "allocatedBytes": {
+        "count": 3,
+        "median": 164804672,
+        "p95": 170597832,
+        "max": 170597832
+      },
+      "slowestCheckpoint": {
+        "handlingMs": 218.7527,
+        "sessionApplyMs": 37.6425,
+        "checkpointMs": 180.6291,
+        "recoverySerializeMs": 170.566,
+        "recoveryCursorMs": 1.7752,
+        "recoveryFingerprintMs": 7.9653,
+        "checkpointStoreMs": 0.0148
+      }
+    },
+    {
+      "addedDecisions": 512,
+      "action": "pass",
+      "storagePath": "compaction",
+      "temperature": "warm",
+      "phases": {
+        "handlingMs": {
+          "count": 24,
+          "median": 132.67305,
+          "p95": 195.1666,
+          "max": 255.1705
+        },
+        "sessionApplyMs": {
+          "count": 24,
+          "median": 20.12675,
+          "p95": 36.6787,
+          "max": 43.8713
+        },
+        "checkpointMs": {
+          "count": 24,
+          "median": 113.05799999999999,
+          "p95": 160.1941,
+          "max": 217.9848
+        },
+        "recoverySerializeMs": {
+          "count": 24,
+          "median": 103.70150000000001,
+          "p95": 150.6316,
+          "max": 205.0749
+        },
+        "recoveryCursorMs": {
+          "count": 24,
+          "median": 0.8769,
+          "p95": 2.1988,
+          "max": 2.2643
+        },
+        "recoveryFingerprintMs": {
+          "count": 24,
+          "median": 7.4064499999999995,
+          "p95": 10.1428,
+          "max": 13.8773
+        },
+        "checkpointStoreMs": {
+          "count": 24,
+          "median": 0.0087,
+          "p95": 0.0159,
+          "max": 0.0181
+        }
+      },
+      "coldRestoreMs": {
+        "count": 24,
+        "median": 432.6237,
+        "p95": 544.1873,
+        "max": 588.559
+      },
+      "allocatedBytes": {
+        "count": 24,
+        "median": 164804464,
+        "p95": 170597976,
+        "max": 170598048
+      },
+      "slowestCheckpoint": {
+        "handlingMs": 255.1705,
+        "sessionApplyMs": 36.6787,
+        "checkpointMs": 217.9848,
+        "recoverySerializeMs": 205.0749,
+        "recoveryCursorMs": 2.1988,
+        "recoveryFingerprintMs": 10.1428,
+        "checkpointStoreMs": 0.0159
+      }
+    },
+    {
+      "addedDecisions": 1024,
+      "action": "move",
+      "storagePath": "journal",
+      "temperature": "cohort-first",
+      "phases": {
+        "handlingMs": {
+          "count": 3,
+          "median": 25.9118,
+          "p95": 149.6576,
+          "max": 149.6576
+        },
+        "sessionApplyMs": {
+          "count": 3,
+          "median": 13.319,
+          "p95": 106.8876,
+          "max": 106.8876
+        },
+        "checkpointMs": {
+          "count": 3,
+          "median": 12.225,
+          "p95": 38.3205,
+          "max": 38.3205
+        },
+        "recoverySerializeMs": {
+          "count": 3,
+          "median": 12.0668,
+          "p95": 37.2969,
+          "max": 37.2969
+        },
+        "recoveryCursorMs": {
+          "count": 3,
+          "median": 0,
+          "p95": 0,
+          "max": 0
+        },
+        "recoveryFingerprintMs": {
+          "count": 3,
+          "median": 0,
+          "p95": 0,
+          "max": 0
+        },
+        "checkpointStoreMs": {
+          "count": 3,
+          "median": 0.0105,
+          "p95": 0.0206,
+          "max": 0.0206
+        }
+      },
+      "coldRestoreMs": {
+        "count": 3,
+        "median": 1034.5956,
+        "p95": 2195.1096,
+        "max": 2195.1096
+      },
+      "allocatedBytes": {
+        "count": 3,
+        "median": 23359032,
+        "p95": 24635600,
+        "max": 24635600
+      },
+      "slowestCheckpoint": {
+        "handlingMs": 149.6576,
+        "sessionApplyMs": 106.8876,
+        "checkpointMs": 38.3205,
+        "recoverySerializeMs": 37.2969,
+        "recoveryCursorMs": 0,
+        "recoveryFingerprintMs": 0,
+        "checkpointStoreMs": 0.0206
+      }
+    },
+    {
+      "addedDecisions": 1024,
+      "action": "move",
+      "storagePath": "journal",
+      "temperature": "warm",
+      "phases": {
+        "handlingMs": {
+          "count": 24,
+          "median": 25.14725,
+          "p95": 62.5238,
+          "max": 73.2785
+        },
+        "sessionApplyMs": {
+          "count": 24,
+          "median": 12.7728,
+          "p95": 25.4037,
+          "max": 45.0027
+        },
+        "checkpointMs": {
+          "count": 24,
+          "median": 11.984300000000001,
+          "p95": 28.4791,
+          "max": 39.9811
+        },
+        "recoverySerializeMs": {
+          "count": 24,
+          "median": 11.85,
+          "p95": 28.2893,
+          "max": 39.8331
+        },
+        "recoveryCursorMs": {
+          "count": 24,
+          "median": 0,
+          "p95": 0,
+          "max": 0
+        },
+        "recoveryFingerprintMs": {
+          "count": 24,
+          "median": 0,
+          "p95": 0,
+          "max": 0
+        },
+        "checkpointStoreMs": {
+          "count": 24,
+          "median": 0.0085,
+          "p95": 0.0145,
+          "max": 0.0432
+        }
+      },
+      "coldRestoreMs": {
+        "count": 24,
+        "median": 957.8755,
+        "p95": 1332.1662,
+        "max": 1477.1613
+      },
+      "allocatedBytes": {
+        "count": 24,
+        "median": 23205716,
+        "p95": 23359280,
+        "max": 23860672
+      },
+      "slowestCheckpoint": {
+        "handlingMs": 62.5238,
+        "sessionApplyMs": 22.0048,
+        "checkpointMs": 39.9811,
+        "recoverySerializeMs": 39.8331,
+        "recoveryCursorMs": 0,
+        "recoveryFingerprintMs": 0,
+        "checkpointStoreMs": 0.0118
+      }
+    },
+    {
+      "addedDecisions": 1024,
+      "action": "move",
+      "storagePath": "compaction",
+      "temperature": "cohort-first",
+      "phases": {
+        "handlingMs": {
+          "count": 3,
+          "median": 270.7642,
+          "p95": 560.7048,
+          "max": 560.7048
+        },
+        "sessionApplyMs": {
+          "count": 3,
+          "median": 10.895,
+          "p95": 46.761,
+          "max": 46.761
+        },
+        "checkpointMs": {
+          "count": 3,
+          "median": 259.3807,
+          "p95": 512.6436,
+          "max": 512.6436
+        },
+        "recoverySerializeMs": {
+          "count": 3,
+          "median": 242.8127,
+          "p95": 490.0931,
+          "max": 490.0931
+        },
+        "recoveryCursorMs": {
+          "count": 3,
+          "median": 1.4875,
+          "p95": 4.1437,
+          "max": 4.1437
+        },
+        "recoveryFingerprintMs": {
+          "count": 3,
+          "median": 17.5438,
+          "p95": 18.013,
+          "max": 18.013
+        },
+        "checkpointStoreMs": {
+          "count": 3,
+          "median": 0.0106,
+          "p95": 0.0255,
+          "max": 0.0255
+        }
+      },
+      "coldRestoreMs": {
+        "count": 3,
+        "median": 891.0667,
+        "p95": 1430.563,
+        "max": 1430.563
+      },
+      "allocatedBytes": {
+        "count": 3,
+        "median": 308375584,
+        "p95": 320045984,
+        "max": 320045984
+      },
+      "slowestCheckpoint": {
+        "handlingMs": 560.7048,
+        "sessionApplyMs": 46.761,
+        "checkpointMs": 512.6436,
+        "recoverySerializeMs": 490.0931,
+        "recoveryCursorMs": 4.1437,
+        "recoveryFingerprintMs": 18.013,
+        "checkpointStoreMs": 0.0255
+      }
+    },
+    {
+      "addedDecisions": 1024,
+      "action": "move",
+      "storagePath": "compaction",
+      "temperature": "warm",
+      "phases": {
+        "handlingMs": {
+          "count": 24,
+          "median": 271.98625000000004,
+          "p95": 438.2574,
+          "max": 515.0732
+        },
+        "sessionApplyMs": {
+          "count": 24,
+          "median": 10.149000000000001,
+          "p95": 20.769,
+          "max": 27.7144
+        },
+        "checkpointMs": {
+          "count": 24,
+          "median": 262.92560000000003,
+          "p95": 416.9034,
+          "max": 496.3581
+        },
+        "recoverySerializeMs": {
+          "count": 24,
+          "median": 244.33300000000003,
+          "p95": 395.5428,
+          "max": 469.8747
+        },
+        "recoveryCursorMs": {
+          "count": 24,
+          "median": 1.7471,
+          "p95": 3.0785,
+          "max": 3.8375
+        },
+        "recoveryFingerprintMs": {
+          "count": 24,
+          "median": 16.314149999999998,
+          "p95": 19.1778,
+          "max": 22.8861
+        },
+        "checkpointStoreMs": {
+          "count": 24,
+          "median": 0.0112,
+          "p95": 0.0214,
+          "max": 0.0515
+        }
+      },
+      "coldRestoreMs": {
+        "count": 24,
+        "median": 934.88975,
+        "p95": 1424.307,
+        "max": 1628.2141
+      },
+      "allocatedBytes": {
+        "count": 24,
+        "median": 308363208,
+        "p95": 320039248,
+        "max": 320051456
+      },
+      "slowestCheckpoint": {
+        "handlingMs": 515.0732,
+        "sessionApplyMs": 18.2325,
+        "checkpointMs": 496.3581,
+        "recoverySerializeMs": 469.8747,
+        "recoveryCursorMs": 3.0785,
+        "recoveryFingerprintMs": 22.8861,
+        "checkpointStoreMs": 0.0202
+      }
+    },
+    {
+      "addedDecisions": 1024,
+      "action": "pass",
+      "storagePath": "journal",
+      "temperature": "cohort-first",
+      "phases": {
+        "handlingMs": {
+          "count": 3,
+          "median": 34.9363,
+          "p95": 70.5991,
+          "max": 70.5991
+        },
+        "sessionApplyMs": {
+          "count": 3,
+          "median": 30.5523,
+          "p95": 65.2043,
+          "max": 65.2043
+        },
+        "checkpointMs": {
+          "count": 3,
+          "median": 4.4887,
+          "p95": 5.0402,
+          "max": 5.0402
+        },
+        "recoverySerializeMs": {
+          "count": 3,
+          "median": 4.3879,
+          "p95": 4.8912,
+          "max": 4.8912
+        },
+        "recoveryCursorMs": {
+          "count": 3,
+          "median": 0,
+          "p95": 0,
+          "max": 0
+        },
+        "recoveryFingerprintMs": {
+          "count": 3,
+          "median": 0,
+          "p95": 0,
+          "max": 0
+        },
+        "checkpointStoreMs": {
+          "count": 3,
+          "median": 0.0061,
+          "p95": 0.0119,
+          "max": 0.0119
+        }
+      },
+      "coldRestoreMs": {
+        "count": 3,
+        "median": 877.8563,
+        "p95": 1087.2238,
+        "max": 1087.2238
+      },
+      "allocatedBytes": {
+        "count": 3,
+        "median": 28780232,
+        "p95": 29851728,
+        "max": 29851728
+      },
+      "slowestCheckpoint": {
+        "handlingMs": 70.5991,
+        "sessionApplyMs": 65.2043,
+        "checkpointMs": 5.0402,
+        "recoverySerializeMs": 4.8912,
+        "recoveryCursorMs": 0,
+        "recoveryFingerprintMs": 0,
+        "checkpointStoreMs": 0.0119
+      }
+    },
+    {
+      "addedDecisions": 1024,
+      "action": "pass",
+      "storagePath": "journal",
+      "temperature": "warm",
+      "phases": {
+        "handlingMs": {
+          "count": 24,
+          "median": 37.6078,
+          "p95": 56.815,
+          "max": 74.4588
+        },
+        "sessionApplyMs": {
+          "count": 24,
+          "median": 31.3494,
+          "p95": 49.2765,
+          "max": 66.996
+        },
+        "checkpointMs": {
+          "count": 24,
+          "median": 4.6015999999999995,
+          "p95": 8.1718,
+          "max": 9.5777
+        },
+        "recoverySerializeMs": {
+          "count": 24,
+          "median": 4.4861,
+          "p95": 8.0581,
+          "max": 9.2941
+        },
+        "recoveryCursorMs": {
+          "count": 24,
+          "median": 0,
+          "p95": 0,
+          "max": 0
+        },
+        "recoveryFingerprintMs": {
+          "count": 24,
+          "median": 0,
+          "p95": 0,
+          "max": 0
+        },
+        "checkpointStoreMs": {
+          "count": 24,
+          "median": 0.0084,
+          "p95": 0.0165,
+          "max": 0.0323
+        }
+      },
+      "coldRestoreMs": {
+        "count": 24,
+        "median": 973.1106,
+        "p95": 1119.8499,
+        "max": 1202.2695
+      },
+      "allocatedBytes": {
+        "count": 24,
+        "median": 28779224,
+        "p95": 28910184,
+        "max": 30023128
+      },
+      "slowestCheckpoint": {
+        "handlingMs": 52.7961,
+        "sessionApplyMs": 42.8054,
+        "checkpointMs": 9.5777,
+        "recoverySerializeMs": 9.2941,
+        "recoveryCursorMs": 0,
+        "recoveryFingerprintMs": 0,
+        "checkpointStoreMs": 0.0114
+      }
+    },
+    {
+      "addedDecisions": 1024,
+      "action": "pass",
+      "storagePath": "compaction",
+      "temperature": "cohort-first",
+      "phases": {
+        "handlingMs": {
+          "count": 3,
+          "median": 276.625,
+          "p95": 457.5267,
+          "max": 457.5267
+        },
+        "sessionApplyMs": {
+          "count": 3,
+          "median": 32.0614,
+          "p95": 36.4186,
+          "max": 36.4186
+        },
+        "checkpointMs": {
+          "count": 3,
+          "median": 244.1811,
+          "p95": 431.3113,
+          "max": 431.3113
+        },
+        "recoverySerializeMs": {
+          "count": 3,
+          "median": 227.5639,
+          "p95": 412.8698,
+          "max": 412.8698
+        },
+        "recoveryCursorMs": {
+          "count": 3,
+          "median": 1.1046,
+          "p95": 1.3281,
+          "max": 1.3281
+        },
+        "recoveryFingerprintMs": {
+          "count": 3,
+          "median": 16.0457,
+          "p95": 17.0694,
+          "max": 17.0694
+        },
+        "checkpointStoreMs": {
+          "count": 3,
+          "median": 0.0138,
+          "p95": 0.0154,
+          "max": 0.0154
+        }
+      },
+      "coldRestoreMs": {
+        "count": 3,
+        "median": 929.1734,
+        "p95": 1051.3661,
+        "max": 1051.3661
+      },
+      "allocatedBytes": {
+        "count": 3,
+        "median": 311943216,
+        "p95": 323155224,
+        "max": 323155224
+      },
+      "slowestCheckpoint": {
+        "handlingMs": 457.5267,
+        "sessionApplyMs": 25.8013,
+        "checkpointMs": 431.3113,
+        "recoverySerializeMs": 412.8698,
+        "recoveryCursorMs": 1.1046,
+        "recoveryFingerprintMs": 17.0694,
+        "checkpointStoreMs": 0.012
+      }
+    },
+    {
+      "addedDecisions": 1024,
+      "action": "pass",
+      "storagePath": "compaction",
+      "temperature": "warm",
+      "phases": {
+        "handlingMs": {
+          "count": 24,
+          "median": 273.9306,
+          "p95": 354.5812,
+          "max": 521.1033
+        },
+        "sessionApplyMs": {
+          "count": 24,
+          "median": 31.36205,
+          "p95": 48.804,
+          "max": 63.7782
+        },
+        "checkpointMs": {
+          "count": 24,
+          "median": 237.06585,
+          "p95": 323.5944,
+          "max": 456.7452
+        },
+        "recoverySerializeMs": {
+          "count": 24,
+          "median": 219.5104,
+          "p95": 305.7191,
+          "max": 422.0302
+        },
+        "recoveryCursorMs": {
+          "count": 24,
+          "median": 0.89585,
+          "p95": 1.5966,
+          "max": 3.1888
+        },
+        "recoveryFingerprintMs": {
+          "count": 24,
+          "median": 15.32565,
+          "p95": 25.5319,
+          "max": 30.8436
+        },
+        "checkpointStoreMs": {
+          "count": 24,
+          "median": 0.011550000000000001,
+          "p95": 0.0162,
+          "max": 0.0197
+        }
+      },
+      "coldRestoreMs": {
+        "count": 24,
+        "median": 897.9552,
+        "p95": 1165.0891,
+        "max": 1227.7065
+      },
+      "allocatedBytes": {
+        "count": 24,
+        "median": 311917204,
+        "p95": 323167336,
+        "max": 323167512
+      },
+      "slowestCheckpoint": {
+        "handlingMs": 521.1033,
+        "sessionApplyMs": 63.7782,
+        "checkpointMs": 456.7452,
+        "recoverySerializeMs": 422.0302,
+        "recoveryCursorMs": 3.1888,
+        "recoveryFingerprintMs": 30.8436,
+        "checkpointStoreMs": 0.0197
+      }
+    }
+  ],
+  "limitations": [
+    "Cohort-first is the first action of a history/action/storage cohort within a JVM; it is not a separate cold JVM for every row.",
+    "processFirst contains the first measured action from each of three fresh JVMs; native fixture construction and restore precede the action.",
+    "Every sample cold-restores its retained fixture; warm means action-path/JIT warm, not a resident recovery load.",
+    "In-memory repositories exclude JDBC, provider, compression/store implementation, socket and browser latency; checkpointStoreMs measures only the repository seam.",
+    "Nested phase durations overlap and must not be summed. Small first-sample counts are descriptive, not stable tail estimates.",
+    "Synthetic legal setup history and forced compaction isolate history cost; they do not establish the cause or frequency of a live end-match spike."
+  ]
+}
