@@ -19,6 +19,26 @@ import static org.mockito.Mockito.when;
 
 class SetupPersistenceLoggingTest {
 
+	@Test void completionRetryAndRejectionUseDistinctSafeCodes() {
+		Logger logger = Logger.getLogger("com.fumbbl.ffb.server.match.persistence");
+		List<String> messages = new ArrayList<>();
+		Handler capture = new Handler() {
+			@Override public void publish(LogRecord record) { messages.add(record.getMessage()); }
+			@Override public void flush() { }
+			@Override public void close() { }
+		};
+		logger.addHandler(capture);
+		try {
+			MatchPersistenceLog log = new MatchPersistenceLog();
+			log.pendingCompletionFailed("untrusted-id", new IllegalStateException("private detail"));
+			log.pendingCompletionRejected("untrusted-id", new MatchService.Failure("COMPLETION_CONFLICT"));
+		} finally { logger.removeHandler(capture); }
+		assertEquals(2, messages.size());
+		assertTrue(messages.get(0).startsWith("COMPLETION_RETRY "));
+		assertTrue(messages.get(1).startsWith("COMPLETION_REJECTED failureCode=COMPLETION_CONFLICT "));
+		assertTrue(messages.stream().allMatch(message -> !message.contains("private detail") && !message.contains("untrusted-id")));
+	}
+
 	@Test void eachSetupMappingLogsOneSafeDiagnostic() throws SQLException {
 		String matchId = "12345678-1234-1234-1234-123456789abc";
 		MatchService matches = mock(MatchService.class);

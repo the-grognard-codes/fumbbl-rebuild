@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Publish durably checkpointed final match states while server result reconciliation retries with a fresh worker budget; use one computer persistence retry schedule and record inactive resident abandonment on the timer.
+
 - Log match persistence failures with request and SQL diagnostics. Computer coaches reload and retry transient failures with bounded backoff.
 
 - Restore long matches from durable state after a refused checkpoint write. Cold loads defer recording abandonment to the next request, and failed final result writes retry with increasing delays without waiting for coaches to reconnect.

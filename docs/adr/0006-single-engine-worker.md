@@ -278,8 +278,10 @@ Cold setup recovery reads skill preferences before reconstruction and closes
 the recovery SQL snapshot before decoding the checkpoint and assembling the
 journal. A load can return the durable revision and defer checkpoint maintenance
 when reconstruction leaves less than the existing JDBC reserve. A refused
-terminal result write after the final checkpoint returns `COMPLETION_PENDING`.
-The next load can reconcile that checkpoint using its own request budget.
+terminal result write after the final checkpoint leaves the durable final
+decision accepted and published. Server-side completion reconciliation retries
+on a later worker tick using that task's request budget; a load can also
+reconcile the checkpoint without rerunning the native decision.
 
 ### Watchdog and shutdown are separate from operation deadlines
 

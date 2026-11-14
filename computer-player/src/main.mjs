@@ -38,9 +38,6 @@ let sentAt = 0;
 let setupKey;
 let setupVariant = 0;
 let idleTimer;
-const persistenceBackoffMs = [1000, 2000, 4000];
-let persistenceRetries = 0;
-let persistenceTimer;
 
 function value(flag, required = true) {
   const index = process.argv.indexOf(flag);
@@ -70,12 +67,12 @@ function yieldIdleWorker() {
   stop();
 }
 function requestLoad() {
-  if (!authenticated || !socket || socket.readyState !== WebSocket.OPEN || loadId || pending || persistenceTimer) return;
+  if (!authenticated || !socket || socket.readyState !== WebSocket.OPEN || loadId || pending) return;
   loadId = randomUUID();
   send({ version: 2, type: 'setup', operation: 'load', requestId: loadId, matchId });
 }
 function decide() {
-  if (!state || pending || loadId || persistenceTimer || !authenticated || socket?.readyState !== WebSocket.OPEN) return;
+  if (!state || pending || loadId || !authenticated || socket?.readyState !== WebSocket.OPEN) return;
   if (state.phase === 'FULL_TIME') { log(`Match complete at revision ${state.revision}.`); stop(); return; }
   if (!waitingForHuman()) clearIdleTimer();
   else if (idleTimeoutMs && !idleTimer) idleTimer = setTimeout(yieldIdleWorker, idleTimeoutMs);
@@ -109,30 +106,15 @@ function applyState(raw) {
   if (next.matchId !== matchId || next.callerRole === 'spectator') throw Error('Unexpected match or role');
   if (!state || next.revision >= state.revision) state = next;
 }
-function recoverPersistence(operation, code) {
-  // This is a definite rejection. Discard the decision and wait for a correlated load
-  // before choosing again. Unanswered requests still use the exact reconnect retry.
+function recoverPersistence() {
+  // The daemon owns persistence backoff and emits one diagnostic per failed worker.
+  // Never repeat a decision after a definite rejection; the next worker loads durable state.
   pending = null;
   loadId = null;
-  state = null;
-  lastDecisionKey = undefined;
-  sentAt = 0;
-  clearIdleTimer();
-  if (persistenceRetries === persistenceBackoffMs.length) {
-    console.error(`[computer-player] Match ${matchId}: Persistence recovery exhausted after ${persistenceRetries} retries (${operation}: ${code}).`);
-    process.exitCode = persistenceExhaustedExitCode;
-    stop();
-    return;
-  }
-  const delay = persistenceBackoffMs[persistenceRetries++];
-  log(`Match ${matchId}: ${operation} returned ${code}; reloading in ${delay} ms.`);
-  persistenceTimer = setTimeout(() => {
-    persistenceTimer = undefined;
-    // Broadcasts during backoff cannot establish the revision for a retry.
-    state = null;
-    requestLoad();
-  }, delay);
+  process.exitCode = persistenceExhaustedExitCode;
+  stop();
 }
+
 function receive(raw) {
   const message = parseV2Response(raw);
   assertV2Projection(message);
@@ -150,8 +132,8 @@ function receive(raw) {
   }
   if ((message.type === 'error' || message.type === 'setupState')
       && (message.code === 'PERSISTENCE_FAILED' || message.code === 'COMPLETION_PENDING')) {
-    if (message.requestId === pending?.requestId) { recoverPersistence(pending.operation, message.code); return; }
-    if (loadId && message.requestId === loadId) { recoverPersistence('load', message.code); return; }
+    if (message.requestId === pending?.requestId) { recoverPersistence(); return; }
+    if (loadId && message.requestId === loadId) { recoverPersistence(); return; }
   }
   if (message.type === 'error') {
     if (message.requestId === authenticationId || ['AUTHENTICATION_REQUIRED', 'AUTHENTICATION_FAILED', 'CONNECTION_REPLACED', 'AUTHORIZATION'].includes(message.code)) {
@@ -171,7 +153,6 @@ function receive(raw) {
     pending = null;
     sentAt = 0;
     if (message.code === 'ACCEPTED') {
-      persistenceRetries = 0;
       if (old.operation === 'action') actionsThisTurn++;
     } else if (message.code === 'ILLEGAL_SETUP' && old.operation === 'confirm') {
       setupVariant++;
@@ -185,7 +166,6 @@ function receive(raw) {
     if (message.code === 'NOT_ACTIVATED') { setTimeout(requestLoad, 3000); return; }
     if (message.code !== 'ACCEPTED') throw Error(`Load rejected: ${message.code}`);
     decide();
-    if (!pending) persistenceRetries = 0;
     return;
   }
   decide();
@@ -220,7 +200,7 @@ function fail(error) {
   stop();
   process.exitCode = 1;
 }
-function stop() { stopped = true; clearIdleTimer(); clearTimeout(persistenceTimer); try { socket?.close(); } catch { /* A connecting socket may already be closing. */ } socket = null; }
+function stop() { stopped = true; clearIdleTimer(); try { socket?.close(); } catch { /* A connecting socket may already be closing. */ } socket = null; }
 process.on('SIGINT', stop);
 process.on('SIGTERM', stop);
 setInterval(requestLoad, 30000).unref();
