@@ -99,6 +99,7 @@ public final class BrowserV2Runtime {
 		private boolean loopback(String address) {
 			// Servlet peer addresses are numeric. Never pass malformed IPv4 to a hostname resolver.
 			if (address == null || address.length() > 128) return false;
+			if (address.startsWith("[") && address.endsWith("]")) address = address.substring(1, address.length() - 1);
 			try {
 				if (!address.contains(":")) {
 					String[] parts = address.split("\\.", -1);
@@ -114,8 +115,8 @@ public final class BrowserV2Runtime {
 				}
 				int zone = address.indexOf('%');
 				if (zone >= 0) address = address.substring(0, zone);
-				if (!address.contains(":") || !address.matches("[0-9a-fA-F:.]+")) return false;
-				// A colon forces JDK IPv6 literal parsing, which rejects malformed input without DNS fallback.
+				if (!address.contains(":") || !address.matches("[0-9a-fA-F:][0-9a-fA-F:.]*")) return false;
+				// A hex/colon prefix plus a colon selects JDK literal parsing without hostname fallback.
 				return InetAddress.getByName(address).isLoopbackAddress();
 			} catch (UnknownHostException invalid) { return false; }
 		}

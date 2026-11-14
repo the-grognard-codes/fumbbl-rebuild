@@ -8,15 +8,16 @@ No remote publication is performed.
 
 The dev-local server restarts on a nonzero exit, including a fatal engine
 worker failure, with at most three automatic retries (`on-failure:3`). A
-persistent startup failure stops after that bound so its original error remains
-visible; correct the configuration or dependency and start it explicitly. A JVM heap OOM writes a private `java-<unique-id>.hprof` before
+persistent startup failure stops after that bound so its original error
+remains visible; correct the configuration or dependency and start it
+explicitly. A JVM heap OOM writes a private `java-<unique-id>.hprof` before
 exiting. Find the files on the host at `.tools/dev-local/heap-dumps/`, or set
 `DEV_LOCAL_HEAP_DUMP_DIR` to an absolute host path. This bind mount survives a
 container restart or recreation. On Linux, create the directory with mode
 `0700` and owner UID/GID `10001:10001` before starting. If the mount is
 unavailable, the server logs a warning and uses `/tmp`. Docker clears that
-temporary filesystem on restart. Keep dumps private and archive or remove
-them after analysis.
+temporary filesystem on restart. Keep dumps private and archive or remove them
+after analysis.
 
 Docker probes `/health/engine` from inside the server container. The endpoint
 returns 204 while the worker is alive and has progressed in the last 10 seconds
