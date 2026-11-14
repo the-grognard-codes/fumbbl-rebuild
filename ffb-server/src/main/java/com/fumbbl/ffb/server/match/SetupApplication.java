@@ -389,9 +389,10 @@ public final class SetupApplication {
 			if (pendingCompletions.containsKey(id)) continue;
 			SetupSession session = sessions.get(id);
 			long now = clock.millis();
-			if (!session.abandonmentDue(now) && !session.reactiveDecisionDue(now)) continue;
+			boolean abandonmentDue = recovery != null && session.abandonmentDue(now);
+			if (!abandonmentDue && !session.reactiveDecisionDue(now)) continue;
 			try {
-				if (session.abandonIfInactive(now)) {
+				if (abandonmentDue && session.abandonIfInactive(now)) {
 					checkpoint(session.checkpointOwner(), id, session);
 					release(id);
 					continue;
