@@ -24,6 +24,7 @@ import org.eclipse.jetty.server.ServerConnector;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.MockedStatic;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -88,7 +89,7 @@ class BrowserV2RouteTest {
 	}
 
 	@Test void healthRejectsHostnamesAndMalformedAddressesWithoutResolvingThem() {
-		for (String address : new String[] { "localhost", "bad.invalid", "deadbeef", "zzz:1", "", "::invalid", "192.0.2.10", "2001:db8::1" }) {
+		for (String address : new String[] { "localhost", "bad.invalid", "deadbeef", "zzz:1", "999.0.0.1", "127.0.0.1.", "", "::invalid", "192.0.2.10", "2001:db8::1" }) {
 			FantasyFootballServer server = mock(FantasyFootballServer.class);
 			HttpServletRequest request = mock(HttpServletRequest.class);
 			HttpServletResponse response = mock(HttpServletResponse.class);
@@ -96,6 +97,20 @@ class BrowserV2RouteTest {
 			new BrowserV2Runtime.EngineHealthServlet(server).doGet(request, response);
 			verify(response).setStatus(HttpServletResponse.SC_NOT_FOUND);
 			verifyNoInteractions(server);
+		}
+	}
+
+	@Test void malformedZoneSuffixCannotTurnALiteralIntoAHostnameLookup() {
+		try (MockedStatic<InetAddress> addresses = org.mockito.Mockito.mockStatic(InetAddress.class)) {
+			for (String address : new String[] { "deadbeef%:zone", "999.0.0.1%:zone", "999.0.0.1", "127.0.0.1." }) {
+				FantasyFootballServer server = mock(FantasyFootballServer.class);
+				HttpServletRequest request = mock(HttpServletRequest.class);
+				HttpServletResponse response = mock(HttpServletResponse.class);
+				when(request.getRemoteAddr()).thenReturn(address);
+				new BrowserV2Runtime.EngineHealthServlet(server).doGet(request, response);
+				verify(response).setStatus(HttpServletResponse.SC_NOT_FOUND);
+			}
+			addresses.verifyNoInteractions();
 		}
 	}
 

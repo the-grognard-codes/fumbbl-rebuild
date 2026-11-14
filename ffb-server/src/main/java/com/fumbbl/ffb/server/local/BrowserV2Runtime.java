@@ -97,13 +97,27 @@ public final class BrowserV2Runtime {
 		}
 
 		private boolean loopback(String address) {
-			// Servlet peer addresses are numeric. Reject hostnames before parsing so this cannot perform DNS I/O.
+			// Servlet peer addresses are numeric. Never pass malformed IPv4 to a hostname resolver.
 			if (address == null || address.length() > 128) return false;
-			int zone = address.indexOf('%');
-			if (zone >= 0 && address.contains(":")) address = address.substring(0, zone);
-			if (!address.matches("[0-9a-fA-F:.]+") || !address.contains(":") && !address.matches("[0-9.]+")) return false;
-			try { return InetAddress.getByName(address).isLoopbackAddress(); }
-			catch (UnknownHostException invalid) { return false; }
+			try {
+				if (!address.contains(":")) {
+					String[] parts = address.split("\\.", -1);
+					if (parts.length != 4) return false;
+					byte[] bytes = new byte[4];
+					for (int index = 0; index < parts.length; index++) {
+						if (!parts[index].matches("[0-9]{1,3}")) return false;
+						int octet = Integer.parseInt(parts[index]);
+						if (octet > 255) return false;
+						bytes[index] = (byte) octet;
+					}
+					return InetAddress.getByAddress(bytes).isLoopbackAddress();
+				}
+				int zone = address.indexOf('%');
+				if (zone >= 0) address = address.substring(0, zone);
+				if (!address.contains(":") || !address.matches("[0-9a-fA-F:.]+")) return false;
+				// A colon forces JDK IPv6 literal parsing, which rejects malformed input without DNS fallback.
+				return InetAddress.getByName(address).isLoopbackAddress();
+			} catch (UnknownHostException invalid) { return false; }
 		}
 	}
 }
