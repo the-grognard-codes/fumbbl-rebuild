@@ -16,8 +16,9 @@ declare global {
     publishPlayback: (input: Input) => void;
     playbackActions: string[];
     beginProvisional: (route: RoutePreview) => void;
+    holdPlaybackAnnouncements: (hold: boolean) => void;
     playbackFrames: { ms: number; revision: number; x: number | null; actorX: number | null; ballX: number | null;
-      carrier: string | null; active: boolean; duration: number; faces: string[]; labels: string[] }[];
+      carrier: string | null; active: boolean; duration: number; faces: string[]; labels: string[]; diceRevision?: number; announcement?: string }[];
   }
 }
 function Harness() {
@@ -25,15 +26,16 @@ function Harness() {
   window.publishPlayback = setInput;
   window.playbackActions ??= [];
   const { pitchView, playbackActive, diceMoment, diceSnapshot, movementDuration, beginProvisional, synchronizing,
-    announcement, announcementExiting, announcementRate, dismissAnnouncement, holdAnnouncements } =
+    announcement, announcementExiting, announcementRate, dismissAnnouncement, holdAnnouncements, changeHoldAnnouncements } =
     usePitchPlayback(input.view, input.records, input.enabled, input.speed ?? 1, input.mode, input.requestPending ?? null, input.snapshotKey);
   window.beginProvisional = beginProvisional;
+  window.holdPlaybackAnnouncements = changeHoldAnnouncements;
   useLayoutEffect(() => {
     window.playbackFrames.push({ ms: Date.now(), revision: pitchView.revision, x: pitchView.players[0]?.x ?? null,
       actorX: pitchView.players.find(player => player.id === 'actor')?.x ?? null,
       ballX: pitchView.ball?.x ?? null, carrier: pitchView.ballState?.carrierPlayerId ?? null, active: playbackActive,
-      duration: movementDuration, faces: diceMoment?.faces ?? [], labels: diceMoment?.groups?.map(group => group.label) ?? [] });
-  }, [pitchView, playbackActive, diceMoment, movementDuration]);
+      duration: movementDuration, diceRevision: diceMoment?.revision, announcement: announcement?.kind, faces: diceMoment?.faces ?? [], labels: diceMoment?.groups?.map(group => group.label) ?? [] });
+  }, [pitchView, playbackActive, diceMoment, movementDuration, announcement]);
   return <main className="play-runtime">
     <output id="playback-state" data-revision={pitchView.revision} data-x={pitchView.players[0]?.x}
       data-active={playbackActive} data-synchronizing={synchronizing} data-duration={movementDuration} data-roll-key={diceMoment?.rollKey ?? ''}/>

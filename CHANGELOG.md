@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Accelerate live playback bursts from eight queued revisions until caught up, retaining ordered dice, movement and announcements and respecting reduced motion and announcement holds.
+
 - Keep the game log to 100 mounted events with accessible earlier, later and latest history controls, and render settled log dice without hidden 3D faces.
 
 - Log match persistence failures with request and SQL diagnostics. Computer coaches reload and retry transient failures with bounded backoff.
