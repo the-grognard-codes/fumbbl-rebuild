@@ -241,8 +241,9 @@ class RecoveryApplicationTest {
 		String role = terminal.getString("testRole", null);
 		terminal.remove("testRole");
 		SetupApplication.HandleOutcome refused = application.handleWithOutcome(role, terminal);
-		assertEquals("COMPLETION_PENDING", refused.response().getString("code", null));
-		assertFalse(refused.publish());
+		assertEquals("ACCEPTED", refused.response().getString("code", null));
+		assertTrue(refused.publish());
+		assertEquals("FULL_TIME", refused.response().get("state").asObject().getString("phase", null));
 		long durable = fixture.recovery.rows.get(fixture.id).generation;
 		fixture.repository.completionBudgetRefused = false;
 		SetupApplication restarted = app(fixture);
@@ -261,7 +262,7 @@ class RecoveryApplicationTest {
 		accepted(application.activate("home", activate(fixture.id, "activate").toString()));
 		fixture.repository.completionBudgetRefused = true;
 		FinishedMatch finished = finishWithResponse(application, fixture.id);
-		assertEquals("COMPLETION_PENDING", finished.response.getString("code", null));
+		assertEquals("ACCEPTED", finished.response.getString("code", null));
 		RecoveryRepository.Record checkpoint = fixture.recovery.rows.get(fixture.id);
 		int attempts = fixture.repository.completionAttempts;
 		int reads = fixture.repository.reads;
@@ -302,7 +303,7 @@ class RecoveryApplicationTest {
 		SetupApplication application = new SetupApplication(new TestServer().getServer(), fixture.matches, fixture.recovery, true, clock);
 		accepted(application.activate("home", activate(fixture.id, "activate").toString()));
 		fixture.repository.completionBudgetRefused = true;
-		assertEquals("COMPLETION_PENDING", finishWithResponse(application, fixture.id).response.getString("code", null));
+		assertEquals("ACCEPTED", finishWithResponse(application, fixture.id).response.getString("code", null));
 		fixture.repository.completionBudgetRefused = false;
 		fixture.repository.completionFailure = new IllegalStateException("private result detail");
 		try (PendingCompletionLogs logs = new PendingCompletionLogs(fixture.id)) {

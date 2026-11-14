@@ -25,7 +25,12 @@ public final class MatchPersistenceLog {
 	}
 
 	void pendingCompletionFailed(String matchId, Exception failure) {
-		write("PERSISTENCE_FAILED", "pending-completion", matchId, null, failure);
+		write("COMPLETION_RETRY", "pending-completion", matchId, null, failure);
+	}
+
+	void pendingCompletionRejected(String matchId, MatchService.Failure failure) {
+		write("COMPLETION_REJECTED failureCode=" + correlation(failure.code, "[A-Z_]{1,100}"),
+			"pending-completion", matchId, null, failure);
 	}
 
 	private void write(String code, String phase, String matchId, String requestId, Exception failure) {

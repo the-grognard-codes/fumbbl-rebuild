@@ -290,6 +290,78 @@ class SetupApplicationCheckpointTest {
 		}
 	}
 
+
+	@Test void starvedTerminalRequestPublishesDurableStateAndReconcilesOnFreshTick() throws Exception {
+		try (Fixture fixture = new Fixture()) {
+			fixture.application.handle("home", load());
+			AtomicLong nanos = new AtomicLong();
+			BrowserRequestTiming timing = new BrowserRequestTiming();
+			when(fixture.session().isComplete()).thenAnswer(call -> fixture.executed.get() > 0);
+			when(fixture.session().checkpointOwner()).thenReturn("home");
+			fixture.beforeSave = () -> nanos.set(1_900_000_000L);
+			org.mockito.Mockito.doAnswer(call -> {
+				if (timing.budget() != null && timing.budget().allowanceMillis(1000, JdbcConnections.WORK_RESERVE_MILLIS) == 0)
+					throw new JdbcConnections.NotStarted();
+				return null;
+			}).when(fixture.matches).completeLoaded(anyString(), any(MatchDocument.class), any());
+			AtomicReference<SetupApplication.HandleOutcome> outcome = new AtomicReference<>();
+			new CaptureRequestProbe().measure(request("final-action"), nanos::get, () -> {
+				outcome.set(fixture.application.handleWithOutcome("home", request("final-action")));
+				return outcome.get().response();
+			});
+			assertEquals("ACCEPTED", outcome.get().response().getString("code", null));
+			assertTrue(outcome.get().publish(), "The final checkpoint is durable even when the result write cannot start");
+			assertEquals("after:final-action", fixture.durable.get().json);
+			assertEquals(1, fixture.mapSize("pendingCompletions"));
+			assertEquals(1, new CaptureRequestProbe().within(() -> fixture.application.expireReactiveDecisions()).size());
+			assertEquals(0, fixture.mapSize("sessions"));
+			assertEquals(0, fixture.mapSize("pendingCompletions"));
+			assertEquals(1, fixture.executed.get(), "Reconciliation never repeats the native action");
+		}
+	}
+
+	@Test void deadlinePublishesTerminalCheckpointBeforeResultRetry() throws Exception {
+		try (Fixture fixture = new Fixture()) {
+			fixture.application.handle("home", load());
+			when(fixture.session().checkpointOwner()).thenReturn("home");
+			when(fixture.session().reactiveDecisionDue(NOW)).thenReturn(true);
+			when(fixture.session().isComplete()).thenAnswer(call -> "deadline-terminal".equals(fixture.artifact.get()));
+			when(fixture.session().expireReactiveDecision(NOW)).thenAnswer(call -> {
+				fixture.artifact.set("deadline-terminal"); return true;
+			});
+			assertEquals(1, fixture.application.expireReactiveDecisions().size(), "Both coaches must be notified on the expiry tick");
+			assertEquals("deadline-terminal", fixture.durable.get().json);
+			verify(fixture.matches, never()).completeLoaded(anyString(), any(MatchDocument.class), any());
+			assertEquals(1, fixture.application.expireReactiveDecisions().size());
+			assertEquals(0, fixture.mapSize("pendingCompletions"));
+		}
+	}
+
+	@Test void timerRecordsResidentAbandonmentWithoutAnotherClientRequest() throws Exception {
+		try (Fixture fixture = new Fixture()) {
+			fixture.application.handle("home", load());
+			when(fixture.session().checkpointOwner()).thenReturn("home");
+			when(fixture.session().abandonmentDue(NOW)).thenReturn(true);
+			when(fixture.session().abandonIfInactive(NOW)).thenAnswer(call -> {
+				fixture.artifact.set("abandoned"); return true;
+			});
+			fixture.application.expireReactiveDecisions();
+			assertEquals("abandoned", fixture.durable.get().json);
+			assertEquals(0, fixture.mapSize("sessions"));
+			verify(fixture.session(), never()).expireReactiveDecision(NOW);
+		}
+	}
+
+	@Test void missingResidentDropsPendingCompletionWithoutDatabaseAccess() throws Exception {
+		try (Fixture fixture = new Fixture()) {
+			java.lang.reflect.Method queue = SetupApplication.class.getDeclaredMethod("queueCompletion", String.class);
+			queue.setAccessible(true); queue.invoke(fixture.application, MATCH);
+			fixture.application.expireReactiveDecisions();
+			assertEquals(0, fixture.mapSize("pendingCompletions"));
+			verify(fixture.matches, never()).loadForSetup(anyString(), anyString());
+		}
+	}
+
 	private JsonObject request(String id) { return new JsonObject().add("version", 1).add("type", "setup").add("operation", "action")
 		.add("requestId", id).add("matchId", MATCH).add("expectedRevision", 3).add("actionId", "server-action"); }
 	private JsonObject load() { return new JsonObject().add("version", 1).add("type", "setup").add("operation", "load").add("requestId", "load").add("matchId", MATCH); }
