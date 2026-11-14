@@ -1,12 +1,11 @@
 import { useLayoutEffect, useRef, useState } from 'react';
 import { BlockMark, PipMark } from './DiceFace.tsx';
-import { blockFaceLabel } from './dice-presentation.ts';
+import { blockFaceLabel, blockFaces, dieStateClasses, isBlockFace } from './dice-presentation.ts';
 import { numericSolids } from './die-geometry.ts';
 import type { DieKind } from './die-geometry.ts';
 import { DICE_ANIMATION_MS } from './presentation-timing.ts';
 import './block-dice.css';
 
-const blockFaces = ['SKULL', 'BOTH DOWN', 'PUSHBACK', 'PUSHBACK', 'POW/PUSH', 'POW'];
 const resultAngles: Record<string, [number, number, number]> = {
   SKULL: [0, 0, 0], 'BOTH DOWN': [0, -90, 0], PUSHBACK: [0, 180, 0], 'POW/PUSH': [-90, 0, 0], POW: [90, 0, 0]
 };
@@ -23,7 +22,7 @@ export type PolygonDieProps = {
 export function PolygonDie({ kind, face, potential = false, awaiting = false, selected = false, uphill = false, chosenBy, rollKey, rollDuration = DICE_ANIMATION_MS, index = 0 }: PolygonDieProps) {
   const solid = kind === 'd8' || kind === 'd16' ? numericSolids[kind] : null;
   const faces = kind === 'block' ? blockFaces : ['1', '2', '6', '5', '3', '4'];
-  const valid = potential || awaiting || (solid ? solid.some(side => side.value === face) : faces.includes(face ?? ''));
+  const valid = potential || awaiting || (kind === 'block' ? isBlockFace(face) : solid ? solid.some(side => side.value === face) : faces.includes(face ?? ''));
   const cube = useRef<HTMLSpanElement>(null), hover = useRef<HTMLSpanElement>(null);
   const [completed, setCompleted] = useState<string | undefined>();
   const phase = awaiting ? 'awaiting' : potential ? 'potential'
@@ -93,7 +92,7 @@ export function PolygonDie({ kind, face, potential = false, awaiting = false, se
   }, [motion, rollKey, index, face, kind, rollDuration]);
   const resultSide = potential || awaiting ? -1 : faces.indexOf(face ?? '');
   const name = kind === 'block' ? 'Block die' : kind.toUpperCase();
-  return <span className={`match-die polygon-die ${kind === 'block' ? 'block-die' : 'numeric-die'} ${kind} ${phase}${selected ? ' selected' : ''}${selected && chosenBy ? ` ${chosenBy}-selected` : ''}${selected && uphill ? ' uphill-selected' : ''}`}
+  return <span className={`match-die polygon-die ${kind === 'block' ? 'block-die' : 'numeric-die'} ${kind} ${phase}${dieStateClasses({ selected, chosenBy, uphill })}`}
     data-face={potential || awaiting ? undefined : face} data-die-kind={kind} hidden={!valid}
     role="img" aria-label={awaiting ? `${name}; awaiting native result` : potential ? `Potential ${name.toLowerCase()}; outcome not yet rolled`
       : `Ivory and cyan die: ${kind === 'block' ? blockFaceLabel(face!) : `${name} ${face}`}`}>

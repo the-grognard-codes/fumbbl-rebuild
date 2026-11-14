@@ -47,3 +47,9 @@ directory, not in source control.
 Pending user evidence: matched early/late long live-match traces with diagnostics
 Off and Graph separately, pan EventLatency p95 and Layerize within 20%, and soak
 DOM re-measurement. These require the user's dev-local interactive sign-in.
+
+Review regression coverage returns to the live bottom after scrolling up with
+fewer than 100 rows, then receives another event. The new event and polite live
+announcements resume without a Latest button. The full-page peak bound is now
+2,000 elements, and a failed assertion reports the observed peak. Dice-face
+validation and selected/chooser/uphill classes share one presentation source.

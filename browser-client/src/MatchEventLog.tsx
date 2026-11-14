@@ -79,6 +79,7 @@ export function MatchEventLog({ records, loading, unavailable, showSettings = tr
     if (element.scrollHeight - element.scrollTop - element.clientHeight <= 36) {
       follow.current = true;
       anchor.current = null;
+      if (windowEnd === lines.length) setHistoryEnd(null);
       return;
     }
     follow.current = false;

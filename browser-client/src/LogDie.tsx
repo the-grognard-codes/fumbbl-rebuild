@@ -1,6 +1,6 @@
 import { useLayoutEffect, useRef } from 'react';
 import { BlockMark, PipMark } from './DiceFace.tsx';
-import { blockFaceLabel } from './dice-presentation.ts';
+import { blockFaceLabel, dieStateClasses, isBlockFace } from './dice-presentation.ts';
 import type { PolygonDieProps } from './PolygonDie.tsx';
 
 /** Flat numeric faces keep the full result legible in a line of log text. */
@@ -24,8 +24,8 @@ export function LogDie(props: PolygonDieProps) {
   if (props.kind !== 'd8' && props.kind !== 'd16') {
     const block = props.kind === 'block';
     const face = props.face ?? '';
-    const valid = block ? ['SKULL', 'BOTH DOWN', 'PUSHBACK', 'POW/PUSH', 'POW'].includes(face) : /^[1-6]$/.test(face);
-    return <span className={`match-die polygon-die log-flat-die ${block ? 'block-die' : 'numeric-die'} ${props.kind}${props.selected ? ' selected' : ''}${props.selected && props.chosenBy ? ` ${props.chosenBy}-selected` : ''}${props.selected && props.uphill ? ' uphill-selected' : ''}`}
+    const valid = block ? isBlockFace(face) : /^[1-6]$/.test(face);
+    return <span className={`match-die polygon-die log-flat-die ${block ? 'block-die' : 'numeric-die'} ${props.kind}${dieStateClasses(props)}`}
       hidden={!valid} data-die-kind={props.kind} data-face={face} role="img"
       aria-label={`Ivory and cyan die: ${block ? blockFaceLabel(face) : `D6 ${face}`}`}>
       <svg viewBox="-3 -3 22 22" aria-hidden="true">{block ? <BlockMark face={face}/> : <PipMark face={face}/>}</svg>

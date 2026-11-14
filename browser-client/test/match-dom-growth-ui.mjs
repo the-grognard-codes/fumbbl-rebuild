@@ -76,7 +76,7 @@ try {
     await page.locator('.match-history-log').screenshot({ path: resolve(evidence, 'bounded-log.png') }); }
   console.log(JSON.stringify(measurements));
   assert.ok(measurements.late.rows <= 100, `At most 100 log rows mounted after 450 revisions: ${measurements.late.rows}`);
-  assert.ok(measurements.peakElements <= 6000, `Bound the complete match page: ${measurements.late.total} elements`);
+  assert.ok(measurements.peakElements <= 2000, `Bound the complete match page: peak ${measurements.peakElements} elements`);
   assert.equal(measurements.userSelect, 'none');
   const earlier = page.getByRole('button', { name: 'Earlier log events', exact: true });
   for (let index = 0; index < 4; index++) await earlier.click();
@@ -103,6 +103,33 @@ try {
     'Reading the latest page pins its window through more than a page of new events');
   await page.getByRole('button', { name: 'Latest log events', exact: true }).click();
   assert.ok(await page.locator('.match-history-log [data-revision="570"]').count());
+  // Below the mounted-row limit there is no Latest control to recover a pinned window.
+  const resumed = await browser.newPage({ viewport: { width: 1280, height: 800 } });
+  resumed.on('pageerror', error => errors.push(error.message));
+  const smallInput = await page.evaluate(() => ({ view: { ...window.domInput.view, revision: 40 },
+    records: window.domInput.records.slice(0, 40) }));
+  await resumed.addInitScript(input => { window.domInput = input; }, smallInput);
+  await resumed.route('**/dom-follow-test', route => route.fulfill({ contentType: 'text/html', body:
+    '<main id="app" class="play-runtime live-match-page"></main><script type="module" src="/test/match-dom-ui-harness.tsx"></script>' }));
+  await resumed.goto(`http://127.0.0.1:${server.httpServer.address().port}/dom-follow-test`);
+  await resumed.locator('.match-history-log [data-revision="40"]').waitFor();
+  await resumed.evaluate(() => document.fonts.ready);
+  const resumedLog = resumed.locator('.match-history-log [role=log]');
+  assert.equal(await resumed.getByRole('button', { name: 'Latest log events', exact: true }).count(), 0);
+  assert.ok(await resumedLog.evaluate(element => element.scrollHeight > element.clientHeight + 36));
+  await resumedLog.evaluate(element => { element.scrollTop = 0; element.dispatchEvent(new Event('scroll', { bubbles: true })); });
+  await resumed.waitForFunction(() => document.querySelector('.match-history-log [role=log]').getAttribute('aria-live') === 'off');
+  await resumedLog.evaluate(element => { element.scrollTop = element.scrollHeight; element.dispatchEvent(new Event('scroll', { bubbles: true })); });
+  await resumed.evaluate(() => {
+    const { view, records } = window.domInput;
+    const last = records.at(-1);
+    window.publishDom({ view: { ...view, revision: 41 }, records: [...records,
+      { ...last, index: 41, revision: 41, state: { ...last.state, revision: 41 } }] });
+  });
+  await resumedLog.locator('[data-revision="41"]').waitFor({ timeout: 1500 });
+  assert.equal(await resumedLog.getAttribute('aria-live'), 'polite', 'Returning to the live bottom resumes following and announcements');
+  assert.ok(await resumedLog.evaluate(element => element.scrollHeight - element.scrollTop - element.clientHeight <= 36));
+  await resumed.close();
   assert.deepEqual(errors, []);
   console.log('PASS 450 revisions, bounded match DOM, accessible full log history, idle Off/Graph evidence, pitch selection');
 } finally { await browser.close(); await server.close(); }
