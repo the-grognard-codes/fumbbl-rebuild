@@ -545,12 +545,12 @@ foreach ($client in $clients) {
   }
 });
 
-for (const persistenceExhausted of [false, true]) {
-  test(`daemon retries an active match after ${persistenceExhausted ? 'persistence exhaustion' : 'a failed worker'}`, { timeout: 18000 }, async () => {
+for (const persistenceUnavailable of [false, true]) {
+  test(`daemon retries an active match after ${persistenceUnavailable ? 'a persistence failure' : 'a failed worker'}`, { timeout: 18000 }, async () => {
     const server = createServer();
     let registrations = 0;
     let loads = 0;
-    const rejectedLoads = persistenceExhausted ? 3 : 1;
+    const rejectedLoads = persistenceUnavailable ? 3 : 1;
     const loadTimes = [];
     let resolveAction;
     const actionReceived = new Promise(resolve => { resolveAction = resolve; });
@@ -571,7 +571,7 @@ for (const persistenceExhausted of [false, true]) {
           loads++; loadTimes.push(Date.now());
           if (loads <= rejectedLoads) {
             send(socket, { version: 2, type: 'setupState', requestId: body.requestId,
-              code: persistenceExhausted ? 'PERSISTENCE_FAILED' : 'SESSION_UNAVAILABLE', duplicate: false, state: null });
+              code: persistenceUnavailable ? 'PERSISTENCE_FAILED' : 'SESSION_UNAVAILABLE', duplicate: false, state: null });
           } else {
             send(socket, response(body.requestId, { ...state, revision: 26, callerRole: 'away',
               actor: 'away', phase: 'PLAY', prompt: null,
@@ -604,7 +604,7 @@ for (const persistenceExhausted of [false, true]) {
       assert.equal(action.expectedRevision, 26);
       assert.equal(loads, rejectedLoads + 1);
       assert.ok(registrations >= 3);
-      if (persistenceExhausted) {
+      if (persistenceUnavailable) {
         assert.equal(errors, '');
         assert.equal((output.match(/persistence unavailable/g) ?? []).length, 3);
         assert.ok(loadTimes[1] - loadTimes[0] >= 900);
