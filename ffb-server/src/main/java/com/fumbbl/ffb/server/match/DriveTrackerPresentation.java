@@ -28,14 +28,8 @@ final class DriveTrackerPresentation {
         String receivingRole = receivingRole(state, transcript, drive, setup);
         String currentPhase = setup ? game.isSetupOffense() ? "RECEIVING_SETUP" : "KICKING_SETUP"
             : kickTarget ? "KICK_TARGET" : "KICKOFF";
-        Reports reports = new Reports();
+        Reports reports = transcript == null ? new Reports() : transcript.driveHistory().reports(drive);
         if (transcript != null) {
-            JsonArray records = transcript.json().get("records").asArray();
-            for (int index = records.size() - 1; index >= 0; index--) {
-                JsonObject record = records.get(index).asObject();
-                if (record.get("state").asObject().getInt("drive", -1) != drive) break;
-                reports.readSyncs(record.get("native").asArray());
-            }
             // The current public snapshot is built before its native outcomes join the transcript.
             List<JsonObject> pending = new NativeOutcomeCapture()
                 .since(state.getGameLog(), transcript.nativeCursor()).modelSyncs;
@@ -71,15 +65,7 @@ final class DriveTrackerPresentation {
     }
 
     private String receivingRole(GameState state, MatchTranscript transcript, int drive, boolean setup) {
-        String firstSetupActor = null;
-        if (transcript != null) {
-            JsonArray records = transcript.json().get("records").asArray();
-            for (int index = records.size() - 1; index >= 0; index--) {
-                JsonObject snapshot = records.get(index).asObject().get("state").asObject();
-                if (snapshot.getInt("drive", -1) != drive) break;
-                if ("SETUP".equals(snapshot.getString("phase", null))) firstSetupActor = snapshot.getString("actor", null);
-            }
-        }
+        String firstSetupActor = transcript == null ? null : transcript.driveHistory().firstSetupActor(drive);
         if ("home".equals(firstSetupActor)) return "away";
         if ("away".equals(firstSetupActor)) return "home";
         Game game = state.getGame();
@@ -88,6 +74,47 @@ final class DriveTrackerPresentation {
         if (!setup && (game.getTurnMode() == TurnMode.HIGH_KICK || game.getTurnMode() == TurnMode.QUICK_SNAP
             || game.getTurnMode() == TurnMode.KICKOFF_RETURN)) homeReceiving = game.isHomePlaying();
         return homeReceiving ? "home" : "away";
+    }
+
+    /** Small derived facts for the contiguous current drive; rebuilt through the normal restore append path. */
+    static final class History {
+        private int drive = -1;
+        private boolean setupSeen;
+        private String firstSetupActor;
+        private Reports reports = new Reports();
+
+        void append(JsonObject record) {
+            JsonObject snapshot = record.get("state").asObject();
+            int nextDrive = snapshot.getInt("drive", -1);
+            if (nextDrive != drive) {
+                drive = nextDrive;
+                setupSeen = false;
+                firstSetupActor = null;
+                reports = new Reports();
+            }
+            if (!setupSeen && "SETUP".equals(snapshot.getString("phase", null))) {
+                setupSeen = true;
+                firstSetupActor = snapshot.getString("actor", null);
+            }
+            Reports added = new Reports();
+            added.readSyncs(record.get("native").asArray());
+            reports.secretWeapons |= added.secretWeapons;
+            reports.knockouts |= added.knockouts;
+            // The original reverse scan lets the earliest record containing an event win.
+            if (reports.event == null) reports.event = added.event;
+        }
+
+        String firstSetupActor(int requestedDrive) { return requestedDrive == drive ? firstSetupActor : null; }
+
+        Reports reports(int requestedDrive) {
+            Reports result = new Reports();
+            if (requestedDrive == drive) {
+                result.secretWeapons = reports.secretWeapons;
+                result.knockouts = reports.knockouts;
+                result.event = reports.event;
+            }
+            return result;
+        }
     }
 
     private static final class Reports {

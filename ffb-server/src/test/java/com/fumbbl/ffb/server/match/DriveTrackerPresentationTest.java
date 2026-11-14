@@ -20,6 +20,8 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.when;
 
 class DriveTrackerPresentationTest {
@@ -104,6 +106,26 @@ class DriveTrackerPresentationTest {
         log.add(command);
         assertTrue(project(transcript, 1, "SETUP").getBoolean("knockouts", false));
         assertEquals(0, transcript.nativeCursor());
+    }
+
+    @Test void restoresCurrentDriveFactsWithoutExpandingHistoryDuringViews() {
+        current(StepId.SETUP);
+        MatchTranscript transcript = transcript(1, "home", syncs(report("kickoffResult", "kickoffResult", JsonValue.valueOf("High Kick"))));
+        JsonArray current = syncs(report("secretWeaponBan", "playerIds", new JsonArray().add("handled")),
+            report("kickoffResult", "kickoffResult", JsonValue.valueOf("Charge")));
+        current.get(0).asObject().set("commandNr", 2);
+        transcript.append(1, "TOUCHDOWN", "home", 1, new JsonObject(), current,
+            snapshot(1, "SETUP", "away", 2), 2);
+        transcript.append(2, "ACTION", "away", 2, new JsonObject(), new JsonArray(),
+            snapshot(2, "SETUP", "home", 2), 2);
+        JsonObject expected = project(transcript, 2, "SETUP");
+        MatchTranscript restored = spy(new MatchTranscript(transcript.json()));
+        doThrow(new AssertionError("Ordinary views must not expand retained transcript history")).when(restored).json();
+        assertEquals(expected.toString(), project(restored, 2, "SETUP").toString());
+        assertEquals("home", expected.getString("receivingRole", null));
+        assertEquals("CHARGE", expected.getString("event", null));
+        assertTrue(expected.getBoolean("secretWeapons", false));
+        assertFalse(project(restored, 1, "SETUP").getBoolean("secretWeapons", true));
     }
 
     @Test void omitsPreMatchFullTimeAndOlderUnknownOptionalHistory() {

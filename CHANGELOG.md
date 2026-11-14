@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Retain frozen replay events and transcript records as compact JSON between reads, reducing resident match memory without changing recovery or replay formats.
+
 - Log match persistence failures with request and SQL diagnostics. Computer coaches reload and retry transient failures with bounded backoff.
 
 - Restore long matches from durable state after a refused checkpoint write. Cold loads defer recording abandonment to the next request, and failed final result writes retry with increasing delays without waiting for coaches to reconnect.
