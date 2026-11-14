@@ -135,7 +135,7 @@ export function usePitchPlayback(view: SetupState, records: TranscriptRecord[], 
       snapshot();
       return;
     }
-    if (mode === 'live' && requiresResponse && pendingAnnouncement.current && !deferScoringResponse && !catchingUp.current) {
+    if (mode === 'live' && requiresResponse && pendingAnnouncement.current && !deferScoringResponse) {
       snapshot();
       return;
     }
@@ -270,7 +270,7 @@ export function usePitchPlayback(view: SetupState, records: TranscriptRecord[], 
         if (beat.kind === 'announcement') {
           const response = mode === 'live' && (!!latest.current.prompt || !!latest.current.reaction
             || latest.current.actions.some(action => responseKinds.has(action.kind)));
-          if (response && !deferScoringResponse && !catchingUp.current || announced.current.has(beat.announcement.id)) continue;
+          if (response && !deferScoringResponse || announced.current.has(beat.announcement.id)) continue;
           announced.current.add(beat.announcement.id);
           clearDice(); setMoveMillis(0);
           if (beat.announcement.kind === 'touchdown') {

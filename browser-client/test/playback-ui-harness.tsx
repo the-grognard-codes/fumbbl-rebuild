@@ -16,6 +16,7 @@ declare global {
     publishPlayback: (input: Input) => void;
     playbackActions: string[];
     beginProvisional: (route: RoutePreview) => void;
+    holdPlaybackAnnouncements: (hold: boolean) => void;
     playbackFrames: { ms: number; revision: number; x: number | null; actorX: number | null; ballX: number | null;
       carrier: string | null; active: boolean; duration: number; faces: string[]; labels: string[]; diceRevision?: number; announcement?: string }[];
   }
@@ -25,9 +26,10 @@ function Harness() {
   window.publishPlayback = setInput;
   window.playbackActions ??= [];
   const { pitchView, playbackActive, diceMoment, diceSnapshot, movementDuration, beginProvisional, synchronizing,
-    announcement, announcementExiting, announcementRate, dismissAnnouncement, holdAnnouncements } =
+    announcement, announcementExiting, announcementRate, dismissAnnouncement, holdAnnouncements, changeHoldAnnouncements } =
     usePitchPlayback(input.view, input.records, input.enabled, input.speed ?? 1, input.mode, input.requestPending ?? null, input.snapshotKey);
   window.beginProvisional = beginProvisional;
+  window.holdPlaybackAnnouncements = changeHoldAnnouncements;
   useLayoutEffect(() => {
     window.playbackFrames.push({ ms: Date.now(), revision: pitchView.revision, x: pitchView.players[0]?.x ?? null,
       actorX: pitchView.players.find(player => player.id === 'actor')?.x ?? null,
