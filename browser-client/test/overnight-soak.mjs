@@ -87,7 +87,15 @@ async function awaitSignIn(minutes) {
 
 async function connected(timeout) {
   // /play has no "Connected" status label; its game-mode buttons render only for a signed-in, connected coach.
-  return page.getByRole('button', { name: 'AI Opponent', exact: true }).waitFor({ timeout }).then(() => true, () => false);
+  // The mode buttons also render while disconnected (for example after AUTHENTICATION FAILED), so
+  // require the absence of the Disconnected status as well.
+  if (!await page.getByRole('button', { name: 'AI Opponent', exact: true }).waitFor({ timeout }).then(() => true, () => false)) return false;
+  const deadline = Date.now() + Math.min(timeout, 10_000);
+  do {
+    if (!await page.getByRole('status').filter({ hasText: /^Disconnected$/ }).count()) return true;
+    await sleep(500);
+  } while (Date.now() < deadline);
+  return false;
 }
 
 if (signInOnly) {
@@ -267,6 +275,11 @@ async function actionUI(view, action) {
     return advanced(view, () => dialog.getByRole('button', { name: label, exact: true }).click());
   }
   if (['blockDie', 'reroll', 'skill', 'kickoffChoice', 'push'].includes(action.kind) && await direct.count()) return advanced(view, () => direct.click());
+  // Optional kickoff events (for example High Kick: "select up to 1") keep Confirmed! disabled until a
+  // player is picked; the soak takes the always-valid skip instead.
+  const skip = page.getByRole('button', { name: 'Skip event', exact: true });
+  if (['kickoffChoice', 'kickoffMove', 'touchback'].includes(action.kind) && await skip.isVisible().catch(() => false)
+    && await skip.isEnabled().catch(() => false)) return advanced(view, () => skip.click());
   const kickoffPlayerId = view.turnMode === 'TOUCHBACK' && action.kind === 'touchback' && action.target && 'playerId' in action.target
     ? action.target.playerId : view.turnMode === 'HIGH_KICK' && action.kind === 'kickoffMove' ? action.sourcePlayerId : null;
   if (kickoffPlayerId) {
@@ -337,6 +350,13 @@ async function decide(view) {
   const action = selectAction(view);
   try { return await actionUI(view, action); }
   catch (failure) {
+    if (/COMPLETION_PENDING/.test(failure.message)) {
+      // The final decision is durable; the server's timer retries the result write. Wait, then reload.
+      log('completion-pending', { revision: view.revision });
+      await sleep(5000); await page.reload(); await page.getByLabel('Live match pitch').waitFor({ timeout: 60_000 });
+      await ensureDiagnostics();
+      return state();
+    }
     log('ui-action-fallback', { kind: action.kind, reason: failure.message.slice(0, 200) });
     const fresh = await state();
     if (fresh.revision !== view.revision || !fresh.actions.some(item => item.id === action.id)) return fresh;
@@ -346,10 +366,28 @@ async function decide(view) {
 
 // ---------------------------------------------------------------- match lifecycle
 let matches = 0, completed = 0, decisions = 0, errors = 0, screenshots = 0;
+async function rejectedSignIn() {
+  const alerts = (await page.getByRole('alert').allTextContents().catch(() => [])).join(' ');
+  if (/AUTHENTICATION FAILED/i.test(alerts)) throw Error('AUTHENTICATION_FAILED: the game server rejected sign-in; refresh its ADC (gcloud auth application-default login) and restart the server');
+}
+// A refused completion write (COMPLETION_PENDING) leaves the client holding the request; repeating it is the
+// coach's documented recovery, and until it succeeds Play keeps routing back to the unfinished match.
+async function repeatRetainedRequest() {
+  const repeat = page.getByRole('button', { name: 'Repeat retained request', exact: true });
+  if (!await repeat.isVisible().catch(() => false)) return false;
+  log('retained-request-repeated', { url: page.url() });
+  await repeat.click();
+  await sleep(5000);
+  return true;
+}
+
 async function createMatch() {
   await page.goto(`${origin}/play`);
+  if (/\/play\/match/.test(page.url()) && await repeatRetainedRequest()) await page.goto(`${origin}/play`);
   if (!await connected(30_000)) {
     // Only a redirect to the login page means signed out. Otherwise the game server is down or restarting.
+    // The server rejects every sign-in when its Google credentials (ADC) can no longer refresh.
+    await rejectedSignIn();
     if (!/\/(login|signin)/.test(page.url())) throw Error('SERVER_UNAVAILABLE: play page did not connect');
     if (!await awaitSignIn(20)) throw Error('NOT_SIGNED_IN: sign in within the soak Chrome window when it opens');
     await page.goto(`${origin}/play`);
@@ -366,7 +404,14 @@ async function createMatch() {
       value = await select.evaluate(element => [...element.options].find(option => option.value && !option.disabled)?.value);
       if (!value) await sleep(500);
     }
-    if (!value) throw Error('NO_SAVED_TEAM: save at least one current team for this account');
+    if (!value) {
+      // A sign-in the server rejects after the page connects also leaves the team lists empty.
+      await rejectedSignIn();
+      if (await page.getByRole('status').filter({ hasText: /^Disconnected$/ }).count()) {
+        throw Error('SERVER_UNAVAILABLE: disconnected before saved teams loaded');
+      }
+      throw Error('NO_SAVED_TEAM: save at least one current team for this account');
+    }
     await select.selectOption(value);
   }
   await page.getByRole('button', { name: 'Create computer game', exact: true }).click();
@@ -493,7 +538,7 @@ while (Date.now() < deadline) {
     if (view?.phase === 'FULL_TIME') {
       completed++; log('match-completed', { revision: view.revision, score: [view.homeScore, view.awayScore] });
       await exportCapture().catch(() => {}); await flushArrivals().catch(() => {});
-      await screenshot('full-time'); await sleep(10_000); needMatch = true; continue;
+      await screenshot('full-time'); await sleep(10_000); await repeatRetainedRequest(); needMatch = true; continue;
     }
     if (Date.now() - lastChange > 20 * 60_000) { log('stalled-new-match', { revision: view?.revision }); await screenshot('stalled'); needMatch = true; continue; }
     if (Date.now() - lastChange > 8 * 60_000 && !mine(view)) {
@@ -505,7 +550,7 @@ while (Date.now() < deadline) {
   } catch (failure) {
     errors++; consecutiveFailures++;
     log('error', { consecutive: consecutiveFailures, message: String(failure?.message ?? failure).split('\n')[0].slice(0, 300) });
-    if (/NOT_SIGNED_IN/.test(failure?.message)) break;
+    if (/NOT_SIGNED_IN|AUTHENTICATION_FAILED/.test(failure?.message)) break;
     if (/ERR_CONNECTION_REFUSED|ERR_CONNECTION_RESET|SERVER_UNAVAILABLE|NO_SAVED_TEAM/.test(failure?.message)) {
       // Server down or restarting (for example after an OOM exit): teams and the socket come back on their own.
       unavailableSince ??= Date.now();

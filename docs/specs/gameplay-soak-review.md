@@ -213,3 +213,84 @@ node ../tools/diagnostics/analyze-capture.mjs <run>/captures/capture-0010.json <
 
 The driver stops when it cannot create a match (for example after finding 1
 occurs), so a longer unattended run depends on finding 1 being fixed.
+
+## Re-run: 3-hour soak, 2026-11-14 (after #523–#525, #529, #532)
+
+Base: `main` at `8cf0d5f5a`. Raw data: `.tools/overnight-soak/run-2026-11-14T01-05-33-857Z/`.
+Server heap unchanged (`-Xmx768m`).
+
+**Outcome: the run held for its full 3 hours.** 22 matches started and 21
+reached full time. No worker death, no OOM, and no permanent stall. Server
+container memory levelled off at 0.6–1.0 GiB, and page DOM, listeners and JS
+heap reset with each match (≤ 61 MB). Findings 1–3 therefore look fixed in
+practice, and #532's soak criterion ("multiple full AI matches with no
+permanent stall") is met, with the caveat below.
+
+### 7. Every match completion is refused once; recovery needs a client to repeat — High
+
+All 21 completions logged `COMPLETION_PENDING … exception=NotStarted` (the JDBC
+allowance was exhausted before the completion write began). The completing
+request does `checkpoint()` and then `complete()` in one 2,000 ms budget
+(`SetupApplication.java:572-585`), and the checkpoint leaves too little allowance
+for the result write. Recovery then depended on the failure path:
+
+- **The soak's own final move (13 matches).** The client held the request
+  ("A submitted change needs confirmation … Repeat retained request"), and
+  Play kept routing back to the unfinished match. Nothing on the server
+  retries: `queueCompletion` is fed only from deadline expiry, not from
+  `CompletionPending` in `handleWithOutcome`. Each match stayed ACTIVATED until
+  a repeat; for four matches the first repeat was refused too
+  (`PERSISTENCE_FAILED phase=match-load`, `NotStarted`). This is PR #534 review
+  item 2, now reproduced on every match.
+- **The computer's final move (6 matches).** `publish=false`, so the human
+  board froze on the last pre-completion revision until the soak's 8-minute
+  stall reload loaded the terminal state. That is about 48 of 180 minutes idle.
+  This is #535 item 1, reproduced.
+- **The remaining 2 matches** reconciled on the soak's next load without a
+  visible hold.
+
+Server warnings over the run: 21 `COMPLETION_PENDING`, 12 `match-load`,
+5 `retained-concession` and 4 mid-match `checkpoint` refusals; all were
+`NotStarted` or `DeadlineExpired`.
+
+**Suggested fix:** make the completion write independent of the preceding
+checkpoint's budget (queue it with `queueCompletion` on `CompletionPending`, and
+publish the terminal state, or a pending notice, immediately), and/or skip the
+redundant pre-completion checkpoint when the session is complete. Acceptance:
+a re-run shows no `COMPLETION_PENDING` that survives more than one worker tick
+and no frozen final board.
+
+### Latency (indicative)
+
+| Metric (per 50 s capture) | First hour | Last hour |
+|---|---|---|
+| Mutation RTT max | 0.26–1.36 s | 0.25–0.79 s |
+| Checkpoint max | 0.17–1.27 s | 0.13–0.70 s |
+| Probe queue wait max | 1.5–1.8 s | 2.0–4.3 s |
+| Frame p95 | 18–30 ms | 24–35 ms |
+
+Server phase means over 1,416 checkpoints: `CHECKPOINT` 89.5 ms, of which
+`RECOVERY_SERIALIZE` 45.8 ms and `CHECKPOINT_STORE` 29.8 ms. Single
+checkpoints still reach ~1 s at match end, and probe requests waited up to
+4.3 s behind them. That is consistent with finding 4 (#489), which remains open.
+Matches were short (5–10 min, mostly 0–0), so per-match growth is less
+visible than in the 7-hour run.
+
+### Soak driver changes (uncommitted)
+
+- Treat an empty team list with an `AUTHENTICATION FAILED` alert as an
+  authentication failure, and a *Disconnected* page as an outage.
+- Click **Repeat retained request** after full time and when Play routes back
+  to a finished match. During this run a temporary external helper did this.
+- Known gap: after `COMPLETION_PENDING` the driver can try one more decision on
+  a finished match (2 `selectOption` timeouts and 1 `click` timeout, all
+  self-recovered).
+
+### Environment note
+
+The dev-local server authenticates with the developer's user ADC. That
+credential needed `quota_project_id` and an account with
+`serviceusage.services.use` on the dev project. Sign-in failed until both were
+set, and it fails again when the Google session expires. A dedicated service
+account for the local stack would make unattended soaks independent of a
+personal sign-in.
