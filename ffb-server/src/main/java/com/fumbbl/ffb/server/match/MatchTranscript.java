@@ -5,14 +5,18 @@ import com.eclipsesource.json.JsonObject;
 import com.eclipsesource.json.JsonValue;
 
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 import java.util.HashSet;
 
 /** Bounded public record of accepted decisions and the native outcomes they caused. */
 final class MatchTranscript {
     static final int FORMAT_VERSION = 2;
     static final int MAX_BYTES = 32 * 1024 * 1024;
-    private final JsonArray records = new JsonArray();
+    private final List<String> records = new ArrayList<>();
+    private long lastRecordedAt;
+    private JsonObject unfinishedMovement;
     private int bytes;
     private int nativeCursor;
 
@@ -64,7 +68,7 @@ final class MatchTranscript {
             throw new IllegalArgumentException("Invalid transcript kind");
         if (revision == 0 ? !"START".equals(kind) : "START".equals(kind)) throw new IllegalArgumentException("Invalid start boundary");
         if (decision == null || nativeOutcomes == null || state == null) throw new IllegalArgumentException("Missing transcript data");
-        if (records.size() > 0 && at < records.get(records.size() - 1).asObject().get("at").asLong())
+        if (records.size() > 0 && at < lastRecordedAt)
             throw new IllegalArgumentException("Transcript time went backwards");
         if (revision == 0 ? !"system".equals(actor) || !decision.isNull() : !("home".equals(actor) || "away".equals(actor)) || !decision.isObject())
             throw new IllegalArgumentException("Invalid transcript actor or decision");
@@ -82,20 +86,21 @@ final class MatchTranscript {
         nativeCursor = cursor;
     }
 
-    /** Trusted package-internal read-only view; public pages and appended inputs are isolated snapshots. */
-    JsonObject json() {
-        return new JsonObject().add("formatVersion", FORMAT_VERSION).add("nativeCursor", nativeCursor).add("records", records);
-    }
+    /** Materialize frozen history only for a checkpoint or result, rather than retaining its expanded graph. */
+    JsonObject json() { return jsonFrom(0); }
 
     JsonObject jsonFrom(int from) {
         if (from < 0 || from > records.size()) throw new IllegalArgumentException("Invalid transcript cursor");
         JsonArray tail = new JsonArray();
-        for (int index = from; index < records.size(); index++) tail.add(records.get(index));
+        for (int index = from; index < records.size(); index++) tail.add(JsonObject.readFrom(records.get(index)));
         return new JsonObject().add("formatVersion", FORMAT_VERSION).add("nativeCursor", nativeCursor).add("records", tail);
     }
 
     JsonObject pendingMovement() {
-        JsonObject last = records.get(records.size() - 1).asObject();
+        return unfinishedMovement == null ? null : JsonObject.readFrom(unfinishedMovement.toString());
+    }
+
+    private JsonObject unfinishedMovement(JsonObject last) {
         JsonValue decision = last.get("decision");
         if (!decision.isObject() || decision.asObject().get("logPresentation") == null) return null;
         JsonValue movement = decision.asObject().get("logPresentation").asObject().get("movement");
@@ -111,17 +116,17 @@ final class MatchTranscript {
     int size() { return records.size(); }
     int bytes() { return bytes; }
     int nativeCursor() { return nativeCursor; }
-    long lastTime() { return records.size() == 0 ? 0 : records.get(records.size() - 1).asObject().get("at").asLong(); }
+    long lastTime() { return lastRecordedAt; }
 
     JsonObject page(int from, int limit) {
         if (from < 0 || from > records.size() || limit < 1 || limit > 8) throw new IllegalArgumentException("Invalid transcript page");
         JsonArray selected = new JsonArray();
         int selectedBytes = 0;
         for (int index = from; index < records.size() && selected.size() < limit; index++) {
-            JsonValue record = records.get(index);
-            int length = record.toString().getBytes(StandardCharsets.UTF_8).length;
+            String record = records.get(index);
+            int length = record.getBytes(StandardCharsets.UTF_8).length;
             if (selected.size() > 0 && selectedBytes + length > 512 * 1024) break;
-            selected.add(JsonObject.readFrom(record.toString()));
+            selected.add(JsonObject.readFrom(record));
             selectedBytes += length;
         }
         return new JsonObject().add("formatVersion", FORMAT_VERSION).add("from", from)
@@ -132,8 +137,10 @@ final class MatchTranscript {
         String json = record.toString();
         int length = json.getBytes(StandardCharsets.UTF_8).length;
         if (length > 256 * 1024 || bytes + length > MAX_BYTES - 128 * 1024) throw new IllegalArgumentException("Transcript limit");
-        records.add(JsonObject.readFrom(json));
+        records.add(json);
         bytes += length;
+        lastRecordedAt = record.get("at").asLong();
+        unfinishedMovement = unfinishedMovement(record);
     }
 
     private static void exact(JsonObject object, String... fields) {

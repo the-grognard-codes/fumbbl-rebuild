@@ -8,6 +8,7 @@ import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertNull;
 
 class MatchTranscriptTest {
     @Test void restoresAcceptedDecisionAndRawNativeOutcomeInRevisionOrder() {
@@ -40,6 +41,21 @@ class MatchTranscriptTest {
         JsonObject saved = transcript.json();
         saved.get("records").asArray().get(0).asObject().set("revision", 2);
         assertThrows(IllegalArgumentException.class, () -> new MatchTranscript(saved));
+    }
+
+    @Test void unfinishedMovementRemainsAnIsolatedLatestRecordViewAcrossRestore() {
+        MatchTranscript transcript = new MatchTranscript();
+        transcript.append(0, "START", "system", 100L, JsonValue.NULL, new JsonArray(), state(0), 0);
+        JsonObject movement = new JsonObject().add("complete", false).add("steps", new JsonArray().add(1));
+        JsonObject decision = new JsonObject().add("logPresentation", new JsonObject().add("movement", movement));
+        transcript.append(1, "ACTION", "home", 101L, decision, new JsonArray(), state(1), 0);
+        movement.set("complete", true);
+        assertEquals(false, transcript.pendingMovement().getBoolean("complete", true));
+        transcript.pendingMovement().set("complete", true);
+        MatchTranscript restored = new MatchTranscript(transcript.json());
+        assertEquals(false, restored.pendingMovement().getBoolean("complete", true));
+        restored.append(2, "ACTION", "home", 102L, new JsonObject(), new JsonArray(), state(2), 0);
+        assertNull(restored.pendingMovement());
     }
 
     private JsonObject state(int revision) { return new JsonObject().add("revision", revision); }

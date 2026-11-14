@@ -98,7 +98,7 @@ public final class SetupSession {
 	private int revision;
 	private int drive = 1;
 	private int replayBytes;
-	private final JsonArray events = new JsonArray();
+	private final List<String> events = new ArrayList<>();
 	private final MatchDocument document;
 	private boolean failed;
 	private RecoveryDice recoveryDice;
@@ -354,7 +354,7 @@ public final class SetupSession {
 			if (history.size() > 8192) throw new IllegalArgumentException("Recovery history limit");
 			for (JsonValue selection : payload.get("kickoffSelection").asArray()) kickoffSelection.add(selection.asString());
 			for (JsonValue event : JsonArray.readFrom(payload.get("eventsJson").asString())) {
-				events.add(event);
+				events.add(event.toString());
 				replayBytes += event.toString().getBytes(java.nio.charset.StandardCharsets.UTF_8).length;
 			}
 			if (replayBytes > MAX_MATCH_ARTIFACT_BYTES || events.size() != revision + 1
@@ -453,9 +453,8 @@ public final class SetupSession {
 	}
 
 	private String recoveryEvents(int from) {
-		JsonArray selected = new JsonArray();
-		for (int index = from; index < events.size(); index++) selected.add(events.get(index));
-		return selected.toString();
+		// Frozen event strings avoid retaining a separate object graph for every historical board.
+		return "[" + String.join(",", events.subList(from, events.size())) + "]";
 	}
 
 	private JsonObject frozen() {
@@ -1382,8 +1381,9 @@ public final class SetupSession {
         snapshot.remove("movementForecast"); // Available actions are absent from frozen replay snapshots.
         snapshot.remove("blockPreview"); // Proposals are never part of recorded replay presentation.
         JsonObject event = new JsonObject().add("revision", revision).add("kind", kind).add("state", snapshot);
-        replayBytes += event.toString().getBytes(java.nio.charset.StandardCharsets.UTF_8).length;
-        events.add(event);
+        String encodedEvent = event.toString();
+        replayBytes += encodedEvent.getBytes(java.nio.charset.StandardCharsets.UTF_8).length;
+        events.add(encodedEvent);
         if (transcriptV2) {
             NativeOutcomeCapture.Capture capture = new NativeOutcomeCapture().since(state.getGameLog(), transcript.nativeCursor(), rollPresentation);
             announcements.decorate(capture.modelSyncs);
@@ -1408,7 +1408,7 @@ public final class SetupSession {
             .add("catalogVersion", document.home.team.catalogVersion).add("presetId", document.home.team.presetId)
             .add("presetVersion", document.home.team.presetVersion).add("matchId", matchId)
             .add("homeScore", homeScore()).add("awayScore", awayScore()).add("finalRevision", revision)
-            .add("events", events);
+            .add("events", JsonArray.readFrom(recoveryEvents(0)));
 		if (transcriptV2) result.add("transcript", transcript.json());
 		if (chatV1) result.add("chat", chat.json());
         return new CompletedMatch(result, document);
