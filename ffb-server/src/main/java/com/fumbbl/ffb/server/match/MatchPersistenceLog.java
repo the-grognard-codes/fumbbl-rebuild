@@ -20,8 +20,8 @@ public final class MatchPersistenceLog {
 		write("PERSISTENCE_FAILED", phase, matchId, requestId, failure);
 	}
 
-	void completionPending(String matchId, String requestId, SQLException failure) {
-		write("COMPLETION_PENDING", "completion", matchId, requestId, failure);
+	void completionDeferred(String matchId, String requestId, Exception failure) {
+		write("COMPLETION_DEFERRED", "completion", matchId, requestId, failure);
 	}
 
 	void pendingCompletionFailed(String matchId, Exception failure) {

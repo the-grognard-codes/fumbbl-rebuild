@@ -12,7 +12,9 @@ import org.junit.jupiter.api.Test;
 import org.mockito.MockedConstruction;
 
 import java.lang.reflect.Field;
+import java.lang.reflect.Method;
 import java.sql.SQLException;
+import java.sql.SQLNonTransientConnectionException;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneOffset;
@@ -31,6 +33,8 @@ import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockConstruction;
 import static org.mockito.Mockito.never;
@@ -299,7 +303,7 @@ class SetupApplicationCheckpointTest {
 			when(fixture.session().isComplete()).thenAnswer(call -> fixture.executed.get() > 0);
 			when(fixture.session().checkpointOwner()).thenReturn("home");
 			fixture.beforeSave = () -> nanos.set(1_900_000_000L);
-			org.mockito.Mockito.doAnswer(call -> {
+			doAnswer(call -> {
 				if (timing.budget() != null && timing.budget().allowanceMillis(1000, JdbcConnections.WORK_RESERVE_MILLIS) == 0)
 					throw new JdbcConnections.NotStarted();
 				return null;
@@ -317,6 +321,44 @@ class SetupApplicationCheckpointTest {
 			assertEquals(0, fixture.mapSize("sessions"));
 			assertEquals(0, fixture.mapSize("pendingCompletions"));
 			assertEquals(1, fixture.executed.get(), "Reconciliation never repeats the native action");
+		}
+	}
+
+	@Test void terminalStoreFailuresPublishAndReconcileWithoutAnotherClientRequest() throws Exception {
+		for (Exception failure : new Exception[] { new SQLNonTransientConnectionException("connection reset", "08006"),
+			new MatchService.OutcomeUnknown(MATCH), new IllegalStateException("store unavailable") }) {
+			try (Fixture fixture = new Fixture()) {
+				fixture.application.handle("home", load());
+				when(fixture.session().isComplete()).thenAnswer(call -> fixture.executed.get() > 0);
+				when(fixture.session().checkpointOwner()).thenReturn("home");
+				AtomicInteger writes = new AtomicInteger();
+				doAnswer(call -> { if (writes.incrementAndGet() == 1) throw failure; return null; })
+					.when(fixture.matches).completeLoaded(anyString(), any(MatchDocument.class), any());
+				SetupApplication.HandleOutcome outcome = fixture.application.handleWithOutcome("home", request("final-store-failure"));
+				assertEquals("ACCEPTED", outcome.response().getString("code", null), failure.getClass().getSimpleName());
+				assertTrue(outcome.publish(), "A durable final checkpoint must be published despite a result-store failure");
+				assertEquals("after:final-store-failure", fixture.durable.get().json);
+				assertEquals(1, fixture.mapSize("sessions"));
+				assertEquals(1, fixture.mapSize("pendingCompletions"));
+				assertEquals(1, fixture.application.expireReactiveDecisions().size());
+				assertEquals(0, fixture.mapSize("sessions"));
+				assertEquals(0, fixture.mapSize("pendingCompletions"));
+				assertEquals(2, writes.get());
+				assertEquals(1, fixture.executed.get(), "Reconciliation must not repeat the native action");
+			}
+		}
+	}
+
+	@Test void definitiveCompletionRejectionIsNotQueuedAsAStoreFailure() throws Exception {
+		try (Fixture fixture = new Fixture()) {
+			fixture.application.handle("home", load());
+			when(fixture.session().isComplete()).thenAnswer(call -> fixture.executed.get() > 0);
+			doThrow(new MatchService.Failure("INVALID_RESULT")).when(fixture.matches)
+				.completeLoaded(anyString(), any(MatchDocument.class), any());
+			SetupApplication.HandleOutcome outcome = fixture.application.handleWithOutcome("home", request("rejected-result"));
+			assertEquals("INVALID_RESULT", outcome.response().getString("code", null));
+			assertFalse(outcome.publish());
+			assertEquals(0, fixture.mapSize("pendingCompletions"));
 		}
 	}
 
@@ -354,7 +396,7 @@ class SetupApplicationCheckpointTest {
 
 	@Test void missingResidentDropsPendingCompletionWithoutDatabaseAccess() throws Exception {
 		try (Fixture fixture = new Fixture()) {
-			java.lang.reflect.Method queue = SetupApplication.class.getDeclaredMethod("queueCompletion", String.class);
+			Method queue = SetupApplication.class.getDeclaredMethod("queueCompletion", String.class);
 			queue.setAccessible(true); queue.invoke(fixture.application, MATCH);
 			fixture.application.expireReactiveDecisions();
 			assertEquals(0, fixture.mapSize("pendingCompletions"));

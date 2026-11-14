@@ -2,7 +2,7 @@
 
 ## Unreleased
 
-- Publish durably checkpointed final match states while server result reconciliation retries with a fresh worker budget; use one computer persistence retry schedule and record inactive resident abandonment on the timer.
+- Show the final score while result saving retries automatically, reconnect computer coaches through one retry schedule, and mark inactive matches abandoned without waiting for a coach to return.
 
 - Log match persistence failures with request and SQL diagnostics. Computer coaches reload and retry transient failures with bounded backoff.
 

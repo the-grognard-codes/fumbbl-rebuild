@@ -5,7 +5,7 @@ import { execFileSync, spawn } from 'node:child_process';
 import { once } from 'node:events';
 import { test } from 'node:test';
 import { solidDefenceState } from '../../browser-client/test/fixtures/solid-defence-state.ts';
-import { idleWorkerExitCode, persistenceExhaustedExitCode } from '../src/worker-lifecycle.mjs';
+import { idleWorkerExitCode, persistenceUnavailableExitCode } from '../src/worker-lifecycle.mjs';
 
 const matchId = '00000000-0000-0000-0000-000000000001';
 const secondMatchId = '00000000-0000-0000-0000-000000000002';
@@ -92,7 +92,7 @@ for (const failureCode of ['PERSISTENCE_FAILED', 'COMPLETION_PENDING']) {
     let errors = '';
     child.stderr.on('data', chunk => { errors += chunk; });
     const [code] = await once(child, 'close');
-    assert.equal(code, persistenceExhaustedExitCode, errors);
+    assert.equal(code, persistenceUnavailableExitCode, errors);
     assert.equal(loads, 1);
     assert.equal(errors, '', 'The daemon owns the one diagnostic per backoff cycle');
   });

@@ -4,7 +4,7 @@ import { decodeSetupStateValue } from '../../browser-client/src/setup-protocol.t
 import { assertV2Projection } from '../../browser-client/src/v2-projection.ts';
 import { parseV2Response } from '../../browser-client/src/v2-response.ts';
 import { chooseComputerDecision, isComputerGameOperation } from './computer-policy.mjs';
-import { idleWorkerExitCode, persistenceExhaustedExitCode } from './worker-lifecycle.mjs';
+import { idleWorkerExitCode, persistenceUnavailableExitCode } from './worker-lifecycle.mjs';
 
 const uuid = /^[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}$/;
 const matchId = value('--match');
@@ -106,12 +106,12 @@ function applyState(raw) {
   if (next.matchId !== matchId || next.callerRole === 'spectator') throw Error('Unexpected match or role');
   if (!state || next.revision >= state.revision) state = next;
 }
-function recoverPersistence() {
+function yieldToDaemon() {
   // The daemon owns persistence backoff and emits one diagnostic per failed worker.
   // Never repeat a decision after a definite rejection; the next worker loads durable state.
   pending = null;
   loadId = null;
-  process.exitCode = persistenceExhaustedExitCode;
+  process.exitCode = persistenceUnavailableExitCode;
   stop();
 }
 
@@ -132,8 +132,8 @@ function receive(raw) {
   }
   if ((message.type === 'error' || message.type === 'setupState')
       && (message.code === 'PERSISTENCE_FAILED' || message.code === 'COMPLETION_PENDING')) {
-    if (message.requestId === pending?.requestId) { recoverPersistence(); return; }
-    if (loadId && message.requestId === loadId) { recoverPersistence(); return; }
+    if (message.requestId === pending?.requestId) { yieldToDaemon(); return; }
+    if (loadId && message.requestId === loadId) { yieldToDaemon(); return; }
   }
   if (message.type === 'error') {
     if (message.requestId === authenticationId || ['AUTHENTICATION_REQUIRED', 'AUTHENTICATION_FAILED', 'CONNECTION_REPLACED', 'AUTHORIZATION'].includes(message.code)) {

@@ -93,6 +93,10 @@ public final class SetupApplication {
 
 	private HandleOutcome outcome(JsonObject response, boolean publish) { return new HandleOutcome(response, publish); }
 
+	private JsonObject publishedState(SetupSession session, String requestId) {
+		return session.decorateSaveResume(session.reply(requestId, "ACCEPTED", false, "home")).get("state").asObject();
+	}
+
 	/** Worker-thread operational counters; contains no match IDs or private state. */
 	public JsonObject lifecycleMetrics() {
 		return new JsonObject().add("residentSessions", sessions.size()).add("residentLimit", 32)
@@ -110,6 +114,11 @@ public final class SetupApplication {
 		pendingCompletions.remove(id);
 		journalCursors.remove(id);
 		lastAccess.remove(id);
+	}
+
+	private void releaseCompleted(String id) {
+		release(id);
+		completedReleases++;
 	}
 
 	/** Called only on the communication worker after authorization. Durable checkpoints are never deleted. */
@@ -400,13 +409,11 @@ public final class SetupApplication {
 				refreshSkillUsePreferences(id, session);
 				if (!session.expireReactiveDecision(clock.millis())) continue;
 				checkpoint(session.checkpointOwner(), id, session);
-				if (session.isComplete() && recovery != null) {
-					queueCompletion(id);
-					changed.put(id, session.decorateSaveResume(session.reply("deadline", "ACCEPTED", false, "home")).get("state").asObject());
-					continue;
+				if (session.isComplete()) {
+					if (recovery != null) queueCompletion(id);
+					else matches.complete(session.checkpointOwner(), id, session.completedMatch());
 				}
-				if (session.isComplete()) matches.complete(session.checkpointOwner(), id, session.completedMatch());
-				changed.put(id, session.decorateSaveResume(session.reply("deadline", "ACCEPTED", false, "home")).get("state").asObject());
+				changed.put(id, publishedState(session, "deadline"));
 			} catch (SQLException | RuntimeException failure) {
 				if (session.isFailed() && sessions.containsKey(id)) {
 					try { checkpoint(session.checkpointOwner(), id, session); }
@@ -438,9 +445,8 @@ public final class SetupApplication {
 			String owner = session.checkpointOwner();
 			MatchDocument document = matches.loadForSetup(owner, id).document;
 			matches.completeLoaded(owner, document, session.completedMatch());
-			changed.put(id, session.decorateSaveResume(session.reply("completion", "ACCEPTED", false, "home")).get("state").asObject());
-			release(id);
-			completedReleases++;
+			changed.put(id, publishedState(session, "completion"));
+			releaseCompleted(id);
 		} catch (MatchService.Failure rejected) {
 			release(id);
 			persistenceLog.pendingCompletionRejected(id, rejected);
@@ -522,7 +528,7 @@ public final class SetupApplication {
 				phase = "completion";
 				boolean recorded = complete(owner, document, session, requestId);
 				JsonObject response = session.decorateSaveResume(session.reply(requestId, "ACCEPTED", false, role));
-				if (recorded) { release(id); completedReleases++; }
+				if (recorded) { releaseCompleted(id); }
 				return outcome(response, true);
 			}
 			// The next resident request can checkpoint abandonment or restore maintenance with a fresh budget.
@@ -544,13 +550,14 @@ public final class SetupApplication {
 			catch (RuntimeException failure) { checkpoint(owner, id, session); throw failure; }
 			if (expiredDecision) {
 				checkpoint(owner, id, session);
+				boolean recorded = false;
 				if (session.isComplete()) {
 					phase = "completion";
-					complete(owner, document, session, requestId);
+					recorded = complete(owner, document, session, requestId);
 				}
 				JsonObject expired = session.reply(requestId, "load".equals(operation) ? "ACCEPTED" : "STALE_REVISION", false, role);
 				session.decorateSaveResume(expired);
-				if (session.isComplete() && recovery != null && !pendingCompletions.containsKey(id)) { release(id); completedReleases++; }
+				if (recorded && recovery != null) { releaseCompleted(id); }
 				return outcome(expired, true);
 			}
 			JsonObject response;
@@ -583,10 +590,10 @@ public final class SetupApplication {
 				&& !response.getBoolean("duplicate", false) && !"load".equals(operation) && !"concessionStatus".equals(operation);
 			if (session.isComplete()) {
 				phase = "completion";
-				complete(owner, document, session, requestId);
+				boolean recorded = complete(owner, document, session, requestId);
 				publish = recovery == null ? legacyCompletionBroadcasted.add(id)
 					: document.lifecycle != MatchDocument.Lifecycle.COMPLETED;
-				if (recovery != null && !pendingCompletions.containsKey(id)) { release(id); completedReleases++; }
+				if (recovery != null && recorded) { releaseCompleted(id); }
 			}
             return outcome(response, publish);
 		} catch (RecoveryRepository.OutcomeUnknown failure) { return outcome(failure(requestId, "MATCH_OUTCOME_UNKNOWN"), false); }
@@ -606,10 +613,11 @@ public final class SetupApplication {
 			pendingCompletions.remove(document.matchId);
 			return true;
 		}
-		catch (JdbcConnections.NotStarted | JdbcConnections.DeadlineExpired failure) {
+		catch (MatchService.Failure rejected) { throw rejected; }
+		catch (SQLException | RuntimeException failure) {
 			if (recovery == null) throw failure;
 			queueCompletion(document.matchId);
-			persistenceLog.completionPending(document.matchId, requestId, failure);
+			persistenceLog.completionDeferred(document.matchId, requestId, failure);
 			return false;
 		}
 	}
@@ -638,7 +646,7 @@ public final class SetupApplication {
 			}
 		}
 		boolean publish = document.lifecycle != MatchDocument.Lifecycle.COMPLETED;
-		if (publish) { matches.complete(owner, id, retained.completed()); release(id); completedReleases++; }
+		if (publish) { matches.complete(owner, id, retained.completed()); releaseCompleted(id); }
 		else if (!retained.completed().equals(document.completion)) throw new MatchService.Failure("RECOVERY_CORRUPT");
 		return outcome(retainedReply(requestId, role, retained, duplicate), publish);
 	}
@@ -674,8 +682,7 @@ public final class SetupApplication {
 		boolean publish = sessions.containsKey(document.matchId) && "ACCEPTED".equals(response.getString("code", null));
 		if (publish) {
 			// A resident terminal engine means the earlier result commit was not acknowledged.
-			completedReleases++;
-			release(document.matchId);
+			releaseCompleted(document.matchId);
 		}
 		return outcome(response, publish);
 	}

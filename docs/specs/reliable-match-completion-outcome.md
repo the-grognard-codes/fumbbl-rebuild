@@ -3,9 +3,11 @@
 Issue: https://github.com/the-grognard-codes/fumbbl-rebuild/issues/535
 
 Keep the terminal recovery checkpoint as the action acceptance boundary. If the
-result write cannot start or reaches its definite JDBC deadline, retain the
+result write fails with a SQL or runtime store failure, including an unknown
+commit outcome, retain the
 resident session in the server completion queue, acknowledge and publish the
-durable terminal state, and reconcile on a later worker tick. Timer-driven
+durable terminal state, and reconcile on a later worker tick. Definitive
+MatchService rejections still return their failure instead of entering that queue. Timer-driven
 completion publishes on its checkpoint tick and attempts the result on the next
 tick. This retains crash recovery and avoids relying on a coach retry.
 
@@ -28,3 +30,8 @@ tests spanning three consecutive daemon backoff cycles.
 Pending user validation: the three-hour dev-local soak, including no held final
 request or frozen final board and no completion pending beyond one healthy tick.
 The overnight run does not touch the dev-local stack or interactive credentials.
+
+Review regressions cover a dropped JDBC connection (SQLSTATE 08006), unknown
+result commit, runtime store failure, and a definitive rejection. The first three
+publish from the terminal checkpoint and reconcile without another client
+request or native action. The safe request log label is COMPLETION_DEFERRED.
