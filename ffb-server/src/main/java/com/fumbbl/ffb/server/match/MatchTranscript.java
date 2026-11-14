@@ -15,6 +15,7 @@ final class MatchTranscript {
     static final int FORMAT_VERSION = 2;
     static final int MAX_BYTES = 32 * 1024 * 1024;
     private final List<String> records = new ArrayList<>();
+    private final DriveTrackerPresentation.History driveHistory = new DriveTrackerPresentation.History();
     private long lastRecordedAt;
     private JsonObject unfinishedMovement;
     private int bytes;
@@ -113,6 +114,8 @@ final class MatchTranscript {
         if (context != null && !context.isNull()) new BlockHighlightJson().context(context.asObject(), state.get("players").asArray());
     }
 
+    DriveTrackerPresentation.History driveHistory() { return driveHistory; }
+
     int size() { return records.size(); }
     int bytes() { return bytes; }
     int nativeCursor() { return nativeCursor; }
@@ -141,6 +144,7 @@ final class MatchTranscript {
         bytes += length;
         lastRecordedAt = record.get("at").asLong();
         unfinishedMovement = unfinishedMovement(record);
+        driveHistory.append(record);
     }
 
     private static void exact(JsonObject object, String... fields) {

@@ -23,12 +23,11 @@ import java.util.concurrent.atomic.AtomicLong;
 
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.clearInvocations;
-import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.when;
 
-/** Isolated JVM: real legal retained setup history; mock only the final application completion boundary. */
+/** Isolated JVM: real legal retained setup history, native concession/result materialization and application release. */
 public final class SessionRetentionMemoryProbe {
 	public static void main(String[] arguments) throws Exception {
 		if ("sequence".equals(arguments[0])) { sequence(); return; }
@@ -36,12 +35,13 @@ public final class SessionRetentionMemoryProbe {
 		Resident resident = lateResident();
 		long retained = used() - baseline;
 		if (retained > 64L * 1024 * 1024) throw new AssertionError("Late-session retained heap exceeds 64 MiB: " + retained);
+		List<WeakReference<Object>> parts = retainedParts(resident.session);
 		SetupApplication application = resident.application;
 		WeakReference<SetupSession> released = release(resident, arguments[0]);
 		resident = null;
 		org.mockito.Mockito.framework().clearInlineMocks();
-		for (int attempt = 0; attempt < 10 && released.get() != null; attempt++) { used(); Thread.sleep(20); }
-		if (released.get() != null || application.lifecycleMetrics().getInt("residentSessions", -1) != 0)
+		for (int attempt = 0; attempt < 10 && (released.get() != null || parts.stream().anyMatch(part -> part.get() != null)); attempt++) { used(); Thread.sleep(20); }
+		if (released.get() != null || parts.stream().anyMatch(part -> part.get() != null) || application.lifecycleMetrics().getInt("residentSessions", -1) != 0)
 			throw new AssertionError("Application retained its released late session");
 		System.out.println("retention-passed mode=" + arguments[0] + " revisions=450 retainedBytes=" + retained);
 	}
@@ -52,24 +52,37 @@ public final class SessionRetentionMemoryProbe {
 		for (int index = 0; index < 8; index++) residents.add(lateResident());
 		long retained = used() - baseline;
 		if (retained > 256L * 1024 * 1024) throw new AssertionError("Eight-session retained heap exceeds 256 MiB: " + retained);
+		List<WeakReference<Object>> parts = new ArrayList<>();
 		List<SetupApplication> applications = new ArrayList<>();
 		List<WeakReference<SetupSession>> references = new ArrayList<>();
 		for (int index = 0; index < residents.size(); index++) {
 			Resident resident = residents.get(index);
 			applications.add(resident.application);
+			parts.addAll(retainedParts(resident.session));
 			references.add(release(resident, index % 2 == 0 ? "completion" : "idle"));
 			residents.set(index, null);
 		}
 		org.mockito.Mockito.framework().clearInlineMocks();
 		for (int attempt = 0; attempt < 10; attempt++) {
 			used(); Thread.sleep(20);
-			if (references.stream().allMatch(reference -> reference.get() == null)) break;
+			if (references.stream().allMatch(reference -> reference.get() == null)
+				&& parts.stream().allMatch(part -> part.get() == null)) break;
 		}
 		if (references.stream().anyMatch(reference -> reference.get() != null)
+			|| parts.stream().anyMatch(part -> part.get() != null)
 			|| applications.stream().anyMatch(application -> application.lifecycleMetrics().getInt("residentSessions", -1) != 0))
 			throw new AssertionError("Sequential applications retained released late sessions");
 		System.out.println("retention-passed mode=sequence sessions=8 revisionsEach=450 retainedBytes=" + retained
 			+ " afterReleaseBytes=" + (used() - baseline));
+	}
+
+	private static List<WeakReference<Object>> retainedParts(SetupSession session) throws Exception {
+		List<WeakReference<Object>> parts = new ArrayList<>();
+		for (String name : new String[] { "state", "events", "transcript", "history" }) {
+			Field field = SetupSession.class.getDeclaredField(name); field.setAccessible(true);
+			parts.add(new WeakReference<>(field.get(session)));
+		}
+		return parts;
 	}
 
 	private static long used() throws Exception {
@@ -125,8 +138,11 @@ public final class SessionRetentionMemoryProbe {
 	private static WeakReference<SetupSession> release(Resident resident, String mode) throws Exception {
 		WeakReference<SetupSession> reference = new WeakReference<>(resident.session);
 		if ("completion".equals(mode)) {
-			doReturn(true).when(resident.session).isComplete();
-			doReturn(mock(CompletedMatch.class)).when(resident.session).completedMatch();
+			JsonObject before = resident.session.spectatorView();
+			JsonObject concession = load(resident.id).set("operation", "concede")
+				.set("requestId", "retention-concession").add("expectedRevision", before.getInt("revision", -1));
+			accepted(resident.session.apply("home", concession));
+			if (!resident.session.isComplete()) throw new AssertionError("Native concession did not complete");
 			JsonObject response = resident.application.handle("home", load(resident.id));
 			if (!"ACCEPTED".equals(response.getString("code", null))) throw new AssertionError("Completion release failed");
 		} else {
