@@ -119,7 +119,7 @@ public final class SessionRetentionMemoryProbe {
 			state.getGameLog().recoveryJsonFrom(state.getGameLog().size());
 			clearInvocations(fixture.server);
 		}
-		SetupSession resident = spy(session);
+		SetupSession resident = session;
 		MatchService matches = mock(MatchService.class);
 		when(matches.loadForSetup(anyString(), anyString())).thenReturn(new MatchService.Result(fixture.document, false));
 		AtomicLong now = new AtomicLong(System.currentTimeMillis());
