@@ -16,7 +16,7 @@ declare global { interface Window {
 function Harness() {
   const [input, setInput] = useState(window.domInput);
   const diagnostics = useDiagnostics();
-  window.publishDom = input => flushSync(() => setInput(input));
+  window.publishDom = input => { window.domInput = input; flushSync(() => setInput(input)); };
   window.diagnosticsMode = mode => flushSync(() => diagnostics?.service?.setMode(mode));
   return <GameView hosted view={input.view} connected pending={null} logRecords={input.records}
     mutate={() => { throw Error('The DOM workload must not send gameplay commands'); }}

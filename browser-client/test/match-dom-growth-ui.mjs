@@ -88,6 +88,21 @@ try {
   assert.equal(await page.locator('.match-history-log [role=log]').getAttribute('aria-live'), 'off');
   await page.getByRole('button', { name: 'Latest log events', exact: true }).click();
   assert.ok(await page.locator('.match-history-log [data-revision="450"]').count());
+  const log = page.locator('.match-history-log [role=log]');
+  await log.evaluate(element => { element.scrollTop = 0; element.dispatchEvent(new Event('scroll', { bubbles: true })); });
+  const firstRead = await log.locator('[data-log-key]').first().getAttribute('data-log-key');
+  await page.evaluate(() => {
+    const { view, records: previous } = window.domInput;
+    const records = previous.slice(), seed = records.at(-1);
+    for (let revision = 451; revision <= 570; revision++) {
+      records.push({ ...seed, index: revision, revision, state: { ...seed.state, revision } });
+      window.publishDom({ view: { ...view, revision }, records: records.slice() });
+    }
+  });
+  assert.equal(await log.locator('[data-log-key]').first().getAttribute('data-log-key'), firstRead,
+    'Reading the latest page pins its window through more than a page of new events');
+  await page.getByRole('button', { name: 'Latest log events', exact: true }).click();
+  assert.ok(await page.locator('.match-history-log [data-revision="570"]').count());
   assert.deepEqual(errors, []);
   console.log('PASS 450 revisions, bounded match DOM, accessible full log history, idle Off/Graph evidence, pitch selection');
 } finally { await browser.close(); await server.close(); }

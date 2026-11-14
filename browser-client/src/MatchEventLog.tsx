@@ -82,6 +82,11 @@ export function MatchEventLog({ records, loading, unavailable, showSettings = tr
       return;
     }
     follow.current = false;
+    // Retain the mounted window while a coach reads, even after more than 100 new events.
+    if (!retainedEnd && lines[windowEnd - 1]) {
+      const last = lines[windowEnd - 1];
+      setHistoryEnd({ matchId, key: last.key, revision: last.revision });
+    }
     const paneTop = element.getBoundingClientRect().top;
     const row = Array.from(element.querySelectorAll<HTMLElement>('[data-log-key]'))
       .find(row => row.getBoundingClientRect().bottom > paneTop);
@@ -108,7 +113,7 @@ export function MatchEventLog({ records, loading, unavailable, showSettings = tr
     if (JSON.stringify(next) === signature) return;
     rememberPosition();
     setPreferences(next);
-  }), [signature, lines]);
+  }), [signature, lines, historyEnd]);
   const choosePreference = (name: keyof MatchLogPreferences, value: boolean) =>
     saveMatchLogPreferences({ ...preferences, [name]: value });
   return <section className="match-event-log" data-font-size={fontSize} aria-label="Match log">
