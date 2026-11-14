@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Accept expanded IPv6 loopback engine health probes, bound dev-local server restart retries to three, and keep fatal log labels separate from protocol names while preserving canonical match ID context.
+
 - Log match persistence failures with request and SQL diagnostics. Computer coaches reload and retry transient failures with bounded backoff.
 
 - Restore long matches from durable state after a refused checkpoint write. Cold loads defer recording abandonment to the next request, and failed final result writes retry with increasing delays without waiting for coaches to reconnect.

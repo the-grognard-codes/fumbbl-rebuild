@@ -21,6 +21,8 @@ import com.fumbbl.ffb.server.team.bb2025.RosterCatalog;
 import org.eclipse.jetty.ee8.servlet.ServletContextHandler;
 import org.eclipse.jetty.ee8.servlet.ServletHolder;
 
+import java.net.InetAddress;
+import java.net.UnknownHostException;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.time.Clock;
@@ -85,13 +87,37 @@ public final class BrowserV2Runtime {
 
 		@Override protected void doGet(HttpServletRequest request, HttpServletResponse response) {
 			String remoteAddress = request.getRemoteAddr();
-			if (!"127.0.0.1".equals(remoteAddress) && !"::1".equals(remoteAddress)) {
+			if (!loopback(remoteAddress)) {
 				response.setStatus(HttpServletResponse.SC_NOT_FOUND);
 				return;
 			}
 			response.setHeader("Cache-Control", "no-store");
 			response.setStatus(server.getCommunication().isHealthy()
 				? HttpServletResponse.SC_NO_CONTENT : HttpServletResponse.SC_SERVICE_UNAVAILABLE);
+		}
+
+		private boolean loopback(String address) {
+			// Servlet peer addresses are numeric. Never pass malformed IPv4 to a hostname resolver.
+			if (address == null || address.length() > 128) return false;
+			try {
+				if (!address.contains(":")) {
+					String[] parts = address.split("\\.", -1);
+					if (parts.length != 4) return false;
+					byte[] bytes = new byte[4];
+					for (int index = 0; index < parts.length; index++) {
+						if (!parts[index].matches("[0-9]{1,3}")) return false;
+						int octet = Integer.parseInt(parts[index]);
+						if (octet > 255) return false;
+						bytes[index] = (byte) octet;
+					}
+					return InetAddress.getByAddress(bytes).isLoopbackAddress();
+				}
+				int zone = address.indexOf('%');
+				if (zone >= 0) address = address.substring(0, zone);
+				if (!address.contains(":") || !address.matches("[0-9a-fA-F:.]+")) return false;
+				// A colon forces JDK IPv6 literal parsing, which rejects malformed input without DNS fallback.
+				return InetAddress.getByName(address).isLoopbackAddress();
+			} catch (UnknownHostException invalid) { return false; }
 		}
 	}
 }

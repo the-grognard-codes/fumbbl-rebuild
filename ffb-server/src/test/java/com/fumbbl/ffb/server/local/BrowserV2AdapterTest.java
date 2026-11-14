@@ -55,6 +55,20 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 class BrowserV2AdapterTest {
+	@Test void unknownRequestKeepsItsLogLabelOutOfProtocolResponses() throws Exception {
+		assertEquals(null, BrowserV2RequestType.UNKNOWN.wireName());
+		AuthenticatedPrincipal player = principal(FIRST, ApplicationScope.PLAYER);
+		V2MatchAccess access = mock(V2MatchAccess.class);
+		when(access.require(player, ApplicationScope.PLAYER)).thenReturn(player);
+		BrowserV2Adapter adapter = adapter(bearer -> player, access, mock(SetupApplication.class));
+		Connection connection = new Connection();
+		adapter.receive(connection, authenticate("auth", "player").toString());
+		adapter.receive(connection, request("unknown-type", "unknown").toString());
+		assertEquals("UNSUPPORTED_MESSAGE", code(connection, 1));
+		assertEquals("error", JsonObject.readFrom(connection.messages.get(1)).getString("type", null));
+		assertFalse(connection.messages.stream().anyMatch(message -> message.contains("INGRESS")));
+	}
+
     @Test void movementPreviewAcceptsOnlyAnAdditivePassSquareWithNoRecipient() throws Exception {
         AuthenticatedPrincipal player = principal(FIRST, ApplicationScope.PLAYER);
         V2MatchAccess access = mock(V2MatchAccess.class);
