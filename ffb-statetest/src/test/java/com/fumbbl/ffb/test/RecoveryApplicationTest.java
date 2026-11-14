@@ -222,14 +222,20 @@ class RecoveryApplicationTest {
 		JsonObject terminalRequest = finish(application, fixture.id);
 		String terminalRole = terminalRequest.getString("testRole", null); terminalRequest.remove("testRole");
 		assertEquals(1, application.lifecycleMetrics().getInt("residentSessions", -1));
-		SetupApplication.HandleOutcome failed = application.handleWithOutcome(terminalRole, terminalRequest);
-		assertEquals("PERSISTENCE_FAILED", failed.response().getString("code", null));
-		assertFalse(failed.publish());
+		SetupApplication.HandleOutcome deferred = application.handleWithOutcome(terminalRole, terminalRequest);
+		assertEquals("ACCEPTED", deferred.response().getString("code", null));
+		assertTrue(deferred.publish());
+		assertEquals("FULL_TIME", deferred.response().get("state").asObject().getString("phase", null));
+		RecoveryRepository.Record checkpoint = fixture.recovery.rows.get(fixture.id);
+		int attempts = fixture.repository.completionAttempts;
 		fixture.repository.failCompletion = false;
-		SetupApplication.HandleOutcome reconciled = application.handleWithOutcome("home", load(fixture.id, "reconcile"));
-		accepted(reconciled.response());
-		assertTrue(reconciled.publish());
+		Map<String, JsonObject> reconciled = application.expireReactiveDecisions();
+		assertEquals("FULL_TIME", reconciled.get(fixture.id).getString("phase", null));
+		assertEquals(attempts + 1, fixture.repository.completionAttempts);
+		assertEquals(checkpoint.json, fixture.recovery.rows.get(fixture.id).json);
+		assertEquals(checkpoint.generation, fixture.recovery.rows.get(fixture.id).generation);
 		assertEquals(0, application.lifecycleMetrics().getInt("residentSessions", -1));
+		assertTrue(accepted(app(fixture).handle(terminalRole, terminalRequest)).getBoolean("duplicate", false));
 	}
 
 	@Test void refusedResultWriteReportsPendingAndKeepsTheDurableFinalDecisionAcrossRestart() throws Exception {
