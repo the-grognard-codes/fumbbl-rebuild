@@ -25,3 +25,12 @@
 .log-triangle-die > svg { display: block; width: 100%; height: 100%; }
 .log-triangle-die polygon { fill: #f4e2bd; }
 .log-triangle-die text { fill: #14283e; font: 700 16px MUTP, sans-serif; }
+
+/* The log records settled faces; it does not need six transformed cube layers per roll. */
+.match-event-scroll .log-flat-die { width: 1.5em; height: 1.5em; perspective: none; overflow: hidden;
+  border: 1px solid #77c8d6; border-radius: 2px; box-sizing: border-box; background: #f4e2bd; }
+.log-flat-die > svg { display: block; width: 100%; height: 100%; fill: #14283e; }
+.match-log-history { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; flex: none; font: 10px MUTP, sans-serif; color: #bdeaff; }
+.play-runtime .hosted-match .match-log-history button { padding: 1px 4px; margin: 0; border: 1px solid #426c9b;
+  box-shadow: none; background: #091726; color: #bdeaff; font: inherit; }
+.match-log-history button:focus-visible, .match-event-scroll:focus-visible { outline: 2px solid #ffe17b; outline-offset: 1px; }
