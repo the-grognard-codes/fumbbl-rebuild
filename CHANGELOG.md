@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Keep the game log to 100 mounted events with accessible earlier, later and latest history controls, and render settled log dice without hidden 3D faces.
+
 - Log match persistence failures with request and SQL diagnostics. Computer coaches reload and retry transient failures with bounded backoff.
 
 - Restore long matches from durable state after a refused checkpoint write. Cold loads defer recording abandonment to the next request, and failed final result writes retry with increasing delays without waiting for coaches to reconnect.
