@@ -2,9 +2,13 @@
 
 ## Unreleased
 
+- Preserve definitive completion rejection codes without publication, and expose terminal completion releases in lifecycle metrics.
+
+- Show the final score while result saving retries automatically, reconnect computer coaches through one retry schedule, and mark inactive matches abandoned without waiting for a coach to return.
+
 - Log match persistence failures with request and SQL diagnostics. Computer coaches reload and retry transient failures with bounded backoff.
 
-- Restore long matches from durable state after a refused checkpoint write. Cold loads defer recording abandonment to the next request, and failed final result writes retry with increasing delays without waiting for coaches to reconnect.
+- Restore long matches from durable state after a refused checkpoint write. Cold loads defer recording abandonment to the next request, and recoverable final result writes retry with increasing delays without waiting for coaches to reconnect. Deterministic result failures release resident memory and log a terminal diagnostic while preserving the final state.
 
 - Reduce long-match checkpoint pauses by building the recovery journal cursor without decoding the checkpoint just written.
 
