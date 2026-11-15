@@ -95,6 +95,42 @@ try {
   await reset(); await advance([event('turnStart')]); await splash('turnStart').waitFor();
   await finishTimed(1500);
 
+  const score = () => page.locator('#announcement-state').evaluate(node =>
+    [Number(node.dataset.homeScore), Number(node.dataset.awayScore)]);
+  const baselineScore = [initial.homeScore, initial.awayScore];
+  for (const scoringTeam of ['home', 'away']) {
+    await reset();
+    const next = record(1, [event('turnStart'), event('touchdown', scoringTeam)]);
+    next.state[`${scoringTeam}Score`] += 1;
+    const expected = [next.state.homeScore, next.state.awayScore];
+    await publish({ view: next.state, records: [start, next] });
+    await splash('turnStart').waitFor();
+    assert.deepEqual(await score(), baselineScore, 'A queued touchdown must not reveal its score under START OF TURN');
+    await page.clock.runFor(1499);
+    assert.deepEqual(await score(), baselineScore);
+    await page.clock.runFor(1);
+    await page.locator('.match-splash-shade[data-exiting=true]').waitFor({ state: 'attached' });
+    await page.clock.runFor(549);
+    assert.deepEqual(await score(), baselineScore, 'The old score survives the full reading, fade and clear gap');
+    await page.clock.runFor(1);
+    await splash('touchdown').waitFor();
+    assert.deepEqual(await score(), expected, 'The score changes when TOUCHDOWN becomes active');
+    await finishTimed(3000);
+  }
+  for (const recovery of ['reconnect', 'seek']) {
+    await reset();
+    const next = record(1, [event('turnStart'), event('touchdown')]);
+    next.state.homeScore += 1;
+    await publish({ view: next.state, records: [start, next] });
+    await splash('turnStart').waitFor();
+    assert.deepEqual(await score(), baselineScore);
+    await publish({ view: next.state, records: [start, next],
+      ...(recovery === 'reconnect' ? { enabled: false } : { mode: 'replay', snapshotKey: 100 }) });
+    await active(false);
+    assert.deepEqual(await score(), [next.state.homeScore, next.state.awayScore], `${recovery} immediately shows the authoritative score`);
+    assert.equal(await page.locator('.match-splash').count(), 0);
+  }
+
   // A held splash keeps the choice closed while native revisions continue.
   await setHold(true);
   await reset(); await advance([event('turnover')]); await splash('turnover').waitFor();

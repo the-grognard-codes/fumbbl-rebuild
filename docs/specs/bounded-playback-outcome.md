@@ -19,7 +19,7 @@ dismiss a splash or suppress queued announcements. Choices open after that queue
 finishes; a held splash waits for the coach. A touchdown plus Star of the Show
 offer in the same update presents the touchdown first.
 
-The maintainer's supplied ordering patch is the separate commit `ecea574dc`
+The maintainer's supplied ordering patch is the separate commit `2524ed4e8`
 (`docs: revise announcement ordering`). The expanded edge-case matrix is #547,
 outside this slice.
 
@@ -45,7 +45,7 @@ large event lists and unavailable transcripts have no finite universal lag
 bound. Until-dismissed announcements do not bound choice availability, but the
 test still requires native board catch-up within 15 seconds while held.
 
-One final run on Chrome 157.0.8103.52, 2026-11-15 UTC:
+Retained resume-round capture on Chrome 157.0.8103.52, 2026-11-15 UTC:
 
 | Mode | Board lag | Full drain | Revisions / rolls / splashes |
 | --- | ---: | ---: | --- |
@@ -61,8 +61,15 @@ ordering. Each timed splash's measured reading duration is retained in JSON.
 
 Validation: 540 unit tests; production browser build; burst/held/cleanup tests;
 existing announcement duration, dismissal, replay, recovery and responsive
-checks. Full Java validation is reported on the PR after its single run.
+checks. The prior resume round also passed its full Java build; this review correction changes browser presentation only.
 
 Pending user evidence after #489: live backlog depth, board lag, drain time and
 AI inter-arrival p50/p90/p99 against #522. The local stack and credentials remain
 untouched. This stays Part of #526 until that soak is measured.
+
+Review correction: queued touchdown announcements carry their recorded home/away
+scores. Native revision completion and ordinary caught-up refreshes preserve the
+presented score while a touchdown is queued; startNextAnnouncement applies it
+when that touchdown becomes active. Tests cover both scoring sides behind START
+OF TURN through reading/fade/gap, plus immediate authoritative score on reconnect
+and replay seek. Recovery/cancel/snapshot paths do not mask the authoritative score.

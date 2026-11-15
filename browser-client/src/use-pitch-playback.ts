@@ -15,6 +15,8 @@ import { announcementDuration } from './match-announcements.ts';
 import type { MatchAnnouncement } from './match-announcements.ts';
 import { useAnnouncementPreferences } from './use-announcement-preferences.ts';
 
+type QueuedAnnouncement = MatchAnnouncement & Pick<SetupState, 'homeScore' | 'awayScore'>;
+
 const responseKinds = new Set(['blockDie', 'rerollDie', 'proTestReroll', 'reroll', 'skill', 'kickSkill', 'pileDriver', 'push', 'followUp', 'apothecary', 'argueTheCall', 'bribe', 'interception', 'reactiveSkill', 'reactiveSquare', 'reactionMove', 'reactionEnd']);
 
 function sequenceKey(view: SetupState): string {
@@ -33,7 +35,7 @@ export function usePitchPlayback(view: SetupState, records: TranscriptRecord[], 
   const [announcement, setAnnouncement] = useState<MatchAnnouncement | null>(null);
   const [announcementExiting, setAnnouncementExiting] = useState(false);
   const announcementPreferences = useAnnouncementPreferences();
-  const announcementQueue = useRef<MatchAnnouncement[]>([]);
+  const announcementQueue = useRef<QueuedAnnouncement[]>([]);
   const pendingAnnouncement = useRef<{ id: string; closing: boolean; advance: () => void } | null>(null);
   const announcementTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const announcementTransitionTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -80,14 +82,26 @@ export function usePitchPlayback(view: SetupState, records: TranscriptRecord[], 
   const startNextAnnouncement = () => {
     const next = announcementQueue.current.shift();
     if (!next) { setTick(value => value + 1); return; }
+    if (next.kind === 'touchdown') {
+      const current = presented.current;
+      const scored = { ...current, homeScore: next.homeScore, awayScore: next.awayScore };
+      // A native square awaiting its React commit must keep its timer boundary.
+      if (pendingBeat.current?.view === current) pendingBeat.current.view = scored;
+      presented.current = scored;
+      setPitchView(scored);
+    }
     pendingAnnouncement.current = { id: next.id, closing: false, advance: startNextAnnouncement };
     setAnnouncementExiting(false);
     setAnnouncement(next);
   };
-  const queueAnnouncement = (next: MatchAnnouncement) => {
+  const queueAnnouncement = (next: QueuedAnnouncement) => {
     announcementQueue.current.push(next);
     if (!pendingAnnouncement.current) startNextAnnouncement();
   };
+  // Native revisions keep draining, but cannot reveal a queued touchdown's score early.
+  const scoreBeforeQueuedTouchdown = (next: SetupState): SetupState =>
+    announcementQueue.current.some(queued => queued.kind === 'touchdown')
+      ? { ...next, homeScore: presented.current.homeScore, awayScore: presented.current.awayScore } : next;
   useEffect(() => () => cancel(), []);
   useEffect(() => {
     const recover = () => { recoveringVisibility.current = true; setTick(value => value + 1); };
@@ -175,7 +189,8 @@ export function usePitchPlayback(view: SetupState, records: TranscriptRecord[], 
     }
     if (completed.current >= view.revision) {
       multipleReveals.current.update(view);
-      presented.current = view; setPitchView(view); setActive(false);
+      const visible = scoreBeforeQueuedTouchdown(view);
+      presented.current = visible; setPitchView(visible); setActive(false);
       setSynchronizing(false);
       if (mode === 'live' && requiresResponse && responseDiceKey.current !== responseKey) restoreResponse();
       return;
@@ -248,7 +263,8 @@ export function usePitchPlayback(view: SetupState, records: TranscriptRecord[], 
       const final = record.revision === latest.current.revision ? latest.current : {
         ...record.state, callerRole: latest.current.callerRole, actions: [], prompt: null
       } as SetupState;
-      presented.current = final; setPitchView(final); completed.current = record.revision;
+      const visible = scoreBeforeQueuedTouchdown(final);
+      presented.current = visible; setPitchView(visible); completed.current = record.revision;
       running.current = false; timer.current = null;
       setActive(completed.current < latest.current.revision);
       setMoveMillis(0);
@@ -283,14 +299,8 @@ export function usePitchPlayback(view: SetupState, records: TranscriptRecord[], 
         if (beat.kind === 'announcement') {
           if (announced.current.has(beat.announcement.id)) continue;
           announced.current.add(beat.announcement.id);
-          if (beat.announcement.kind === 'touchdown') {
-            // Reveal the score with its announcement, retaining the pitch and
-            // drive presentation until the remaining beats have completed.
-            presented.current = { ...presented.current, homeScore: record.state.homeScore, awayScore: record.state.awayScore };
-            setPitchView(presented.current);
-          }
           presentationRevision.current = record.revision;
-          queueAnnouncement(beat.announcement);
+          queueAnnouncement({ ...beat.announcement, homeScore: record.state.homeScore, awayScore: record.state.awayScore });
           continue;
         }
         if (beat.kind === 'dice') {
