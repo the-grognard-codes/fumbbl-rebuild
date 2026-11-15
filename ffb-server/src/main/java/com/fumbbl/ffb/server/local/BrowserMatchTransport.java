@@ -8,6 +8,7 @@ import com.eclipsesource.json.JsonValue;
 import java.util.ArrayDeque;
 import java.util.Collections;
 import java.util.Deque;
+import java.util.Locale;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Semaphore;
@@ -29,7 +30,7 @@ public class BrowserMatchTransport {
 	static final int MAX_LIVE_TRANSCRIPT_BYTES = 256 * 1024;
 	static final int MAX_OUTBOUND_MESSAGES = 64;
 	static final long OUTBOUND_WRITE_TIMEOUT_MS = 2000;
-	private static final Pattern MATCH_ID = Pattern.compile("[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}");
+	private static final Pattern MATCH_ID = Pattern.compile("[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}", Pattern.CASE_INSENSITIVE);
 	private final BrowserMatchTransportMetrics metrics = new BrowserMatchTransportMetrics();
 	private final BrowserRequestTiming timing;
 	private final Semaphore connections = new Semaphore(MAX_CONNECTIONS);
@@ -232,8 +233,8 @@ public class BrowserMatchTransport {
 			};
 			JsonValue id = request.get("matchId");
 			String matchId = id != null && id.isString() ? id.asString() : null;
-			if (matchId != null && (matchId.length() != 36 || !MATCH_ID.matcher(matchId).matches())) matchId = null;
-			return new RequestWork(type.wireName(), matchId, advisory);
+			if (matchId != null) matchId = MATCH_ID.matcher(matchId).matches() ? matchId.toLowerCase(Locale.ROOT) : null;
+			return new RequestWork(type.logName(), matchId, advisory);
 		} catch (RuntimeException malformed) { return null; }
 	}
 
