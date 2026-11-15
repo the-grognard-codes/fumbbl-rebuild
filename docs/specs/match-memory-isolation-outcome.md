@@ -1,6 +1,7 @@
 # Match memory isolation: implementation outcome
 
 Issue: [#554](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/554).
+PR: [#559](https://github.com/the-grognard-codes/fumbbl-rebuild/pull/559), open for independent review.
 Branch: `codex/554-match-memory-isolation`.
 Base: `33d95b7c6c0342e9a7ef1fbea2ba02a05a62905d`.
 Date: 2026-11-15.

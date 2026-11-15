@@ -3,6 +3,7 @@
 Local mirror of [#554](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/554).
 Implementation evidence: [heap analysis](match-memory-isolation-heap.md) and
 [outcome report](match-memory-isolation-outcome.md).
+Implementation PR: [#559](https://github.com/the-grognard-codes/fumbbl-rebuild/pull/559).
 
 Part of #522. Found in the 2026-11-15 soak, recorded as finding 9 in `docs/specs/gameplay-soak-review.md`. Related: #524, #548.
 
