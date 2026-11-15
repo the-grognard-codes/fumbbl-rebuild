@@ -382,26 +382,31 @@ class SetupApplicationCheckpointTest {
 	}
 
 	@Test void deterministicFailureOnDeferredAttemptStopsRetryingAndReleasesSession() throws Exception {
-		try (Fixture fixture = new Fixture(); CompletionLogs logs = new CompletionLogs()) {
-			fixture.application.handle("home", load());
-			terminalAction(fixture);
-			AtomicInteger attempts = new AtomicInteger();
-			doAnswer(call -> {
-				if (attempts.incrementAndGet() == 1) throw new SQLException("connection reset", "08006");
-				throw new NullPointerException("private invalid result");
-			}).when(fixture.matches).completeLoaded(anyString(), any(MatchDocument.class), any());
-			SetupApplication.HandleOutcome outcome = fixture.application.handleWithOutcome("home", request("terminal-runtime"));
-			assertTrue(outcome.publish());
-			assertEquals("FULL_TIME", outcome.response().get("state").asObject().getString("phase", null));
-			assertEquals(1, fixture.mapSize("pendingCompletions"));
-			assertTrue(fixture.application.expireReactiveDecisions().isEmpty(), "The already-published terminal state stays authoritative");
-			assertEquals(0, fixture.mapSize("sessions"));
-			assertEquals(0, fixture.mapSize("pendingCompletions"));
-			assertEquals(1, fixture.application.lifecycleMetrics().getLong("terminalCompletionReleases", 0));
-			for (int tick = 0; tick < 3; tick++) assertTrue(fixture.application.expireReactiveDecisions().isEmpty());
-			assertEquals(2, attempts.get(), "One recoverable failure and one terminal failure; no later attempts");
-			assertEquals("after:terminal-runtime", fixture.durable.get().json);
-			assertEquals(1, logs.messages.stream().filter(line -> line.startsWith("COMPLETION_TERMINAL phase=pending-completion ")).count());
+		for (boolean rejected : new boolean[] {false, true}) {
+			try (Fixture fixture = new Fixture(); CompletionLogs logs = new CompletionLogs()) {
+				fixture.application.handle("home", load());
+				terminalAction(fixture);
+				AtomicInteger attempts = new AtomicInteger();
+				doAnswer(call -> {
+					if (attempts.incrementAndGet() == 1) throw new SQLException("connection reset", "08006");
+					if (rejected) throw new MatchService.Failure("COMPLETION_CONFLICT");
+					throw new NullPointerException("private invalid result");
+				}).when(fixture.matches).completeLoaded(anyString(), any(MatchDocument.class), any());
+				SetupApplication.HandleOutcome outcome = fixture.application.handleWithOutcome("home", request("terminal-runtime"));
+				assertTrue(outcome.publish());
+				assertEquals("FULL_TIME", outcome.response().get("state").asObject().getString("phase", null));
+				assertEquals(1, fixture.mapSize("pendingCompletions"));
+				assertTrue(fixture.application.expireReactiveDecisions().isEmpty(), "The already-published terminal state stays authoritative");
+				assertEquals(0, fixture.mapSize("sessions"));
+				assertEquals(0, fixture.mapSize("pendingCompletions"));
+				assertEquals(1, fixture.application.lifecycleMetrics().getLong("terminalCompletionReleases", 0));
+				for (int tick = 0; tick < 3; tick++) assertTrue(fixture.application.expireReactiveDecisions().isEmpty());
+				assertEquals(2, attempts.get(), "One recoverable failure and one terminal failure; no later attempts");
+				assertEquals("after:terminal-runtime", fixture.durable.get().json);
+				assertEquals(1, logs.messages.stream().filter(line -> rejected
+					? line.startsWith("COMPLETION_REJECTED failureCode=COMPLETION_CONFLICT ")
+					: line.startsWith("COMPLETION_TERMINAL phase=pending-completion ")).count());
+			}
 		}
 	}
 

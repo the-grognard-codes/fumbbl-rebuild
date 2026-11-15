@@ -43,4 +43,4 @@ rejection. SQL/unknown outcomes reconcile without another client request or
 native action; other runtime failures release after their first failed attempt,
 including on the queued path, without losing the published terminal state. The safe request log label is COMPLETION_DEFERRED.
 
-Fix round 2: definitive MatchService.Failure rejections retain their original request/deadline error code and suppress publication. Timer rejections keep COMPLETION_REJECTED. Other runtime failures retain terminal handling; lifecycleMetrics.terminalCompletionReleases counts releases on both immediate and pending-completion terminal paths.
+Fix round 2: definitive MatchService.Failure rejections retain their original request/deadline error code and suppress publication. Timer rejections keep COMPLETION_REJECTED. Other runtime failures retain terminal handling; lifecycleMetrics.terminalCompletionReleases counts releases on both immediate and pending-completion runtime terminal paths, plus definitive timer-retry rejections.

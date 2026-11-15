@@ -451,6 +451,7 @@ public final class SetupApplication {
 			releaseCompleted(id);
 		} catch (MatchService.Failure rejected) {
 			release(id);
+			terminalCompletionReleases++;
 			persistenceLog.pendingCompletionRejected(id, rejected);
 		} catch (SQLException | MatchService.OutcomeUnknown failure) {
 			// Only recoverable storage failures retain a slot for a later attempt.
