@@ -1,0 +1,57 @@
+{
+  "version": 1,
+  "maximumLagMs": 15000,
+  "browser": "157.0.8103.52",
+  "evidence": [
+    {
+      "reduced": false,
+      "boardLagMs": 5707.399999976158,
+      "drainMs": 11106.299999982119,
+      "readings": [
+        {
+          "kind": "turnover",
+          "durationMs": 3009.4000000059605
+        },
+        {
+          "kind": "touchdown",
+          "durationMs": 3003.5999999940395
+        },
+        {
+          "kind": "turnStart",
+          "durationMs": 1507.300000011921
+        }
+      ],
+      "revisions": 30,
+      "rolls": 15,
+      "announcements": 3,
+      "heldRevisions": 31,
+      "heldRolls": 15,
+      "sameUpdateCleanupChoice": true
+    },
+    {
+      "reduced": true,
+      "boardLagMs": 4703,
+      "drainMs": 10156.200000017881,
+      "readings": [
+        {
+          "kind": "turnover",
+          "durationMs": 3007.300000011921
+        },
+        {
+          "kind": "touchdown",
+          "durationMs": 3005.300000011921
+        },
+        {
+          "kind": "turnStart",
+          "durationMs": 1507.9000000059605
+        }
+      ],
+      "revisions": 30,
+      "rolls": 15,
+      "announcements": 3,
+      "heldRevisions": 31,
+      "heldRolls": 15,
+      "sameUpdateCleanupChoice": true
+    }
+  ]
+}

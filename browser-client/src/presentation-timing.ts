@@ -1,3 +1,5 @@
+export const LIVE_CATCHUP_THRESHOLD = 8;
+export const LIVE_CATCHUP_RATE = 4;
 export const PLAYER_STEP_MS = 200;
 export const BALL_STEP_MS = 250;
 export const DICE_GROUP_INTERVAL_MS = 1000;

@@ -1,49 +1,68 @@
 # Bounded burst playback (#526)
 
-Issue: https://github.com/the-grognard-codes/fumbbl-rebuild/issues/526
+Part of [#526](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/526).
+Stacked on #538 at `ccb65b52e`; merge the DOM/history slice first.
 
-Live playback enters catch-up at eight queued revisions and uses four times
-normal pacing until the queue drains. The latch avoids returning to slow waits
-for the tail. It changes waiting durations, not authoritative order or recorded
-outcomes: every confirmed square, native dice group and announcement still
-commits. Catch-up preserves the established required-choice interruption policy, so a
-held announcement cannot trap an offered mandatory decision. Normal live cadence below the threshold, provisional movement,
-replay speed controls and reduced-motion discrete squares remain unchanged.
-Explicit announcement holds continue to wait for the coach.
+## Presentation contract
 
-The automated bound is 15 seconds to drain the fixed 30-revision workload with
-30 moves, 15 block-roll groups and turnover/touchdown/turn-start announcements,
-with a required choice offered after that burst drains. A separate test
-offers a mandatory choice during a held catch-up banner and checks immediate
-access. A local run drained in 8,042 ms normally and
-6,798 ms with reduced motion, presenting every roll and announcement in order.
-Before the fix the normal run exceeded 15 seconds. This bound describes the
-declared burst after arrivals stop. Arbitrarily large native event lists,
-continuous arrivals, missing transcript, hidden-tab recovery and explicit user
-holds do not have an unconditional elapsed-time bound. No presentation is
-dropped to meet a revision-count cap.
+Live native playback enters catch-up at eight queued revisions and keeps a 4x
+rate through the tail. Every confirmed square and native dice group still
+commits in authoritative order. Provisional movement remains at normal speed;
+replay uses its selected speed, and reduced motion commits discrete squares.
 
-Validation: browser unit suite 539 passed; browser build passed; burst test and
-existing playback/dice/recovery suite passed. Ordinary movement and ball motion
-browser checks retained intermediate painted positions. Announcement preference
-and recovery checks are recorded in the PR. No server or computer-player source
-changed.
+Announcements have a separate ordered queue. Catch-up never changes their
+reading, fade or clear interval: turnover/touchdown read for 3,000 ms, turn start
+for 1,500 ms, with a 200 ms fade (zero in reduced motion) and a 350 ms gap.
+Replay speed still applies. Native moves and dice continue behind a splash,
+including one held until dismissal. Required choices do not snapshot the board,
+dismiss a splash or suppress queued announcements. Choices open after that queue
+finishes; a held splash waits for the coach. A touchdown plus Star of the Show
+offer in the same update presents the touchdown first.
 
-This branch is stacked on codex/527-bounded-match-dom (PR #538); review and merge
-the DOM/history slice first. No merge is authorized overnight.
+The maintainer's supplied ordering patch is the separate commit `ecea574dc`
+(`docs: revise announcement ordering`). The expanded edge-case matrix is #547,
+outside this slice.
 
-Pending user evidence: soak after #489 with backlog depth, drain time and AI
-inter-arrival p50/p90/p99 compared with #522. The local stack and interactive
-credentials remain untouched.
+## Stated maximum lag and evidence
 
-## Acceptance gap requiring a maintainer decision
+For a foreground, fully available transcript containing at most the declared
+30-revision burst (30 moves, 15 blocking dice groups, three announcements), the
+maximum allowed elapsed lag from receipt of its authoritative final revision to
+presentation of that revision is **15,000 ms**. The automated test asserts this
+board-lag bound independently of its 15,000 ms full input-barrier drain bound;
+it also asserts every revision, square and roll, rather than only the end state.
+The initial revision gap is at most 30 for this envelope. Arrivals stop during
+measurement; neither disabled playback nor hidden-tab recovery is exercised as
+a way to meet the bound.
 
-#526 asks that required announcements are never skipped; the established
-match-transition-announcements contract gives newly offered mandatory choices
-priority and cancels active/queued decorative splashes immediately. This branch
-preserves choice priority, including during catch-up, rather than allowing a
-held splash to consume an expiring reaction deadline. Therefore the universal
-never-skipped-announcement criterion is not claimed. A maintainer must decide
-whether priority cancellation remains an allowed exception or design deferred
-announcement presentation after the decision. The PR stays draft for that
-policy gap; the ordered 30-revision burst and its drain bound are validated.
+At 4x, scheduled native move/dice delays total 5,250 ms. Full announcement
+reading/fade/gap delays total 9,150 ms (8,550 reduced), giving a conservative
+serial scheduled-delay budget of 14,400 ms (13,800 reduced). The queues overlap;
+the 15-second regression limit also checks browser scheduling overhead on the
+declared workload. It is a tested foreground workload bound, not a real-time
+guarantee for an arbitrarily stalled browser. Continuous arrivals, arbitrarily
+large event lists and unavailable transcripts have no finite universal lag
+bound. Until-dismissed announcements do not bound choice availability, but the
+test still requires native board catch-up within 15 seconds while held.
+
+One final run on Chrome 157.0.8103.52, 2026-11-15 UTC:
+
+| Mode | Board lag | Full drain | Revisions / rolls / splashes |
+| --- | ---: | ---: | --- |
+| Normal | 5,707.4 ms | 11,106.3 ms | 30 / 15 / 3 |
+| Reduced motion | 4,703.0 ms | 10,156.2 ms | 30 / 15 / 3 |
+
+The [committed numeric evidence](bounded-playback-measurements.json) is emitted
+by `test/playback-burst-ui.mjs` with `PLAYBACK_BURST_EVIDENCE`. It supersedes the
+inconsistent old 8,042/8,082 and 6,798/6,795 ms observations. Both modes also
+present all 31 revisions and 15 rolls behind a held first splash, preserve all
+three splashes before the choice, and verify same-update touchdown/cleanup
+ordering. Each timed splash's measured reading duration is retained in JSON.
+
+Validation: 540 unit tests; production browser build; burst/held/cleanup tests;
+existing announcement duration, dismissal, replay, recovery and responsive
+checks. Full Java validation is reported on the PR after its single run.
+
+Pending user evidence after #489: live backlog depth, board lag, drain time and
+AI inter-arrival p50/p90/p99 against #522. The local stack and credentials remain
+untouched. This stays Part of #526 until that soak is measured.
