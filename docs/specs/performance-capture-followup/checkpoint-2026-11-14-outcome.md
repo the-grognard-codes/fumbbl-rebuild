@@ -109,3 +109,8 @@ are recorded in the PR. Pending: correlate the actual slow action with a bounded
 JFR/GC capture and real storage timing, plus the user's live/history-matched soak
 and downstream #526 inter-arrival/backlog comparison. Do not offload live mutable
 engine state or change durability based on these measurements.
+
+Fixture metadata must name an artifact file for every entry; malformed entries
+are rejected rather than filtered out. The zero-decision fixture is found by
+value, independent of input order. Focused cases cover omitted/empty/non-string
+files, missing/duplicate baselines and reordered valid fixtures.

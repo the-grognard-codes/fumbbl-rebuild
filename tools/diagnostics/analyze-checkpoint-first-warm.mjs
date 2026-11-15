@@ -11,9 +11,14 @@ const read = name => JSON.parse(readFileSync(resolve(directory, name), 'utf8'));
 const provenance = read('provenance.json');
 const verification = read('verification.json');
 const runs = [1, 2, 3].map(index => read(`run-${index}.json`));
-const fixtures = read('fixtures.json').fixtures.filter(fixture => fixture.file);
-assert.ok(fixtures.length >= 2 && fixtures[0].addedDecisions === 0);
-assert.equal(new Set(fixtures.map(fixture => fixture.addedDecisions)).size, fixtures.length);
+const fixtures = read('fixtures.json').fixtures;
+assert.ok(Array.isArray(fixtures) && fixtures.length >= 2, 'At least two retained fixtures are required');
+assert.ok(fixtures.every(fixture => typeof fixture?.file === 'string' && fixture.file.trim().length > 0),
+  'Every fixture must name its artifact file');
+const zeroDecisionFixture = fixtures.find(fixture => fixture.addedDecisions === 0);
+assert.ok(zeroDecisionFixture, 'A zero-decision fixture is required');
+assert.equal(new Set(fixtures.map(fixture => fixture.addedDecisions)).size, fixtures.length,
+  'Fixture decision counts must be unique');
 const expectedSamples = provenance.samplesPerCohort;
 assert.ok(Number.isInteger(expectedSamples) && expectedSamples >= 2, 'samplesPerCohort must be an integer >= 2');
 const expectedCohorts = fixtures.length * 4;

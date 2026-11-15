@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Reject checkpoint diagnostics with missing fixture files and accept the zero-decision baseline regardless of fixture order.
+
 - Report checkpoint p95 only with at least 20 samples and reject incomplete or duplicate diagnostic cohorts.
 
 - Log match persistence failures with request and SQL diagnostics. Computer coaches reload and retry transient failures with bounded backoff.
