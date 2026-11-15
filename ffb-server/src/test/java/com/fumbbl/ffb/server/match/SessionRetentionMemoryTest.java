@@ -25,7 +25,7 @@ class SessionRetentionMemoryTest {
 				SessionRetentionMemoryProbe.class.getName(), mode).redirectErrorStream(true).redirectOutput(outputFile.toFile()).start();
 			boolean finished = process.waitFor("sequence".equals(mode) ? 240 : 90, TimeUnit.SECONDS);
 			if (!finished) { process.destroyForcibly(); process.waitFor(5, TimeUnit.SECONDS); }
-			String output = Files.readString(outputFile, StandardCharsets.UTF_8);
+			String output = new String(Files.readAllBytes(outputFile), StandardCharsets.UTF_8);
 			assertTrue(finished, "Session retention probe timed out: " + output);
 			assertEquals(0, process.exitValue(), output);
 			assertTrue(output.contains("retention-passed mode=" + mode), output);
