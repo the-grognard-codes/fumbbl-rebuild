@@ -74,6 +74,7 @@ public final class SetupApplication {
 	private final Map<String, String> pendingActivations = new LinkedHashMap<>();
 	private long engineId = -2;
 	private long completedReleases;
+	private long terminalCompletionReleases;
 	private long failedReleases;
 	private long idleReleases;
 	private long capacityRejections;
@@ -100,6 +101,7 @@ public final class SetupApplication {
 	/** Worker-thread operational counters; contains no match IDs or private state. */
 	public JsonObject lifecycleMetrics() {
 		return new JsonObject().add("residentSessions", sessions.size()).add("residentLimit", 32)
+			.add("terminalCompletionReleases", terminalCompletionReleases)
 			.add("pendingActivations", pendingActivations.size()).add("completedReleases", completedReleases)
 			.add("failedReleases", failedReleases).add("idleReleases", idleReleases).add("idleMillis", IDLE_MILLIS)
 			.add("capacityRejections", capacityRejections).add("restoredSessions", restoredSessions)
@@ -456,6 +458,7 @@ public final class SetupApplication {
 			persistenceLog.pendingCompletionFailed(id, failure);
 		} catch (RuntimeException failure) {
 			release(id);
+			terminalCompletionReleases++;
 			persistenceLog.completionTerminated("pending-completion", id, null, failure);
 		}
 	}
@@ -621,10 +624,13 @@ public final class SetupApplication {
 			queueCompletion(document.matchId);
 			persistenceLog.completionDeferred(document.matchId, requestId, failure);
 			return false;
+		} catch (MatchService.Failure rejected) {
+			throw rejected;
 		} catch (RuntimeException failure) {
 			if (recovery == null) throw failure;
 			// The final action is already durable. Do not retry deterministic result failures.
 			release(document.matchId);
+			terminalCompletionReleases++;
 			persistenceLog.completionTerminated("completion", document.matchId, requestId, failure);
 			return false;
 		}

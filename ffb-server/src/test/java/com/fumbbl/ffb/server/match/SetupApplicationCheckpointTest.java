@@ -39,6 +39,7 @@ import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.doCallRealMethod;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockConstruction;
@@ -370,6 +371,7 @@ class SetupApplicationCheckpointTest {
 				assertEquals("after:terminal-runtime", fixture.durable.get().json);
 				assertEquals(0, fixture.mapSize("sessions"), "A deterministic failure must release its activation slot");
 				assertEquals(0, fixture.mapSize("pendingCompletions"));
+			assertEquals(1, fixture.application.lifecycleMetrics().getLong("terminalCompletionReleases", 0));
 				for (int tick = 0; tick < 3; tick++) assertTrue(fixture.application.expireReactiveDecisions().isEmpty());
 				verify(fixture.session(), times(1)).completedMatch();
 				verify(fixture.matches, times(materializationFails ? 0 : 1)).completeLoaded(anyString(), any(MatchDocument.class), any());
@@ -395,6 +397,7 @@ class SetupApplicationCheckpointTest {
 			assertTrue(fixture.application.expireReactiveDecisions().isEmpty(), "The already-published terminal state stays authoritative");
 			assertEquals(0, fixture.mapSize("sessions"));
 			assertEquals(0, fixture.mapSize("pendingCompletions"));
+			assertEquals(1, fixture.application.lifecycleMetrics().getLong("terminalCompletionReleases", 0));
 			for (int tick = 0; tick < 3; tick++) assertTrue(fixture.application.expireReactiveDecisions().isEmpty());
 			assertEquals(2, attempts.get(), "One recoverable failure and one terminal failure; no later attempts");
 			assertEquals("after:terminal-runtime", fixture.durable.get().json);
@@ -421,16 +424,20 @@ class SetupApplicationCheckpointTest {
 		@Override public void close() { logger.removeHandler(this); }
 	}
 
-	@Test void definitiveCompletionRejectionIsNotQueuedAsAStoreFailure() throws Exception {
-		try (Fixture fixture = new Fixture()) {
+	@Test void conflictingStoredResultReturnsDefinitiveRejectionWithoutPublishing() throws Exception {
+		try (Fixture fixture = new Fixture(); CompletionLogs logs = new CompletionLogs()) {
 			fixture.application.handle("home", load());
 			when(fixture.session().isComplete()).thenAnswer(call -> fixture.executed.get() > 0);
-			doThrow(new MatchService.Failure("INVALID_RESULT")).when(fixture.matches)
-				.completeLoaded(anyString(), any(MatchDocument.class), any());
-			SetupApplication.HandleOutcome outcome = fixture.application.handleWithOutcome("home", request("rejected-result"));
-			assertEquals("ACCEPTED", outcome.response().getString("code", null));
-			assertTrue(outcome.publish(), "The definitive result rejection cannot undo the terminal checkpoint");
-			assertEquals(0, fixture.mapSize("sessions"));
+			CompletedMatch attempted = mock(CompletedMatch.class);
+			MatchDocument stored = fixture.matches.load("home", MATCH).document.completed(mock(CompletedMatch.class));
+			MatchService conflictCheck = mock(MatchService.class);
+			doCallRealMethod().when(conflictCheck).completeLoaded("home", stored, attempted);
+			doAnswer(call -> { conflictCheck.completeLoaded("home", stored, attempted); return null; })
+				.when(fixture.matches).completeLoaded(anyString(), any(MatchDocument.class), any());
+			SetupApplication.HandleOutcome outcome = fixture.application.handleWithOutcome("home", request("conflicting-result"));
+			assertEquals("COMPLETION_CONFLICT", outcome.response().getString("code", null));
+			assertFalse(outcome.publish());
+			assertTrue(logs.messages.stream().noneMatch(line -> line.startsWith("COMPLETION_TERMINAL")));
 			assertEquals(0, fixture.mapSize("pendingCompletions"));
 		}
 	}

@@ -25,10 +25,7 @@ public final class MatchPersistenceLog {
 	}
 
 	void completionTerminated(String phase, String matchId, String requestId, RuntimeException failure) {
-		String code = "COMPLETION_TERMINAL";
-		if (failure instanceof MatchService.Failure rejected)
-			code += " failureCode=" + correlation(rejected.code, "[A-Z_]{1,100}");
-		write(code, phase, matchId, requestId, failure);
+		write("COMPLETION_TERMINAL", phase, matchId, requestId, failure);
 	}
 
 	void pendingCompletionFailed(String matchId, Exception failure) {
