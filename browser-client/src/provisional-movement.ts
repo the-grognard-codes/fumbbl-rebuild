@@ -1,7 +1,7 @@
 import type { RoutePreview } from './route-protocol.ts';
 import type { SetupState } from './setup-protocol.ts';
 import type { ConfirmedMove, PlaybackBeat } from './pitch-playback.ts';
-import { PLAYER_STEP_MS, playbackRate } from './presentation-timing.ts';
+import { PLAYER_STEP_MS } from './presentation-timing.ts';
 
 /** A forecast permits presentation only; native commands and outcomes remain authoritative. */
 export function provisionalMoves(view: SetupState, route: RoutePreview): ConfirmedMove[] {
@@ -48,8 +48,8 @@ export function remainingConfirmedBeats(beats: PlaybackBeat[], shown: ConfirmedM
   return consumed === shown.length ? remaining : null;
 }
 
-/** Queue length never changes square speed. Reduced motion still commits each discrete square. */
-export function movementBeatMillis(speed: number, mode: 'live' | 'replay', reduced: boolean): number {
+/** Confirmed catch-up and replay use their rate; provisional travel uses the normal rate. */
+export function movementBeatMillis(rate: number, reduced: boolean): number {
   if (reduced) return 16;
-  return PLAYER_STEP_MS / playbackRate(speed, mode);
+  return PLAYER_STEP_MS / (Number.isFinite(rate) && rate > 0 ? rate : 1);
 }

@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Accelerate live playback bursts from eight queued revisions until caught up, retaining every move and roll while announcements play at full length. Required choices wait for queued announcements, including held splashes. Touchdown scores appear with their splash, while seeking and recovery show the current score immediately.
+
 - Keep the game log to 100 mounted events with accessible earlier, later and latest history controls, resume new events after reading when returning to the bottom with up to one page of arrivals, preserve explicit history pages until Later or Latest, and render settled log dice without hidden 3D faces.
 
 - Log match persistence failures with request and SQL diagnostics. Computer coaches reload and retry transient failures with bounded backoff.

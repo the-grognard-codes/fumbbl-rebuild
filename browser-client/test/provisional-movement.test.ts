@@ -48,14 +48,14 @@ test('accepted movement consumes only the shown prefix and preserves later moves
     'The carried ball reconciles at the shown endpoint without replaying the prefix');
 });
 
-test('live cadence is fixed while replay speed and reduced motion remain explicit', () => {
-  assert.equal(movementBeatMillis(1, 'live', false), 200);
-  assert.equal(movementBeatMillis(4, 'live', false), 200, 'Live has no speed selector');
-  assert.equal(movementBeatMillis(2, 'replay', false), 100);
-  assert.equal(movementBeatMillis(.5, 'replay', false), 400);
-  assert.equal(movementBeatMillis(NaN, 'replay', false), 200);
-  assert.equal(movementBeatMillis(0, 'replay', false), 200);
-  assert.equal(movementBeatMillis(1, 'live', true), 16);
+test('movement cadence accepts the selected catch-up or replay rate and preserves discrete reduced motion', () => {
+  assert.equal(movementBeatMillis(1, false), 200);
+  assert.equal(movementBeatMillis(4, false), 50, 'Confirmed catch-up uses the same timing helper');
+  assert.equal(movementBeatMillis(2, false), 100);
+  assert.equal(movementBeatMillis(.5, false), 400);
+  assert.equal(movementBeatMillis(NaN, false), 200);
+  assert.equal(movementBeatMillis(0, false), 200);
+  assert.equal(movementBeatMillis(1, true), 16);
 });
 
 test('actual V2 route transcript reconciles its safe prefix and preserves the pickup outcome', () => {

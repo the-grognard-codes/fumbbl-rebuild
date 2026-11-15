@@ -36,7 +36,7 @@ A touchdown also ends a turn automatically, but should receive its own announcem
 6. Create a new cohesive MUTP splash graphic with distinct turnover, touchdown, and turn-start treatments. Provide clear headline, team identity/icon, and optional reason areas. Keep text as accessible live text rather than baking names, numbers, or reasons into artwork.
 7. Reuse the Human/Orc scoreboard helmet graphics, with the blue Human helmet as fallback. Include an explicit replaceable icon slot.
 8. Add optional team-colour inputs/tokens and an independently tintable accent region (for example, a ribbon, border, or backdrop). Leave production team-colour lookup unwired. Use neutral MUTP defaults and demonstrate sample colours only in previews/tests.
-9. Dim the entire pitch slightly and temporarily block pitch actions. Default to 3 seconds for turnover/touchdown and 1.5 seconds for turn start, scaled to playback speed, with safe dismissal through the brief exit fade and a persistent until-dismissed preference. Prevent click-through and preserve keyboard focus. Required choices dismiss active splashes and suppress queued announcements that would delay the choice; retain those events in the log. Integrate with existing playback/input gating rather than pausing the server.
+9. Dim the entire pitch slightly and temporarily block pitch actions. Default to 3 seconds for turnover/touchdown and 1.5 seconds for turn start, scaled to playback speed, with safe dismissal through the brief exit fade and a persistent until-dismissed preference. Prevent click-through and preserve keyboard focus. ~~Required choices dismiss active splashes and suppress queued announcements that would delay the choice; retain those events in the log.~~ Superseded 2026-11-14: see [Revised ordering decisions](#revised-ordering-decisions-2026-11-14). Integrate with existing playback/input gating rather than pausing the server.
 10. Support both coaches and spectators. Deduplicate by stable event identity across delivery retries and reconnect/catch-up; do not replay old splashes on initial load or reconnect. Replays should show announcements when advancing through their events, with seeking avoiding a burst of historical announcements.
 11. Preserve a readable announcement and turnover reason in the match log so transient information remains available. Support reduced motion and assistive-technology announcements without relying solely on colour.
 
@@ -85,7 +85,7 @@ A touchdown also ends a turn automatically, but should receive its own announcem
 - Persist an until-dismissed preference. Reduced motion removes movement effects; accessible announcements avoid duplicates.
 - Manual-validation refinement: place the persistence checkbox only in Game Menu > Game Settings. Remove the splash footer, Continue button, and checkbox. Use a smaller content-sized banner and a top-right close box when persistence is enabled; retain existing automatic timings otherwise.
 - Initial load/reconnect/hidden-tab recovery establish a baseline and discard historical splashes. Replay advancement presents events; seeking suppresses skipped events.
-- Required choices take priority: dismiss active splashes and suppress queued announcements delaying a choice. Preserve all details in the log. Ordinary rapid computer turns retain ordered splashes.
+- ~~Required choices take priority: dismiss active splashes and suppress queued announcements delaying a choice.~~ Superseded 2026-11-14: see [Revised ordering decisions](#revised-ordering-decisions-2026-11-14). Preserve all details in the log. Ordinary rapid computer turns retain ordered splashes.
 - Reasons prioritize the confirmed cause and directly affected player, mentioning the initiator when useful. Fuller details remain in the log.
 - Reuse Human/Orc scoreboard helmets; blue Human helmet is fallback. Optional colour accents remain unwired to production team data.
 - No backward compatibility with older transcript/protocol formats is required; current-version recovery, replay, and deduplication are required.
@@ -98,4 +98,34 @@ Create issue and new working branch; implement, self-review, validate, and start
 
 ## Approved banner refinement
 - Replace the solid announcement card with a transparent banner over a softly dimmed pitch. Fade the dimming and banner in/out using the dice presentation cadence (200 ms), with a 350 ms clear pause before resuming the queue, including queued consecutive announcements. Replay speed scales both timings.
-- Keep the existing reading durations and Game Settings persistence preference. Reduced motion removes fades while retaining the clear pause; mandatory choices and recovery cancel both fade and pause immediately.
+- Keep the existing reading durations and Game Settings persistence preference. Reduced motion removes fades while retaining the clear pause; ~~mandatory choices and~~ recovery cancels both fade and pause immediately. (Mandatory choices no longer cancel them; see below.)
+
+## Revised ordering decisions (2026-11-14)
+
+The maintainer decided these rules. Turn-start, turnover and touchdown announcements are planned to become fully animated splash events (tracked separately), so their timing is now a hard constraint. These rules supersede the "required choices take priority" decisions above.
+
+### Turn boundaries
+1. **Activation.** Decisions that determine *whether* a touchdown or turnover happens are resolved inside the coach's activation, under the normal choice rules, before any splash. Examples: a catch re-roll on a fumbled pass, Apothecary on an injury caused by the action, Argue the Call on a foul send-off, Blood Lust feeding.
+2. **End of activation.** The activation ends when the ball carrier ends in the end zone able to score legally, a turnover occurs, or the coach ends the turn. This starts end-of-turn cleanup (server: `StepEndTurn`).
+3. **Cleanup: splash first.** The TOUCHDOWN or TURNOVER splash is presented first and plays for its full duration. A touchdown is celebratory and is shown as soon as it occurs.
+4. **Cleanup: then decisions.** Decisions raised by cleanup come after the splash. Examples: Star of the Show; a Secret Weapon send-off with Argue the Call, a Bribe or a Bribery and Corruption re-roll. A required choice never interrupts or shortens a splash.
+5. **Start of drive (mirror image).** Setup and kick-off decisions come first (kick-off event choices, touchback). The START OF TURN splash follows when the first playable turn begins.
+
+In short: **end of turn = splash, then decisions; start of drive = decisions, then splash.**
+
+### Timing
+- Playback catch-up never shortens an announcement. Its duration is independent of the catch-up rate, and a banner that starts during catch-up keeps its normal length after catch-up ends.
+- Catch-up and background processing continue while a splash plays. Queued moves and dice are presented, never skipped, to reach a required choice.
+- The coach's own playback-speed setting and the until-dismissed preference still apply. In until-dismissed mode, a cleanup decision waits until the coach closes the splash.
+
+### Edge cases
+- **Off-turn touchdowns** (a ball carrier pushed into the end zone, or a catch from a bounce during the opponent's turn) follow the same order: TOUCHDOWN splash, then cleanup decisions.
+- **Touchdown on the last turn of a half** shows the TOUCHDOWN splash and cleanup decisions before any half-time or full-time presentation.
+- **Free turns from kick-off events** (server turn modes `BLITZ`, `KICKOFF_RETURN`, `SWARMING`) get no START OF TURN splash.
+- **One update carrying both a splash event and a dialog.** For example, the touchdown and the Star of the Show offer arrive together. The client presents the splash before opening the dialog.
+
+### Acceptance additions
+- A required choice raised during end-of-turn cleanup appears only after the TOUCHDOWN or TURNOVER splash has finished, including when both arrive in one update.
+- A choice resolved inside the activation (for example a catch re-roll) appears before any splash, and the splash then reflects the settled outcome.
+- During catch-up, a 3 s TURNOVER or TOUCHDOWN banner lasts 3 s, and no queued move or dice result is skipped to reach a choice.
+- Off-turn touchdowns, last-turn touchdowns and kick-off free turns behave as listed above.
