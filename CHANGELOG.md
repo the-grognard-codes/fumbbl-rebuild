@@ -2,7 +2,7 @@
 
 ## Unreleased
 
-- Keep the game log to 100 mounted events with accessible earlier, later and latest history controls, resume new events when returning to the live bottom, and render settled log dice without hidden 3D faces.
+- Keep the game log to 100 mounted events with accessible earlier, later and latest history controls, resume new events when returning to the bottom after up to one page of arrivals, and render settled log dice without hidden 3D faces.
 
 - Log match persistence failures with request and SQL diagnostics. Computer coaches reload and retry transient failures with bounded backoff.
 

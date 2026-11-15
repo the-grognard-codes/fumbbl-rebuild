@@ -103,6 +103,28 @@ try {
     'Reading the latest page pins its window through more than a page of new events');
   await page.getByRole('button', { name: 'Latest log events', exact: true }).click();
   assert.ok(await page.locator('.match-history-log [data-revision="570"]').count());
+  // Returning to the bottom after a small arrival burst resumes live following.
+  await log.evaluate(element => { element.scrollTop = 0; element.dispatchEvent(new Event('scroll', { bubbles: true })); });
+  await page.waitForFunction(() => document.querySelector('.match-history-log [role=log]').getAttribute('aria-live') === 'off');
+  await page.evaluate(() => {
+    const { view, records: previous } = window.domInput;
+    const records = previous.slice(), seed = records.at(-1);
+    for (let revision = 571; revision <= 600; revision++)
+      records.push({ ...seed, index: revision, revision, state: { ...seed.state, revision } });
+    window.publishDom({ view: { ...view, revision: 600 }, records });
+  });
+  assert.equal(await log.locator('[data-revision="600"]').count(), 0, 'New arrivals stay hidden while reading');
+  await log.evaluate(element => { element.scrollTop = element.scrollHeight; element.dispatchEvent(new Event('scroll', { bubbles: true })); });
+  await log.locator('[data-revision="600"]').waitFor({ timeout: 1500 });
+  await page.evaluate(() => {
+    const { view, records } = window.domInput;
+    const seed = records.at(-1), revision = 601;
+    window.publishDom({ view: { ...view, revision }, records: [...records,
+      { ...seed, index: revision, revision, state: { ...seed.state, revision } }] });
+  });
+  await log.locator('[data-revision="601"]').waitFor({ timeout: 1500 });
+  assert.equal(await log.getAttribute('aria-live'), 'polite', 'The resumed live window keeps following without Later or Latest');
+  assert.ok(await log.evaluate(element => element.scrollHeight - element.scrollTop - element.clientHeight <= 36));
   // Below the mounted-row limit there is no Latest control to recover a pinned window.
   const resumed = await browser.newPage({ viewport: { width: 1280, height: 800 } });
   resumed.on('pageerror', error => errors.push(error.message));

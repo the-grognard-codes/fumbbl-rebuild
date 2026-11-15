@@ -53,3 +53,10 @@ fewer than 100 rows, then receives another event. The new event and polite live
 announcements resume without a Latest button. The full-page peak bound is now
 2,000 elements, and a failed assertion reports the observed peak. Dice-face
 validation and selected/chooser/uphill classes share one presentation source.
+
+Review-fix round: reaching the bottom resumes live following when at most one
+mounted page (100 formatted log lines) has arrived beyond the retained end. This
+allows a short arrival burst to appear without Later/Latest, while gaps larger
+than one page keep deliberate history navigation pinned. The new 30-arrival
+regression first timed out on revision 600; the existing 120-arrival pin remains
+covered alongside continued following after revision 601.
