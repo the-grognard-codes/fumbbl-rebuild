@@ -74,6 +74,7 @@ public final class SetupApplication {
 	private final Map<String, String> pendingActivations = new LinkedHashMap<>();
 	private long engineId = -2;
 	private long completedReleases;
+	private long terminalCompletionReleases;
 	private long failedReleases;
 	private long idleReleases;
 	private long capacityRejections;
@@ -93,9 +94,14 @@ public final class SetupApplication {
 
 	private HandleOutcome outcome(JsonObject response, boolean publish) { return new HandleOutcome(response, publish); }
 
+	private JsonObject publishedState(SetupSession session, String requestId) {
+		return session.decorateSaveResume(session.reply(requestId, "ACCEPTED", false, "home")).get("state").asObject();
+	}
+
 	/** Worker-thread operational counters; contains no match IDs or private state. */
 	public JsonObject lifecycleMetrics() {
 		return new JsonObject().add("residentSessions", sessions.size()).add("residentLimit", 32)
+			.add("terminalCompletionReleases", terminalCompletionReleases)
 			.add("pendingActivations", pendingActivations.size()).add("completedReleases", completedReleases)
 			.add("failedReleases", failedReleases).add("idleReleases", idleReleases).add("idleMillis", IDLE_MILLIS)
 			.add("capacityRejections", capacityRejections).add("restoredSessions", restoredSessions)
@@ -110,6 +116,11 @@ public final class SetupApplication {
 		pendingCompletions.remove(id);
 		journalCursors.remove(id);
 		lastAccess.remove(id);
+	}
+
+	private void releaseCompleted(String id) {
+		release(id);
+		completedReleases++;
 	}
 
 	/** Called only on the communication worker after authorization. Durable checkpoints are never deleted. */
@@ -384,23 +395,27 @@ public final class SetupApplication {
 	/** Timer callbacks enqueue this on the same communication worker as coach commands. */
 	public Map<String, JsonObject> expireReactiveDecisions() {
 		Map<String, JsonObject> changed = new LinkedHashMap<>();
+		retryPendingCompletion(changed);
 		for (String id : new ArrayList<>(sessions.keySet())) {
 			if (pendingCompletions.containsKey(id)) continue;
 			SetupSession session = sessions.get(id);
 			long now = clock.millis();
-			// A resident request records abandonment before any pending decision can advance the match.
-			if (pendingRestoreCheckpoints.contains(id) && session.abandonmentDue(now)) continue;
-			if (!session.reactiveDecisionDue(now)) continue;
+			boolean abandonmentDue = recovery != null && session.abandonmentDue(now);
+			if (!abandonmentDue && !session.reactiveDecisionDue(now)) continue;
 			try {
+				if (abandonmentDue && session.abandonIfInactive(now)) {
+					checkpoint(session.checkpointOwner(), id, session);
+					release(id);
+					continue;
+				}
 				refreshSkillUsePreferences(id, session);
 				if (!session.expireReactiveDecision(clock.millis())) continue;
 				checkpoint(session.checkpointOwner(), id, session);
-				if (session.isComplete() && recovery != null) {
-					queueCompletion(id);
-					continue;
+				if (session.isComplete()) {
+					if (recovery != null) queueCompletion(id);
+					else matches.complete(session.checkpointOwner(), id, session.completedMatch());
 				}
-				if (session.isComplete()) matches.complete(session.checkpointOwner(), id, session.completedMatch());
-				changed.put(id, session.decorateSaveResume(session.reply("deadline", "ACCEPTED", false, "home")).get("state").asObject());
+				changed.put(id, publishedState(session, "deadline"));
 			} catch (SQLException | RuntimeException failure) {
 				if (session.isFailed() && sessions.containsKey(id)) {
 					try { checkpoint(session.checkpointOwner(), id, session); }
@@ -410,7 +425,6 @@ public final class SetupApplication {
 				release(id);
 			}
 		}
-		retryPendingCompletion(changed);
 		return changed;
 	}
 
@@ -427,21 +441,26 @@ public final class SetupApplication {
 			.filter(entry -> entry.getValue().retryAt() <= now).findFirst().orElse(null);
 		if (next == null) return;
 		String id = next.getKey();
+		SetupSession session = sessions.get(id);
+		if (session == null) { pendingCompletions.remove(id); return; }
 		try {
-			SetupSession session = sessions.get(id);
 			String owner = session.checkpointOwner();
 			MatchDocument document = matches.loadForSetup(owner, id).document;
 			matches.completeLoaded(owner, document, session.completedMatch());
-			changed.put(id, session.decorateSaveResume(session.reply("completion", "ACCEPTED", false, "home")).get("state").asObject());
-			release(id);
-			completedReleases++;
+			changed.put(id, publishedState(session, "completion"));
+			releaseCompleted(id);
 		} catch (MatchService.Failure rejected) {
 			release(id);
-			persistenceLog.pendingCompletionFailed(id, rejected);
-		} catch (SQLException | RuntimeException failure) {
-			// Keep the match queued and let other eligible results run first.
+			terminalCompletionReleases++;
+			persistenceLog.pendingCompletionRejected(id, rejected);
+		} catch (SQLException | MatchService.OutcomeUnknown failure) {
+			// Only recoverable storage failures retain a slot for a later attempt.
 			pendingCompletions.putLast(id, next.getValue().afterFailure(clock.millis()));
 			persistenceLog.pendingCompletionFailed(id, failure);
+		} catch (RuntimeException failure) {
+			release(id);
+			terminalCompletionReleases++;
+			persistenceLog.completionTerminated("pending-completion", id, null, failure);
 		}
 	}
 
@@ -514,10 +533,9 @@ public final class SetupApplication {
 			if (recovery != null) lastAccess.put(id, clock.millis());
 			if (session.isComplete() && recovery != null && "load".equals(operation)) {
 				phase = "completion";
-				complete(owner, document, session);
+				boolean recorded = complete(owner, document, session, requestId);
 				JsonObject response = session.decorateSaveResume(session.reply(requestId, "ACCEPTED", false, role));
-				release(id);
-				completedReleases++;
+				if (recorded) { releaseCompleted(id); }
 				return outcome(response, true);
 			}
 			// The next resident request can checkpoint abandonment or restore maintenance with a fresh budget.
@@ -539,13 +557,14 @@ public final class SetupApplication {
 			catch (RuntimeException failure) { checkpoint(owner, id, session); throw failure; }
 			if (expiredDecision) {
 				checkpoint(owner, id, session);
+				boolean recorded = false;
 				if (session.isComplete()) {
 					phase = "completion";
-					complete(owner, document, session);
+					recorded = complete(owner, document, session, requestId);
 				}
 				JsonObject expired = session.reply(requestId, "load".equals(operation) ? "ACCEPTED" : "STALE_REVISION", false, role);
 				session.decorateSaveResume(expired);
-				if (session.isComplete() && recovery != null) { release(id); completedReleases++; }
+				if (recorded && recovery != null) { releaseCompleted(id); }
 				return outcome(expired, true);
 			}
 			JsonObject response;
@@ -573,20 +592,17 @@ public final class SetupApplication {
 				|| !java.util.Objects.equals(maintenanceBefore, session.reactiveMaintenanceState())))
 				checkpoint(owner, id, session);
 			session.decorateSaveResume(response);
-            // Persist before acknowledging terminal success. A retry/load reconciles without executing the engine again.
+            // The terminal checkpoint commits the decision; a refused result write is reconciled on the timer.
 			boolean publish = "ACCEPTED".equals(response.getString("code", null))
 				&& !response.getBoolean("duplicate", false) && !"load".equals(operation) && !"concessionStatus".equals(operation);
 			if (session.isComplete()) {
 				phase = "completion";
-				complete(owner, document, session);
+				boolean recorded = complete(owner, document, session, requestId);
 				publish = recovery == null ? legacyCompletionBroadcasted.add(id)
 					: document.lifecycle != MatchDocument.Lifecycle.COMPLETED;
-				if (recovery != null) { release(id); completedReleases++; }
+				if (recovery != null && recorded) { releaseCompleted(id); }
 			}
             return outcome(response, publish);
-		} catch (CompletionPending failure) {
-			persistenceLog.completionPending(request.getString("matchId", null), requestId, failure.sqlFailure);
-			return outcome(failure(requestId, "COMPLETION_PENDING"), false);
 		} catch (RecoveryRepository.OutcomeUnknown failure) { return outcome(failure(requestId, "MATCH_OUTCOME_UNKNOWN"), false); }
 		catch (MatchService.OutcomeUnknown failure) { return outcome(failure(requestId, "MATCH_OUTCOME_UNKNOWN"), false); }
         catch (MatchService.Failure failure) { return outcome(failure(requestId, failure.code), false); }
@@ -597,18 +613,28 @@ public final class SetupApplication {
 		catch (RuntimeException failure) { return outcome(failure(requestId, "INVALID_REQUEST"), false); }
 	}
 
-	private void complete(String owner, MatchDocument document, SetupSession session) throws SQLException {
-		try { matches.completeLoaded(owner, document, session.completedMatch()); }
-		catch (JdbcConnections.NotStarted | JdbcConnections.DeadlineExpired failure) {
+	/** The terminal checkpoint is the acceptance boundary; result reconciliation gets a later worker budget. */
+	private boolean complete(String owner, MatchDocument document, SetupSession session, String requestId) throws SQLException {
+		try {
+			matches.completeLoaded(owner, document, session.completedMatch());
+			pendingCompletions.remove(document.matchId);
+			return true;
+		}
+		catch (SQLException | MatchService.OutcomeUnknown failure) {
 			if (recovery == null) throw failure;
 			queueCompletion(document.matchId);
-			throw new CompletionPending(failure);
+			persistenceLog.completionDeferred(document.matchId, requestId, failure);
+			return false;
+		} catch (MatchService.Failure rejected) {
+			throw rejected;
+		} catch (RuntimeException failure) {
+			if (recovery == null) throw failure;
+			// The final action is already durable. Do not retry deterministic result failures.
+			release(document.matchId);
+			terminalCompletionReleases++;
+			persistenceLog.completionTerminated("completion", document.matchId, requestId, failure);
+			return false;
 		}
-	}
-
-	private static final class CompletionPending extends RuntimeException {
-		private final SQLException sqlFailure;
-		CompletionPending(SQLException failure) { super(failure); sqlFailure = failure; }
 	}
 
 	/** Keep large retained administrative history outside the terminal engine reconstruction frame. */
@@ -635,7 +661,7 @@ public final class SetupApplication {
 			}
 		}
 		boolean publish = document.lifecycle != MatchDocument.Lifecycle.COMPLETED;
-		if (publish) { matches.complete(owner, id, retained.completed()); release(id); completedReleases++; }
+		if (publish) { matches.complete(owner, id, retained.completed()); releaseCompleted(id); }
 		else if (!retained.completed().equals(document.completion)) throw new MatchService.Failure("RECOVERY_CORRUPT");
 		return outcome(retainedReply(requestId, role, retained, duplicate), publish);
 	}
@@ -671,8 +697,7 @@ public final class SetupApplication {
 		boolean publish = sessions.containsKey(document.matchId) && "ACCEPTED".equals(response.getString("code", null));
 		if (publish) {
 			// A resident terminal engine means the earlier result commit was not acknowledged.
-			completedReleases++;
-			release(document.matchId);
+			releaseCompleted(document.matchId);
 		}
 		return outcome(response, publish);
 	}

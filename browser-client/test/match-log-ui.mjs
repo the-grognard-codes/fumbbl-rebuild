@@ -64,8 +64,9 @@ try {
       { reportId: 'dodgeRoll', playerId: 'actor', roll: 6, minimumRoll: 3, successful: true, logRoll: { version: 1, base: 3, target: 3, modifier: 0, square: { x: 10, y: 7 } } }
     ] } }] }));
   await page.evaluate(records => window.publishLogRecords(records), many);
-  await page.waitForFunction(() => document.querySelectorAll('.match-event-scroll p').length === 400);
-  assert.equal(await page.getByRole('button', { name: /Earlier|Later/ }).count(), 0, 'history has no paging controls');
+  await page.waitForFunction(() => document.querySelectorAll('.match-event-scroll p').length === 100);
+  assert.equal(await page.getByRole('button', { name: 'Earlier log events', exact: true }).count(), 1);
+  for (let pageIndex = 0; pageIndex < 3; pageIndex++) await page.getByRole('button', { name: 'Earlier log events', exact: true }).click();
   await log.evaluate(element => { element.scrollTop = 1000; element.dispatchEvent(new Event('scroll', { bubbles: true })); });
   const visibleRow = () => log.evaluate(element => {
     const row = Array.from(element.querySelectorAll('[data-log-key]'))
@@ -91,5 +92,5 @@ try {
     await log.evaluate(element => { element.scrollTop = element.scrollHeight; });
     await page.locator('.match-event-log').screenshot({ path: `${process.env.MATCH_LOG_EVIDENCE_DIR}/native-log-controls.png` });
   }
-  assert.deepEqual(errors, []); console.log('PASS native action log, continuous entries, no paging, shared numeric dice, uphill highlight, all preferences, reload and scroll preservation');
+  assert.deepEqual(errors, []); console.log('PASS native action log, bounded entries, complete history navigation, shared numeric dice, uphill highlight, all preferences, reload and scroll preservation');
 } finally { await browser.close(); await server.close(); }

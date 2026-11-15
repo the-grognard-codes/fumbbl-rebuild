@@ -7,6 +7,8 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.InetAddress;
+import java.net.InetSocketAddress;
+import java.net.ServerSocket;
 import java.net.Socket;
 import java.nio.charset.StandardCharsets;
 import java.security.SecureRandom;
@@ -24,13 +26,16 @@ import org.eclipse.jetty.server.ServerConnector;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.MockedStatic;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assumptions.assumeTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
@@ -70,6 +75,70 @@ class BrowserV2RouteTest {
 		when(communication.isHealthy()).thenReturn(true, false);
 		assertTrue(http("/health/engine").startsWith("HTTP/1.1 204"));
 		assertTrue(http("/health/engine").startsWith("HTTP/1.1 503"));
+	}
+
+	@Test void realIpv6ConnectorReportsEngineStatusWhenLoopbackIsAvailable() throws Exception {
+		InetAddress loopback = InetAddress.getByName("::1");
+		try (ServerSocket probe = new ServerSocket()) {
+			probe.bind(new InetSocketAddress(loopback, 0));
+		} catch (IOException unavailable) {
+			assumeTrue(false, "IPv6 loopback unavailable: " + unavailable.getClass().getSimpleName());
+		}
+		ServerConnector ipv6 = new ServerConnector(jetty);
+		ipv6.setHost("::1"); ipv6.setPort(0);
+		jetty.addConnector(ipv6); ipv6.start();
+		when(communication.isHealthy()).thenReturn(true, false);
+		for (int expected : new int[] { 204, 503 }) {
+			try (Socket socket = new Socket()) {
+				socket.connect(new InetSocketAddress(loopback, ipv6.getLocalPort()), 5000);
+				socket.setSoTimeout(5000);
+				socket.getOutputStream().write(("GET /health/engine HTTP/1.1\r\nHost: [::1]:" + ipv6.getLocalPort()
+					+ "\r\nConnection: close\r\n\r\n").getBytes(StandardCharsets.ISO_8859_1));
+				socket.getOutputStream().flush();
+				assertTrue(header(socket.getInputStream()).startsWith("HTTP/1.1 " + expected));
+			}
+		}
+	}
+
+	@Test void healthAcceptsAllNumericLoopbackFormsWithoutUsingForwardedHeaders() {
+		for (String address : new String[] { "127.0.0.1", "127.0.0.2", "::1", "0:0:0:0:0:0:0:1", "::1%0", "[::1]", "[0:0:0:0:0:0:0:1]", "[::1%0]", "[::1%eth0]" }) {
+			FantasyFootballServer server = mock(FantasyFootballServer.class);
+			ServerCommunication worker = mock(ServerCommunication.class);
+			when(server.getCommunication()).thenReturn(worker);
+			when(worker.isHealthy()).thenReturn(true);
+			HttpServletRequest request = mock(HttpServletRequest.class);
+			HttpServletResponse response = mock(HttpServletResponse.class);
+			when(request.getRemoteAddr()).thenReturn(address);
+			when(request.getHeader("X-Forwarded-For")).thenReturn("192.0.2.10");
+			new BrowserV2Runtime.EngineHealthServlet(server).doGet(request, response);
+			verify(response).setStatus(HttpServletResponse.SC_NO_CONTENT);
+		}
+	}
+
+	@Test void healthRejectsHostnamesAndMalformedAddressesWithoutResolvingThem() {
+		for (String address : new String[] { "localhost", "bad.invalid", "deadbeef", "zzz:1", "999.0.0.1", "127.0.0.1.", "", "::invalid", "192.0.2.10", "2001:db8::1", "[fe80::1%eth0]", "[2001:db8::1]", ":", "1:2:3" }) {
+			FantasyFootballServer server = mock(FantasyFootballServer.class);
+			HttpServletRequest request = mock(HttpServletRequest.class);
+			HttpServletResponse response = mock(HttpServletResponse.class);
+			when(request.getRemoteAddr()).thenReturn(address);
+			new BrowserV2Runtime.EngineHealthServlet(server).doGet(request, response);
+			verify(response).setStatus(HttpServletResponse.SC_NOT_FOUND);
+			verifyNoInteractions(server);
+		}
+	}
+
+	@Test void hostLikeInputsNeverReachAnAddressParser() {
+		try (MockedStatic<InetAddress> addresses = mockStatic(InetAddress.class)) {
+			for (String address : new String[] { "deadbeef%:zone", "999.0.0.1%:zone", "999.0.0.1", "127.0.0.1.", ".::1", "[.::1]", ".::1%zone" }) {
+				FantasyFootballServer server = mock(FantasyFootballServer.class);
+				HttpServletRequest request = mock(HttpServletRequest.class);
+				HttpServletResponse response = mock(HttpServletResponse.class);
+				when(request.getRemoteAddr()).thenReturn(address);
+				new BrowserV2Runtime.EngineHealthServlet(server).doGet(request, response);
+				verify(response).setStatus(HttpServletResponse.SC_NOT_FOUND);
+			}
+			addresses.verifyNoInteractions();
+		}
 	}
 
 	@Test void healthHidesStatusFromNonLoopbackPeersEvenWithForwardedLoopbackAddress() {

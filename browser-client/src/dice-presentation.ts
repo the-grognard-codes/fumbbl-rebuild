@@ -35,7 +35,16 @@ export function diceRollGroups(moment: DiceMoment): DiceMoment[] {
   return groups;
 }
 
-const blockFaces = ['SKULL', 'BOTH DOWN', 'PUSHBACK', 'PUSHBACK', 'POW/PUSH', 'POW'];
+export const blockFaces: readonly string[] = ['SKULL', 'BOTH DOWN', 'PUSHBACK', 'PUSHBACK', 'POW/PUSH', 'POW'];
+
+export function isBlockFace(face: unknown): face is string {
+  return typeof face === 'string' && blockFaces.includes(face);
+}
+
+export function dieStateClasses({ selected, chosenBy, uphill }: { selected?: boolean; chosenBy?: 'home' | 'away'; uphill?: boolean }): string {
+  return `${selected ? ' selected' : ''}${selected && chosenBy ? ` ${chosenBy}-selected` : ''}${selected && uphill ? ' uphill-selected' : ''}`;
+}
+
 // Explicit report semantics, never a guess based on the observed value.
 const scalarD6 = new Set(['goForItRoll', 'dodgeRoll', 'pickUpRoll', 'catchRoll', 'passRoll', 'leapRoll',
   'jumpUpRoll', 'rightStuffRoll', 'interceptionRoll', 'bloodLustRoll', 'confusionRoll',
@@ -87,7 +96,7 @@ export function numericRolls(value: unknown): PresentedRoll[] | null {
 export function blockFace(roll: number): string | null { return Number.isInteger(roll) && roll >= 1 && roll <= 6 ? blockFaces[roll - 1] : null; }
 export function blockFaceLabel(face: string): string | undefined {
   const labels: Record<string, string> = { SKULL: 'Skull', 'BOTH DOWN': 'Both down', PUSHBACK: 'Push', 'POW/PUSH': 'Stumble', POW: 'Pow' };
-  return Object.hasOwn(labels, face) ? labels[face] : undefined;
+  return isBlockFace(face) ? labels[face] : undefined;
 }
 
 /** Complete server-offered block choices already contain authoritative faces. */

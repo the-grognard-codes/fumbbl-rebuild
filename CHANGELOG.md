@@ -5,10 +5,15 @@
 - Reject checkpoint diagnostics with missing fixture files and accept the zero-decision baseline regardless of fixture order.
 
 - Report checkpoint p95 only with at least 20 samples and reject incomplete or duplicate diagnostic cohorts.
+- Keep the game log to 100 mounted events with accessible earlier, later and latest history controls, resume new events after reading when returning to the bottom with up to one page of arrivals, preserve explicit history pages until Later or Latest, and render settled log dice without hidden 3D faces.
+- Accept expanded IPv6 loopback engine health probes, bound dev-local server restart retries to three, and keep fatal log labels separate from protocol names while preserving canonical match ID context.
+- Preserve definitive completion rejection codes without publication, and expose terminal completion releases in lifecycle metrics.
+
+- Show the final score while result saving retries automatically, reconnect computer coaches through one retry schedule, and mark inactive matches abandoned without waiting for a coach to return.
 
 - Log match persistence failures with request and SQL diagnostics. Computer coaches reload and retry transient failures with bounded backoff.
 
-- Restore long matches from durable state after a refused checkpoint write. Cold loads defer recording abandonment to the next request, and failed final result writes retry with increasing delays without waiting for coaches to reconnect.
+- Restore long matches from durable state after a refused checkpoint write. Cold loads defer recording abandonment to the next request, and recoverable final result writes retry with increasing delays without waiting for coaches to reconnect. Deterministic result failures release resident memory and log a terminal diagnostic while preserving the final state.
 
 - Reduce long-match checkpoint pauses by building the recovery journal cursor without decoding the checkpoint just written.
 
