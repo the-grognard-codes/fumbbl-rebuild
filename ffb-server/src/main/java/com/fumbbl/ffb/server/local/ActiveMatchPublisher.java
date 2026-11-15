@@ -148,9 +148,9 @@ final class ActiveMatchPublisher {
 			targets.add(new DeliveryRecipient(recipient) {
 				@Override public void send(V2PublicationAuthorization.Snapshot authorization, int slot) throws SQLException {
 					String role = access.publicationRole(authorization, target(), slot);
-					if (recipient.viewer.spectator) {
+					if (recipient.viewer.spectator || "FULL_TIME".equals(publicState.getString("phase", ""))) {
 						JsonObject state = JsonObject.readFrom(retainedState);
-						state.set("callerRole", "spectator");
+						state.set("callerRole", recipient.viewer.spectator ? "spectator" : role);
 						state.remove("computer"); state.remove("threats");
 						state.remove("savedFormations"); state.remove("blockPreview");
 						sendState(recipient.connection, state(null, state), transcript, () -> access.publicationRole(authorization, target(), slot), transcriptReserved);

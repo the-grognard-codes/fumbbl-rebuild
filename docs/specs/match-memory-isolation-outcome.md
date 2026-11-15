@@ -1,157 +1,227 @@
-# Match memory isolation: implementation outcome
+# Match memory isolation: review corrections and outcome
 
 Issue: [#554](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/554).
-PR: [#559](https://github.com/the-grognard-codes/fumbbl-rebuild/pull/559), open for independent review.
-Branch: `codex/554-match-memory-isolation`.
-Base: `33d95b7c6c0342e9a7ef1fbea2ba02a05a62905d`.
+PR: [#559](https://github.com/the-grognard-codes/fumbbl-rebuild/pull/559).
+Branch: `codex/554-match-memory-isolation`; base: `33d95b7c6`.
 Date: 2026-11-15.
 
-## Result and policy
+## Result
 
-Oversized stored recovery is refused using its declared decoded size before
-base64 decoding, inflation or native restoration. Legacy raw records are checked
-without allocating an artifact-sized UTF-8 array. Prepared/completed records
-receive the same admission check. Checkpoint-plus-journal decoded allocations
-are admitted together before journal reassembly.
+The initial one-slot policy, permanent size quarantine and synchronous safety
+file writes were rejected by the owner review. This revision replaces them.
 
-Native mutations, save/resume changes, chat and timer-driven actions share the
-heap policy. Incremental byte accounting includes escaped replay events,
-transcript records, native command JSON, request history and current metadata.
-A 1 MiB append reserve allows the next bounded action; the exact checkpoint
-boundary also checks the decoded cap before persistence. Exceeding either bound
-releases the resident session, preserves the last durable checkpoint, records
-`MATCH_SIZE_LIMIT`, and makes the match unavailable. It does not fabricate a
-score or replay uncommitted game commands. Connected coaches and spectators
-receive the stop through existing locally authorized publication, including
-stops from chat or expiry timers.
+The application preserves the **32-slot ceiling**, charges actual retained
+history sizes and releases least recently used checkpointed engines when a
+restore or checkpoint needs headroom. It runs idle cleanup on maintenance ticks. Pending reactions remain resident
+so their server deadlines continue. If a timed mutation cannot checkpoint,
+a bounded ID/time retry restores its durable prefix on a later tick; committed
+uncertain outcomes publish without executing the decision again. Reaction and
+completion retries share the same 32-slot bound. Temporary capacity pressure
+delays completion retry rather than discarding it.
+Eviction preserves durable recovery and bounded completion-retry metadata;
+retrying a detached terminal result still verifies its identity against any
+stored completion. Definitive completion rejection releases its engine.
 
-At the deployed 768 MiB heap the policy allows **one resident session**, a
-**32 MiB decoded artifact**, and a **31 MiB append threshold**. Capacity returns
-when a session completes, is released after failure, or reaches its existing
-idle eviction time. Extra activations receive `ACTIVATION_LIMIT`.
-The derivation, heap histogram and retained paths are in the
-[heap evidence](match-memory-isolation-heap.md).
+At the deployed **768 MiB heap**, the shared policy permits **49.45 MiB decoded**,
+with a **45.45 MiB append threshold** and a 4 MiB reserve. It ends a match at its
+current score, clears any pending reaction, checkpoints the terminal state and
+records the result. The match leaves the active set. The existing transcript
+decision records the reason; fresh wire projections expose it on completed
+loads, so reconnecting coaches see why the match ended. No permanent size-stop
+flag is written. An already oversized stored row is refused with the stable
+`MATCH_SIZE_LIMIT` code before decompression; its durable data is preserved.
 
-## Restart protection
+Recovery and completed-result serialization share one bounded canonical writer.
+Restore takes ownership of private transcript records and shares immutable
+snapshots with replay where their semantic contents match. Older differing
+projections remain unchanged. Public transcript pages still copy their data.
+Stored schema versions, checksum encoding, replay ordering and recovery without
+command execution remain intact. `stopReason` is a wire-only extension and is
+not inserted into stored replay or recovery projections.
 
-`backup.dir/match-safety.log` records a short diagnostic begin line before risky
-match work and an end line only after the complete worker task returns normally
-or with a handled request failure. A fatal `Error` or JVM
-`ExitOnOutOfMemoryError` leaves its begin line unmatched. At startup, that match
-is quarantined with `MATCH_QUARANTINED`; other matches remain eligible.
-Size-limit quarantines preserve `MATCH_SIZE_LIMIT` across restarts.
+See [heap evidence and policy](match-memory-isolation-heap.md) for the histogram,
+ownership investigation, formula and measured headroom.
 
-The log contains only canonical match IDs and record tags. Startup reads are
-bounded. An isolated daemon compacts the diagnostic log at 1 MiB with atomic
-replacement, preserving active and quarantined IDs. Engine lock acquisition
-waits at most 25 ms or the remaining request allowance; maintenance cannot
-indefinitely occupy the worker. Ordinary append cost remains inside complete
-task timing under ADR 0006's local-logging allowance. Storage failures reject
-further risky work with `MATCH_SAFETY_UNAVAILABLE` and do not invoke the fatal
-worker halt path.
+## Owner review response
 
-Operators should retain the log with the recovery backup. Quarantine review is
-an administrator action: stop the server, preserve the log for investigation,
-review or replace the suspect checkpoint, remove only its reviewed quarantine
-record, and restart. This work does not automatically discard private games.
-As with ordinary local diagnostics, this protects process crashes; it does not
-claim power-loss durability without an fsync-backed storage protocol.
+| Finding | Correction |
+| --- | --- |
+| Blocking safety-file writes violated ADR 0006 | One maintenance writer, immutable snapshots, one coalesced pending update, bounded worker acknowledgement charged to the request |
+| One-slot derivation and unexplained eight residents | Fixed 32 ceiling; eight dump residents proven unfinished; actual history-weighted LRU admission; timer idle cleanup; separate definitive-completion leak fixed |
+| 31 MiB threshold truncated legitimate long games | 45.45 MiB append threshold at deployment heap; Unicode 47.7/50.7 MB journal/native probes pass, including a retained warm engine |
+| Permanent size stop had no result | Current-score terminal checkpoint/result, full-time publication and reconnect explanation |
+| Extra projections/file flush could cause deadline stalls | No runtime worker file I/O; one normal post-mutation recovery-size projection; cached pre-append size; canonical writer avoids deep history clone; replay-array reassembly and fingerprints avoid whole-history temporary graphs/buffers |
+| Generic crash/kill caused permanent quarantine | Exact prior-run OOM dump evidence required; automatic reload only; thirty-minute expiry; stopped-server admin clear |
+| Tracking failures rejected all gameplay | Advisory fail-open tracking with one diagnostic; memory admission stays enabled |
+| Standards/duplication/wiring | Shared injected policy; explicit production tracker constructor; stop-reason enum; shared UTF-8 counter and canonical writer; backup-dir constant; documented exceptions |
+| Missing live comparison | Clean-main startup reproduced OOM/restart exhaustion on unchanged persisted data; corrected 20-minute soak completed and stored a natural full-time game without OOM/restart; driver errors and assisted retries are disclosed below |
+| Snapshot reduction / staged placement coordination | Full snapshots remain compatible; #548 owns broader serialization work, #556/ADR 0008 owns staged placement history reduction. Recalibrate after #556 lands |
 
-## Standards
+## OOM tracking and operator recovery
 
-The independent standards review initially requested changes for log cleanup
-outside task timing, cleanup failure reaching fatal halt, duplicated history
-serialization, and unbounded contention with log compaction. All were fixed.
-The final scoped review reported: “No remaining actionable findings in the
-scoped fixes.” Tests were inspected by the reviewer and run by the implementer.
+Production owns `backup.dir/match-safety.json`. It contains a run UUID, startup
+time, the exact configured heap-dump filename, a sequence and at most 33 canonical
+match IDs. One central transport boundary covers ingress, restoration,
+publication and control tasks; control snapshots include resident engines and bounded detached reaction/completion retries. Startup/admin reads occur off-worker.
 
-## Spec
+The engine waits at most 25 ms (or remaining request allowance) for the writer.
+A late or failed handoff never rejects gameplay. One pending snapshot replaces
+older pending snapshots, preventing an unbounded I/O backlog. Runtime writes
+and atomic replacement belong exclusively to the daemon. A fatal `Error` does
+not clear the last operation snapshot; ordinary handled exits do.
 
-The independent spec review initially requested changes for missing timer/chat
-stop publication and diagnostic-log exhaustion. Both were fixed. The final
-scoped review reported: “No remaining actionable findings in the fixes.”
-The review found no serialization undercount or authorization bypass.
+On startup, automatic reloads of prior suspects are delayed only if the prior
+run's named OOM dump exists, is nonempty and has a timestamp from that run.
+Ordinary kills/crashes without that evidence do not quarantine matches. The
+block expires after thirty minutes, applies only to automatic computer loads
+and does not prevent an authorized manual load. A normal subsequent run rotates
+the evidence. Tracking corruption or I/O failure emits
+`MATCH_SAFETY_TRACKING_UNAVAILABLE` once and leaves gameplay admission active.
+This diagnostic is not a protocol rejection code.
 
-Final findings: **Standards 0 unresolved; Spec 0 unresolved**.
+To clear one reviewed suspect before expiry, stop the server, preserve its
+tracking file/dump for investigation, then run on the existing server classpath:
+
+```text
+java -cp "FantasyFootballServer.jar:lib/*" com.fumbbl.ffb.server.match.MatchSafetyAdmin clear <backup-dir>/match-safety.json <match-id>
+```
+
+Use `;` instead of `:` as the Windows classpath separator. The file lease rejects
+clearing while the writer owns the state; the command changes only that match.
+The initial PR's `match-safety.log` is ignored and preserved; it cannot impose
+old permanent size/crash blocks.
+
+**Residual attribution gap:** a JVM can fail before a late handoff reaches disk,
+or while tracking storage is unavailable. In that case restart attribution can
+be absent or stale. This is advisory crash-loop mitigation, not a power-loss or
+synchronous durability guarantee. The memory admission policy operates
+independently. The real OOM child test explicitly verifies a persisted
+breadcrumb before triggering `ExitOnOutOfMemoryError`; a separate blocked-store
+test verifies bounded fail-open behavior and coalescing.
 
 ## Validation
 
-- Before: `SetupApplicationRecoveryFailureTest#oversizedRecoveryIsRefusedBeforeNativeRestoreAndOnlyBlocksItsOwnMatch`
-  failed: expected `MATCH_SIZE_LIMIT`, received `RECOVERY_CORRUPT`.
-- After: the oversized-load test passes and leaves another match available.
-- 33 focused review regressions pass. These include genuine native placement
-  growth to the budget without an extra checkpoint write; exact byte counting;
-  successful and interrupted restart paths; real `ExitOnOutOfMemoryError` in a
-  child JVM; 45 MiB compressed recovery refusal followed by a healthy native
-  restore at `-Xmx768m`; log compaction; bounded compactor contention; authorized
-  and revoked stop publication; cleanup timing and permit release.
-- Browser unit suite: **541 passed**; the final replay-protocol selector passes
-  all **7 tests**, including the added size-limit rejection. Browser production
-  build and final local Hosting assembly: passed.
-- Reconnect browser suite: passed, including coach-facing size-limit/quarantine
-  notices, no retained retry for a definitive stop, existing reconnect behavior,
-  and no page errors.
-- Full pinned `mvn clean install`: 19 common tests and 860 server tests passed
-  (15 opt-in server tests skipped). The native suite ran 297 tests (7 skipped)
-  with one failure: the capacity test still assumed 32 resident engines. The
-  fixture now uses the derived limit and supports a one-slot heap. A focused
-  dependency-reactor rerun passes all 27 final JDBC/memory regressions and the
-  corrected native capacity test. Passing unrelated suites were not repeated.
-  The complete clean-install command was not rerun after this test-only fix.
-- A final pinned Maven `install` with the corrected capacity selector and
-  `-DargLine=-Xmx768m` passes the affected reactor, proving admission, idle
-  eviction and lost-acknowledgement restore with the actual one-slot policy.
-- Dev-local: final `node tools/dev-local.mjs --restart --quick` passes health,
-  mounted ADC, real proxy authentication gate on connection/reconnection, and
-  computer-daemon readiness. Quick mode is startup evidence; it substitutes for
-  none of the tests above.
-- Live soak: **20.1 minutes**, one match, **90 coach decisions**, revision **399**,
-  10 diagnostics exports and one trace. **No OOM, fatal engine failure or
-  restart**; final container health is healthy, restart count 0. Peak container
-  RSS was approximately 1,053 MiB (RSS includes native/JVM memory; it is not Java
-  heap usage). **No match completed.** A checkpoint was refused with
-  `PERSISTENCE_FAILED` / `NotStarted` after exhausting its JDBC allowance; the
-  retained action was refused again when repeated. Authentication rejection and
-  UI-driver recovery timeouts followed. The driver recorded 15 errors and nine
-  unavailable/backoff notices while engine health remained green. This is
-  limited memory-isolation evidence, **not a clean gameplay-soak pass**.
+- Before rework, regression tests reproduced the deployment ceiling falling
+  from 32 to 1 and a definitive completion conflict retaining its engine.
+- The final focused selector passes **65 tests**, including legacy presentation
+  recovery, reaction pinning/automatic retries, uncertain-commit publication,
+  transient completion capacity, mixed retry-slot admission, completed recovery
+  pruning, checkpoint reconciliation and storage-failure isolation.
+- Final native eleven-player Unicode probes at `-Xmx768m`: 47,672,358 bytes /
+  revision 1,552 with a 13,903,826-byte warm native engine retained; 50,735,758
+  bytes / revision 1,652 below the derived cap. Both exercise compressed
+  checkpoint+real journal delta reassembly, exact native restore, serialization,
+  fingerprint/cursor creation and completed-result materialization. These are
+  real legal placement histories, not padded JSON strings. A 23,386,727-byte
+  warm engine was evicted before decode in a separate passing cohort.
+- The real native 32-slot pool/capacity/idle/lost-acknowledgement test passes at
+  `-Xmx768m`, preserving the original activation-ceiling assertion.
+- Browser unit suite: **543 passed**. Production build passes. Reconnect UI
+  tests pass for definitive stop notices, the durable terminal explanation,
+  normal reauthentication and retained-request behavior, with no page errors.
+- Final pinned `mvn clean install` via `tools/target-build.ps1 install`: **passed**
+  across all modules: 19 common, 876 server and 297 native test totals, with
+  zero failures/errors and 23 expected opt-in skips. This full run includes the
+  final timer-pressure and uncertain-outcome corrections and completed at
+  22:29:49 UTC in 15m45s.
+- `git diff --check` passes.
 
-The live driver used the existing test Chrome profile. Its normal launcher
-rejected a cached session; refreshing the existing Firebase token allowed
-authentication. An ignored local copy ran headless Chrome, refreshed that
-session, and handled match navigation/resume. No authentication checks, ADC,
-server configuration or tracked soak-driver code were changed. The final
-authenticated smoke connection passed twice with no alerts, separately from
-the stalled soak.
+The first full rework build caught four historical-projection restore failures.
+The implementation now shares equal states without introducing a new equality
+admission rule; all four tests pass in the focused rerun. Independent review
+also found a canonical depth off-by-one at an empty-container boundary; the
+writer now preserves the old 64-container completed-result rule and has a
+round-trip boundary regression.
 
-The first full Java run exposed two constructor-count regressions from an
-unnecessary codec instance in size accounting. Sharing the existing envelope
-overhead constant removed the allocation; all read-only-load regressions pass.
-The first added publication test also needed its checked exception declaration;
-the focused rerun passes.
+## Dev-local and comparison
 
-## Compatibility and scope
+Both revisions used `node tools/dev-local.mjs --restart --quick`, the same
+existing database/backup data and the same local headless UI soak driver.
+No games, checkpoints or credentials were removed to obtain a passing startup.
 
-Recovery, completed-match and transcript formats are unchanged. Existing data
-within the new admission limit still uses its recorded runtime. The large
-original recovery artifact remains stored and is refused across restarts; it
-was not cleared to make startup succeed. Full snapshots are retained for now;
-their reduction is explicitly handed to #548, with staged placements in #556.
-The Solid Defence policy bug remains #553.
+Clean main (`33d95b7c6`) started, then repeatedly exhausted its **768 MiB** heap
+while the existing computer service reloaded persisted games. Docker recorded
+**three restarts**, followed by **exit code 3** and unhealthy/exited state at
+20:58:46 UTC. The UI driver could not get past loading saved teams because the
+server was unavailable. This baseline is a reproduced crash loop, not a
+completed 20-minute gameplay run.
 
-The unrelated `main` edit to `docs/specs/gameplay-soak-review.md` is preserved.
-No merge, remote deployment, ADC reconfiguration or private-game deletion is
-part of this delivery.
+The first rework started successfully but later exhausted the heap once at
+21:09:44 UTC during Unicode checkpoint/journal reassembly. Its initial zero-
+restart observation was incomplete and is withdrawn. The new dump showed one
+22 MB warm engine beside the incoming reconstruction. The final correction
+removes artifact-sized encoding buffers and the replay reassembly graph and
+reduces the cap to the measured Unicode-safe policy above. See the heap report
+for the stack and ownership counts. The final implementation started with `--quick` at 22:15:26 UTC and remains
+running/healthy with zero automatic restarts. Proxy authentication-gate checks
+passed on initial connection and reconnect; Firebase ADC preflight and the
+computer-service readiness check passed. The normal hosted result page then
+confirmed the stored 1-0 / revision 557 result. Quick mode skipped duplicate
+startup tests; the full build and browser checks above ran separately.
 
-## Follow-up
+The first authenticated attempts were rejected at sign-in. Refreshing and
+reloading through the normal application eventually succeeded. The previously
+proposed expanded credential-backed diagnostic was rejected by automatic
+approval review and was not run; no authorization bypass or credential change
+was needed.
 
-The 12× expansion policy is deliberately conservative, not a proof for arbitrary
-object graphs. Continue the real-play operating-envelope work in #548/#524 and
-repeat a longer soak after the snapshot and computer-policy improvements land.
-The opt-in SQL operating-envelope benchmark was not run: its fixed 32-resident
-preload and distinct resident-match repetitions need adaptation to the new
-admission policy in #548. The observed checkpoint/authentication failures also
-remain follow-up work; this change leaves the 2,000 ms request budget intact.
-The installed skill catalog has no `/retro` skill; no agent instruction or
-environment files were changed. The practical testing lesson is to verify the
-existing browser session and current match before an unattended run.
+The final memory-correction soak ran **20.0 minutes**: three games started,
+**one naturally reached full time at revision 557, score 1-0**, 158 driver
+choices, 22 exports and one trace. The server stayed healthy with **zero OOM,
+zero fatal engine failures and zero automatic restarts**. Peak container RSS
+was about 1,140 MiB; RSS includes JVM native memory as well as the 768 MiB heap.
+The normal hosted result page subsequently returned `ACCEPTED` with the stored
+revision 557 / 1-0 result on the final implementation, with no UI alerts.
+
+This was **not a clean latency or unattended-driver pass**. There were 13 driver
+errors, including stale/disabled action and interception controls. Three
+checkpoint deadline refusals were recovered by a companion that clicked the
+visible `Repeat retained request` control; every assisted retry was recorded.
+No timeout or durability guarantee was relaxed. The final timer-pressure
+follow-ups were verified by focused/full tests and a subsequent exact-code
+`--quick` restart; they were added after the 20-minute memory soak.
+
+The earlier stalled revision 399 run is superseded by this comparison. The
+measured memory isolation and completed recorded game improve the evidence;
+serialization/deadline performance remains #548, and driver improvements are
+separate work. The final pin/retry follow-up preserves server-owned reaction
+expiry across pressure, SQL failure and uncertain commits.
+
+## Independent review and remaining work
+
+## Standards
+
+The scoped review approved the bounded handoff, eviction and retry corrections.
+The final Unicode/journal review also reports no actionable findings. The reviewer inspected the implementation and tests; execution was performed by the implementer.
+
+## Spec
+
+The canonical-depth and recovery-pruning findings are fixed and regression-
+tested. The Unicode/journal correction is approved with no actionable findings. Live authenticated soak evidence and its latency limitations are recorded separately in this report.
+
+The PR remains open for independent review; no merge or deployment is authorized.
+The unrelated main-checkout edit to `docs/specs/gameplay-soak-review.md` remains
+untouched. No private heap data is included in these reports. Snapshot/delta
+format redesign remains #548 and staged placements remain #556. A longer unassisted latency soak remains useful after the #548 serialization and driver follow-ups.
+
+## Reproduction commands
+
+Use the pinned JDK/Maven configured by the repository bootstrap:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File tools/target-build.ps1 install
+cd browser-client
+npm.cmd test
+npm.cmd run build
+npm.cmd run test:reconnect-ui
+cd ..
+node tools/dev-local.mjs --restart --quick
+```
+
+The opt-in native memory test is `MatchMemoryWorkloadTest`. Set
+`MATCH_MEMORY_WORKLOAD` to a local JSON output path and pass
+`-DargLine=-Xmx768m` to pinned Maven. Default target is 45 MiB with a 760-decision
+warm engine. `MATCH_MEMORY_RESIDENT_DECISIONS=450` retains a smaller admitted
+engine; `MATCH_MEMORY_WORKLOAD_MIB=48` exercises the upper decoded boundary.
+These test processes require no database or Firebase credentials. The local
+soak uses the existing signed-in browser profile and normal application flow.

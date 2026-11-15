@@ -20,6 +20,24 @@ import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 class ActiveMatchPublisherTest {
+	@Test void terminalPublicationUsesTheCommittedTerminalViewAfterTheEngineIsReleased() throws Exception {
+		V2MatchAccess access = mock(V2MatchAccess.class);
+		SetupApplication setup = mock(SetupApplication.class);
+		BrowserConnection peer = mock(BrowserConnection.class);
+		new PublicationTestGrants().allow(access, target -> "away");
+		ActiveMatchPublisher publisher = new ActiveMatchPublisher(access, setup);
+		publisher.enrollPlayer(peer, mock(AuthenticatedPrincipal.class), "match");
+		publisher.publish("match", null, new JsonObject().add("phase", "FULL_TIME").add("revision", 900)
+			.add("callerRole", "home").add("computer", new JsonObject()).add("threats", new JsonObject()));
+		ArgumentCaptor<String> frame = ArgumentCaptor.forClass(String.class);
+		verify(peer).send(frame.capture());
+		JsonObject view = JsonObject.readFrom(frame.getValue()).get("state").asObject();
+		assertEquals("away", view.getString("callerRole", null));
+		assertEquals(900, view.getInt("revision", -1));
+		assertNull(view.get("computer")); assertNull(view.get("threats"));
+		verifyNoInteractions(setup);
+	}
+
 	@Test void sizeLimitNoticesUseCurrentPublicationAuthorizationWithoutReadingAnotherMatchState() throws Exception {
 		for (boolean allowed : new boolean[] {true, false}) {
 			V2MatchAccess access = mock(V2MatchAccess.class);

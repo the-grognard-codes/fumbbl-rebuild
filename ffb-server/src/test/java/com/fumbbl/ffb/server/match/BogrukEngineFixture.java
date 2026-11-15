@@ -34,10 +34,14 @@ final class BogrukEngineFixture {
 	private final Random dice;
 
 	BogrukEngineFixture(String homeRoster, String awayRoster, long seed) throws Exception {
+		this(homeRoster, awayRoster, seed, "Acceptance ");
+	}
+
+	BogrukEngineFixture(String homeRoster, String awayRoster, long seed, String teamPrefix) throws Exception {
 		ComputerOpponentService computers = new ComputerOpponentService(null);
 		String id = "00000000-0000-0000-0000-000000000021";
-		FrozenTeam home = frozen(homeRoster, "home", "00000000-0000-0000-0000-000000000011");
-		FrozenTeam away = frozen(awayRoster, "away", "00000000-0000-0000-0000-000000000012")
+		FrozenTeam home = frozen(homeRoster, "home", "00000000-0000-0000-0000-000000000011", teamPrefix);
+		FrozenTeam away = frozen(awayRoster, "away", "00000000-0000-0000-0000-000000000012", teamPrefix)
 			.copyForMatch(computers.cloneTeamId(id, ComputerOpponentService.BOGRUK_ID), "away", ComputerOpponentService.BOGRUK_TEAM_NAME);
 		Map<String, MatchDocument.Request> history = new LinkedHashMap<>();
 		history.put("home\ncreate", new MatchDocument.Request("create|" + home.sourceTeamId + "|1|away"));
@@ -89,7 +93,7 @@ final class BogrukEngineFixture {
 		return response.set("version", 2);
 	}
 
-	private FrozenTeam frozen(String roster, String role, String id) {
+	private FrozenTeam frozen(String roster, String role, String id, String teamPrefix) {
 		RosterCatalog catalog = new RosterCatalog(roster.toLowerCase(java.util.Locale.ROOT));
 		List<String> positions = "orc".equals(catalog.getRosterId())
 			? java.util.Arrays.asList("orc-lineman", "orc-lineman", "orc-lineman", "orc-lineman", "orc-lineman",
@@ -102,7 +106,7 @@ final class BogrukEngineFixture {
 		Map<String, Integer> resources = new LinkedHashMap<>();
 		for (String resource : catalog.getResources().keySet()) resources.put(resource, 0);
 		resources.put("rerolls", 2);
-		TeamDraft draft = new TeamDraft(TeamDraft.FORMAT_VERSION, "Acceptance " + role, RosterCatalog.VERSION,
+		TeamDraft draft = new TeamDraft(TeamDraft.FORMAT_VERSION, teamPrefix + role, RosterCatalog.VERSION,
 			"BB2025", catalog.getRosterId(), RosterCatalog.PRESET, "player1", players, resources);
 		TeamValidation.Evaluation result = new TeamValidation(catalog).evaluate(draft);
 		if (!result.isValid()) throw new IllegalArgumentException("Invalid acceptance roster");

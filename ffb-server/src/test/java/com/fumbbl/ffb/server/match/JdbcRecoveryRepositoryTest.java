@@ -26,7 +26,7 @@ import static org.mockito.Mockito.when;
 class JdbcRecoveryRepositoryTest {
 	@Test void oversizedCheckpointIsRefusedBeforeDecodeOnBothRepositoryLoadPaths() throws Exception {
 		String oversized = new JsonObject().add("$codec", "ffb-match-gzip-json").add("version", 1)
-			.add("decodedBytes", 45 * 1024 * 1024).add("payload", "invalid-base64!").toString();
+			.add("decodedBytes", 65 * 1024 * 1024).add("payload", "invalid-base64!").toString();
 		for (boolean journal : new boolean[] {false, true}) {
 			BoundedJsonStorageCodec codec = org.mockito.Mockito.spy(new BoundedJsonStorageCodec(
 				BoundedJsonStorageCodec.RECOVERY_ENCODED_LIMIT, BoundedJsonStorageCodec.RECOVERY_DECODED_LIMIT));

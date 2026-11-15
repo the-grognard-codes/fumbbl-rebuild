@@ -1,8 +1,8 @@
 package com.fumbbl.ffb.server.match;
 
 /** Counts the standard UTF-8 encoding without allocating an artifact-sized byte array. */
-final class Utf8Size {
-	long bytes(String text) {
+public final class Utf8Size {
+	public long bytes(String text) {
 		long bytes = 0;
 		for (int index = 0; index < text.length(); index++) {
 			char ch = text.charAt(index);

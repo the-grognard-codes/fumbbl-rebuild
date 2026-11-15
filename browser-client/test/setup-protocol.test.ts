@@ -7,7 +7,7 @@ const state = { matchId: '12345678-1234-1234-1234-123456789abc', revision: 2, ca
 const response = { version: 1, type: 'setupState', requestId: 'load', code: 'ACCEPTED', duplicate: false, state };
 
 test('match safety stops are definitive responses with no authoritative state', () => {
-  for (const code of ['MATCH_SIZE_LIMIT', 'MATCH_QUARANTINED', 'MATCH_SAFETY_UNAVAILABLE']) {
+  for (const code of ['MATCH_SIZE_LIMIT', 'MATCH_QUARANTINED']) {
     assert.equal(decodeSetupState(JSON.stringify({ ...response, code, state: null })).code, code);
     assert.throws(() => decodeSetupState(JSON.stringify({ ...response, code })));
   }
@@ -169,4 +169,10 @@ test('skill marker facts validate core identity, category and provenance in live
     assert.throws(() => decodeSetupStateValue(snapshot({ ...data, entries: [entry] })));
   for (const invalid of [{ ...data, version: 2 }, { ...data, entries: [...data.entries, ...data.entries] }, { ...data, privateDice: [] }, { ...data, details: [''] }])
     assert.throws(() => decodeSetupStateValue(snapshot(invalid)));
+});
+
+test('size termination reason survives completed loads and rejects invalid active-state reasons', () => {
+  assert.equal(decodeSetupStateValue({...state, phase:'FULL_TIME', stopReason:'MATCH_SIZE_LIMIT'}).stopReason, 'MATCH_SIZE_LIMIT');
+  assert.throws(() => decodeSetupStateValue({...state, stopReason:'MATCH_SIZE_LIMIT'}));
+  assert.throws(() => decodeSetupStateValue({...state, phase:'FULL_TIME', stopReason:'unknown'}));
 });

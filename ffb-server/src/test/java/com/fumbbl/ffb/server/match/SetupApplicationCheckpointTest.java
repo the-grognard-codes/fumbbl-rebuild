@@ -16,12 +16,11 @@ import java.lang.reflect.Method;
 import java.sql.SQLException;
 import java.sql.SQLNonTransientConnectionException;
 import java.time.Clock;
-import java.time.Instant;
-import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.logging.Handler;
@@ -38,6 +37,7 @@ import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doCallRealMethod;
 import static org.mockito.Mockito.doThrow;
@@ -442,6 +442,9 @@ class SetupApplicationCheckpointTest {
 			SetupApplication.HandleOutcome outcome = fixture.application.handleWithOutcome("home", request("conflicting-result"));
 			assertEquals("COMPLETION_CONFLICT", outcome.response().getString("code", null));
 			assertFalse(outcome.publish());
+			assertEquals(0, fixture.application.lifecycleMetrics().getInt("residentSessions", -1));
+			assertEquals(0, fixture.mapSize("generations"));
+			assertEquals(0, fixture.mapSize("committedFingerprints"));
 			assertTrue(logs.messages.stream().noneMatch(line -> line.startsWith("COMPLETION_TERMINAL")));
 			assertEquals(0, fixture.mapSize("pendingCompletions"));
 		}
@@ -489,6 +492,204 @@ class SetupApplicationCheckpointTest {
 		}
 	}
 
+	@Test void evictedCompletionStillChecksForAConflictingStoredResult() throws Exception {
+		for (boolean conflict : new boolean[] {false, true}) try (Fixture fixture = new Fixture()) {
+			fixture.application.handle("home", load()); terminalAction(fixture);
+			AtomicInteger attempts = new AtomicInteger();
+			doAnswer(call -> {
+				if (attempts.incrementAndGet() == 1) throw new SQLException("retry");
+				if (conflict) throw new MatchService.Failure("COMPLETION_CONFLICT");
+				return null;
+			}).when(fixture.matches).completeLoaded(anyString(), any(MatchDocument.class), any());
+			fixture.application.handleWithOutcome("home", request("terminal-runtime"));
+			assertEquals(1, fixture.mapSize("pendingCompletions"));
+			Method evict = SetupApplication.class.getDeclaredMethod("releaseEngine", String.class);
+			evict.setAccessible(true); evict.invoke(fixture.application, MATCH);
+			fixture.restoringTerminal = true;
+			MatchDocument completed = fixture.matches.load("home", MATCH).document.completed(mock(CompletedMatch.class));
+			when(fixture.matches.loadForSetup("home", MATCH)).thenReturn(new MatchService.Result(completed, false));
+			Map<String, JsonObject> changed = fixture.application.expireReactiveDecisions();
+			assertEquals(2, attempts.get(), "Eviction must preserve the result identity check even after an unknown commit");
+			assertEquals(conflict ? 0 : 1, changed.size());
+			assertEquals(0, fixture.mapSize("pendingCompletions"));
+			assertEquals(0, fixture.mapSize("sessions"));
+		}
+	}
+
+	@Test void detachedRetryWorkStillConsumesTheActivationCeiling() throws Exception {
+		try (Fixture fixture = new Fixture()) {
+			fixture.application.handle("home", load());
+			Method queue = SetupApplication.class.getDeclaredMethod("queueCompletion", String.class);
+			Method evict = SetupApplication.class.getDeclaredMethod("releaseEngine", String.class);
+			queue.setAccessible(true); evict.setAccessible(true);
+			Field field = SetupApplication.class.getDeclaredField("sessions"); field.setAccessible(true);
+			@SuppressWarnings("unchecked") Map<String, SetupSession> sessions = (Map<String, SetupSession>) field.get(fixture.application);
+			SetupSession terminal = fixture.session();
+			for (int index = 0; index < 32; index++) {
+				String id = index == 0 ? MATCH : "00000000-0000-0000-0000-%012d".formatted(index);
+				sessions.put(id, terminal);
+				if (index % 2 == 0) queue.invoke(fixture.application, id);
+				else fixture.<Long>map("pendingReactionRestores").put(id, NOW + 1000);
+				evict.invoke(fixture.application, id);
+			}
+			assertEquals(16, fixture.mapSize("pendingCompletions"));
+			assertEquals(16, fixture.mapSize("pendingReactionRestores"));
+			assertEquals(0, fixture.mapSize("sessions"));
+			String next = "00000000-0000-0000-0000-000000000999";
+			MatchDocument document = new MatchDocument(next, 3, "away", MatchDocument.Lifecycle.ACTIVATED,
+				new MatchDocument.Member("home", "home", null), new MatchDocument.Member("away", "away", null));
+			when(fixture.matches.loadForSetup("home", next)).thenReturn(new MatchService.Result(document, false));
+			assertEquals("ACTIVATION_LIMIT", fixture.application.handle("home", load().set("matchId", next)).getString("code", null));
+			assertEquals(16, fixture.mapSize("pendingCompletions"));
+			assertEquals(16, fixture.mapSize("pendingReactionRestores"));
+		}
+	}
+
+	@Test void pressureRejectedTimerRestoresAndExpiresAutomaticallyOnALaterTick() throws Exception {
+		try (Fixture fixture = new Fixture(new MatchMemoryBudget(128L * 1024 * 1024))) {
+			fixture.application.handle("home", load());
+			SetupSession current = fixture.session();
+			when(current.hasPendingReactiveDecision()).thenReturn(true);
+			when(current.reactiveDecisionDue(NOW)).thenReturn(true);
+			when(current.checkpointOwner()).thenReturn("home");
+			when(current.recoveryBytes()).thenReturn(5L * 1024 * 1024);
+			when(current.expireReactiveDecision(NOW)).thenAnswer(call -> { fixture.artifact.set("uncommitted-expiry"); return true; });
+			SetupSession quiet = null;
+			for (int index = 1; index <= 2; index++) {
+				String id = "00000000-0000-0000-0000-%012d".formatted(index);
+				SetupSession reaction = mock(SetupSession.class); when(reaction.hasPendingReactiveDecision()).thenReturn(true);
+				quiet = reaction;
+				fixture.<SetupSession>map("sessions").put(id, reaction);
+				fixture.<Long>map("residentDecodedBytes").put(id, 5L * 1024 * 1024 + 512 * 1024);
+				fixture.<Long>map("lastAccess").put(id, NOW - index);
+				fixture.<byte[]>map("committedFingerprints").put(id, new byte[32]);
+			}
+			assertTrue(fixture.application.expireReactiveDecisions().isEmpty());
+			assertEquals("before", fixture.durable.get().json);
+			assertEquals(1, fixture.mapSize("pendingReactionRestores"));
+			assertFalse(fixture.<SetupSession>map("sessions").containsKey(MATCH));
+			when(quiet.hasPendingReactiveDecision()).thenReturn(false);
+			fixture.restoringReaction = true; fixture.time.set(NOW + 1000);
+			assertTrue(fixture.application.expireReactiveDecisions().containsKey(MATCH));
+			assertEquals("expiry-committed", fixture.durable.get().json);
+			assertEquals(0, fixture.mapSize("pendingReactionRestores"));
+		}
+	}
+
+	@Test void timerCanPublishAfterItsCheckpointEvictsALaterSession() throws Exception {
+		try (Fixture fixture = new Fixture(new MatchMemoryBudget(128L * 1024 * 1024))) {
+			fixture.application.handle("home", load());
+			SetupSession current = fixture.session();
+			when(current.checkpointOwner()).thenReturn("home");
+			when(current.reactiveDecisionDue(NOW)).thenReturn(true);
+			when(current.recoveryBytes()).thenReturn(5L * 1024 * 1024);
+			when(current.expireReactiveDecision(NOW)).thenAnswer(call -> { fixture.artifact.set("timer-growth"); return true; });
+			for (int index = 1; index <= 2; index++) {
+				String id = "00000000-0000-0000-0000-%012d".formatted(index);
+				fixture.<SetupSession>map("sessions").put(id, mock(SetupSession.class));
+				fixture.<Long>map("residentDecodedBytes").put(id, 5L * 1024 * 1024 + 512 * 1024);
+				fixture.<Long>map("lastAccess").put(id, NOW - index);
+				fixture.<byte[]>map("committedFingerprints").put(id, new byte[32]);
+			}
+			String timed = "00000000-0000-0000-0000-000000000002";
+			when(fixture.<SetupSession>map("sessions").get(timed).hasPendingReactiveDecision()).thenReturn(true);
+			fixture.<Long>map("lastAccess").put(timed, NOW - 1_800_001);
+			assertEquals(1, fixture.application.expireReactiveDecisions().size());
+			assertEquals("timer-growth", fixture.durable.get().json);
+			assertEquals(1, fixture.application.lifecycleMetrics().getLong("memoryEvictions", 0));
+			assertEquals(2, fixture.mapSize("sessions"));
+			assertTrue(fixture.<SetupSession>map("sessions").containsKey(timed), "Pending reaction expiry must remain on the timer");
+			when(current.reactiveDecisionDue(NOW)).thenReturn(false);
+			SetupSession reaction = fixture.<SetupSession>map("sessions").get(timed);
+			when(reaction.reactiveDecisionDue(NOW)).thenReturn(true);
+			when(reaction.expireReactiveDecision(NOW)).thenReturn(true);
+			when(reaction.checkpointOwner()).thenReturn("home");
+			when(reaction.recoveryArtifact()).thenReturn("timed-expiry");
+			when(reaction.reply(anyString(), anyString(), anyBoolean(), anyString())).thenReturn(reply(false));
+			when(reaction.decorateSaveResume(any(JsonObject.class))).thenAnswer(call -> call.getArgument(0));
+			MatchDocument timedDocument = new MatchDocument(timed, 3, "away", MatchDocument.Lifecycle.ACTIVATED,
+				new MatchDocument.Member("home", "home", null), new MatchDocument.Member("away", "away", null));
+			when(fixture.matches.load("home", timed)).thenReturn(new MatchService.Result(timedDocument, false));
+			fixture.<Long>map("generations").put(timed, 1L);
+			AtomicReference<RecoveryRepository.Record> expiry = new AtomicReference<>();
+			when(fixture.recovery.save(argThat(record -> record != null && timed.equals(record.matchId)), eq(1L)))
+				.thenAnswer(call -> { expiry.set(call.getArgument(0)); return true; });
+			assertTrue(fixture.application.expireReactiveDecisions().containsKey(timed));
+			assertEquals("timed-expiry", expiry.get().json, "The protected reaction must still expire durably and publish");
+		}
+	}
+
+	@Test void pinnedReactionEnginesRefusePressureAndReleaseAnUncommittedMutatedEngine() throws Exception {
+		try (Fixture fixture = new Fixture(new MatchMemoryBudget(128L * 1024 * 1024))) {
+			fixture.application.handle("home", load());
+			when(fixture.session().recoveryBytes()).thenReturn(5L * 1024 * 1024);
+			for (int index = 1; index <= 2; index++) {
+				String id = "00000000-0000-0000-0000-%012d".formatted(index);
+				SetupSession timed = mock(SetupSession.class); when(timed.hasPendingReactiveDecision()).thenReturn(true);
+				fixture.<SetupSession>map("sessions").put(id, timed);
+				fixture.<Long>map("residentDecodedBytes").put(id, 5L * 1024 * 1024 + 512 * 1024);
+				fixture.<Long>map("lastAccess").put(id, NOW - index);
+				fixture.<byte[]>map("committedFingerprints").put(id, new byte[32]);
+			}
+			SetupApplication.HandleOutcome outcome = fixture.application.handleWithOutcome("home", request("pinned-pressure"));
+			assertEquals("ACTIVATION_LIMIT", outcome.response().getString("code", null)); assertFalse(outcome.publish());
+			assertEquals("before", fixture.durable.get().json);
+			assertFalse(fixture.<SetupSession>map("sessions").containsKey(MATCH));
+			assertEquals(2, fixture.mapSize("sessions"));
+			assertEquals("ACCEPTED", fixture.application.handle("home", load()).getString("code", null));
+			assertEquals("before", fixture.artifact.get(), "Reload must reconcile the durable prefix, never the rejected mutation");
+		}
+	}
+
+	@Test void uncertainCommittedExpiryPublishesTheReconciledStateWithoutAnotherNativeAction() throws Exception {
+		for (boolean nextReaction : new boolean[] {false, true}) try (Fixture fixture = new Fixture()) {
+			fixture.application.handle("home", load());
+			SetupSession current = fixture.session();
+			when(current.hasPendingReactiveDecision()).thenReturn(true);
+			when(current.reactiveDecisionDue(NOW)).thenReturn(true);
+			when(current.checkpointOwner()).thenReturn("home");
+			when(current.expireReactiveDecision(NOW)).thenAnswer(call -> { fixture.artifact.set("committed-expiry"); return true; });
+			fixture.failure = "MATCH_OUTCOME_UNKNOWN";
+			assertTrue(fixture.application.expireReactiveDecisions().isEmpty());
+			assertEquals("committed-expiry", fixture.durable.get().json);
+			long committed = fixture.durable.get().generation;
+			fixture.failure = null; fixture.restoringReaction = nextReaction; fixture.restoringReactionDue = false;
+			fixture.time.set(NOW + 1000);
+			assertTrue(fixture.application.expireReactiveDecisions().containsKey(MATCH));
+			assertEquals(committed, fixture.durable.get().generation);
+			verify(fixture.session(), never()).expireReactiveDecision(anyLong());
+			assertEquals(0, fixture.mapSize("pendingReactionRestores"));
+		}
+	}
+
+	@Test void detachedCompletionKeepsRetryingAfterTemporaryPinnedCapacityPressure() throws Exception {
+		try (Fixture fixture = new Fixture(new MatchMemoryBudget(128L * 1024 * 1024))) {
+			fixture.application.handle("home", load()); terminalAction(fixture);
+			AtomicInteger attempts = new AtomicInteger();
+			doAnswer(call -> { if (attempts.incrementAndGet() == 1) throw new SQLException("retry"); return null; })
+				.when(fixture.matches).completeLoaded(anyString(), any(MatchDocument.class), any());
+			fixture.application.handleWithOutcome("home", request("terminal-runtime"));
+			Method evict = SetupApplication.class.getDeclaredMethod("releaseEngine", String.class); evict.setAccessible(true);
+			evict.invoke(fixture.application, MATCH);
+			fixture.durable.set(new RecoveryRepository.Record(MATCH, 5, "x".repeat(5 * 1024 * 1024)));
+			SetupSession quiet = null;
+			for (int index = 1; index <= 2; index++) {
+				String id = "00000000-0000-0000-0000-%012d".formatted(index);
+				SetupSession timed = mock(SetupSession.class); when(timed.hasPendingReactiveDecision()).thenReturn(true); quiet = timed;
+				fixture.<SetupSession>map("sessions").put(id, timed);
+				fixture.<Long>map("residentDecodedBytes").put(id, 5L * 1024 * 1024 + 512 * 1024);
+				fixture.<Long>map("lastAccess").put(id, NOW - index);
+				fixture.<byte[]>map("committedFingerprints").put(id, new byte[32]);
+			}
+			assertTrue(fixture.application.expireReactiveDecisions().isEmpty());
+			assertEquals(1, fixture.mapSize("pendingCompletions")); assertEquals(1, attempts.get());
+			when(quiet.hasPendingReactiveDecision()).thenReturn(false);
+			fixture.restoringTerminal = true; fixture.time.set(NOW + 1000);
+			assertTrue(fixture.application.expireReactiveDecisions().containsKey(MATCH));
+			assertEquals(0, fixture.mapSize("pendingCompletions")); assertEquals(2, attempts.get());
+		}
+	}
+
 	private JsonObject request(String id) { return new JsonObject().add("version", 1).add("type", "setup").add("operation", "action")
 		.add("requestId", id).add("matchId", MATCH).add("expectedRevision", 3).add("actionId", "server-action"); }
 	private JsonObject load() { return new JsonObject().add("version", 1).add("type", "setup").add("operation", "load").add("requestId", "load").add("matchId", MATCH); }
@@ -507,7 +708,16 @@ class SetupApplicationCheckpointTest {
 		String normalizedArtifact;
 		SetupApplication.StorageAdmission beforeSave = () -> { };
 		boolean unknownCommitted = true;
-		Fixture() throws Exception {
+		boolean restoringTerminal;
+		boolean restoringReaction;
+		boolean restoringReactionDue = true;
+		final AtomicLong time = new AtomicLong(NOW);
+		final Clock clock = mock(Clock.class);
+		final MatchMemoryBudget memoryBudget;
+		Fixture() throws Exception { this(new MatchMemoryBudget()); }
+		Fixture(MatchMemoryBudget memoryBudget) throws Exception {
+			this.memoryBudget = memoryBudget;
+			when(clock.millis()).thenAnswer(call -> time.get());
 			MatchDocument document = new MatchDocument(MATCH, 3, "away", MatchDocument.Lifecycle.ACTIVATED,
 				new MatchDocument.Member("home", "home", null), new MatchDocument.Member("away", "away", null));
 			when(matches.load("home", MATCH)).thenReturn(new MatchService.Result(document, false));
@@ -525,6 +735,15 @@ class SetupApplicationCheckpointTest {
 				return true;
 			});
 			construction = mockConstruction(SetupSession.class, (session, context) -> {
+				if (restoringReaction) {
+					AtomicBoolean pending = new AtomicBoolean(true);
+					when(session.hasPendingReactiveDecision()).thenAnswer(call -> pending.get());
+					when(session.reactiveDecisionDue(anyLong())).thenAnswer(call -> pending.get() && restoringReactionDue);
+					when(session.checkpointOwner()).thenReturn("home");
+					when(session.recoveryBytes()).thenReturn(5L * 1024 * 1024);
+					when(session.expireReactiveDecision(anyLong())).thenAnswer(call -> { artifact.set("expiry-committed"); pending.set(false); return true; });
+				}
+				when(session.isComplete()).thenAnswer(call -> restoringTerminal);
 				artifact.set(normalizedArtifact == null ? (String) context.arguments().get(2) : normalizedArtifact);
 				when(session.recoveryArtifact()).thenAnswer(call -> artifact.get());
 				when(session.reply(anyString(), anyString(), anyBoolean(), anyString())).thenReturn(reply(false));
@@ -538,7 +757,8 @@ class SetupApplicationCheckpointTest {
 			});
 			application = newApplication();
 		}
-		SetupApplication newApplication() { return new SetupApplication(server, matches, recovery, false, Clock.fixed(Instant.ofEpochMilli(NOW), ZoneOffset.UTC)); }
+		SetupApplication newApplication() { return new SetupApplication(server, matches, recovery, false, clock, false, memoryBudget); }
+		@SuppressWarnings("unchecked") <T> Map<String, T> map(String name) throws Exception { Field field = SetupApplication.class.getDeclaredField(name); field.setAccessible(true); return (Map<String, T>) field.get(application); }
 		SetupSession session() { return construction.constructed().get(construction.constructed().size() - 1); }
 		int mapSize(String name) throws Exception { Field field = SetupApplication.class.getDeclaredField(name); field.setAccessible(true); return ((Map<?, ?>) field.get(application)).size(); }
 		@Override public void close() { construction.close(); }

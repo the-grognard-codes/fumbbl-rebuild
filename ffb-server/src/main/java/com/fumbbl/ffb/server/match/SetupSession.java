@@ -364,7 +364,7 @@ public final class SetupSession {
 				|| payload.get("pendingTerminal").asBoolean() != isComplete()) throw new IllegalArgumentException("Recovery event boundary");
 			if (saveResume) saveResumeState = new SaveResumeState(payload.get("saveResume").asObject());
 			if (r51 || r52 || r53) {
-				transcript = new MatchTranscript(payload.get("transcript").asObject());
+				transcript = new MatchTranscript(payload.get("transcript").asObject(), events);
 				if (transcript.size() != revision + 1 || transcript.nativeCursor() > state.getLastCommandNr())
 					throw new IllegalArgumentException("Transcript checkpoint boundary");
 			}
@@ -402,7 +402,36 @@ public final class SetupSession {
 	}
 
 	public String recoveryArtifact() {
-		return new RecoveryArtifactJson().encodeCheckpoint(orderedRecoveryPayload()).envelope();
+		return new RecoveryArtifactJson().encodeCanonicalCheckpoint(recoveryCheckpointPayload()).envelope();
+	}
+	JsonObject recoveryCheckpointPayload() { return recoveryPayload(null); }
+
+	/** End an exhibition at its current score, without attributing a concession to either coach. */
+	void endForSizeLimit(long now) {
+		if (isComplete()) return;
+		String role = actor();
+		Game game = state.getGame();
+		game.setDialogParameter(null);
+		pendingRoute = null; pendingActivation = null; confirmedKickoff = null; kickoffSelection.clear();
+		state.getStepStack().clear();
+		SequenceGeneratorFactory factory = game.getFactory(FactoryType.Factory.SEQUENCE_GENERATOR);
+		((EndGame) factory.forName(SequenceGenerator.Type.EndGame.name())).pushSequence(new EndGame.SequenceParams(state, true));
+		state.startNextStep();
+		if (!isComplete()) throw new IllegalStateException("Size-limit termination did not complete");
+		revision++;
+		refreshReaction(now);
+		JsonObject decision = new JsonObject().add("operation", "sizeLimit").add("reason", MatchStopReason.MATCH_SIZE_LIMIT.name());
+		int suffix = 0;
+		String key;
+		do { key = role + "\nserver-size-limit-" + revision + "-" + suffix++; } while (history.containsKey(key));
+		history.put(key, new Record(canonical(decision), "ACCEPTED"));
+		recordEvent("FULL_TIME", role, decision);
+	}
+
+	boolean endedForSizeLimit() {
+		if (!isComplete()) return false;
+		String fingerprint = canonical(new JsonObject().add("operation", "sizeLimit").add("reason", MatchStopReason.MATCH_SIZE_LIMIT.name()));
+		return history.values().stream().anyMatch(record -> record.fingerprint.equals(fingerprint));
 	}
 
 	JsonObject orderedRecoveryPayload() { return ordered(recoveryPayload(null)).asObject(); }
@@ -1026,6 +1055,7 @@ public final class SetupSession {
 		JsonObject response = new JsonObject().add("version", 1).add("type", "setupState").add("requestId", requestId)
 			.add("code", failed ? "SESSION_UNAVAILABLE" : code).add("duplicate", !failed && duplicate)
 			.add("state", failed ? JsonValue.NULL : view(role));
+		if (!failed && endedForSizeLimit()) response.get("state").asObject().add("stopReason", MatchStopReason.MATCH_SIZE_LIMIT.name());
 		if (!failed && "ILLEGAL_SETUP".equals(code) && setupErrors != null) response.add("setupErrors", setupErrors);
 		return response;
 	}
@@ -1382,6 +1412,8 @@ public final class SetupSession {
 			.add("turnTimeStarted", state.getTurnTimeStarted()).add("turnTime", state.getGame().getTurnTime()).toString();
 	}
 
+	boolean hasPendingReactiveDecision() { return reactiveDecision.pending(); }
+
 	/** Executed only on the communication worker, using the same command and checkpoint path as coach input. */
 	public boolean expireReactiveDecision(long now) {
 		if (failed || isComplete() || saveResume && (saveResumeState.suspended() || saveResumeState.abandoned)) return false;
@@ -1425,7 +1457,7 @@ public final class SetupSession {
                 publicDecision.remove("computerDecision");
                 accepted = JsonObject.readFrom(canonical(publicDecision));
             }
-            transcript.append(revision, kind, role, Math.max(System.currentTimeMillis(), transcript.lastTime()), accepted,
+            transcript.appendOwned(revision, kind, role, Math.max(System.currentTimeMillis(), transcript.lastTime()), accepted,
                 nativeOutcomes, snapshot, capture.lastCommandNr);
         }
         blockPresentation.recorded();

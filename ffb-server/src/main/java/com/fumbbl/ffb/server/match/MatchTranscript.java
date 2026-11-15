@@ -19,6 +19,11 @@ final class MatchTranscript {
     MatchTranscript() { }
 
     MatchTranscript(JsonObject saved) {
+        this(saved, null);
+    }
+
+    /** Takes ownership of a private restore tree and shares immutable replay snapshots after validation. */
+    MatchTranscript(JsonObject saved, JsonArray replayEvents) {
         exact(saved, "formatVersion", "nativeCursor", "records");
         if (saved.getInt("formatVersion", -1) != FORMAT_VERSION) throw new IllegalArgumentException("Unsupported transcript format");
         int cursor = saved.getInt("nativeCursor", -1);
@@ -50,13 +55,30 @@ final class MatchTranscript {
                 priorNative = number;
             }
             if (record.get("state").asObject().getInt("revision", -1) != revision) throw new IllegalArgumentException("Transcript state mismatch");
-            add(record);
+            if (replayEvents != null) {
+                JsonValue replayState = replayEvents.get(index).asObject().get("state");
+                CanonicalJson canonical = new CanonicalJson();
+                // Older projections can differ between replay and transcript. Preserve them;
+                // equality only enables sharing and is not a new recovery admission rule.
+                if (canonical.encode(replayState, 256 * 1024).equals(canonical.encode(record.get("state"), 256 * 1024)))
+                    record.set("state", replayState);
+            }
+            add(record, replayEvents == null);
         }
         if (records.size() == 0) throw new IllegalArgumentException("Empty transcript");
         nativeCursor = cursor;
     }
 
     void append(int revision, String kind, String actor, long at, JsonValue decision, JsonArray nativeOutcomes, JsonObject state, int cursor) {
+        append(revision, kind, actor, at, decision, nativeOutcomes, state, cursor, true);
+    }
+
+    /** Session-created decision/outcome/state values become immutable history at this boundary. */
+    void appendOwned(int revision, String kind, String actor, long at, JsonValue decision, JsonArray nativeOutcomes, JsonObject state, int cursor) {
+        append(revision, kind, actor, at, decision, nativeOutcomes, state, cursor, false);
+    }
+
+    private void append(int revision, String kind, String actor, long at, JsonValue decision, JsonArray nativeOutcomes, JsonObject state, int cursor, boolean copy) {
         if (revision != records.size() || revision > 8192 || at < 0 || cursor < nativeCursor)
             throw new IllegalArgumentException("Invalid transcript append");
         if (!("START".equals(kind) || "ACTION".equals(kind) || "SELECTION".equals(kind)
@@ -78,7 +100,7 @@ final class MatchTranscript {
         }
         JsonObject record = new JsonObject().add("index", records.size()).add("revision", revision).add("kind", kind)
             .add("actor", actor).add("at", at).add("decision", decision).add("native", nativeOutcomes).add("state", state);
-        add(record);
+        add(record, copy);
         nativeCursor = cursor;
     }
 
@@ -128,11 +150,11 @@ final class MatchTranscript {
             .add("next", from + selected.size()).add("total", records.size()).add("records", selected);
     }
 
-    private void add(JsonObject record) {
+    private void add(JsonObject record, boolean copy) {
         String json = record.toString();
         int length = json.getBytes(StandardCharsets.UTF_8).length;
         if (length > 256 * 1024 || bytes + length > MAX_BYTES - 128 * 1024) throw new IllegalArgumentException("Transcript limit");
-        records.add(JsonObject.readFrom(json));
+        records.add(copy ? JsonObject.readFrom(json) : record);
         bytes += length;
     }
 

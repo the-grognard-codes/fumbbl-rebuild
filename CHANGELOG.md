@@ -2,7 +2,7 @@
 
 ## Unreleased
 
-- Stop oversized matches with a clear size-limit notice, derive resident match capacity from the server heap, and quarantine interrupted match work on restart so other games remain available.
+- End size-limited matches at their current score with a recorded result, evict cold checkpointed engines according to actual history size while preserving the 32-slot ceiling, and briefly pause automatic reloads only after confirmed heap exhaustion.
 
 - Reject checkpoint diagnostics with missing fixture files and accept the zero-decision baseline regardless of fixture order.
 

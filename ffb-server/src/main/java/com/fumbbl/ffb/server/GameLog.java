@@ -9,8 +9,8 @@ import com.fumbbl.ffb.json.IJsonSerializable;
 import com.fumbbl.ffb.json.UtilJson;
 import com.fumbbl.ffb.net.NetCommandFactory;
 import com.fumbbl.ffb.net.commands.ServerCommand;
+import com.fumbbl.ffb.server.match.Utf8Size;
 
-import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -24,6 +24,7 @@ public class GameLog implements IJsonSerializable {
 	private List<String> recoveryCommands;
 	private long recoveryEpoch;
 	private long recoveryBytes;
+	private final Utf8Size recoverySize = new Utf8Size();
 
 	private transient int fLastCommitedCommandNr;
 	private final transient GameState fGameState;
@@ -118,9 +119,11 @@ public class GameLog implements IJsonSerializable {
 	private void freezeRecoveryCommands() {
 		for (int index = recoveryCommands.size(); index < fServerCommands.size(); index++) {
 			String json = fServerCommands.get(index).toJsonValue().toString();
-			recoveryCommands.add(json);
-			recoveryBytes += json.getBytes(StandardCharsets.UTF_8).length;
+			addRecoveryCommand(json);
 		}
+	}
+	private void addRecoveryCommand(String json) {
+		recoveryCommands.add(json); recoveryBytes += recoverySize.bytes(json);
 	}
 
 	/** A reset invalidates append-only recovery cursors even when the replacement has the same length. */
@@ -135,8 +138,7 @@ public class GameLog implements IJsonSerializable {
 			recoveryBytes = 0;
 			for (JsonValue command : commands) {
 				String json = command.toString();
-				recoveryCommands.add(json);
-				recoveryBytes += json.getBytes(StandardCharsets.UTF_8).length;
+				addRecoveryCommand(json);
 			}
 			recoveryEpoch++;
 		}

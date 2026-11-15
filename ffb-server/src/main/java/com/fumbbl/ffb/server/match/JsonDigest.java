@@ -14,16 +14,32 @@ import java.security.NoSuchAlgorithmException;
 /** Hashes the existing JSON encoding without materializing another serialized copy. */
 final class JsonDigest {
 	String sha256(JsonValue value) {
+		return hex(digest(value::writeTo));
+	}
+
+	String sha256(String value) { return hex(sha256Bytes(value)); }
+	byte[] sha256Bytes(String value) { return digest(writer -> writer.write(value)); }
+
+	private byte[] digest(Source source) {
 		try {
 			MessageDigest digest = MessageDigest.getInstance("SHA-256");
-			OutputStream sink = new OutputStream() {
-				@Override public void write(int value) { }
-				@Override public void write(byte[] bytes, int offset, int length) { }
-			};
-			try (Writer writer = new OutputStreamWriter(new DigestOutputStream(sink, digest), StandardCharsets.UTF_8)) { value.writeTo(writer); }
-			return hex(digest.digest());
+			try (Writer encoder = new OutputStreamWriter(new DigestOutputStream(OutputStream.nullOutputStream(), digest), StandardCharsets.UTF_8)) {
+				// StreamEncoder.write(String) otherwise allocates char[length], even when its
+				// byte sink is streaming. Bound raw strings and large JsonString runs alike.
+				source.writeTo(new Writer() {
+					@Override public void write(String text, int offset, int length) throws IOException {
+						for (int end = offset + length; offset < end; offset += 8192) encoder.write(text, offset, Math.min(8192, end - offset));
+					}
+					@Override public void write(char[] chars, int offset, int length) throws IOException { encoder.write(chars, offset, length); }
+					@Override public void flush() throws IOException { encoder.flush(); }
+					@Override public void close() { }
+				});
+			}
+			return digest.digest();
 		} catch (IOException | NoSuchAlgorithmException impossible) { throw new IllegalStateException(impossible); }
 	}
+
+	@FunctionalInterface private interface Source { void writeTo(Writer writer) throws IOException; }
 
 	String sha256(byte[] json) {
 		try { return hex(MessageDigest.getInstance("SHA-256").digest(json)); }

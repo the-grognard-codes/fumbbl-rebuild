@@ -2,179 +2,197 @@ package com.fumbbl.ffb.server.match;
 
 import com.fumbbl.ffb.server.local.BrowserRequestTiming;
 
-import java.io.BufferedReader;
+import com.eclipsesource.json.JsonArray;
+import com.eclipsesource.json.JsonObject;
+
+import com.sun.management.HotSpotDiagnosticMXBean;
+
 import java.io.IOException;
-import java.io.OutputStream;
-import java.nio.charset.StandardCharsets;
+import java.lang.management.ManagementFactory;
+import java.nio.channels.FileChannel;
+import java.nio.channels.FileLock;
+import java.nio.channels.OverlappingFileLockException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
 import java.nio.file.StandardOpenOption;
-import java.util.LinkedHashMap;
-import java.util.LinkedHashSet;
-import java.util.Map;
+import java.time.Clock;
+import java.util.HashSet;
 import java.util.Set;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
+import java.util.UUID;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.locks.ReentrantLock;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Supplier;
 import java.util.logging.Logger;
+import java.util.regex.Pattern;
 
-/** Worker-owned diagnostic append log. An unfinished operation is quarantined at next startup. */
+/** Advisory OOM restart tracking. File I/O belongs exclusively to the maintenance thread. */
 public final class MatchSafetyJournal implements AutoCloseable {
+	public enum Tracking { DISABLED }
 	private static final Logger LOG = Logger.getLogger("com.fumbbl.ffb.server.match.safety");
-	private static final long MAX_LOG_BYTES = 64 * 1024 * 1024;
-	private static final int MAX_QUARANTINED = 1024;
-	private final Map<String, String> quarantined = new LinkedHashMap<>();
-	private final Set<String> active = new LinkedHashSet<>();
-	private OutputStream output;
-	private long bytes;
-	private boolean failed;
-	private boolean closed;
-	private boolean compacting;
-	private Path file;
-	private ExecutorService maintenance;
-	private final ReentrantLock logLock = new ReentrantLock();
+	private static final Pattern MATCH_ID = Pattern.compile("[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}");
+	private static final long QUARANTINE_MILLIS = TimeUnit.MINUTES.toMillis(30);
+	private static final int MAX_TRACKED_MATCHES = 33;
+	private final Clock clock;
+	private final StateStore store;
+	private final String runId = UUID.randomUUID().toString();
+	private final long startedAt;
+	private final String dumpFile;
+	private final Set<String> automaticBlocks = new HashSet<>();
+	private final AtomicReference<Update> pending = new AtomicReference<>();
+	private final Semaphore wake = new Semaphore(0);
+	private final Thread writer;
+	private Supplier<Set<String>> residentMatches = Set::of;
+	private volatile boolean closed;
+	private volatile boolean unavailable;
+	private long sequence;
 
-	/** In-memory isolation for embedded runtimes and tests. Production opens a durable diagnostic log. */
-	public MatchSafetyJournal() { }
-
-	public MatchSafetyJournal(Path file) throws IOException {
-		this.file = file;
-		if (Files.exists(file)) {
-			if (Files.size(file) > MAX_LOG_BYTES) throw new IOException("Match safety log exceeds startup bound");
-			try (BufferedReader reader = Files.newBufferedReader(file, StandardCharsets.US_ASCII)) {
-				String line;
-				while ((line = reader.readLine()) != null) {
-					if (!line.matches("[BEQS] [0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}"))
-						throw new IOException("Invalid match safety log");
-					String id = line.substring(2);
-					switch (line.charAt(0)) {
-						case 'B' -> active.add(id);
-						case 'E' -> active.remove(id);
-						case 'S' -> quarantined.put(id, "MATCH_SIZE_LIMIT");
-						case 'Q' -> quarantined.put(id, "MATCH_QUARANTINED");
-					}
-					if (active.size() + quarantined.size() > MAX_QUARANTINED)
-						throw new IOException("Match safety quarantine capacity reached");
-				}
-			}
-		}
-		for (String id : active) quarantined.putIfAbsent(id, "MATCH_QUARANTINED");
-		active.clear();
-		// Startup compaction only; worker operations only append short diagnostic records.
-		// Replace atomically so a crash while compacting cannot forget prior quarantines.
-		Path compact = file.resolveSibling(file.getFileName() + ".next");
-		try (OutputStream stream = Files.newOutputStream(compact)) {
-			for (Map.Entry<String, String> entry : quarantined.entrySet())
-				stream.write(line("MATCH_SIZE_LIMIT".equals(entry.getValue()) ? 'S' : 'Q', entry.getKey()));
-		}
-		Files.move(compact, file, java.nio.file.StandardCopyOption.ATOMIC_MOVE, java.nio.file.StandardCopyOption.REPLACE_EXISTING);
-		bytes = Files.size(file);
-		output = Files.newOutputStream(file, StandardOpenOption.APPEND);
-		maintenance = Executors.newSingleThreadExecutor(task -> {
-			Thread thread = new Thread(task, "match-safety-log"); thread.setDaemon(true); return thread;
-		});
+	/** Explicit nonpersistent tracking for embedded engines and tests. */
+	public MatchSafetyJournal(Tracking disabled) {
+		clock = Clock.systemUTC(); startedAt = clock.millis(); dumpFile = ""; store = null; writer = null;
 	}
 
-	public void requireAvailable(String id) {
-		try (Lease ignored = acquire()) {
-			if (failed || closed) throw new MatchService.Failure("MATCH_SAFETY_UNAVAILABLE");
-			String code = quarantined.get(id);
-			if (code != null) throw new MatchService.Failure(code);
-		}
-	}
+	/** Starts outside the engine worker. Tracking-storage failures are logged and fail open. */
+	public MatchSafetyJournal(Path file) { this(new FileStore(file), configuredDump(), Clock.systemUTC()); }
 
-	/** Called after authorization, before restoring or mutating native match state. */
-	public void enter(String id) {
-		try (Lease ignored = acquire()) {
-			requireAvailable(id);
-			if (!active.contains(id)) { append('B', id); active.add(id); }
-		}
-	}
+	MatchSafetyJournal(Path file, Path dumpFile, Clock clock) { this(new FileStore(file), dumpFile, clock); }
 
-	void sizeLimit(String id, long decodedBytes, int limit) {
-		try (Lease ignored = acquire()) {
-			if (!quarantined.containsKey(id)) {
-				if (quarantined.size() >= MAX_QUARANTINED) throw new MatchService.Failure("MATCH_SAFETY_UNAVAILABLE");
-				append('S', id);
-				quarantined.put(id, "MATCH_SIZE_LIMIT");
-				LOG.warning("MATCH_SIZE_LIMIT matchId=" + id + " decodedBytes=" + decodedBytes + " limit=" + limit);
-			}
-			throw new MatchService.Failure("MATCH_SIZE_LIMIT");
-		}
-	}
-
-	/** Called only after the whole worker task returns normally, including handled request failures. */
-	public void finishWork() {
-		try (Lease ignored = acquire()) {
-			for (String id : active) append('E', id);
-			active.clear();
-		}
-	}
-
-	private void append(char operation, String id) {
-		if (output == null) return;
-		byte[] record = line(operation, id);
-		if (bytes > MAX_LOG_BYTES - record.length) { failed = true; throw new MatchService.Failure("MATCH_SAFETY_UNAVAILABLE"); }
+	MatchSafetyJournal(StateStore store, Path dumpFile, Clock clock) {
+		this.clock = clock; startedAt = clock.millis(); this.store = store;
+		this.dumpFile = dumpFile == null ? "" : dumpFile.toAbsolutePath().toString();
 		try {
-			output.write(record); output.flush(); bytes += record.length;
-			if (bytes >= 1024 * 1024 && !compacting) { compacting = true; maintenance.execute(this::compact); }
-		}
-		catch (IOException failure) { failed = true; throw new MatchService.Failure("MATCH_SAFETY_UNAVAILABLE"); }
+			State previous = store.read();
+			if (previous != null && !previous.dumpFile().isEmpty()) {
+				Path dump = Path.of(previous.dumpFile());
+				if (Files.isRegularFile(dump) && Files.size(dump) > 0
+					&& Files.getLastModifiedTime(dump).toMillis() >= previous.startedAt())
+					automaticBlocks.addAll(previous.matches());
+			}
+		} catch (IOException | RuntimeException failure) { degrade(); }
+		writer = new Thread(this::writeUpdates, "match-safety-store"); writer.setDaemon(true); writer.start();
+		submit(Set.of());
 	}
 
-	/** Only isolated diagnostic-log state is shared with this maintenance thread; never native matches. */
-	private void compact() {
-		logLock.lock();
-		try {
-			if (closed || failed) return;
-			Path next = file.resolveSibling(file.getFileName() + ".next");
-			try {
-				try (OutputStream stream = Files.newOutputStream(next)) {
-					for (Map.Entry<String, String> entry : quarantined.entrySet())
-						stream.write(line("MATCH_SIZE_LIMIT".equals(entry.getValue()) ? 'S' : 'Q', entry.getKey()));
-					for (String id : active) stream.write(line('B', id));
-				}
-				output.close();
-				Files.move(next, file, java.nio.file.StandardCopyOption.ATOMIC_MOVE, java.nio.file.StandardCopyOption.REPLACE_EXISTING);
-				output = Files.newOutputStream(file, StandardOpenOption.APPEND);
-				bytes = Files.size(file);
-			} catch (IOException failure) {
-				failed = true;
-				LOG.warning("MATCH_SAFETY_UNAVAILABLE phase=diagnostic-log-compaction");
-			} finally { compacting = false; }
-		} finally { logLock.unlock(); }
-	}
+	/** The supplier is invoked only by the engine worker, never by the maintenance thread. */
+	public void configureResidentMatches(Supplier<Set<String>> source) { residentMatches = source; }
 
-	/** Maintenance may stall on disk; the engine never waits indefinitely for its lock. */
-	private Lease acquire() {
-		if (logLock.tryLock()) return new Lease();
+	/**
+	 * One transport boundary covers ingress, restore, publication and multi-match control work.
+	 * Waits at most 25 ms for persistence; a failed/late handoff never rejects gameplay.
+	 */
+	public void beginTask(String matchId) {
+		if (writer == null || closed || unavailable) return;
+		Set<String> ids = matchId == null ? residentMatches.get() : Set.of(matchId);
+		Set<String> safe = new HashSet<>();
+		for (String id : ids) if (id != null && MATCH_ID.matcher(id).matches() && safe.size() < MAX_TRACKED_MATCHES) safe.add(id);
+		Update update = submit(Set.copyOf(safe));
 		var budget = new BrowserRequestTiming().budget();
-		long millis = budget == null ? 25 : budget.allowanceMillis(25, 0);
+		long allowance = budget == null ? 25 : budget.allowanceMillis(25, 0);
+		try { if (allowance > 0) update.persisted().await(allowance, TimeUnit.MILLISECONDS); }
+		catch (InterruptedException interrupted) { Thread.currentThread().interrupt(); }
+	}
+
+	/** Only handled task exits clear the current operation; fatal Errors leave OOM attribution intact. */
+	public void finishWork() { if (writer != null && !closed && !unavailable) submit(Set.of()); }
+
+	/**
+	 * Only automatic computer reloads are delayed, for this startup and at most thirty minutes.
+	 * @throws MatchService.Failure with MATCH_QUARANTINED for an OOM-suspect automatic reload.
+	 */
+	public void requireAutomaticAvailable(String matchId) {
+		if (clock.millis() - startedAt < QUARANTINE_MILLIS && automaticBlocks.contains(matchId))
+			throw new MatchService.Failure(MatchStopReason.MATCH_QUARANTINED.name());
+	}
+
+	private Update submit(Set<String> ids) {
+		Update update = new Update(new State(runId, startedAt, dumpFile, ++sequence, ids), new CountDownLatch(1));
+		if (pending.getAndSet(update) == null) wake.release();
+		return update;
+	}
+
+	private void writeUpdates() {
 		try {
-			if (millis < 1 || !logLock.tryLock(millis, TimeUnit.MILLISECONDS)) throw new MatchService.Failure("MATCH_SAFETY_UNAVAILABLE");
-			return new Lease();
-		} catch (InterruptedException interrupted) {
-			Thread.currentThread().interrupt(); throw new MatchService.Failure("MATCH_SAFETY_UNAVAILABLE");
+			while (!closed || pending.get() != null) {
+				wake.acquire();
+				Update update;
+				while ((update = pending.getAndSet(null)) != null) {
+					try { if (!unavailable) store.write(update.state()); }
+					catch (IOException | RuntimeException failure) { degrade(); }
+					finally { update.persisted().countDown(); }
+				}
+			}
+		} catch (InterruptedException interrupted) { Thread.currentThread().interrupt(); }
+		finally { try { store.close(); } catch (IOException failure) { degrade(); } }
+	}
+
+	private void degrade() {
+		if (!unavailable) LOG.warning("MATCH_SAFETY_TRACKING_UNAVAILABLE: continuing with strict memory admission");
+		unavailable = true;
+	}
+
+	private static Path configuredDump() {
+		try {
+			HotSpotDiagnosticMXBean options = ManagementFactory.getPlatformMXBean(HotSpotDiagnosticMXBean.class);
+			if (!Boolean.parseBoolean(options.getVMOption("HeapDumpOnOutOfMemoryError").getValue())) return null;
+			String value = options.getVMOption("HeapDumpPath").getValue();
+			return value.isEmpty() ? null : Path.of(value);
+		} catch (RuntimeException unsupported) { return null; }
+	}
+
+	/** Bounded shutdown; a stalled store remains isolated on its daemon and keeps its file lease. */
+	@Override public void close() {
+		closed = true; wake.release();
+		if (writer != null) try { writer.join(100); } catch (InterruptedException interrupted) { Thread.currentThread().interrupt(); }
+	}
+
+	record State(String runId, long startedAt, String dumpFile, long sequence, Set<String> matches) { }
+	private record Update(State state, CountDownLatch persisted) { }
+	interface StateStore extends AutoCloseable {
+		State read() throws IOException;
+		void write(State state) throws IOException;
+		@Override default void close() throws IOException { }
+	}
+
+	/** Startup/admin reads occur off-worker; all runtime writes are owned by the maintenance thread. */
+	static final class FileStore implements StateStore {
+		private final Path file;
+		private FileChannel lease;
+		private FileLock lock;
+		FileStore(Path file) { this.file = file; }
+		private void acquireLease() throws IOException {
+			if (lease != null) return;
+			lease = FileChannel.open(file.resolveSibling(file.getFileName() + ".lock"), StandardOpenOption.CREATE, StandardOpenOption.WRITE);
+			try { lock = lease.tryLock(); } catch (OverlappingFileLockException busy) { throw new IOException("Stop the server before clearing OOM tracking", busy); }
+			if (lock == null) throw new IOException("Stop the server before clearing OOM tracking");
 		}
-	}
-
-	private final class Lease implements AutoCloseable {
-		@Override public void close() { logLock.unlock(); }
-	}
-
-	private byte[] line(char operation, String id) {
-		if (id == null || !id.matches("[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}"))
-			throw new IllegalArgumentException("Invalid match safety identifier");
-		return (operation + " " + id + "\n").getBytes(StandardCharsets.US_ASCII);
-	}
-
-	@Override public void close() throws IOException {
-		logLock.lock();
-		try {
-			closed = true;
-			if (maintenance != null) maintenance.shutdown();
-			if (output != null) output.close();
-		} finally { logLock.unlock(); }
+		@Override public State read() throws IOException {
+			acquireLease();
+			if (!Files.exists(file)) return null;
+			if (Files.size(file) > 64 * 1024) throw new IOException("OOM tracking file exceeds startup bound");
+			try {
+				JsonObject object = JsonObject.readFrom(Files.readString(file));
+				if (object.getInt("version", 0) != 1) throw new IllegalArgumentException();
+				Set<String> ids = new HashSet<>();
+				for (var id : object.get("matches").asArray()) {
+					if (!MATCH_ID.matcher(id.asString()).matches() || ids.size() >= MAX_TRACKED_MATCHES) throw new IllegalArgumentException();
+					ids.add(id.asString());
+				}
+				return new State(object.getString("run", ""), object.getLong("startedAt", 0), object.getString("dump", ""), object.getLong("sequence", 0), Set.copyOf(ids));
+			} catch (RuntimeException invalid) { throw new IOException("Invalid OOM tracking state", invalid); }
+		}
+		@Override public void write(State state) throws IOException {
+			acquireLease();
+			JsonArray ids = new JsonArray(); state.matches().stream().sorted().forEach(ids::add);
+			JsonObject object = new JsonObject().add("version", 1).add("run", state.runId()).add("startedAt", state.startedAt())
+				.add("dump", state.dumpFile()).add("sequence", state.sequence()).add("matches", ids);
+			Path next = file.resolveSibling(file.getFileName() + ".next");
+			Files.writeString(next, object.toString());
+			Files.move(next, file, StandardCopyOption.ATOMIC_MOVE, StandardCopyOption.REPLACE_EXISTING);
+		}
+		@Override public void close() throws IOException {
+			try { if (lock != null && lock.isValid()) lock.release(); } finally { if (lease != null) lease.close(); }
+		}
 	}
 }

@@ -30,7 +30,7 @@ class SetupApplicationRecoveryFailureTest {
 
 	@Test void oversizedRecoveryIsRefusedBeforeNativeRestoreAndOnlyBlocksItsOwnMatch() throws Exception {
 		Fixture fixture = new Fixture();
-		fixture.recovery.records.put(ID, new RecoveryRepository.Record(ID, 1, "x".repeat(45 * 1024 * 1024)));
+		fixture.recovery.records.put(ID, new RecoveryRepository.Record(ID, 1, "x".repeat(65 * 1024 * 1024)));
 		assertEquals("MATCH_SIZE_LIMIT", fixture.load(ID));
 		assertEquals("MATCH_SIZE_LIMIT", fixture.load(ID));
 		assertEquals("SESSION_UNAVAILABLE", fixture.load("00000000-0000-0000-0000-000000000222"));

@@ -9,6 +9,7 @@ import com.fumbbl.ffb.server.match.JdbcMatchRepository;
 import com.fumbbl.ffb.server.match.JdbcRecoveryRepository;
 import com.fumbbl.ffb.server.match.JdbcV2PrincipalDirectory;
 import com.fumbbl.ffb.server.match.MatchService;
+import com.fumbbl.ffb.server.match.MatchMemoryBudget;
 import com.fumbbl.ffb.server.match.SetupApplication;
 import com.fumbbl.ffb.server.match.V2MatchAccess;
 import com.fumbbl.ffb.server.match.V2PreparationService;
@@ -44,10 +45,11 @@ public final class BrowserV2Runtime {
 		Clock clock = Clock.systemUTC();
 		RosterCatalog catalog = new RosterCatalog();
 		SavedTeamService teams = new SavedTeamService(new JdbcSavedTeamRepository(connections::open, true), catalog);
-		MatchService matches = new MatchService(new JdbcMatchRepository(connections::open), teams, catalog);
+		MatchMemoryBudget memoryBudget = new MatchMemoryBudget();
+		MatchService matches = new MatchService(new JdbcMatchRepository(connections::open, memoryBudget), teams, catalog);
 		// New activations use r4.1 checkpoints. Existing r2.2/r2.3 checkpoints restore under their recorded runtime.
-		SetupApplication setup = new SetupApplication(server, matches, new JdbcRecoveryRepository(connections::open, true), true, true);
-		setup.configureMatchSafety(server.getMatchSafety());
+		SetupApplication setup = new SetupApplication(server, matches, new JdbcRecoveryRepository(connections::open, true, memoryBudget),
+			true, clock, true, memoryBudget, server.getMatchSafety());
 		setup.configureStorageAdmission(connections::requireAvailable);
 		SkillUsePreferenceService skillUsePreferences = new SkillUsePreferenceService(
 			new JdbcSkillUsePreferenceRepository(connections::open), new JdbcMatchMembershipRepository(connections::open));

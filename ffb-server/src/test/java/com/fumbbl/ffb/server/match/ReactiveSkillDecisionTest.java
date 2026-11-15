@@ -48,6 +48,21 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class ReactiveSkillDecisionTest {
+    @Test void sizeTerminationClearsAnOptionalReactionAndRestoresTheRecordedReason() throws Exception {
+        SetupSessionMovementTest.Fixture fixture = pushback("Stand Firm", false);
+        fixture.session.expireReactiveDecision(System.currentTimeMillis());
+        assertNotNull(live(fixture.session, "away").get("reaction"));
+        fixture.session.endForSizeLimit(System.currentTimeMillis());
+        JsonObject terminal = live(fixture.session, "away");
+        assertEquals("FULL_TIME", terminal.getString("phase", null));
+        assertEquals("MATCH_SIZE_LIMIT", terminal.getString("stopReason", null));
+        assertNull(terminal.get("reaction"));
+        SetupSession restored = new SetupSession(fixture.server, fixture.document, fixture.session.recoveryArtifact());
+        assertTrue(restored.endedForSizeLimit());
+        assertNull(live(restored, "home").get("reaction"));
+        assertTrue(restored.completedMatch().json().contains("MATCH_SIZE_LIMIT"));
+    }
+
     @Test void nativeTackleAndTentaclesPromptsExposeCalculatedTargetsAndTimeoutAsDeclines() throws Exception {
         for (String name : new String[] {"Diving Tackle", "Tentacles"}) {
             SetupSessionMovementTest.Fixture fixture = fixture(); GameState state = state(fixture.session); Game game = state.getGame();

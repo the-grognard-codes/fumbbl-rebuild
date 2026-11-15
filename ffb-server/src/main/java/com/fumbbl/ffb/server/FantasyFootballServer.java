@@ -22,7 +22,6 @@ import org.eclipse.jetty.server.ServerConnector;
 
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.IOException;
 import java.nio.file.Path;
 import java.util.Map;
 import java.util.Properties;
@@ -75,7 +74,7 @@ public class FantasyFootballServer implements IFactorySource {
 			Integer.parseInt(properties.getProperty(IServerProperty.SERVER_LOG_LEVEL, "1")));
 		fortuna = new Fortuna();
 		Class.forName(getProperty(IServerProperty.DB_DRIVER));
-		matchSafety = new MatchSafetyJournal(Path.of(properties.getProperty("backup.dir", logFolder.getPath()), "match-safety.log"));
+		matchSafety = new MatchSafetyJournal(Path.of(properties.getProperty(IServerProperty.BACKUP_DIR, logFolder.getPath()), "match-safety.json"));
 		communication = new ServerCommunication(this);
 		new Thread(communication, "browser-engine").start();
 		httpServer = new Server();
@@ -124,8 +123,7 @@ public class FantasyFootballServer implements IFactorySource {
 		// An undrained worker still needs socket deadlines. A later successful stop closes them.
 		if (engineStopped && jdbcConnections != null) jdbcConnections.close();
 		if (engineStopped && matchSafety != null) {
-			try { matchSafety.close(); }
-			catch (IOException exception) { if (failure == null) failure = new IllegalStateException("Cannot close match safety log", exception); else failure.addSuppressed(exception); }
+			matchSafety.close();
 		}
 		if (failure != null) throw failure;
 		resourcesStopped = true;

@@ -59,8 +59,9 @@ try {
   }
   console.log('PASS play and builder clear stale authentication errors after reconnect');
   for (const [code, notice] of [
-    ['MATCH_SIZE_LIMIT', 'This match has reached its safe size limit and has been stopped. Other matches are available.'],
-    ['MATCH_QUARANTINED', 'This match is unavailable after a server interruption. It needs administrator review before play can continue.'],
+    ['MATCH_SIZE_LIMIT', 'The safe size limit has been reached for this match. Other matches remain available.'],
+    ['ACCEPTED', 'Match ended at its current score after reaching the safe size limit.'],
+    ['MATCH_QUARANTINED', "This match's automatic reload is paused after a server memory failure. Other matches are available."],
   ]) {
     const page = await browser.newPage();
     const errors = [];
@@ -71,13 +72,18 @@ try {
         if (request.type === 'authenticate') socket.send(JSON.stringify({ version: 2, type: 'authentication',
           requestId: request.requestId, code: 'ACCEPTED', accountId: 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa' }));
         if (request.type === 'setup') socket.send(JSON.stringify({ version: 2, type: 'setupState', requestId: request.requestId,
-          code, duplicate: false, state: null }));
+          code, duplicate: false, state: code === 'ACCEPTED' ? {
+            matchId: request.matchId, revision: 900, callerRole: 'home', actor: 'home', phase: 'FULL_TIME',
+            stopReason: 'MATCH_SIZE_LIMIT', prompt: null, players: [], actions: [], weather: 'NICE',
+            homeRerolls: 0, awayRerolls: 0, turn: 1, turnMode: 'REGULAR', ball: null,
+            activePlayerId: null, half: 1, drive: 1, homeTurn: 1, awayTurn: 0, homeScore: 0, awayScore: 0
+          } : null }));
       });
     });
     await page.route('**/play/match?*', route => route.fulfill({ contentType: 'text/html', body:
       '<div id="app"></div><script type="module">import { mountPlay } from "/src/play-entry.tsx"; mountPlay(document.getElementById("app"), { environment: "dev", url: "ws://127.0.0.1/unused", getToken: async () => "test-token" });</script>' }));
     await page.goto(`http://127.0.0.1:${address.port}/play/match?matchId=12345678-1234-1234-1234-123456789abc`);
-    await page.getByRole('alert').filter({ hasText: notice }).waitFor();
+    await (code === 'ACCEPTED' ? page.getByText(notice, { exact: false }).first() : page.getByRole('alert').filter({ hasText: notice })).waitFor();
     assert.equal(await page.getByRole('button', { name: 'Repeat retained request' }).count(), 0);
     assert.deepEqual(errors, []);
     await page.close();

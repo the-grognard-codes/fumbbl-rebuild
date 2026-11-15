@@ -69,6 +69,10 @@ final class BoundedJsonStorageCodec {
 		budget.requireDecodedBytes(decodedBytes(stored));
 		return decode(stored);
 	}
+	String decodeForActivation(String stored, MatchMemoryBudget budget, String id) {
+		budget.beforeLoad(id, decodedBytes(stored));
+		return decode(stored);
+	}
 
 	long decodedBytes(String stored) {
 		if (stored == null || stored.length() > encodedLimit) throw new IllegalArgumentException("Stored JSON encoded limit");

@@ -207,6 +207,7 @@ public class BrowserMatchTransport {
 			request == null ? null : request.matchId());
 		if (pending.trackedIngress) metrics.ingressDelay(TimeUnit.NANOSECONDS.toMillis(System.nanoTime()) - pending.submittedAt);
 		try (BrowserRequestTiming.Scope ignored = timing.handling(pending.timing, metrics::taskFinished)) {
+			if (server.getMatchSafety() != null) server.getMatchSafety().beginTask(request == null ? null : request.matchId());
 			boolean handled = false;
 			try { pending.work.run(); handled = true; }
 			catch (RuntimeException failure) { handled = true; throw failure; }

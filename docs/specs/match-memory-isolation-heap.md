@@ -62,30 +62,87 @@ exclusive retained heap size. The histogram and ownership paths establish that
 the decoded JSON histories are substantial resident graphs, not merely the
 roughly 1 MiB compressed storage strings.
 
+## Why eight sessions were resident
+
+A targeted field scan found eight entries in `SetupApplication.sessions`, eight
+`lastAccess` entries and zero `pendingCompletions`. All eight native games had
+`fFinished == null`; all eight sessions had `failed == false`. They were
+unfinished cached engines, not completed engines. The anonymous `GameState`
+outer-session reference is a cycle, not an independent root.
+
+The existing cache retained unfinished sessions for thirty minutes and checked
+idle expiry only when another client request arrived. Sequential abandoned games
+could therefore accumulate alongside the growing match. The change runs idle
+cleanup on maintenance ticks and evicts durably checkpointed cold engines under
+memory pressure. Their checkpoints remain available for native restoration.
+
+Separately, source review found that a definitive `MatchService.Failure` from
+result recording retained a terminal engine without scheduling a retry. That
+leak has a failing-before/passing-after regression and is fixed. It does not
+explain the eight unfinished engines in this dump.
+
 ## Budget decision
 
-Reserve `max(32 MiB, heap / 3)` for shared services and ordinary request work.
-Use a conservative **12× decoded-byte allowance** for each admitted session,
-covering its live graph and recovery/serialization copies. Choose:
+Keep the documented **32-slot activation ceiling**. Charge the histories that
+are actually resident, rather than reserving a worst-case history for all slots.
+The same policy instance is injected into the application and both repositories.
 
 ```text
-available = heap - max(32 MiB, heap / 3)
-residentLimit = clamp(floor(available / (32 MiB * 12)), 1, 32)
-decodedLimit = min(32 MiB, floor(available / residentLimit / 12))
-appendThreshold = decodedLimit - 1 MiB
+available = heap * 3/4                       # reserve 1/4 for shared services
+baseline = 32 * 1 MiB
+perMatchDecoded = min(64 MiB, (available - baseline) / 11)
+appendThreshold = perMatchDecoded - min(4 MiB, perMatchDecoded / 8)
+residentCharge(bytes) = max(1 MiB, 4 * bytes)
+workingCharge(bytes) = max(1 MiB, 11 * bytes)
+admit = other resident charges + workingCharge(incoming) <= available
 ```
 
-At `-Xmx768m`, this means **one resident session**, a **32 MiB decoded limit**,
-and a **31 MiB append threshold**. Other matches remain durable and can activate
-when capacity is available; concurrent activation at capacity returns
-`ACTIVATION_LIMIT`. The former 32-session activation promise cannot safely be
-kept with full histories at this heap size. Normal artifacts reported in #554
-were 23–28 MB; the 46.8 MB looping artifact is rejected before decompression.
+At `-Xmx768m`, these give **49.45 MiB decoded** and **45.45 MiB at append**.
+Before decoding a stored record, LRU engines with committed checkpoints can be
+released until admission fits. The current match is excluded from eviction.
+Detached completion retries retain their slot and a baseline memory charge, so
+eviction cannot create an unbounded retry queue. A 33rd occupied slot still
+returns `ACTIVATION_LIMIT`.
 
-This is an admission policy, not a theorem about every possible JSON object
-shape. The regression probe verifies the reported 45 MiB load at the actual
-768 MiB heap, and a live soak checks the real engine path. Heap sizing and the
-serialization/retention operating envelope remain tracked in #548 and #524.
+The 4x retained and 11x working allowances are conservative policy factors,
+calibrated with constrained native-history probes, not inferred from overlapping
+reachable-graph counts. They are not a proof for every arbitrary JSON shape.
+Both factors include native state and history; the working allowance additionally
+covers parsing, serialization and storage buffers. Actual heap use remains
+sensitive to history shape and other shared services.
+
+Normal completed artifacts reported in #554 were 23-28 MB. The append
+threshold is about 47.7 MB, roughly 1.7 times the reported upper normal size. Real eleven-player
+out-and-back setup decisions produced the following probes under `-Xmx768m`:
+
+| Final Unicode workload | Recovery bytes | Result |
+| --- | ---: | --- |
+| 1,552 revisions, plus a retained 13.9 MB native engine | 47,672,358 | Journal reconstruction, exact native restore, serialization, fingerprint, cursor and terminal result passed at 768 MiB |
+| 1,652 revisions, no other resident | 50,735,758 | Same complete pipeline passed below the 51,856,849-byte decoded cap |
+
+The initial ASCII-only probes passed at 49.1/64.4 MB but omitted the expensive
+Unicode journal path. A subsequent live rework run produced a 924,268,866-byte
+OOM dump at 21:09:44 UTC. Its worker stack was `String.getBytes` in
+`RecoveryArtifactJson.encodeText`, called by `RecoveryJournal.restore` and
+`JdbcRecoveryRepository.findJournal`, before native restoration. A targeted
+scan found one unfinished resident, not eight: 21,995,818 decoded bytes,
+8,179,148 replay bytes and 10,371,348 transcript bytes; no pending completions.
+
+That evidence invalidated the 64 MiB proposal. The final code hashes in bounded
+8 KiB encoder writes, avoids artifact-sized UTF-8 arrays in checksums and
+fingerprints, drops consumed checkpoint references, and joins/counts embedded
+replay arrays through streaming parser callbacks without constructing a second
+replay graph. Unicode 60 MiB remained unsafe during native parsing, so the
+working factor was raised to 11 and calibrated against the full Unicode
+checkpoint-plus-journal pipeline. Larger warm engines are evicted before this
+incoming allocation; admitted smaller warm engines remain usable.
+
+Private transcript restore shares semantically equal immutable replay snapshots;
+historic differing projections remain intact. Canonical serialization walks the
+existing graph without deep-cloning it. Stored schema/encoding remain readable.
+These are memory probes, not proof of the two-second live latency target: the
+combined high-history restore/serialize/fingerprint/cursor/termination probe
+still took about 9.8 seconds. Serialization latency remains #548.
 
 ## Snapshot decision and compatibility
 

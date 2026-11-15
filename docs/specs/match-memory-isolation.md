@@ -71,3 +71,14 @@ No single match, however large, can make the game server unavailable to other ma
 ## Completion Notes
 - Unit, browser and game-server build tests should be performed after code changes are complete.
 - Failures in these tests should prompt one or more debug session rounds until the code is clear, a roadblock is encountered, or user input is needed.
+
+## Review correction (PR #559)
+
+The initial one-slot/32 MiB implementation was rejected in review and replaced.
+The final policy preserves 32 slots, uses weighted LRU cache admission and a
+49.45 MiB decoded / 45.45 MiB append limit at the deployed heap. Size termination
+records the current score and leaves the active set. The OOM tracker is advisory,
+uses a bounded maintenance-thread handoff, requires evidence from the prior
+run's exact heap-dump file and delays automatic reloads for at most thirty
+minutes. Ordinary exits and tracking-storage failures do not reject gameplay.
+See the outcome and heap reports above for evidence and limitations.

@@ -2,6 +2,7 @@ package com.fumbbl.ffb.server.local;
 
 import com.fumbbl.ffb.server.FantasyFootballServer;
 import com.fumbbl.ffb.server.net.ServerCommunication;
+import com.fumbbl.ffb.server.match.MatchSafetyJournal;
 import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;
@@ -16,31 +17,34 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.when;
 
 public class BrowserMatchTransportTest {
-	@Test void safetyLogCleanupIsMeasuredAndFailureDoesNotRetainIngressPermits() {
+	@Test void safetyBoundariesAreMeasuredAndUnexpectedCleanupFailureReleasesIngressPermits() {
 		FantasyFootballServer server = mock(FantasyFootballServer.class);
 		ServerCommunication communication = mock(ServerCommunication.class);
-		com.fumbbl.ffb.server.match.MatchSafetyJournal safety = mock(com.fumbbl.ffb.server.match.MatchSafetyJournal.class);
+		MatchSafetyJournal safety = mock(MatchSafetyJournal.class);
 		when(server.getCommunication()).thenReturn(communication);
 		when(server.getMatchSafety()).thenReturn(safety);
 		List<Runnable> queued = new ArrayList<>();
 		when(communication.execute(any(Runnable.class))).thenAnswer(call -> { queued.add(call.getArgument(0)); return true; });
 		AtomicInteger cleanups = new AtomicInteger();
+		doAnswer(call -> { assertTrue(new BrowserRequestTiming().budget() != null); return null; }).when(safety).beginTask(null);
 		doAnswer(call -> {
 			assertTrue(new BrowserRequestTiming().budget() != null, "Cleanup remains inside the measured worker task");
-			if (cleanups.getAndIncrement() == 0) throw new com.fumbbl.ffb.server.match.MatchService.Failure("MATCH_SAFETY_UNAVAILABLE");
+			if (cleanups.getAndIncrement() == 0) throw new IllegalStateException("injected cleanup defect");
 			return null;
 		}).when(safety).finishWork();
 		BrowserMatchTransport transport = new BrowserMatchTransport(server);
 		try {
 			transport.submit(() -> { }, () -> { });
-			assertThrows(com.fumbbl.ffb.server.match.MatchService.Failure.class, () -> queued.get(0).run());
+			assertThrows(IllegalStateException.class, () -> queued.get(0).run());
 			assertEquals(0, transport.getMetrics().toJson().getLong("ingressQueueDepth", -1));
 			transport.submit(() -> { }, () -> { });
 			queued.get(1).run();
 			assertEquals(2, cleanups.get());
+			verify(safety, times(2)).beginTask(null);
 		} finally { transport.destroy(); }
 	}
 	@Test void fatalLogContextFollowsTheSelectedLaneAndOmitsUnvalidatedFields() {
