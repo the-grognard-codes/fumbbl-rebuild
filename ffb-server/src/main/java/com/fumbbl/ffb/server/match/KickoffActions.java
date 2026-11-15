@@ -18,6 +18,7 @@ import com.fumbbl.ffb.net.commands.ClientCommandTouchback;
 import com.fumbbl.ffb.server.GameState;
 import com.fumbbl.ffb.server.match.CoreTurnActions.Action;
 import com.fumbbl.ffb.server.step.StepId;
+import com.fumbbl.ffb.server.step.bb2025.kickoff.StepApplyKickoffResult;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -154,7 +155,9 @@ public final class KickoffActions {
             if (game.getFieldModel().getPlayerState(player).isActive()
                 && FieldCoordinateBounds.FIELD.isInBounds(game.getFieldModel().getPlayerCoordinate(player))) placing.add(player);
         }
-        for (Player<?> player : placing) {
+        boolean exhausted = state.getCurrentStep() instanceof StepApplyKickoffResult kickoff
+            && kickoff.solidDefencePlacementsExhausted();
+        if (!exhausted) for (Player<?> player : placing) {
             for (int x = "home".equals(role) ? 0 : 13; x < ("home".equals(role) ? 13 : 26); x++) for (int y = 0; y < 15; y++) {
                 FieldCoordinate to = new FieldCoordinate(x, y);
                 if (!to.equals(game.getFieldModel().getPlayerCoordinate(player))
@@ -176,6 +179,11 @@ public final class KickoffActions {
             if (game.getFieldModel().getPlayerState(player).getBase() == PlayerState.RESERVE && !FieldCoordinateBounds.FIELD.isInBounds(coordinate)) {
                 reserves.add(player);
             }
+        }
+        if (state.getCurrentStep() instanceof StepApplyKickoffResult kickoff && kickoff.solidDefencePlacementsExhausted()) {
+            actions.add(new Action("confirm-solid-defence", "kickoffChoice", "Confirm Solid Defence", role,
+                new ClientCommandEndTurn(TurnMode.SOLID_DEFENCE, coordinates(game, team, role))));
+            return;
         }
         List<Player<?>> placing = new ArrayList<>(reserves);
         if (placing.isEmpty()) for (Player<?> player : team.getPlayers()) {

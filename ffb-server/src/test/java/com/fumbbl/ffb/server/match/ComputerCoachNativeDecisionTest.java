@@ -29,6 +29,8 @@ import com.fumbbl.ffb.server.step.generator.Sequence;
 import com.eclipsesource.json.JsonArray;
 import com.eclipsesource.json.JsonObject;
 import com.eclipsesource.json.JsonValue;
+import java.io.ByteArrayOutputStream;
+import java.io.PrintStream;
 import java.lang.reflect.Field;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
@@ -46,36 +48,87 @@ import static org.mockito.Mockito.when;
 
 /** Cross-runtime regression: server offers -> shipped Node policy -> accepted native action. Requires Node 26. */
 class ComputerCoachNativeDecisionTest {
+    @Test void genericLimitEndsAChargeActivationWithoutStartingANormalTurn() throws Exception {
+        BogrukEngineFixture fixture = kickoffFixture(KickoffResult.CHARGE);
+        JsonObject view = fixture.reply("away").get("state").asObject();
+        for (int i = 0; "selection".equals(view.get("kickoff").asObject().getString("stage", null)) && i < 10; i++) {
+            JsonObject outcome = choose(view, false, 0.99);
+            view = fixture.apply("away", request(fixture, view, outcome, "charge-select-" + i)).get("state").asObject();
+        }
+        assertEquals("BLITZ", view.getString("turnMode", null));
+        fillDecisionBudget(fixture, view);
+        JsonObject response = fixture.apply("away", request(fixture, view, choose(view, false, 0.99), "charge-limit"));
+        assertEquals("ACCEPTED", response.getString("code", null));
+        assertEquals("KICKOFF", response.get("state").asObject().getString("turnMode", null));
+        assertTrue(response.get("state").asObject().get("kickoff") == null);
+    }
+
+    @Test void genericLimitEndsRepeatedKickoffSelectionsAndLogsThePublicMatchId() throws Exception {
+        for (KickoffResult event : new KickoffResult[] { KickoffResult.CHARGE, KickoffResult.QUICK_SNAP, KickoffResult.SOLID_DEFENCE }) {
+            BogrukEngineFixture fixture = kickoffFixture(event);
+            JsonObject view = fixture.reply("away").get("state").asObject();
+            fillDecisionBudget(fixture, view);
+            JsonObject outcome = choose(view, false, 0.99);
+            JsonObject request = request(fixture, view, outcome, "limit");
+            PrintStream previous = System.err;
+            ByteArrayOutputStream warnings = new ByteArrayOutputStream();
+            JsonObject response;
+            try (PrintStream capture = new PrintStream(warnings, true, StandardCharsets.UTF_8)) {
+                System.setErr(capture);
+                response = fixture.apply("away", request);
+            } finally { System.setErr(previous); }
+            assertEquals("ACCEPTED", response.getString("code", null));
+            assertTrue(response.get("state").asObject().get("kickoff") == null, event + " cannot loop on selection");
+            assertTrue(warnings.toString(StandardCharsets.UTF_8).contains("DECISION_LIMIT matchId=" + fixture.document.matchId));
+        }
+    }
+
+    @Test void genericLimitEndsANormalTurnThroughNativeCleanup() throws Exception {
+        BogrukEngineFixture fixture = kickoffFixture(KickoffResult.CHARGE);
+        GameState state = nativeState(fixture);
+        state.getGame().setTurnMode(TurnMode.REGULAR);
+        state.getGame().setDialogParameter(null);
+        state.getGame().setHomePlaying(true);
+        state.getGame().getTurnDataHome().setTurnNr(1);
+        state.getStepStack().clear();
+        new com.fumbbl.ffb.server.step.generator.bb2025.Select().pushSequence(
+            new com.fumbbl.ffb.server.step.generator.Select.SequenceParams(state, false));
+        state.startNextStep();
+        JsonObject view = fixture.reply("home").get("state").asObject();
+        assertEquals("REGULAR", view.getString("turnMode", null));
+        String role = view.getString("actor", null);
+        fillDecisionBudget(fixture, view);
+        JsonObject select = null;
+        for (JsonValue value : view.get("actions").asArray())
+            if ("select".equals(value.asObject().getString("kind", null))) { select = value.asObject(); break; }
+        assertNotNull(select);
+        JsonObject outcome = choose(view, "home".equals(role), 0.99);
+        outcome.set("decision", new JsonObject().add("operation", "action").add("actionId", select.get("id")));
+        JsonObject result = fixture.apply(role, request(fixture, view, outcome, "normal-limit"));
+        assertEquals("ACCEPTED", result.getString("code", null));
+        assertFalse(role.equals(result.get("state").asObject().getString("actor", null)), "Forced native turn end advances the coach");
+    }
+
+    private void fillDecisionBudget(BogrukEngineFixture fixture, JsonObject view) throws Exception {
+        Field field = SetupSession.class.getDeclaredField("events");
+        field.setAccessible(true);
+        JsonArray events = (JsonArray) field.get(fixture.session);
+        while (events.size() > 0) events.remove(events.size() - 1);
+        JsonObject recorded = new JsonObject().add("kind", "ACTION").add("state", view);
+        for (int i = 0; i < DecisionLimit.MAX_DECISIONS - 1; i++) events.add(recorded);
+    }
+
+    private JsonObject request(BogrukEngineFixture fixture, JsonObject view, JsonObject outcome, String id) {
+        JsonObject request = JsonObject.readFrom(outcome.get("decision").toString()).add("version", 2).add("type", "setup")
+            .add("matchId", fixture.document.matchId).add("requestId", id).add("expectedRevision", view.get("revision"));
+        if ("away".equals(view.getString("callerRole", null))) request.add("computerDecision", new JsonObject()
+            .add("policyVersion", "bogruk-v1").add("reason", outcome.get("reason")).add("nextPolicyState", outcome.get("nextPolicyState")));
+        return request;
+    }
+
     @Test void bogrukParticipatesInEveryOfferedKickoffEventAndFinishesLegally() throws Exception {
         for (KickoffResult event : new KickoffResult[] { KickoffResult.CHARGE, KickoffResult.QUICK_SNAP, KickoffResult.SOLID_DEFENCE }) {
-            BogrukEngineFixture fixture = new BogrukEngineFixture("human", "orc", 42);
-            GameState state = nativeState(fixture);
-            Game game = state.getGame();
-            for (Team team : new Team[] { game.getTeamHome(), game.getTeamAway() }) {
-                int index = 0;
-                for (Player<?> player : team.getPlayers()) {
-                    int homeX = index < 3 ? 12 : 8;
-                    game.getFieldModel().setPlayerCoordinate(player, new FieldCoordinate(team == game.getTeamHome() ? homeX : 25 - homeX,
-                        index < 3 ? 6 + index : index));
-                    game.getFieldModel().setPlayerState(player, new PlayerState(PlayerState.STANDING).changeActive(true));
-                    index++;
-                }
-            }
-            game.setHomePlaying(event == KickoffResult.QUICK_SNAP);
-            game.setTurnMode(TurnMode.KICKOFF);
-            game.setDialogParameter(null);
-            Sequence sequence = new Sequence(state);
-            sequence.add(StepId.APPLY_KICKOFF_RESULT,
-                StepParameter.from(StepParameterKey.GOTO_LABEL_ON_END, "finished"),
-                StepParameter.from(StepParameterKey.GOTO_LABEL_ON_BLITZ, "charge"));
-            StepApplyKickoffResult kickoff = (StepApplyKickoffResult) sequence.getSequence().get(0);
-            kickoff.setParameter(StepParameter.from(StepParameterKey.KICKOFF_RESULT, event));
-            sequence.jump("finished");
-            sequence.add(StepId.BLITZ_TURN, "charge");
-            sequence.add(StepId.COIN_CHOICE, "finished");
-            state.getStepStack().clear();
-            state.getStepStack().push(sequence.getSequence());
-            state.startNextStep();
+            BogrukEngineFixture fixture = kickoffFixture(event);
             JsonObject view = fixture.reply("away").get("state").asObject();
             assertEquals("away", view.get("kickoff").asObject().getString("actor", null), event.name());
             int selections = 0, moves = 0;
@@ -101,7 +154,8 @@ class ComputerCoachNativeDecisionTest {
                 if (view.get("kickoff") == null || view.get("kickoff").isNull()) { finished = true; break; }
             }
             assertTrue(finished, event + " finishes within a bounded number of decisions");
-            assertTrue(moves > 0, event + " takes an offered movement");
+            // Solid Defence can keep a valid formation when none of the canonical empty targets is offered.
+            if (event != KickoffResult.SOLID_DEFENCE) assertTrue(moves > 0, event + " takes an offered movement");
         }
     }
 
@@ -142,6 +196,39 @@ class ComputerCoachNativeDecisionTest {
                     .endsWith(oldBetter ? "injury:old" : "injury:new"));
             }
         }
+    }
+
+
+    private BogrukEngineFixture kickoffFixture(KickoffResult event) throws Exception {
+        BogrukEngineFixture fixture = new BogrukEngineFixture("human", "orc", 42);
+        GameState state = nativeState(fixture);
+        Game game = state.getGame();
+        for (Team team : new Team[] { game.getTeamHome(), game.getTeamAway() }) {
+            int index = 0;
+            for (Player<?> player : team.getPlayers()) {
+                int homeX = index < 3 ? 12 : 8;
+                game.getFieldModel().setPlayerCoordinate(player, new FieldCoordinate(team == game.getTeamHome() ? homeX : 25 - homeX,
+                    index < 3 ? 6 + index : index));
+                game.getFieldModel().setPlayerState(player, new PlayerState(PlayerState.STANDING).changeActive(true));
+                index++;
+            }
+        }
+        game.setHomePlaying(event == KickoffResult.QUICK_SNAP);
+        game.setTurnMode(TurnMode.KICKOFF);
+        game.setDialogParameter(null);
+        Sequence sequence = new Sequence(state);
+        sequence.add(StepId.APPLY_KICKOFF_RESULT,
+            StepParameter.from(StepParameterKey.GOTO_LABEL_ON_END, "finished"),
+            StepParameter.from(StepParameterKey.GOTO_LABEL_ON_BLITZ, "charge"));
+        StepApplyKickoffResult kickoff = (StepApplyKickoffResult) sequence.getSequence().get(0);
+        kickoff.setParameter(StepParameter.from(StepParameterKey.KICKOFF_RESULT, event));
+        sequence.jump("finished");
+        sequence.add(StepId.BLITZ_TURN, "charge");
+        sequence.add(StepId.COIN_CHOICE, "finished");
+        state.getStepStack().clear();
+        state.getStepStack().push(sequence.getSequence());
+        state.startNextStep();
+        return fixture;
     }
 
     private JsonObject promptView(BogrukEngineFixture fixture, IDialogParameter dialog) throws Exception {

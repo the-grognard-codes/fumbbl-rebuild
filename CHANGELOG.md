@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Bound Solid Defence redeployment and kick-off decision loops, let the computer coach finish Solid Defence and Charge without retained plans, and force runaway turns to end with match-specific diagnostics.
+
 - Reject checkpoint diagnostics with missing fixture files and accept the zero-decision baseline regardless of fixture order.
 
 - Report checkpoint p95 only with at least 20 samples and reject incomplete or duplicate diagnostic cohorts.

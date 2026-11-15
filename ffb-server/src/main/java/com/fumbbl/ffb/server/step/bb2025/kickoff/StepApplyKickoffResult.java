@@ -113,6 +113,49 @@ public final class StepApplyKickoffResult extends AbstractStep {
 		return StepId.APPLY_KICKOFF_RESULT;
 	}
 
+    /** One placement and one correction per selected player, including swaps. */
+    public int solidDefencePlacementLimit() {
+        return 2 * selectedPlayers.size();
+    }
+
+    public boolean solidDefencePlacementsExhausted() {
+        return nrOfMovedPlayers >= solidDefencePlacementLimit();
+    }
+
+    public int solidDefenceCompleted() {
+        // Older native checkpoints did not count Solid Defence placements.
+        if (nrOfMovedPlayers == 0) return 0;
+        Game game = getGameState().getGame();
+        return (int) selectedPlayers.stream().filter(player -> playersAtCoordinates.containsKey(player.getId())
+            && !playersAtCoordinates.get(player.getId()).equals(game.getFieldModel().getPlayerCoordinate(player))).count();
+    }
+
+    public String endAtDecisionLimit() {
+        Game game = getGameState().getGame();
+        if (game.getTurnMode() == TurnMode.SOLID_DEFENCE) {
+            restoreInvalidSolidDefence();
+            leaveSolidDefence(game);
+        } else if (game.getTurnMode() == TurnMode.QUICK_SNAP) {
+            endQuickSnap(game);
+        }
+        UtilServerDialog.hideDialog(getGameState());
+        return fGotoLabelOnEnd;
+    }
+
+    /** A bounded edit must never strand a coach in an illegal, unconfirmable formation. */
+    private void restoreInvalidSolidDefence() {
+        Game game = getGameState().getGame();
+        MechanicsFactory factory = game.getFactory(FactoryType.Factory.MECHANIC);
+        SetupMechanic mechanic = (SetupMechanic) factory.forName(Mechanic.Type.SETUP.name());
+        if (!mechanic.checkSetup(getGameState(), game.isHomePlaying(), getGameState().getKickingSwarmers())) {
+            for (Player<?> player : selectedPlayers) {
+                FieldCoordinate original = playersAtCoordinates.get(player.getId());
+                if (original != null) game.getFieldModel().setPlayerCoordinate(player, original);
+            }
+        }
+        UtilServerDialog.hideDialog(getGameState());
+    }
+
 	@Override
 	public void init(StepParameterSet pParameterSet) {
 		if (pParameterSet != null) {
@@ -179,8 +222,21 @@ public final class StepApplyKickoffResult extends AbstractStep {
 						commandStatus = StepCommandStatus.EXECUTE_STEP;
 					} else if (getGameState().getGame().getTurnMode() == TurnMode.SOLID_DEFENCE) {
                         Game game = getGameState().getGame();
+                        if (solidDefencePlacementsExhausted()) {
+                            restoreInvalidSolidDefence();
+                            fEndKickoff = true;
+                            executeStep();
+                            return StepCommandStatus.SKIP_STEP;
+                        }
                         if (!pitchRedeployment) {
+                            Player<?> legacyPlayer = game.getPlayerById(setupPlayerCommand.getPlayerId());
+                            if (!selectedPlayers.contains(legacyPlayer)) return StepCommandStatus.SKIP_STEP;
+                            FieldCoordinate before = legacyPlayer == null ? null : game.getFieldModel().getPlayerCoordinate(legacyPlayer);
                             UtilServerSetup.setupPlayer(getGameState(), setupPlayerCommand.getPlayerId(), setupPlayerCommand.getCoordinate());
+                            if (legacyPlayer != null && !java.util.Objects.equals(before, game.getFieldModel().getPlayerCoordinate(legacyPlayer))) {
+                                nrOfMovedPlayers++;
+                                if (solidDefencePlacementsExhausted()) restoreInvalidSolidDefence();
+                            }
                             return StepCommandStatus.SKIP_STEP;
                         }
                         Player<?> player = game.getPlayerById(setupPlayerCommand.getPlayerId());
@@ -192,8 +248,11 @@ public final class StepApplyKickoffResult extends AbstractStep {
                         Player<?> occupant = game.getFieldModel().getPlayer(to);
                         if (occupant != null && !selectedPlayers.contains(occupant)) return StepCommandStatus.SKIP_STEP;
                         FieldCoordinate from = game.getFieldModel().getPlayerCoordinate(player);
+                        if (to.equals(from)) return StepCommandStatus.SKIP_STEP;
                         game.getFieldModel().setPlayerCoordinate(player, to);
                         if (occupant != null && occupant != player) game.getFieldModel().setPlayerCoordinate(occupant, from);
+                        nrOfMovedPlayers++;
+                        if (solidDefencePlacementsExhausted()) restoreInvalidSolidDefence();
                         commandStatus = StepCommandStatus.SKIP_STEP;
 					} else {
                         Game current = getGameState().getGame();

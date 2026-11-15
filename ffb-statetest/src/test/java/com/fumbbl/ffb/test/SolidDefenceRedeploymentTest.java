@@ -10,9 +10,11 @@ import com.fumbbl.ffb.kickoff.bb2025.KickoffResult;
 import com.fumbbl.ffb.model.Game;
 import com.fumbbl.ffb.model.Player;
 import com.fumbbl.ffb.net.commands.ClientCommandPlayerChoice;
+import com.fumbbl.ffb.net.commands.ClientCommandSetupPlayer;
 import com.fumbbl.ffb.server.GameState;
 import com.fumbbl.ffb.server.match.CoreTurnActions.Action;
 import com.fumbbl.ffb.server.match.KickoffActions;
+import com.fumbbl.ffb.server.net.ReceivedCommand;
 import com.fumbbl.ffb.server.step.StepParameter;
 import com.fumbbl.ffb.server.step.StepParameterKey;
 import com.fumbbl.ffb.server.step.StepParameterSet;
@@ -26,6 +28,55 @@ import java.util.List;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 class SolidDefenceRedeploymentTest {
+    @Test void repeatingPlacementsExhaustsTheBudgetAndLeavesOnlyConfirmEvenAfterRecovery() throws Exception {
+        for (boolean home : new boolean[] { true, false }) {
+            int line = home ? 12 : 13;
+            GameState state = new GameStateBuilder(new TestServer().getGameState()).withRule("BB2025").withWeather(Weather.NICE)
+                .withTeam(home, team -> {
+                    for (int i = 0; i < 3; i++) {
+                        final int row = i + 5;
+                        team.player("own" + i, player -> player.at(line, row).stats(6, 3, 3, 4, 9));
+                    }
+                }).withTeam(!home, team -> team.player("opponent", player -> player.at(home ? 20 : 5, 7).stats(6, 3, 3, 4, 9))).build();
+            Game game = state.getGame();
+            game.setHomePlaying(home);
+            game.setTurnMode(TurnMode.KICKOFF);
+            StepApplyKickoffResult kickoff = new StepApplyKickoffResult(state);
+            StepParameterSet parameters = new StepParameterSet();
+            parameters.add(StepParameter.from(StepParameterKey.GOTO_LABEL_ON_END, "end"));
+            parameters.add(StepParameter.from(StepParameterKey.GOTO_LABEL_ON_BLITZ, "blitz"));
+            kickoff.init(parameters);
+            kickoff.setParameter(StepParameter.from(StepParameterKey.KICKOFF_RESULT, KickoffResult.SOLID_DEFENCE));
+            state.getStepStack().push(kickoff);
+            TestRolls.on(state).general(1);
+            StepEngine.start(state);
+            StepEngine.respond(state, new ClientCommandPlayerChoice(PlayerChoiceMode.SOLID_DEFENCE,
+                new Player<?>[] { game.getPlayerById("own0") }), home);
+            com.eclipsesource.json.JsonObject legacySaved = kickoff.toJsonValue();
+            legacySaved.remove("pitchRedeployment");
+            StepApplyKickoffResult legacy = new StepApplyKickoffResult(state).initFrom(game.getRules(), legacySaved);
+            FieldCoordinate fixed = game.getFieldModel().getPlayerCoordinate(game.getPlayerById("own1"));
+            FieldCoordinate illegal = new FieldCoordinate(line, 10);
+            legacy.handleCommand(new ReceivedCommand(new ClientCommandSetupPlayer("own1", home ? illegal : illegal.transform()), home));
+            assertEquals(fixed, game.getFieldModel().getPlayerCoordinate(game.getPlayerById("own1")),
+                "Legacy checkpoints cannot spend placement edits moving unselected players");
+            perform(state, home, "solid-place:own0:" + line + ":8");
+            assertEquals(1, kickoff.solidDefenceCompleted());
+            // The last placement makes the formation illegal. The bound restores the valid original.
+            perform(state, home, "solid-place:own0:" + (home ? 8 : 17) + ":8");
+            assertEquals(new FieldCoordinate(line, 5), game.getFieldModel().getPlayerCoordinate(game.getPlayerById("own0")));
+            assertEquals(2, kickoff.toJsonValue().getInt("nrOfPlayers", -1));
+            StepApplyKickoffResult restored = new StepApplyKickoffResult(state).initFrom(game.getRules(), kickoff.toJsonValue());
+            assertTrue(restored.solidDefencePlacementsExhausted(), "Reload must not replenish the placement allowance");
+            List<Action> actions = new KickoffActions(state).actions();
+            assertEquals(1, actions.size());
+            assertEquals("confirm-solid-defence", actions.get(0).id);
+            if (home) perform(state, true, "confirm-solid-defence");
+            else StepEngine.respond(state, new ClientCommandSetupPlayer("own0", new FieldCoordinate(line, 8).transform()), false);
+            assertEquals(TurnMode.KICKOFF, game.getTurnMode());
+        }
+    }
+
     @Test void everySelectedPlayerCanRedeployInAnyOrderForEitherCoach() throws Exception {
         for (boolean home : new boolean[] { true, false }) {
             TestServer server = new TestServer();

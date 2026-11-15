@@ -41,6 +41,7 @@ import com.fumbbl.ffb.server.FantasyFootballServer;
 import com.fumbbl.ffb.server.GameState;
 import com.fumbbl.ffb.server.factory.SequenceGeneratorFactory;
 import com.fumbbl.ffb.server.match.CoreTurnActions.Action;
+import com.fumbbl.ffb.server.match.bb2025.DecisionPeriodEnd;
 import com.fumbbl.ffb.server.match.bb2025.SkillMarkerProjection;
 import com.fumbbl.ffb.server.mechanic.SetupMechanic;
 import com.fumbbl.ffb.server.net.ReceivedCommand;
@@ -1376,6 +1377,22 @@ public final class SetupSession {
 
     private void recordEvent(String kind, String role, JsonValue decision, NativeRollPresentation rollPresentation) {
         JsonObject snapshot = view("home").set("actions", new JsonArray()).set("prompt", JsonValue.NULL);
+        if (("ACTION".equals(kind) || "SELECTION".equals(kind)) && new DecisionLimit().reached(events, snapshot)) {
+            System.err.println("DECISION_LIMIT matchId=" + matchId + " limit=" + DecisionLimit.MAX_DECISIONS);
+            pendingRoute = null;
+            pendingActivation = null;
+            kickoffSelection.clear();
+            JsonValue kickoff = snapshot.get("kickoff");
+            boolean charge = kickoff != null && kickoff.isObject() && "CHARGE".equals(kickoff.asObject().getString("event", null));
+            int halfBefore = state.getGame().getHalf(), scoreBefore = homeScore() + awayScore();
+            new DecisionPeriodEnd().finish(state,
+                reactiveDecision.pending() ? reactiveDecision.normalHome() : state.getGame().isHomePlaying(), charge);
+            if (!isComplete() && (halfBefore != state.getGame().getHalf() || scoreBefore != homeScore() + awayScore())) drive++;
+            confirmedKickoff = null;
+            if (defaultSetup && step() == StepId.SETUP) deployDefaultSetup();
+            refreshReaction(System.currentTimeMillis());
+            snapshot = view("home").set("actions", new JsonArray()).set("prompt", JsonValue.NULL);
+        }
         snapshot.remove("savedFormations");
         if (computerPolicy != null) computerPolicy.observe(snapshot,
             reactiveDecision.pending() ? reactiveDecision.normalHome() : state.getGame().isHomePlaying());
