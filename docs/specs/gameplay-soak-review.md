@@ -257,8 +257,13 @@ Server warnings over the run: 21 `COMPLETION_PENDING`, 12 `match-load`,
 checkpoint's budget (queue it with `queueCompletion` on `CompletionPending`, and
 publish the terminal state, or a pending notice, immediately), and/or skip the
 redundant pre-completion checkpoint when the session is complete. Acceptance:
-a re-run shows no `COMPLETION_PENDING` that survives more than one worker tick
-and no frozen final board.
+a re-run counts server `COMPLETION_DEFERRED phase=completion` deferrals plus
+`COMPLETION_RETRY phase=pending-completion` retry lines, correlated by matchId,
+and shows no deferral surviving more than one healthy worker tick, no held
+"Repeat retained request" after full time, and no frozen final board.
+`COMPLETION_TERMINAL` / `COMPLETION_REJECTED` require investigation, not a
+successful drain. The client wire code `COMPLETION_PENDING` is unchanged and
+must not be used as the renamed server-log counter.
 
 ### Latency (indicative)
 
