@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Report checkpoint p95 only with at least 20 samples and reject incomplete or duplicate diagnostic cohorts.
+
 - Log match persistence failures with request and SQL diagnostics. Computer coaches reload and retry transient failures with bounded backoff.
 
 - Restore long matches from durable state after a refused checkpoint write. Cold loads defer recording abandonment to the next request, and failed final result writes retry with increasing delays without waiting for coaches to reconnect.

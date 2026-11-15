@@ -10,7 +10,7 @@ is justified by this run, so none is included.
 Source: `65ed24fdb7f242645d5c4673a3aebce7b4b92110`. The retained numeric evidence
 is [checkpoint-2026-11-14-results.json](checkpoint-2026-11-14-results.json),
 including source, harness, runner and analyzer hashes, runtime settings,
-per-cohort first/warm median/p95/max and each slowest phase vector. No service
+per-cohort first/warm median/p95/max (p95 omitted below n=20) and each slowest phase vector. No service
 was started or served, so there is no served-artifact identity. Raw fixtures,
 payloads and process logs remain private in the ignored overnight directory.
 
@@ -39,11 +39,18 @@ providers, transport and browser costs are excluded; checkpointStoreMs describes
 only that seam. Other local validation ran concurrently, so absolute timings are
 descriptive and not an isolated-machine or physical-device benchmark. Nested
 phase durations overlap and must not be summed. Cohort-first n=3 and warm n=24
-are reported explicitly; their p95 values do not establish long-term tails.
+are reported explicitly. Cohort-first p95 is n/a (JSON null) below n=20;
+warm n=24 p95 remains descriptive and does not establish long-term tails.
 
 ## Observations
 
 Median complete handling time (ms):
+
+The artifact byte counts are committed as `startingFixtures` in the numeric
+results. The handling medians are the warm rows' `phases.handlingMs.median` in
+that same file. These replace the formerly implicit sources `fixtures.json`
+and `summary.json` from the private `489-measured` run; no private fixture
+payload, local path or player/account identity is included.
 
 | Added decisions | Artifact MiB | Move append | Pass append | Move compaction | Pass compaction |
 | ---: | ---: | ---: | ---: | ---: | ---: |
@@ -65,6 +72,15 @@ serialization is now the dominant measured compaction phase. This identifies
 history sensitivity, not the cause/frequency of the live end-match outlier.
 The in-memory store cannot attribute the soak's 29.8 ms CHECKPOINT_STORE mean.
 
+Live soak artifacts are about 0.7 MiB at revision ~450, between these 0- and
+128-decision fixtures. At that size this harness measures warm serialization
+medians of 7–35 ms, against a live mean of 45.8 ms and ~1 s single checkpoints
+at match end. History growth therefore does not explain the latest soak. The
+1,000 ms discriminator cannot fire for the likely live SQL/completion causes:
+this harness has neither SQL nor the completion path. The retained attempt
+meets the unresolved-investigation part of criterion 1, not a reproduction or
+explanation of that live path. #548 owns the follow-up measurements.
+
 ## Reproduce
 
 Configure the pinned toolchain using tools/bootstrap.ps1 and a supported JDK 21.
@@ -84,7 +100,9 @@ The growth command exits 1 on the reproduced compaction growth. The checkpoint
 command exits 1 when its threshold is exceeded; this run exits 0 and explicitly
 reports “not reproduced.” The new analyzer retains first samples and slow phase
 vectors instead of discarding warm-up evidence. An independent Python check
-verified every count, median, nearest-rank p95 and maximum against raw samples.
+verified every count, median, eligible nearest-rank p95 and maximum against raw samples.
+Malformed duplicate/missing cohorts, invalid sample counts, verification row
+counts and repeated options are rejected with a usage message for bad options.
 
 No production Java or browser source changed. Full Maven clean install results
 are recorded in the PR. Pending: correlate the actual slow action with a bounded
