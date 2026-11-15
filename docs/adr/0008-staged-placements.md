@@ -2,6 +2,7 @@
 
 Status: accepted on 2026-11-15.
 Approval: [maintainer acceptance](../specs/staged-placements-adr.md#maintainer-acceptance)
+Amended: 2026-11-15, adjustment limit ([maintainer decision](../specs/staged-placements-adr.md#amendment-2026-11-15-adjustment-limit))
 Date: 2026-11-15
 Issue: [#555](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/555)
 Request: [staged placements ADR request](../specs/staged-placements-adr.md)
@@ -93,9 +94,21 @@ Replays and the match transcript record only confirmed states. A replay shows a 
 
 ### Limits
 
-Rules limits still apply to every staged action, for example Solid Defence's player count. A placement beyond a limit is rejected with `INVALID_OPTION` and broadcasts nothing.
+**Rules limits.** Rules limits still apply to every staged action, for example Solid Defence's player count. A placement that breaks a rules limit is rejected with `INVALID_OPTION` and broadcasts nothing.
 
-**Loop guard.** Each stage also has a fixed limit on staged actions, set in the implementation and stated in its outcome. After that limit, only confirm (or decline or end) is offered. This complements #553's policy fix. Staged actions are already cheap, but the guard keeps a looping coach from monopolising the worker or the broadcast channel.
+**Adjustment limit (amended 2026-11-15).** This is a technical safety net against runaway loops (#553), not a BB2025 rule: the tabletop rules limit which players move, not how often a coach rearranges them.
+- **Kick-off events:** each kick-off-event stage allows at most **50 adjustments**. That covers Solid Defence, Quick Snap and High Kick movement, and the selection toggles for those events and Charge.
+  - **What counts:** each accepted placement, swap, move to reserves or selection toggle.
+  - **Who it applies to:** all coaches, human and computer alike.
+  - **Size:** the limit is set high enough that a coach rearranging by hand never reaches it in normal play.
+- **Setup:** the setup-stage limit is set by the implementation and stated in its outcome. It must leave room to place a full team and rearrange it.
+- **When the limit is reached:**
+  1. Further adjustments are no longer offered. Confirm (or decline or end) remains available.
+  2. An adjustment sent anyway is rejected with `INVALID_OPTION`, and broadcasts and records nothing. It never ends the stage by itself.
+  3. If the positions are illegal when the limit is reached, the board reverts to the stage's base positions, which are always legal. Confirm is then offered. This is the same revert rule that clock expiry uses for kick-off events (above).
+- **Where the counter lives:**
+  - **Until #556 lands:** the counter lives on the native kick-off step (#553, PR #558) and survives checkpoint restore.
+  - **With #556:** staged actions bypass the native step and the recorded events, so the counter moves into the staging layer. The emergency accepted-decision guard of #553 then counts staged actions too.
 
 ### Budget
 

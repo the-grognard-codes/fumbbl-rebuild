@@ -11,6 +11,21 @@ Implementation: [issue #556](https://github.com/the-grognard-codes/fumbbl-rebuil
 
 On 2026-11-15 the maintainer reviewed draft PR [#557](https://github.com/the-grognard-codes/fumbbl-rebuild/pull/557) in conversation with the reviewer, and accepted ADR 0008 as drafted: "Draft looks perfect, accepted." All three open decisions were resolved beforehand (below). With acceptance, the glossary and architecture-map invariant drafts were applied, and #556 was unblocked.
 
+## Amendment 2026-11-15: adjustment limit
+
+The review of PR [#558](https://github.com/the-grognard-codes/fumbbl-rebuild/pull/558) (#553) found two problems:
+- **Not a rule.** Its cap of `2 × selected` placement edits was not a BB2025 rule, and could stop a human coach mid-arrangement.
+- **Conflict with ADR 0008.** At the cap, the PR ended the event, which conflicted with ADR 0008's "rejected with `INVALID_OPTION`".
+
+The maintainer decided:
+- **Limit:** "Make the limit of adjustments 50". It is a flat technical safety net per kick-off-event stage, not a rules limit.
+- **At the limit** ("I agree with the fallback process"):
+  - adjustments are no longer offered
+  - an adjustment sent anyway is rejected with `INVALID_OPTION` and never ends the stage
+  - if the positions are illegal at the limit, the board reverts to the stage's base positions, and confirm is offered
+
+ADR 0008's Limits section was amended accordingly.
+
 ## Objective
 
 Decide that placement-style actions are **staged**:
