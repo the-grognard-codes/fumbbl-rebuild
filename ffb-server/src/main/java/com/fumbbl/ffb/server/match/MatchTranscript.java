@@ -7,8 +7,8 @@ import com.eclipsesource.json.JsonValue;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.List;
 import java.util.HashSet;
+import java.util.List;
 
 /** Bounded public record of accepted decisions and the native outcomes they caused. */
 final class MatchTranscript {
@@ -87,7 +87,7 @@ final class MatchTranscript {
         nativeCursor = cursor;
     }
 
-    /** Materialize frozen history only for a checkpoint or result, rather than retaining its expanded graph. */
+    /** Materialize frozen history for validation or serialization without retaining its expanded graph. */
     JsonObject json() { return jsonFrom(0); }
 
     JsonObject jsonFrom(int from) {

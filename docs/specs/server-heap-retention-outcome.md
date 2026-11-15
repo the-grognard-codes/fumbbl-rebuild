@@ -67,7 +67,8 @@ materialize the required JSON at the serialization boundary. Existing recovery,
 replay and completed-result versions/shapes, byte limits, idempotency, engine
 authority, durable acceptance and session activation limits are unchanged.
 
-SessionRetentionMemoryTest launches isolated SerialGC JVMs and records after-GC
+SessionRetentionMemoryTest is opt-in (`SESSION_RETENTION_MEMORY_RUN=1`) and
+launches isolated SerialGC JVMs and records after-GC
 whole-heap deltas. Each session makes 450 real legal out-and-back native setup
 placements on a 22-player roster, freezing native log entries as production
 does. This is controlled retained history, not 450 natural match turns.
@@ -85,6 +86,19 @@ test infrastructure are included in these deltas; they are not MAT exclusive
 retained sizes or a universal 64 MiB allowance for every possible history.
 The eight-session after-GC ceiling is 256 MiB within a 384 MiB process.
 
+Against the production 32-session activation cap, the measured eight-resident
+delta averages 13,954,504 bytes (13.31 MiB) per resident. Assuming the same fixture
+shape and linear scaling, 32 residents project to 446,544,128 bytes (425.9 MiB)
+above startup baseline. This is an empirical projection, not a retained-heap
+guarantee: setup-only records understate natural in-play records, the probe uses
+independent applications, and production native/publication/infrastructure and
+transient serialization graphs also need heap. The asserted 64 MiB one-session
+ceiling alone would permit 2,048 MiB at the 32-session cap, and the eight-session
+256 MiB ceiling scales to 1,024 MiB; neither proves all 32 fit in `-Xmx768m`.
+The current tested bounds therefore protect these controlled fixtures only.
+Natural completed/abandoned AI sequencing and the long 768 MiB soak remain
+required before claiming cap-wide safety; heap and activation cap are unchanged.
+
 The sequence holds eight independent application fixtures in one JVM. Four
 sessions complete via a real native concession and full completedMatch()
 materialization; four expire through real 31-minute idle eviction. Persistence
@@ -100,8 +114,13 @@ graphs collect. No production cleanup was added for test-double references.
 Run the committed regression in an isolated worktree with the pinned toolchain:
 
 ```powershell
+$env:SESSION_RETENTION_MEMORY_RUN = '1'
 mvn -pl ffb-server -am -Dtest=SessionRetentionMemoryTest -Dsurefire.failIfNoSpecifiedTests=false test
 ```
+
+Without that environment variable, plain `mvn test` skips this class before
+launching any of its three child JVMs. The launcher chooses `java.exe` on Windows
+and `java` elsewhere.
 
 For a before run, copy only the two new SessionRetentionMemory test/probe files
 into a separate baseline worktree, compile against its unchanged Java classes,

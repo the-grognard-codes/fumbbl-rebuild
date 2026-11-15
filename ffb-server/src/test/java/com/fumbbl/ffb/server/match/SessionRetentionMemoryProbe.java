@@ -4,6 +4,7 @@ import com.fumbbl.ffb.FieldCoordinate;
 import com.fumbbl.ffb.FieldCoordinateBounds;
 import com.fumbbl.ffb.model.Game;
 import com.fumbbl.ffb.model.Player;
+import com.fumbbl.ffb.server.FantasyFootballServer;
 import com.fumbbl.ffb.server.GameState;
 
 import com.eclipsesource.json.JsonObject;
@@ -23,8 +24,8 @@ import java.util.concurrent.atomic.AtomicLong;
 
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.clearInvocations;
+import static org.mockito.Mockito.framework;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.when;
 
 /** Isolated JVM: real legal retained setup history, native concession/result materialization and application release. */
@@ -39,7 +40,7 @@ public final class SessionRetentionMemoryProbe {
 		SetupApplication application = resident.application;
 		WeakReference<SetupSession> released = release(resident, arguments[0]);
 		resident = null;
-		org.mockito.Mockito.framework().clearInlineMocks();
+		framework().clearInlineMocks();
 		for (int attempt = 0; attempt < 10 && (released.get() != null || parts.stream().anyMatch(part -> part.get() != null)); attempt++) { used(); Thread.sleep(20); }
 		if (released.get() != null || parts.stream().anyMatch(part -> part.get() != null) || application.lifecycleMetrics().getInt("residentSessions", -1) != 0)
 			throw new AssertionError("Application retained its released late session");
@@ -62,7 +63,7 @@ public final class SessionRetentionMemoryProbe {
 			references.add(release(resident, index % 2 == 0 ? "completion" : "idle"));
 			residents.set(index, null);
 		}
-		org.mockito.Mockito.framework().clearInlineMocks();
+		framework().clearInlineMocks();
 		for (int attempt = 0; attempt < 10; attempt++) {
 			used(); Thread.sleep(20);
 			if (references.stream().allMatch(reference -> reference.get() == null)
@@ -91,7 +92,7 @@ public final class SessionRetentionMemoryProbe {
 	}
 
 	private record Resident(SetupApplication application, SetupSession session, MatchService matches,
-		com.fumbbl.ffb.server.FantasyFootballServer server, AtomicLong now, String id) { }
+		FantasyFootballServer server, AtomicLong now, String id) { }
 
 	private static Resident lateResident() throws Exception {
 		SetupSessionMovementTest.Fixture fixture = new SetupSessionMovementTest.Fixture(0, true);

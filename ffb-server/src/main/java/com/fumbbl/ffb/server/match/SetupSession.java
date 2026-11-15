@@ -53,6 +53,7 @@ import com.fumbbl.ffb.server.team.bb2025.TeamFormations;
 import com.fumbbl.ffb.server.util.UtilSkillBehaviours;
 import com.fumbbl.ffb.util.UtilBox;
 
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
@@ -355,7 +356,7 @@ public final class SetupSession {
 			for (JsonValue selection : payload.get("kickoffSelection").asArray()) kickoffSelection.add(selection.asString());
 			for (JsonValue event : JsonArray.readFrom(payload.get("eventsJson").asString())) {
 				events.add(event.toString());
-				replayBytes += event.toString().getBytes(java.nio.charset.StandardCharsets.UTF_8).length;
+				replayBytes += event.toString().getBytes(StandardCharsets.UTF_8).length;
 			}
 			if (replayBytes > MAX_MATCH_ARTIFACT_BYTES || events.size() != revision + 1
 				|| payload.get("pendingTerminal").asBoolean() != isComplete()) throw new IllegalArgumentException("Recovery event boundary");
@@ -620,7 +621,7 @@ public final class SetupSession {
 	private void requestProposal(String role, String requestId, String intent, long now) {
 		if (saveResumeState.proposal != null) throw new MatchService.Failure("SAVE_PROPOSAL_PENDING");
 		String proposalId = java.util.UUID.nameUUIDFromBytes((matchId + "\n" + role + "\n" + requestId + "\n" + intent)
-			.getBytes(java.nio.charset.StandardCharsets.UTF_8)).toString();
+			.getBytes(StandardCharsets.UTF_8)).toString();
 		saveResumeState.proposal = new Proposal(proposalId, intent, role, revision, now, now + SaveResumeState.PROPOSAL_MILLIS);
 		saveResumeState.lastPlayerActivityAt = now;
 	}
@@ -1382,7 +1383,7 @@ public final class SetupSession {
         snapshot.remove("blockPreview"); // Proposals are never part of recorded replay presentation.
         JsonObject event = new JsonObject().add("revision", revision).add("kind", kind).add("state", snapshot);
         String encodedEvent = event.toString();
-        replayBytes += encodedEvent.getBytes(java.nio.charset.StandardCharsets.UTF_8).length;
+        replayBytes += encodedEvent.getBytes(StandardCharsets.UTF_8).length;
         events.add(encodedEvent);
         if (transcriptV2) {
             NativeOutcomeCapture.Capture capture = new NativeOutcomeCapture().since(state.getGameLog(), transcript.nativeCursor(), rollPresentation);
@@ -1431,7 +1432,7 @@ public final class SetupSession {
 	private long artifactBytes() {
 		long total = replayBytes;
 		if (transcriptV2) total += transcript.bytes();
-		if (chatV1) total += chat.json().toString().getBytes(java.nio.charset.StandardCharsets.UTF_8).length;
+		if (chatV1) total += chat.json().toString().getBytes(StandardCharsets.UTF_8).length;
 		return total;
 	}
 	/** A revision-bound forecast; neither the engine nor the checkpoint is changed. */

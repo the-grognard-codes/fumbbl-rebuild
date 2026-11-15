@@ -98,22 +98,13 @@ final class DriveTrackerPresentation {
             }
             Reports added = new Reports();
             added.readSyncs(record.get("native").asArray());
-            reports.secretWeapons |= added.secretWeapons;
-            reports.knockouts |= added.knockouts;
-            // The original reverse scan lets the earliest record containing an event win.
-            if (reports.event == null) reports.event = added.event;
+            reports.mergeEarliest(added);
         }
 
         String firstSetupActor(int requestedDrive) { return requestedDrive == drive ? firstSetupActor : null; }
 
         Reports reports(int requestedDrive) {
-            Reports result = new Reports();
-            if (requestedDrive == drive) {
-                result.secretWeapons = reports.secretWeapons;
-                result.knockouts = reports.knockouts;
-                result.event = reports.event;
-            }
-            return result;
+            return requestedDrive == drive ? reports.copy() : new Reports();
         }
     }
 
@@ -121,6 +112,19 @@ final class DriveTrackerPresentation {
         boolean secretWeapons;
         boolean knockouts;
         String event;
+
+        void mergeEarliest(Reports added) {
+            secretWeapons |= added.secretWeapons;
+            knockouts |= added.knockouts;
+            // The original reverse scan lets the earliest record containing an event win.
+            if (event == null) event = added.event;
+        }
+
+        Reports copy() {
+            Reports result = new Reports();
+            result.mergeEarliest(this);
+            return result;
+        }
 
         void readSyncs(JsonArray syncs) {
             for (JsonValue value : syncs) readSync(value.asObject());
