@@ -161,7 +161,7 @@ class SetupApplicationJournalTest {
 	}
 
 	private static final class SaveFault {
-		boolean permits(String failure) throws SQLException {
+		private static boolean permits(String failure) throws SQLException {
 			if ("RECOVERY_CONFLICT".equals(failure)) return false;
 			if ("PERSISTENCE_FAILED".equals(failure)) throw new SQLException("Injected checkpoint failure");
 			return true;
@@ -194,7 +194,7 @@ class SetupApplicationJournalTest {
 		@Override public boolean save(Record next, long expected) throws SQLException {
 			assertEquals(generation, expected);
 			saveAttempts++;
-			if (!new SaveFault().permits(saveFailure)) return false;
+			if (!SaveFault.permits(saveFailure)) return false;
 			checkpoint = next;
 			generation = next.generation;
 			entries.clear();
@@ -268,7 +268,7 @@ class SetupApplicationJournalTest {
 		@Override public boolean save(Record next, long expected) throws SQLException {
 			assertEquals(record.generation, expected);
 			saveAttempts++;
-			if (!new SaveFault().permits(saveFailure)) return false;
+			if (!SaveFault.permits(saveFailure)) return false;
 			record = next;
 			saves++;
 			return true;
