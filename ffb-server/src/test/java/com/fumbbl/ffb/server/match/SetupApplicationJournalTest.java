@@ -7,7 +7,14 @@ import com.eclipsesource.json.JsonValue;
 
 import org.junit.jupiter.api.Test;
 
+import java.lang.reflect.Field;
 import java.sql.SQLException;
+import java.time.Clock;
+import java.time.Instant;
+import java.time.ZoneOffset;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -37,7 +44,7 @@ class SetupApplicationJournalTest {
 			JsonObject request = fixture.endTurn(ready);
 			String owner = ready.getString("actor", null);
 			fixture.recovery.saveFailure = failure;
-			SetupApplication.HandleOutcome rejected = fixture.application.handleWithOutcome(owner, request);
+			SetupApplication.HandleOutcome rejected = fixture.application().handleWithOutcome(owner, request);
 			assertEquals(failure, rejected.response().getString("code", null));
 			assertFalse(rejected.publish());
 			assertSame(before, fixture.recovery.record);
@@ -45,7 +52,7 @@ class SetupApplicationJournalTest {
 			assertEquals(0, fixture.recovery.appends);
 
 			fixture.recovery.saveFailure = null;
-			JsonObject accepted = fixture.application.handle(owner, request);
+			JsonObject accepted = fixture.application().handle(owner, request);
 			assertEquals("ACCEPTED", accepted.getString("code", null));
 			assertFalse(accepted.getBoolean("duplicate", true));
 			assertEquals(before.generation + 1, fixture.recovery.record.generation);
@@ -63,13 +70,145 @@ class SetupApplicationJournalTest {
 		}
 	}
 
+	@Test void failedCompactionAfterGenuineAppendsReloadsTheChainAndRetriesExactlyOnce() throws Exception {
+		for (String failure : new String[] { "RECOVERY_CONFLICT", "PERSISTENCE_FAILED" }) {
+			Fixture fixture = new Fixture(true);
+			long now = System.currentTimeMillis();
+			JournalMemory recovery = new JournalMemory(fixture.recovery.record);
+			Clock clock = Clock.fixed(Instant.ofEpochMilli(now), ZoneOffset.UTC);
+			SetupApplication application = new SetupApplication(fixture.engine.server, fixture.matches, recovery, false, clock);
+			JsonObject load = new JsonObject().add("version", 1).add("type", "setup").add("operation", "load")
+				.add("requestId", "load-chain").add("matchId", fixture.id);
+			JsonObject view = application.handle("home", load).get("state").asObject();
+			int initialRevision = view.getInt("revision", -1);
+			String beforePayload = null;
+			RecoveryRepository.Record before = null, checkpoint = null;
+			List<RecoveryRepository.Record> entries = null;
+			JsonObject request = null;
+			SetupApplication.HandleOutcome rejected = null;
+			String owner = null;
+			recovery.saveFailure = failure;
+			for (int index = 0; index < RecoveryJournal.MAX_ENTRIES; index++) {
+				beforePayload = resident(application, fixture.id).orderedRecoveryPayload().toString();
+				before = recovery.find(fixture.id);
+				entries = List.copyOf(recovery.entries);
+				checkpoint = recovery.checkpoint;
+				request = historyChange(fixture, view, "append-or-compact-" + index, index);
+				owner = view.getString("actor", null);
+				rejected = application.handleWithOutcome(owner, request);
+				if (failure.equals(rejected.response().getString("code", null))) break;
+				assertEquals("ACCEPTED", rejected.response().getString("code", null));
+				view = rejected.response().get("state").asObject();
+				assertEquals(index + 1, recovery.entries.size(), "Every entry is emitted by the real application journal path");
+				assertEquals(index + 1, cursorEntries(application, fixture.id));
+				assertEquals(0, recovery.saveAttempts);
+			}
+			assertTrue(entries.size() > 1, "Reach the real entry-count or byte compaction threshold through genuine appends");
+			assertTrue(view.getInt("revision", -1) > initialRevision, "Genuine append tails must advance native history");
+			assertEquals(failure, rejected.response().getString("code", null));
+			assertEquals(1, recovery.saveAttempts);
+			assertFalse(rejected.publish());
+			assertSame(checkpoint, recovery.checkpoint);
+			assertEquals(entries, recovery.entries);
+			assertEquals(before.json, recovery.find(fixture.id).json);
+			assertEquals(before.generation, recovery.generation);
+			assertEquals(-1, cursorEntries(application, fixture.id), "Failed compaction releases the live append cursor");
+			SetupSession restoredBeforeRetry = new SetupSession(fixture.engine.server, fixture.engine.document, recovery.find(fixture.id).json);
+			assertEquals(beforePayload, restoredBeforeRetry.orderedRecoveryPayload().toString(),
+				"Restored durable tails preserve the independent live payload captured before the failed request");
+			recovery.saveFailure = null;
+			JsonObject accepted = application.handle(owner, request);
+			assertEquals("ACCEPTED", accepted.getString("code", null));
+			assertFalse(accepted.getBoolean("duplicate", true));
+			assertEquals(before.generation + 1, recovery.generation);
+			assertEquals(2, recovery.saveAttempts);
+			assertEquals(0, recovery.entries.size());
+			assertEquals(0, cursorEntries(application, fixture.id));
+			SetupSession live = resident(application, fixture.id);
+			SetupSession restored = new SetupSession(fixture.engine.server, fixture.engine.document, recovery.find(fixture.id).json);
+			assertEquals(live.orderedRecoveryPayload(), restored.orderedRecoveryPayload(), "The compacted chain restores the complete live payload");
+			SetupApplication restarted = new SetupApplication(fixture.engine.server, fixture.matches, recovery, false, clock);
+			JsonObject duplicate = restarted.handle(owner, request);
+			assertEquals("ACCEPTED", duplicate.getString("code", null));
+			assertTrue(duplicate.getBoolean("duplicate", false));
+			assertEquals(accepted.get("state").asObject().get("revision"), duplicate.get("state").asObject().get("revision"));
+			assertEquals(2, recovery.saveAttempts);
+			assertEquals(entries.size(), recovery.appends);
+			assertEquals(0, recovery.find(fixture.id).journalEntries);
+		}
+	}
+
+	private JsonObject historyChange(Fixture fixture, JsonObject view, String requestId, int index) {
+		if (index % 3 == 0) return fixture.endTurn(view).set("requestId", requestId);
+		JsonObject status = view.get("saveResume").asObject();
+		boolean pending = "SAVE_PENDING".equals(status.getString("status", null));
+		JsonObject request = fixture.engine.request(pending ? "saveCancel" : "saveRequest", requestId, view);
+		if (pending) request.add("proposalId", status.get("proposalId"));
+		return request;
+	}
+
+	private int cursorEntries(SetupApplication application, String id) throws Exception {
+		Field field = SetupApplication.class.getDeclaredField("journalCursors");
+		field.setAccessible(true);
+		RecoveryJournal.Cursor cursor = (RecoveryJournal.Cursor) ((Map<?, ?>) field.get(application)).get(id);
+		return cursor == null ? -1 : cursor.entries;
+	}
+
+	private SetupSession resident(SetupApplication application, String id) throws Exception {
+		Field field = SetupApplication.class.getDeclaredField("sessions");
+		field.setAccessible(true);
+		return (SetupSession) ((Map<?, ?>) field.get(application)).get(id);
+	}
+
+	private static final class SaveFault {
+		private static boolean permits(String failure) throws SQLException {
+			if ("RECOVERY_CONFLICT".equals(failure)) return false;
+			if ("PERSISTENCE_FAILED".equals(failure)) throw new SQLException("Injected checkpoint failure");
+			return true;
+		}
+	}
+
+	private static final class JournalMemory implements RecoveryRepository {
+		Record checkpoint;
+		final List<Record> entries = new ArrayList<>();
+		long generation;
+		int appends;
+		int saveAttempts;
+		String saveFailure;
+		JournalMemory(Record checkpoint) {
+			this.checkpoint = checkpoint;
+			generation = checkpoint.generation;
+		}
+		@Override public Record find(String id) {
+			return new RecoveryJournal().restore(id, generation, checkpoint.generation, checkpoint.json, entries);
+		}
+		@Override public boolean supportsJournal() { return true; }
+		@Override public boolean append(Record next, long expected) {
+			assertEquals(generation, expected);
+			assertEquals(generation + 1, next.generation);
+			entries.add(next);
+			generation = next.generation;
+			appends++;
+			return true;
+		}
+		@Override public boolean save(Record next, long expected) throws SQLException {
+			assertEquals(generation, expected);
+			saveAttempts++;
+			if (!SaveFault.permits(saveFailure)) return false;
+			checkpoint = next;
+			generation = next.generation;
+			entries.clear();
+			return true;
+		}
+	}
+
 	private JsonObject exercise(boolean journal) throws Exception {
 		Fixture fixture = new Fixture(journal);
 		JsonObject ready = fixture.load();
 		JsonObject request = fixture.endTurn(ready);
 		int[] responseRevision = new int[1];
 		JsonObject trace = new CaptureRequestProbe().details(request, () -> {
-			JsonObject response = fixture.application.handle(ready.getString("actor", null), request);
+			JsonObject response = fixture.application().handle(ready.getString("actor", null), request);
 			assertEquals("ACCEPTED", response.getString("code", null));
 			responseRevision[0] = response.get("state").asObject().getInt("revision", -1);
 			return response;
@@ -85,7 +224,7 @@ class SetupApplicationJournalTest {
 		final String id = engine.document.matchId;
 		final MatchService matches = mock(MatchService.class);
 		final Memory recovery;
-		final SetupApplication application;
+		private SetupApplication application;
 
 		Fixture(boolean journal) throws Exception {
 			engine.advanceToTurn();
@@ -95,11 +234,15 @@ class SetupApplicationJournalTest {
 			when(matches.loadForSetup("home", id)).thenReturn(new MatchService.Result(engine.document, false));
 			when(matches.load("away", id)).thenReturn(new MatchService.Result(engine.document, false));
 			when(matches.loadForSetup("away", id)).thenReturn(new MatchService.Result(engine.document, false));
-			application = new SetupApplication(engine.server, matches, recovery);
+		}
+
+		SetupApplication application() {
+			if (application == null) application = new SetupApplication(engine.server, matches, recovery);
+			return application;
 		}
 
 		JsonObject load() {
-			return application.handle("home", new JsonObject().add("version", 1).add("type", "setup")
+			return application().handle("home", new JsonObject().add("version", 1).add("type", "setup")
 				.add("operation", "load").add("requestId", "load").add("matchId", id)).get("state").asObject();
 		}
 
@@ -125,8 +268,7 @@ class SetupApplicationJournalTest {
 		@Override public boolean save(Record next, long expected) throws SQLException {
 			assertEquals(record.generation, expected);
 			saveAttempts++;
-			if ("RECOVERY_CONFLICT".equals(saveFailure)) return false;
-			if ("PERSISTENCE_FAILED".equals(saveFailure)) throw new SQLException("Injected checkpoint failure");
+			if (!SaveFault.permits(saveFailure)) return false;
 			record = next;
 			saves++;
 			return true;
