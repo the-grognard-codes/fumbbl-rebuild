@@ -24,6 +24,13 @@ public final class MatchPersistenceLog {
 		write("COMPLETION_DEFERRED", "completion", matchId, requestId, failure);
 	}
 
+	void completionTerminated(String phase, String matchId, String requestId, RuntimeException failure) {
+		String code = "COMPLETION_TERMINAL";
+		if (failure instanceof MatchService.Failure rejected)
+			code += " failureCode=" + correlation(rejected.code, "[A-Z_]{1,100}");
+		write(code, phase, matchId, requestId, failure);
+	}
+
 	void pendingCompletionFailed(String matchId, Exception failure) {
 		write("COMPLETION_RETRY", "pending-completion", matchId, null, failure);
 	}

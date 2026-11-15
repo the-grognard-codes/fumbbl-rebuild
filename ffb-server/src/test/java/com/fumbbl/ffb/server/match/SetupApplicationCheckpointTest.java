@@ -18,10 +18,15 @@ import java.sql.SQLNonTransientConnectionException;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneOffset;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.logging.Handler;
+import java.util.logging.LogRecord;
+import java.util.logging.Logger;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -326,7 +331,8 @@ class SetupApplicationCheckpointTest {
 
 	@Test void terminalStoreFailuresPublishAndReconcileWithoutAnotherClientRequest() throws Exception {
 		for (Exception failure : new Exception[] { new SQLNonTransientConnectionException("connection reset", "08006"),
-			new MatchService.OutcomeUnknown(MATCH), new IllegalStateException("store unavailable") }) {
+			new MatchService.OutcomeUnknown(MATCH),
+			new MatchRepository.OutcomeUnknown(new MatchRepository.Record(MATCH, 4, "attempted"), new SQLException("unknown")) }) {
 			try (Fixture fixture = new Fixture()) {
 				fixture.application.handle("home", load());
 				when(fixture.session().isComplete()).thenAnswer(call -> fixture.executed.get() > 0);
@@ -349,6 +355,72 @@ class SetupApplicationCheckpointTest {
 		}
 	}
 
+	@Test void deterministicCompletionFailuresReleaseWithoutRetryAndKeepPublishedFinalState() throws Exception {
+		for (boolean materializationFails : new boolean[] {true, false}) {
+			try (Fixture fixture = new Fixture(); CompletionLogs logs = new CompletionLogs()) {
+				fixture.application.handle("home", load());
+				terminalAction(fixture);
+				if (materializationFails) when(fixture.session().completedMatch()).thenThrow(new IllegalStateException("private invalid result"));
+				else doThrow(new IllegalArgumentException("private invalid result")).when(fixture.matches)
+					.completeLoaded(anyString(), any(MatchDocument.class), any());
+				SetupApplication.HandleOutcome outcome = fixture.application.handleWithOutcome("home", request("terminal-runtime"));
+				assertEquals("ACCEPTED", outcome.response().getString("code", null));
+				assertEquals("FULL_TIME", outcome.response().get("state").asObject().getString("phase", null));
+				assertTrue(outcome.publish(), "A deterministic result failure cannot undo the durable terminal action");
+				assertEquals("after:terminal-runtime", fixture.durable.get().json);
+				assertEquals(0, fixture.mapSize("sessions"), "A deterministic failure must release its activation slot");
+				assertEquals(0, fixture.mapSize("pendingCompletions"));
+				for (int tick = 0; tick < 3; tick++) assertTrue(fixture.application.expireReactiveDecisions().isEmpty());
+				verify(fixture.session(), times(1)).completedMatch();
+				verify(fixture.matches, times(materializationFails ? 0 : 1)).completeLoaded(anyString(), any(MatchDocument.class), any());
+				assertEquals(1, logs.messages.stream().filter(line -> line.startsWith("COMPLETION_TERMINAL phase=completion ")).count());
+				assertTrue(logs.messages.stream().noneMatch(line -> line.contains("private invalid result")));
+			}
+		}
+	}
+
+	@Test void deterministicFailureOnDeferredAttemptStopsRetryingAndReleasesSession() throws Exception {
+		try (Fixture fixture = new Fixture(); CompletionLogs logs = new CompletionLogs()) {
+			fixture.application.handle("home", load());
+			terminalAction(fixture);
+			AtomicInteger attempts = new AtomicInteger();
+			doAnswer(call -> {
+				if (attempts.incrementAndGet() == 1) throw new SQLException("connection reset", "08006");
+				throw new NullPointerException("private invalid result");
+			}).when(fixture.matches).completeLoaded(anyString(), any(MatchDocument.class), any());
+			SetupApplication.HandleOutcome outcome = fixture.application.handleWithOutcome("home", request("terminal-runtime"));
+			assertTrue(outcome.publish());
+			assertEquals("FULL_TIME", outcome.response().get("state").asObject().getString("phase", null));
+			assertEquals(1, fixture.mapSize("pendingCompletions"));
+			assertTrue(fixture.application.expireReactiveDecisions().isEmpty(), "The already-published terminal state stays authoritative");
+			assertEquals(0, fixture.mapSize("sessions"));
+			assertEquals(0, fixture.mapSize("pendingCompletions"));
+			for (int tick = 0; tick < 3; tick++) assertTrue(fixture.application.expireReactiveDecisions().isEmpty());
+			assertEquals(2, attempts.get(), "One recoverable failure and one terminal failure; no later attempts");
+			assertEquals("after:terminal-runtime", fixture.durable.get().json);
+			assertEquals(1, logs.messages.stream().filter(line -> line.startsWith("COMPLETION_TERMINAL phase=pending-completion ")).count());
+		}
+	}
+
+	private void terminalAction(Fixture fixture) throws Exception {
+		when(fixture.session().isComplete()).thenAnswer(call -> fixture.executed.get() > 0);
+		when(fixture.session().checkpointOwner()).thenReturn("home");
+		doAnswer(call -> {
+			fixture.executed.incrementAndGet();
+			fixture.artifact.set("after:terminal-runtime");
+			return reply(false).set("state", new JsonObject().add("phase", "FULL_TIME"));
+		}).when(fixture.session()).apply(eq("home"), any(JsonObject.class), eq(NOW));
+	}
+
+	private static final class CompletionLogs extends Handler implements AutoCloseable {
+		final List<String> messages = new ArrayList<>();
+		final Logger logger = Logger.getLogger("com.fumbbl.ffb.server.match.persistence");
+		CompletionLogs() { logger.addHandler(this); }
+		@Override public void publish(LogRecord record) { messages.add(record.getMessage()); }
+		@Override public void flush() { }
+		@Override public void close() { logger.removeHandler(this); }
+	}
+
 	@Test void definitiveCompletionRejectionIsNotQueuedAsAStoreFailure() throws Exception {
 		try (Fixture fixture = new Fixture()) {
 			fixture.application.handle("home", load());
@@ -356,8 +428,9 @@ class SetupApplicationCheckpointTest {
 			doThrow(new MatchService.Failure("INVALID_RESULT")).when(fixture.matches)
 				.completeLoaded(anyString(), any(MatchDocument.class), any());
 			SetupApplication.HandleOutcome outcome = fixture.application.handleWithOutcome("home", request("rejected-result"));
-			assertEquals("INVALID_RESULT", outcome.response().getString("code", null));
-			assertFalse(outcome.publish());
+			assertEquals("ACCEPTED", outcome.response().getString("code", null));
+			assertTrue(outcome.publish(), "The definitive result rejection cannot undo the terminal checkpoint");
+			assertEquals(0, fixture.mapSize("sessions"));
 			assertEquals(0, fixture.mapSize("pendingCompletions"));
 		}
 	}

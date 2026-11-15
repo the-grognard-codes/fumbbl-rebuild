@@ -31,13 +31,15 @@ class SetupPersistenceLoggingTest {
 		try {
 			MatchPersistenceLog log = new MatchPersistenceLog();
 			log.completionDeferred("untrusted-id", "request", new SQLException("private detail", "08006"));
-			log.pendingCompletionFailed("untrusted-id", new IllegalStateException("private detail"));
+			log.pendingCompletionFailed("untrusted-id", new SQLException("private detail"));
+			log.completionTerminated("completion", "untrusted-id", "request", new IllegalStateException("private detail"));
 			log.pendingCompletionRejected("untrusted-id", new MatchService.Failure("COMPLETION_CONFLICT"));
 		} finally { logger.removeHandler(capture); }
-		assertEquals(3, messages.size());
+		assertEquals(4, messages.size());
 		assertTrue(messages.get(0).startsWith("COMPLETION_DEFERRED "));
 		assertTrue(messages.get(1).startsWith("COMPLETION_RETRY "));
-		assertTrue(messages.get(2).startsWith("COMPLETION_REJECTED failureCode=COMPLETION_CONFLICT "));
+		assertTrue(messages.get(2).startsWith("COMPLETION_TERMINAL "));
+		assertTrue(messages.get(3).startsWith("COMPLETION_REJECTED failureCode=COMPLETION_CONFLICT "));
 		assertTrue(messages.stream().allMatch(message -> !message.contains("private detail") && !message.contains("untrusted-id")));
 	}
 

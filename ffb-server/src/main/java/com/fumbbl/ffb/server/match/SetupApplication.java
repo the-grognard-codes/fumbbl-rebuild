@@ -450,10 +450,13 @@ public final class SetupApplication {
 		} catch (MatchService.Failure rejected) {
 			release(id);
 			persistenceLog.pendingCompletionRejected(id, rejected);
-		} catch (SQLException | RuntimeException failure) {
-			// Keep the match queued and let other eligible results run first.
+		} catch (SQLException | MatchService.OutcomeUnknown failure) {
+			// Only recoverable storage failures retain a slot for a later attempt.
 			pendingCompletions.putLast(id, next.getValue().afterFailure(clock.millis()));
 			persistenceLog.pendingCompletionFailed(id, failure);
+		} catch (RuntimeException failure) {
+			release(id);
+			persistenceLog.completionTerminated("pending-completion", id, null, failure);
 		}
 	}
 
@@ -613,11 +616,16 @@ public final class SetupApplication {
 			pendingCompletions.remove(document.matchId);
 			return true;
 		}
-		catch (MatchService.Failure rejected) { throw rejected; }
-		catch (SQLException | RuntimeException failure) {
+		catch (SQLException | MatchService.OutcomeUnknown failure) {
 			if (recovery == null) throw failure;
 			queueCompletion(document.matchId);
 			persistenceLog.completionDeferred(document.matchId, requestId, failure);
+			return false;
+		} catch (RuntimeException failure) {
+			if (recovery == null) throw failure;
+			// The final action is already durable. Do not retry deterministic result failures.
+			release(document.matchId);
+			persistenceLog.completionTerminated("completion", document.matchId, requestId, failure);
 			return false;
 		}
 	}
