@@ -10,7 +10,7 @@ final class RecoveryArtifactJson {
 	private static final String PREFIX = "{\"payload\":";
 	private static final String CHECKSUM = ",\"sha256\":\"";
 	private static final String SUFFIX = "\"}";
-	private static final int ENVELOPE_BYTES = PREFIX.length() + CHECKSUM.length() + 64 + SUFFIX.length();
+	static final int ENVELOPE_BYTES = PREFIX.length() + CHECKSUM.length() + 64 + SUFFIX.length();
 
 	String encode(JsonObject payload, int maxBytes) {
 		return encodeWithMetadata(payload, maxBytes).envelope();

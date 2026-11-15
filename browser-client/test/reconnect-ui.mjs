@@ -58,6 +58,31 @@ try {
     await page.close();
   }
   console.log('PASS play and builder clear stale authentication errors after reconnect');
+  for (const [code, notice] of [
+    ['MATCH_SIZE_LIMIT', 'This match has reached its safe size limit and has been stopped. Other matches are available.'],
+    ['MATCH_QUARANTINED', 'This match is unavailable after a server interruption. It needs administrator review before play can continue.'],
+  ]) {
+    const page = await browser.newPage();
+    const errors = [];
+    page.on('pageerror', error => errors.push(error.message));
+    await page.routeWebSocket('**/unused', socket => {
+      socket.onMessage(raw => {
+        const request = JSON.parse(raw);
+        if (request.type === 'authenticate') socket.send(JSON.stringify({ version: 2, type: 'authentication',
+          requestId: request.requestId, code: 'ACCEPTED', accountId: 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa' }));
+        if (request.type === 'setup') socket.send(JSON.stringify({ version: 2, type: 'setupState', requestId: request.requestId,
+          code, duplicate: false, state: null }));
+      });
+    });
+    await page.route('**/play/match?*', route => route.fulfill({ contentType: 'text/html', body:
+      '<div id="app"></div><script type="module">import { mountPlay } from "/src/play-entry.tsx"; mountPlay(document.getElementById("app"), { environment: "dev", url: "ws://127.0.0.1/unused", getToken: async () => "test-token" });</script>' }));
+    await page.goto(`http://127.0.0.1:${address.port}/play/match?matchId=12345678-1234-1234-1234-123456789abc`);
+    await page.getByRole('alert').filter({ hasText: notice }).waitFor();
+    assert.equal(await page.getByRole('button', { name: 'Repeat retained request' }).count(), 0);
+    assert.deepEqual(errors, []);
+    await page.close();
+  }
+  console.log('PASS size-limited and quarantined matches show a definitive coach-facing notice');
   for (const retained of [false, true]) {
     const page = await browser.newPage();
     const pageErrors = [];

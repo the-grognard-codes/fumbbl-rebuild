@@ -101,6 +101,20 @@ final class ActiveMatchPublisher {
 
 	void retryPublications() { delivery.retry(); }
 
+	/** Publish a match-local stop through the same bounded, locally authorized delivery path. */
+	void publishStopped(String matchId, BrowserConnection source, String code) {
+		if (!"MATCH_SIZE_LIMIT".equals(code) && !"MATCH_QUARANTINED".equals(code)) return;
+		List<PublicationDelivery.Recipient> targets = new ArrayList<>();
+		for (Recipient recipient : recipients(matchId, source, false)) targets.add(new DeliveryRecipient(recipient) {
+			@Override public void send(V2PublicationAuthorization.Snapshot authorization, int slot) {
+				access.publicationRole(authorization, target(), slot);
+				ActiveMatchPublisher.this.send(recipient.connection, setup.failure(null, code),
+					() -> access.publicationRole(authorization, target(), slot));
+			}
+		});
+		delivery.publish(matchId, V2PublicationAuthorization.Family.STATE, targets, 256);
+	}
+
 	void publishChat(String matchId, BrowserConnection source, JsonObject page) {
 		String retainedPage = page.toString();
 		List<PublicationDelivery.Recipient> targets = new ArrayList<>();

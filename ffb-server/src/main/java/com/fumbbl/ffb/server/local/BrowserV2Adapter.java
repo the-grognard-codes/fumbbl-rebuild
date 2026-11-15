@@ -99,6 +99,7 @@ public final class BrowserV2Adapter implements BrowserProtocol {
 
 	@Override public synchronized void expireDecisions() {
 		setup.expireReactiveDecisions().forEach((id, state) -> publisher.publish(id, null, state));
+		setup.drainStoppedMatches().forEach((id, code) -> publisher.publishStopped(id, null, code));
 	}
 
 	@Override public synchronized void receive(BrowserConnection connection, String text) {
@@ -414,6 +415,7 @@ public final class BrowserV2Adapter implements BrowserProtocol {
 				LiveMatchTranscript transcript = publisher.transcript(id,
 					state != null && state.isObject() ? state.asObject() : new JsonObject());
 				publisher.sendState(connection, response, transcript);
+				publisher.publishStopped(id, connection, response.getString("code", ""));
 				if (outcome.publish()) publisher.publish(id, connection, state.asObject(), transcript);
 				return;
 			} else if (type == BrowserV2RequestType.MATCH_RESULT) {
@@ -489,6 +491,7 @@ public final class BrowserV2Adapter implements BrowserProtocol {
 			JsonObject response = outcome.response();
 			if ("ACCEPTED".equals(response.getString("code", ""))) publisher.enrollComputer(connection, matchId);
 			send(connection, response);
+			publisher.publishStopped(matchId, connection, response.getString("code", ""));
 			if (outcome.publish()) publisher.publish(matchId, connection, response.get("state").asObject());
 		} else { fail(connection, id, "UNSUPPORTED_MESSAGE"); }
 	}

@@ -419,37 +419,39 @@ class RecoveryApplicationTest {
 	@Test void fullPoolRejectsThenIdleEvictionRestoresExactLostAcknowledgement() throws Exception {
 		Fixture fixture = fixture(); MutableClock clock = new MutableClock();
 		SetupApplication application = new SetupApplication(new TestServer().getServer(), fixture.matches, fixture.recovery, true, clock);
+		int residentLimit = application.lifecycleMetrics().getInt("residentLimit", -1);
+		Fixture completed = fixture(); fixture.repository.rows.putAll(completed.repository.rows);
+		accepted(application.activate("home", activate(completed.id, "activate").toString()));
+		JsonObject terminalRequest = finish(application, completed.id);
+		String terminalRole = terminalRequest.getString("testRole", null); terminalRequest.remove("testRole");
 		accepted(application.activate("home", activate(fixture.id, "activate").toString()));
 		JsonObject before = accepted(application.handle("home", load(fixture.id, "before"))).get("state").asObject();
 		JsonObject request = choice(fixture.id, "lost-ack", before, "heads");
 		accepted(application.handle(actor(before), request));
 		String checkpoint = fixture.recovery.rows.get(fixture.id).json;
-		Fixture completed = fixture(); fixture.repository.rows.putAll(completed.repository.rows);
-		accepted(application.activate("home", activate(completed.id, "activate").toString()));
-		JsonObject terminalRequest = finish(application, completed.id);
-		String terminalRole = terminalRequest.getString("testRole", null); terminalRequest.remove("testRole");
-		for (int index = 1; index < 32; index++) {
+		for (int index = 1; index < residentLimit; index++) {
 			Fixture next = fixture(); fixture.repository.rows.putAll(next.repository.rows);
 			accepted(application.activate("home", activate(next.id, "activate").toString()));
 		}
 		accepted(application.handle("away", load(completed.id, "completed-at-capacity")));
 		assertTrue(accepted(application.handle(terminalRole, terminalRequest)).getBoolean("duplicate", false));
-		assertEquals(32, application.lifecycleMetrics().getInt("residentSessions", -1));
+		assertEquals(residentLimit, application.lifecycleMetrics().getInt("residentSessions", -1));
 		Fixture waiting = fixture(); fixture.repository.rows.putAll(waiting.repository.rows);
 		clock.now = 30 * 60 * 1000L - 1;
 		assertEquals("ACTIVATION_LIMIT", application.activate("home", activate(waiting.id, "activate").toString()).getString("code", null));
 		assertFalse(fixture.recovery.rows.containsKey(waiting.id));
 		clock.now++;
 		assertEquals("AUTHENTICATION_REQUIRED", application.handle("intruder", load(fixture.id, "denied")).getString("code", null));
-		assertEquals(32, application.lifecycleMetrics().getInt("residentSessions", -1));
+		assertEquals(residentLimit, application.lifecycleMetrics().getInt("residentSessions", -1));
 		accepted(application.activate("home", activate(waiting.id, "activate").toString()));
-		assertEquals(32, application.lifecycleMetrics().getLong("idleReleases", -1));
+		assertEquals(residentLimit, application.lifecycleMetrics().getLong("idleReleases", -1));
 		assertEquals(1, application.lifecycleMetrics().getInt("residentSessions", -1));
+		if (residentLimit == 1) clock.now += 30 * 60 * 1000L; // Evict the waiting session before restoring the lost acknowledgement.
 		int writes = fixture.recovery.writes;
 		assertTrue(accepted(application.handle(actor(before), request)).getBoolean("duplicate", false));
 		assertEquals(checkpoint, fixture.recovery.rows.get(fixture.id).json);
 		assertEquals(writes, fixture.recovery.writes);
-		assertEquals(2, application.lifecycleMetrics().getInt("residentSessions", -1));
+		assertEquals(Math.min(2, residentLimit), application.lifecycleMetrics().getInt("residentSessions", -1));
 	}
 
 	private static final class MutableClock extends java.time.Clock {

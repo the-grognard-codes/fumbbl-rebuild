@@ -98,6 +98,9 @@ public final class SetupSession {
 	private int revision;
 	private int drive = 1;
 	private int replayBytes;
+	private long escapedReplayBytes;
+	private int measuredHistory;
+	private long historyBytes;
 	private final JsonArray events = new JsonArray();
 	private final MatchDocument document;
 	private boolean failed;
@@ -355,7 +358,7 @@ public final class SetupSession {
 			for (JsonValue selection : payload.get("kickoffSelection").asArray()) kickoffSelection.add(selection.asString());
 			for (JsonValue event : JsonArray.readFrom(payload.get("eventsJson").asString())) {
 				events.add(event);
-				replayBytes += event.toString().getBytes(java.nio.charset.StandardCharsets.UTF_8).length;
+				measureEvent(event);
 			}
 			if (replayBytes > MAX_MATCH_ARTIFACT_BYTES || events.size() != revision + 1
 				|| payload.get("pendingTerminal").asBoolean() != isComplete()) throw new IllegalArgumentException("Recovery event boundary");
@@ -412,16 +415,43 @@ public final class SetupSession {
 	int revision() { return revision; }
 	long recoveryNativeEpoch() { return state.getGameLog().recoveryEpoch(); }
 
+	/** Exact decoded envelope size using cached history lengths and a bounded current-state projection. */
+	long recoveryBytes() {
+		if (recoveryDice == null) return artifactBytes();
+		int[] counts = recoveryJournalCounts();
+		JsonObject metadata = recoveryPayload(counts);
+		int index = 0;
+		for (Map.Entry<String, Record> item : history.entrySet()) {
+			if (index++ < measuredHistory) continue;
+			historyBytes += new Utf8Size().bytes(recoveryRequest(item.getKey(), item.getValue()).toString());
+		}
+		measuredHistory = history.size();
+		long bytes = new Utf8Size().bytes(metadata.toString()) + historyBytes + Math.max(0, history.size() - 1)
+			+ escapedReplayBytes + Math.max(0, events.size() - 1) + state.getGameLog().recoveryJsonBytes();
+		if (transcriptV2) bytes += transcript.bytes() + Math.max(0, transcript.size() - 1);
+		// Empty arrays/string brackets are already present in metadata; only their contents were added.
+		return bytes + RecoveryArtifactJson.ENVELOPE_BYTES;
+	}
+
+	private void measureEvent(JsonValue event) {
+		String json = event.toString();
+		replayBytes += new Utf8Size().bytes(json);
+		escapedReplayBytes += new Utf8Size().bytes(JsonValue.valueOf(json).toString()) - 2;
+	}
+
+	private JsonObject recoveryRequest(String key, Record entry) {
+		JsonObject saved = new JsonObject().add("key", key).add("fingerprint", entry.fingerprint).add("code", entry.code);
+		if (entry.setupErrors != null) saved.add("setupErrors", entry.setupErrors);
+		return saved;
+	}
+
 	private JsonObject recoveryPayload(int[] from) {
 		if (recoveryDice == null) throw new IllegalStateException("Legacy lifetime cannot be upgraded");
 		JsonArray requests = new JsonArray(), selections = new JsonArray();
 		int requestIndex = 0;
 		for (Map.Entry<String, Record> item : history.entrySet()) {
 			if (from != null && requestIndex++ < from[0]) continue;
-			String key = item.getKey(); Record entry = item.getValue();
-			JsonObject saved = new JsonObject().add("key", key).add("fingerprint", entry.fingerprint).add("code", entry.code);
-			if (entry.setupErrors != null) saved.add("setupErrors", entry.setupErrors);
-			requests.add(saved);
+			requests.add(recoveryRequest(item.getKey(), item.getValue()));
 		}
 		kickoffSelection.forEach(selections::add);
 		JsonObject rolls = new JsonObject();
@@ -1382,7 +1412,7 @@ public final class SetupSession {
         snapshot.remove("movementForecast"); // Available actions are absent from frozen replay snapshots.
         snapshot.remove("blockPreview"); // Proposals are never part of recorded replay presentation.
         JsonObject event = new JsonObject().add("revision", revision).add("kind", kind).add("state", snapshot);
-        replayBytes += event.toString().getBytes(java.nio.charset.StandardCharsets.UTF_8).length;
+        measureEvent(event);
         events.add(event);
         if (transcriptV2) {
             NativeOutcomeCapture.Capture capture = new NativeOutcomeCapture().since(state.getGameLog(), transcript.nativeCursor(), rollPresentation);

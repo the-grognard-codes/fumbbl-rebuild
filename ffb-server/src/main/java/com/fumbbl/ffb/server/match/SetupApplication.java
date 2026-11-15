@@ -24,6 +24,14 @@ public final class SetupApplication {
 	private final MatchPersistenceLog persistenceLog = new MatchPersistenceLog();
 	private final RecoveryArtifactFingerprint fingerprints = new RecoveryArtifactFingerprint();
 	private final RecoveryJournal journal = new RecoveryJournal();
+	private final MatchMemoryBudget memoryBudget;
+	private MatchSafetyJournal safety = new MatchSafetyJournal();
+	private final Map<String, String> stoppedMatches = new LinkedHashMap<>();
+	public void configureMatchSafety(MatchSafetyJournal journal) { safety = java.util.Objects.requireNonNull(journal); }
+	/** Timer publication uses the normal bounded, locally authorized recipient path. */
+	public Map<String, String> drainStoppedMatches() {
+		Map<String, String> result = new LinkedHashMap<>(stoppedMatches); stoppedMatches.clear(); return result;
+	}
 	private final Map<String, RecoveryJournal.Cursor> journalCursors = new LinkedHashMap<>();
 	private final FantasyFootballServer server;
 	private final MatchService matches;
@@ -100,7 +108,8 @@ public final class SetupApplication {
 
 	/** Worker-thread operational counters; contains no match IDs or private state. */
 	public JsonObject lifecycleMetrics() {
-		return new JsonObject().add("residentSessions", sessions.size()).add("residentLimit", 32)
+		return new JsonObject().add("residentSessions", sessions.size()).add("residentLimit", memoryBudget.residentLimit())
+			.add("decodedMatchLimitBytes", memoryBudget.decodedLimit())
 			.add("terminalCompletionReleases", terminalCompletionReleases)
 			.add("pendingActivations", pendingActivations.size()).add("completedReleases", completedReleases)
 			.add("failedReleases", failedReleases).add("idleReleases", idleReleases).add("idleMillis", IDLE_MILLIS)
@@ -154,11 +163,16 @@ public final class SetupApplication {
 	}
 
 	public SetupApplication(FantasyFootballServer server, MatchService matches, RecoveryRepository recovery, boolean defaultSetup, Clock clock, boolean saveResume) {
+		this(server, matches, recovery, defaultSetup, clock, saveResume, new MatchMemoryBudget());
+	}
+
+	SetupApplication(FantasyFootballServer server, MatchService matches, RecoveryRepository recovery, boolean defaultSetup, Clock clock, boolean saveResume, MatchMemoryBudget memoryBudget) {
 		if ((defaultSetup || saveResume) && recovery == null) throw new IllegalArgumentException("Versioned setup requires recovery");
 		if (saveResume && !defaultSetup) throw new IllegalArgumentException("Save/resume requires the default checkpoint runtime");
 		this.defaultSetup = defaultSetup;
 		this.saveResume = saveResume;
 		this.clock = java.util.Objects.requireNonNull(clock);
+		this.memoryBudget = java.util.Objects.requireNonNull(memoryBudget);
 		this.server = server; this.matches = matches; this.recovery = recovery;
 	}
 
@@ -178,7 +192,7 @@ public final class SetupApplication {
 		try {
 			MatchDocument document = matches.load(owner, matchId).document;
 			if (document.lifecycle == MatchDocument.Lifecycle.AWAITING_SETUP && !sessions.containsKey(matchId)) {
-				if (sessions.size() + pendingActivations.size() >= 32 && !pendingActivations.containsKey(matchId))
+				if (sessions.size() + pendingActivations.size() >= memoryBudget.residentLimit() && !pendingActivations.containsKey(matchId))
 					return new JsonObject().add("version", 1).add("type", "preparedMatch").add("requestId", request.get("requestId"))
 						.add("code", "ACTIVATION_LIMIT").add("duplicate", false).add("callerRole", JsonValue.NULL)
 						.add("document", JsonValue.NULL).add("recoveryMatchId", JsonValue.NULL);
@@ -213,12 +227,13 @@ public final class SetupApplication {
 		try {
 			storageAdmission.requireAvailable();
 			MatchDocument document = matches.load(owner, id).document;
+			safety.enter(id);
 			releaseIdle();
 			if (document.lifecycle == MatchDocument.Lifecycle.AWAITING_SETUP
 				&& document.documentVersion == request.get("expectedRevision").asInt()
 				&& request.get("requestId").asString().matches("[A-Za-z0-9_-]{1,100}")
 				&& document.request(owner, request.get("requestId").asString()) == null) {
-				if (sessions.size() >= 32 && !sessions.containsKey(id)) { capacityRejections++; return preparedFailure(request, "ACTIVATION_LIMIT"); }
+				if (sessions.size() >= memoryBudget.residentLimit() && !sessions.containsKey(id)) { capacityRejections++; return preparedFailure(request, "ACTIVATION_LIMIT"); }
 				RecoveryRepository.Record staged = recoveryRecord(id, false);
 				if (staged == null) {
 					// Persist an unpublished initial checkpoint first. Activation can then be retried after any crash.
@@ -246,9 +261,10 @@ public final class SetupApplication {
 
 	private SetupSession restore(String id, MatchDocument document) throws SQLException {
 		try (BrowserRequestTiming.Scope ignored = timing.span(BrowserRequestTiming.Phase.RECOVERY_RESTORE)) {
+			safety.enter(id);
+			if (sessions.size() >= memoryBudget.residentLimit()) { capacityRejections++; throw new MatchService.Failure("ACTIVATION_LIMIT"); }
 			RecoveryRepository.Record record = recoveryRecord(id, true);
 			if (record == null) return null; // Never initialize an already active pre-R2 match.
-			if (sessions.size() >= 32) { capacityRejections++; throw new MatchService.Failure("ACTIVATION_LIMIT"); }
 			SetupSession session = reconstruct(document, record);
 			if (session.isFailed()) return session;
 			byte[] fingerprint = fingerprints.of(record.json);
@@ -264,11 +280,12 @@ public final class SetupApplication {
 	}
 
 	private RecoveryRepository.Record recoveryRecord(String id, boolean resident) throws SQLException {
+		safety.requireAvailable(id);
 		Long rejected = rejectedRecoveryGenerations.get(id);
 		if (rejected != null) {
 			Long current = recovery.generation(id);
 			if (rejected.equals(current)) {
-				if (resident && sessions.size() >= 32) { capacityRejections++; throw new MatchService.Failure("ACTIVATION_LIMIT"); }
+				if (resident && sessions.size() >= memoryBudget.residentLimit()) { capacityRejections++; throw new MatchService.Failure("ACTIVATION_LIMIT"); }
 				throw new MatchService.Failure("RECOVERY_CORRUPT");
 			}
 			rejectedRecoveryGenerations.remove(id);
@@ -277,7 +294,16 @@ public final class SetupApplication {
 	}
 
 	private RecoveryRepository.Record findRecovery(String id) throws SQLException {
-		try { return recovery.find(id); }
+		safety.requireAvailable(id);
+		try {
+			RecoveryRepository.Record record = recovery.find(id);
+			if (record != null) requireSize(id, new Utf8Size().bytes(record.json), memoryBudget.decodedLimit());
+			return record;
+		}
+		catch (MatchService.Failure limited) {
+			if ("MATCH_SIZE_LIMIT".equals(limited.code)) { stoppedMatches.put(id, limited.code); safety.sizeLimit(id, -1, memoryBudget.decodedLimit()); }
+			throw limited;
+		}
 		catch (RecoveryRepository.CorruptRecord corrupt) {
 			rejectRecovery(corrupt.matchId, corrupt.generation);
 			throw new MatchService.Failure("RECOVERY_CORRUPT");
@@ -299,6 +325,17 @@ public final class SetupApplication {
 		}
 	}
 
+	private void requireSize(String id, long bytes, int limit) {
+		if (bytes <= limit) return;
+		release(id);
+		stoppedMatches.put(id, "MATCH_SIZE_LIMIT");
+		safety.sizeLimit(id, bytes, limit);
+	}
+
+	private void requireAppend(String id, SetupSession session) {
+		requireSize(id, session.recoveryBytes(), memoryBudget.appendLimit());
+	}
+
 	private void rejectRecovery(String id, long generation) {
 		rejectedRecoveryGenerations.put(id, generation);
 		if (rejectedRecoveryGenerations.size() > MAX_REJECTED_RECOVERIES)
@@ -307,6 +344,8 @@ public final class SetupApplication {
 
 	private void checkpoint(String owner, String id, SetupSession session) throws SQLException {
 		if (recovery == null) return;
+		safety.enter(id);
+		requireSize(id, session.recoveryBytes(), memoryBudget.decodedLimit());
 		try { if (timing.detailed()) {
 			int[] counts = session.recoveryJournalCounts();
 			timing.value(BrowserRequestTiming.Value.HISTORY_REQUESTS, counts[0]); timing.value(BrowserRequestTiming.Value.EVENTS, counts[1]);
@@ -403,6 +442,8 @@ public final class SetupApplication {
 			boolean abandonmentDue = recovery != null && session.abandonmentDue(now);
 			if (!abandonmentDue && !session.reactiveDecisionDue(now)) continue;
 			try {
+				safety.enter(id);
+				requireAppend(id, session);
 				if (abandonmentDue && session.abandonIfInactive(now)) {
 					checkpoint(session.checkpointOwner(), id, session);
 					release(id);
@@ -445,6 +486,7 @@ public final class SetupApplication {
 		if (session == null) { pendingCompletions.remove(id); return; }
 		try {
 			String owner = session.checkpointOwner();
+			safety.enter(id);
 			MatchDocument document = matches.loadForSetup(owner, id).document;
 			matches.completeLoaded(owner, document, session.completedMatch());
 			changed.put(id, publishedState(session, "completion"));
@@ -492,6 +534,7 @@ public final class SetupApplication {
 			String role = owner.equals(document.home.owner) ? "home"
 				: document.away != null && owner.equals(document.away.owner) ? "away" : null;
 			if (role == null) throw new MatchService.Failure("NOT_FOUND");
+			safety.enter(id);
 			String operation = request.getString("operation", null);
 			phase = "retained-concession";
 			boolean completed = document.lifecycle == MatchDocument.Lifecycle.COMPLETED;
@@ -529,6 +572,7 @@ public final class SetupApplication {
 			phase = "skill-use-preferences";
 			if (cold) applySkillUsePreferences(session, preferences);
 			else refreshSkillUsePreferences(id, session);
+			if (!"load".equals(operation) && !"concessionStatus".equals(operation)) requireAppend(id, session);
 			phase = "checkpoint";
 			if (recovery != null) lastAccess.put(id, clock.millis());
 			if (session.isComplete() && recovery != null && "load".equals(operation)) {
@@ -850,6 +894,8 @@ public final class SetupApplication {
 		if (session == null || session.isFailed()) throw new MatchService.Failure("SESSION_UNAVAILABLE");
 		if (recovery == null) throw new MatchService.Failure("CHAT_UNAVAILABLE");
 		lastAccess.put(matchId, clock.millis());
+		safety.enter(matchId);
+		requireAppend(matchId, session);
 		MatchChat.Outcome outcome = session.sendChat(accountId, role, requestId, content, clock.millis());
 		checkpoint("home", matchId, session);
 		return outcome;

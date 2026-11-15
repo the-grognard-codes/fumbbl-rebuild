@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Stop oversized matches with a clear size-limit notice, derive resident match capacity from the server heap, and quarantine interrupted match work on restart so other games remain available.
+
 - Reject checkpoint diagnostics with missing fixture files and accept the zero-decision baseline regardless of fixture order.
 
 - Report checkpoint p95 only with at least 20 samples and reject incomplete or duplicate diagnostic cohorts.

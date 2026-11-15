@@ -24,6 +24,24 @@ import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 class JdbcRecoveryRepositoryTest {
+	@Test void oversizedCheckpointIsRefusedBeforeDecodeOnBothRepositoryLoadPaths() throws Exception {
+		String oversized = new JsonObject().add("$codec", "ffb-match-gzip-json").add("version", 1)
+			.add("decodedBytes", 45 * 1024 * 1024).add("payload", "invalid-base64!").toString();
+		for (boolean journal : new boolean[] {false, true}) {
+			BoundedJsonStorageCodec codec = org.mockito.Mockito.spy(new BoundedJsonStorageCodec(
+				BoundedJsonStorageCodec.RECOVERY_ENCODED_LIMIT, BoundedJsonStorageCodec.RECOVERY_DECODED_LIMIT));
+			JdbcRecoveryRepository bounded = new JdbcRecoveryRepository(() -> connection, 1024, codec, journal);
+			ResultSet checkpoint = mock(ResultSet.class), entries = mock(ResultSet.class);
+			when(checkpoint.next()).thenReturn(true, false);
+			when(checkpoint.getLong(1)).thenReturn(1L);
+			when(checkpoint.getLong(2)).thenReturn(1L);
+			when(checkpoint.getString(1)).thenReturn("match");
+			when(checkpoint.getString(3)).thenReturn(oversized);
+			when(statement.executeQuery()).thenReturn(checkpoint, entries);
+			assertEquals("MATCH_SIZE_LIMIT", assertThrows(MatchService.Failure.class, () -> bounded.find("match")).code);
+			verify(codec, never()).decode(anyString());
+		}
+	}
 	@Test void refusedCommitRemainsDefiniteBeforeAnyCommitIo() throws Exception {
 		when(statement.executeUpdate()).thenReturn(1);
 		doThrow(new com.fumbbl.ffb.server.db.JdbcConnections.CommitNotStarted()).when(connection).commit();

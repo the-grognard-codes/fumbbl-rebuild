@@ -21,6 +21,7 @@ public final class JdbcRecoveryRepository implements RecoveryRepository {
 	public interface Connections { Connection open() throws SQLException; }
 	private final Connections connections;
 	private final BoundedJsonStorageCodec codec;
+	private final MatchMemoryBudget memoryBudget = new MatchMemoryBudget();
 	public static final int MAX_RETAINED_RECORDS = 1024;
 	private final int retainedLimit;
 	private final boolean journalEnabled;
@@ -54,7 +55,7 @@ public final class JdbcRecoveryRepository implements RecoveryRepository {
 			"SELECT matchid,generation,artifact_json FROM ffb_match_recovery WHERE matchid=?")) {
 			query.setString(1, matchId);
 			try (BrowserRequestTiming.Scope read = timing.span(BrowserRequestTiming.Phase.DB_READ); ResultSet rows = query.executeQuery()) {
-				return rows.next() ? new Record(rows.getString(1), rows.getLong(2), codec.decode(rows.getString(3))) : null;
+				return rows.next() ? new Record(rows.getString(1), rows.getLong(2), codec.decodeForActivation(rows.getString(3), memoryBudget)) : null;
 			}
 		}
 	}
@@ -176,11 +177,16 @@ public final class JdbcRecoveryRepository implements RecoveryRepository {
 			}
 			// Finish the consistent SQL snapshot before decoding or reassembling the bounded records.
 			BoundedJsonStorageCodec journalCodec = new BoundedJsonStorageCodec(RecoveryJournal.MAX_ENTRY_BYTES, RecoveryJournal.MAX_ENTRY_BYTES);
+			long decodedBytes = codec.decodedBytes(checkpoint);
+			for (Record entry : entries) decodedBytes += journalCodec.decodedBytes(entry.json);
+			memoryBudget.requireDecodedBytes(decodedBytes);
 			for (int index = 0; index < entries.size(); index++) {
 				Record entry = entries.get(index);
 				entries.set(index, new Record(id, entry.generation, journalCodec.decode(entry.json)));
 			}
-			return new RecoveryJournal().restore(id, generation, checkpointGeneration, codec.decode(checkpoint), entries);
+			Record restored = new RecoveryJournal().restore(id, generation, checkpointGeneration, codec.decodeForActivation(checkpoint, memoryBudget), entries);
+			memoryBudget.requireDecodedBytes(new Utf8Size().bytes(restored.json));
+			return restored;
 		} catch (IllegalArgumentException failure) {
 			if (generation > 0 && (!(failure instanceof MatchService.Failure rejected) || "RECOVERY_CORRUPT".equals(rejected.code)))
 				throw new CorruptRecord(id, generation);

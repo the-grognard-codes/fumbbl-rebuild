@@ -10,6 +10,7 @@ import com.fumbbl.ffb.json.UtilJson;
 import com.fumbbl.ffb.net.NetCommandFactory;
 import com.fumbbl.ffb.net.commands.ServerCommand;
 
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -22,6 +23,7 @@ public class GameLog implements IJsonSerializable {
 	private final List<ServerCommand> fServerCommands;
 	private List<String> recoveryCommands;
 	private long recoveryEpoch;
+	private long recoveryBytes;
 
 	private transient int fLastCommitedCommandNr;
 	private final transient GameState fGameState;
@@ -87,6 +89,7 @@ public class GameLog implements IJsonSerializable {
 		synchronized (fServerCommands) {
 			fServerCommands.clear();
 			if (recoveryCommands != null) recoveryCommands.clear();
+			recoveryBytes = 0;
 			recoveryEpoch++;
 		}
 	}
@@ -96,11 +99,27 @@ public class GameLog implements IJsonSerializable {
 		synchronized (fServerCommands) {
 			if (from < 0 || from > fServerCommands.size()) throw new IllegalArgumentException("Invalid recovery log cursor");
 			if (recoveryCommands == null) recoveryCommands = new ArrayList<>();
-			for (int index = recoveryCommands.size(); index < fServerCommands.size(); index++)
-				recoveryCommands.add(fServerCommands.get(index).toJsonValue().toString());
+			freezeRecoveryCommands();
 			JsonArray tail = new JsonArray();
 			for (int index = from; index < recoveryCommands.size(); index++) tail.add(JsonObject.readFrom(recoveryCommands.get(index)));
 			return new JsonObject().add("commandArray", tail);
+		}
+	}
+
+	/** Encoded command-array contents, including commas, without re-parsing the retained prefix. */
+	public long recoveryJsonBytes() {
+		synchronized (fServerCommands) {
+			if (recoveryCommands == null) recoveryCommands = new ArrayList<>();
+			freezeRecoveryCommands();
+			return recoveryBytes + Math.max(0, recoveryCommands.size() - 1);
+		}
+	}
+
+	private void freezeRecoveryCommands() {
+		for (int index = recoveryCommands.size(); index < fServerCommands.size(); index++) {
+			String json = fServerCommands.get(index).toJsonValue().toString();
+			recoveryCommands.add(json);
+			recoveryBytes += json.getBytes(StandardCharsets.UTF_8).length;
 		}
 	}
 
@@ -113,7 +132,12 @@ public class GameLog implements IJsonSerializable {
 			JsonArray commands = saved.get("commandArray").asArray();
 			if (commands.size() != fServerCommands.size()) throw new IllegalArgumentException("Recovery log boundary mismatch");
 			recoveryCommands = new ArrayList<>(commands.size());
-			for (JsonValue command : commands) recoveryCommands.add(command.toString());
+			recoveryBytes = 0;
+			for (JsonValue command : commands) {
+				String json = command.toString();
+				recoveryCommands.add(json);
+				recoveryBytes += json.getBytes(StandardCharsets.UTF_8).length;
+			}
 			recoveryEpoch++;
 		}
 	}
