@@ -57,7 +57,7 @@ export function MatchEventLog({ records, loading, unavailable, showSettings = tr
   const follow = useRef(true);
   const wasMinimized = useRef(minimized);
   const matchId = records[0]?.state.matchId;
-  const [historyEnd, setHistoryEnd] = useState<{ matchId: string | undefined; key: string; revision: number } | null>(null);
+  const [historyEnd, setHistoryEnd] = useState<{ matchId: string | undefined; key: string; revision: number; source: 'reading' | 'paged' } | null>(null);
   const pageChanged = useRef(false);
   const retainedEnd = historyEnd?.matchId === matchId ? historyEnd : null;
   const endIndex = retainedEnd ? lines.findIndex(line => line.key === retainedEnd.key) : -1;
@@ -70,7 +70,7 @@ export function MatchEventLog({ records, loading, unavailable, showSettings = tr
     follow.current = end >= lines.length;
     pageChanged.current = true;
     const line = lines[Math.max(0, end - 1)];
-    setHistoryEnd(end >= lines.length || !line ? null : { matchId, key: line.key, revision: line.revision });
+    setHistoryEnd(end >= lines.length || !line ? null : { matchId, key: line.key, revision: line.revision, source: 'paged' });
   };
   useLayoutEffect(() => { anchor.current = null; follow.current = true; }, [matchId]);
   const rememberPosition = () => {
@@ -79,15 +79,15 @@ export function MatchEventLog({ records, loading, unavailable, showSettings = tr
     if (element.scrollHeight - element.scrollTop - element.clientHeight <= 36) {
       follow.current = true;
       anchor.current = null;
-      // Resume within one mounted page; larger gaps retain deliberate historical navigation.
-      if (lines.length - windowEnd <= mountedLogLimit) setHistoryEnd(null);
+      // Only a reading pin resumes automatically; paged history requires Later or Latest.
+      if (retainedEnd?.source === 'reading' && lines.length - windowEnd <= mountedLogLimit) setHistoryEnd(null);
       return;
     }
     follow.current = false;
     // Retain the mounted window while a coach reads, even after more than 100 new events.
     if (!retainedEnd && lines[windowEnd - 1]) {
       const last = lines[windowEnd - 1];
-      setHistoryEnd({ matchId, key: last.key, revision: last.revision });
+      setHistoryEnd({ matchId, key: last.key, revision: last.revision, source: 'reading' });
     }
     const paneTop = element.getBoundingClientRect().top;
     const row = Array.from(element.querySelectorAll<HTMLElement>('[data-log-key]'))

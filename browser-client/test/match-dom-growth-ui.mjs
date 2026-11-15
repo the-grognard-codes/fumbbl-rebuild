@@ -79,6 +79,19 @@ try {
   assert.ok(measurements.peakElements <= 2000, `Bound the complete match page: peak ${measurements.peakElements} elements`);
   assert.equal(measurements.userSelect, 'none');
   const earlier = page.getByRole('button', { name: 'Earlier log events', exact: true });
+  const log = page.locator('.match-history-log [role=log]');
+  await earlier.click();
+  const pagedEnd = await log.locator('[data-log-key]').last().getAttribute('data-log-key');
+  await log.evaluate(element => { element.scrollTop = element.scrollHeight; element.dispatchEvent(new Event('scroll', { bubbles: true })); });
+  await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));
+  assert.equal(await log.locator('[data-log-key]').last().getAttribute('data-log-key'), pagedEnd,
+    'Reaching the bottom of an explicit Earlier page must stay pinned');
+  assert.equal(await log.locator('[data-revision="450"]').count(), 0);
+  const later = page.getByRole('button', { name: 'Later log events', exact: true });
+  for (let index = 0; index < 5 && !await later.isDisabled(); index++) await later.click();
+  assert.equal(await later.isDisabled(), true);
+  assert.equal(await log.getAttribute('aria-live'), 'polite', 'Later returns the paged window to live following');
+  assert.ok(await log.locator('[data-revision="450"]').count());
   for (let index = 0; index < 4; index++) await earlier.click();
   assert.equal(await earlier.isDisabled(), true);
   assert.ok(await page.locator('.match-history-log [data-revision="1"]').count(), 'The oldest recorded event remains reachable');
@@ -88,7 +101,6 @@ try {
   assert.equal(await page.locator('.match-history-log [role=log]').getAttribute('aria-live'), 'off');
   await page.getByRole('button', { name: 'Latest log events', exact: true }).click();
   assert.ok(await page.locator('.match-history-log [data-revision="450"]').count());
-  const log = page.locator('.match-history-log [role=log]');
   await log.evaluate(element => { element.scrollTop = 0; element.dispatchEvent(new Event('scroll', { bubbles: true })); });
   const firstRead = await log.locator('[data-log-key]').first().getAttribute('data-log-key');
   await page.evaluate(() => {

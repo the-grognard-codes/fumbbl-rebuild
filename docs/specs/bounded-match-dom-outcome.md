@@ -54,9 +54,11 @@ announcements resume without a Latest button. The full-page peak bound is now
 2,000 elements, and a failed assertion reports the observed peak. Dice-face
 validation and selected/chooser/uphill classes share one presentation source.
 
-Review-fix round: reaching the bottom resumes live following when at most one
+Review-fix round: returning from reading to the bottom resumes live following when at most one
 mounted page (100 formatted log lines) has arrived beyond the retained end. This
 allows a short arrival burst to appear without Later/Latest, while gaps larger
 than one page keep deliberate history navigation pinned. The new 30-arrival
 regression first timed out on revision 600; the existing 120-arrival pin remains
 covered alongside continued following after revision 601.
+
+Fix round 2: historyEnd records reading versus paged provenance. Only reading pins resume automatically within 100 new formatted lines. Explicit Earlier/Later pages stay pinned at their bottom; Later reaching live or Latest restores following. The browser regression covers the first Earlier page (gap exactly 100), Later returning to live, 30-arrival reading resumption and the existing 120-arrival pin.
