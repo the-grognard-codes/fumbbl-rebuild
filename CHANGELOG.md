@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Accept expanded IPv6 loopback engine health probes, bound dev-local server restart retries to three, and keep fatal log labels separate from protocol names while preserving canonical match ID context.
 - Preserve definitive completion rejection codes without publication, and expose terminal completion releases in lifecycle metrics.
 
 - Show the final score while result saving retries automatically, reconnect computer coaches through one retry schedule, and mark inactive matches abandoned without waiting for a coach to return.
