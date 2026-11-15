@@ -1,11 +1,15 @@
 # ADR request: staged placements are presentation-only until confirmed
 
-Status: requested; resulting ADR drafted as proposed, not yet accepted.
+Status: ADR accepted on 2026-11-15; implementation pending in #556.
 Source: [issue #555](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/555) and the maintainer's decisions in conversation with the reviewer on 2026-11-15 (recorded below).
 Reviewed: 2026-11-15 against `main` at `33d95b7c6`.
 Template: [ADR request and decision template](../agents/adr-template.md).
 Draft: [ADR 0008](../adr/0008-staged-placements.md).
-Implementation: [issue #556](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/556), blocked until ADR acceptance.
+Implementation: [issue #556](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/556).
+
+## Maintainer acceptance
+
+On 2026-11-15 the maintainer reviewed draft PR [#557](https://github.com/the-grognard-codes/fumbbl-rebuild/pull/557) in conversation with the reviewer, and accepted ADR 0008 as drafted: "Draft looks perfect, accepted." All three open decisions were resolved beforehand (below). With acceptance, the glossary and architecture-map invariant drafts were applied, and #556 was unblocked.
 
 ## Objective
 

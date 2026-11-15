@@ -1,10 +1,11 @@
 # Stage placement-style actions in memory and make only their confirmation durable
 
-Status: proposed
+Status: accepted on 2026-11-15.
+Approval: [maintainer acceptance](../specs/staged-placements-adr.md#maintainer-acceptance)
 Date: 2026-11-15
 Issue: [#555](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/555)
 Request: [staged placements ADR request](../specs/staged-placements-adr.md)
-Implementation: [#556](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/556), blocked until acceptance
+Implementation: [#556](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/556)
 Amends: [ADR 0002](0002-bounded-match-transcript.md), [ADR 0004](0004-durable-recovery-journal.md)
 Evidence revision: `33d95b7c6`
 
@@ -114,7 +115,7 @@ Rules limits still apply to every staged action, for example Solid Defence's pla
 - **[ADR 0004](0004-durable-recovery-journal.md), recovery journal.** "A successful checkpoint commits an action and its outcomes together" applies to durable actions. Staged actions have no durable boundary, and recovery returns to the stage's base positions.
 - **Turn-sequence ADR (#551).** If ADR 0007 is accepted, staged stages sit inside its setup and kick-off phases. The confirming action is that phase's decision.
 
-## Glossary draft (`CONTEXT.md`, applied on acceptance)
+## Glossary (`CONTEXT.md`, applied 2026-11-15)
 
 > **Staged placement**:
 > A player position change during setup or a kick-off event that every viewer sees live, but that is not recorded until the coach confirms the stage. Recovery and replay ignore it.
@@ -126,7 +127,7 @@ Rules limits still apply to every staged action, for example Solid Defence's pla
 > **Match transcript**:
 > The ordered, durable record of accepted decisions, revealed outcomes, board checkpoints, and chat for one match. A confirmed setup or kick-off event appears as its final positions.
 
-## Architecture-map invariant draft (applied on acceptance)
+## Architecture-map invariant (applied 2026-11-15)
 
 > - **One durable boundary per action.** A successful checkpoint commits a durable action and its outcomes together. Exact retries read the checkpoint and append nothing. Storage admission rejects an action before native execution when it cannot reserve room. **Staged placements have no durable boundary. Only their confirming action does** ([ADR 0002](../adr/0002-bounded-match-transcript.md), [ADR 0004](../adr/0004-durable-recovery-journal.md), [ADR 0008](../adr/0008-staged-placements.md)).
 
