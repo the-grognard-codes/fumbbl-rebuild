@@ -2,7 +2,7 @@
 
 ## Unreleased
 
-- Bound Solid Defence redeployment and kick-off decision loops, let the computer coach finish Solid Defence and Charge without retained plans, and force runaway turns to end with match-specific diagnostics.
+- Limit each kick-off selection or placement stage to 50 adjustments for every coach; reject extra edits without ending the event, preserve confirmation after reverting an illegal final formation, and let the computer coach finish Solid Defence and Charge without retained plans. End runaway turns with match-specific diagnostics.
 
 - Reject checkpoint diagnostics with missing fixture files and accept the zero-decision baseline regardless of fixture order.
 

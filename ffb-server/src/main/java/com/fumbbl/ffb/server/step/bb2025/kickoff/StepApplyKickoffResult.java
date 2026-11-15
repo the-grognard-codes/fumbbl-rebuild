@@ -57,6 +57,7 @@ import com.fumbbl.ffb.server.step.StepAction;
 import com.fumbbl.ffb.server.step.StepCommandStatus;
 import com.fumbbl.ffb.server.step.StepException;
 import com.fumbbl.ffb.server.step.StepFactory;
+import com.fumbbl.ffb.server.step.KickoffAdjustmentBudget;
 import com.fumbbl.ffb.server.step.StepId;
 import com.fumbbl.ffb.server.step.StepParameter;
 import com.fumbbl.ffb.server.step.StepParameterKey;
@@ -84,12 +85,13 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 
 import static com.fumbbl.ffb.server.step.StepParameter.from;
 @RulesCollection(RulesCollection.Rules.BB2025)
-public final class StepApplyKickoffResult extends AbstractStep {
+public final class StepApplyKickoffResult extends AbstractStep implements KickoffAdjustmentBudget {
 
 	private String fGotoLabelOnEnd;
 	private String fGotoLabelOnBlitz;
@@ -99,6 +101,7 @@ public final class StepApplyKickoffResult extends AbstractStep {
 	private boolean fEndKickoff;
 	private final Map<String, FieldCoordinate> playersAtCoordinates = new HashMap<>();
 	private int nrOfPlayersAllowed, nrOfMovedPlayers;
+    private int kickoffAdjustments;
 	private boolean pitchRedeployment, quickSnapSelection;
 	private String movedPlayer;
 	private FieldCoordinate toCoordinate;
@@ -113,15 +116,18 @@ public final class StepApplyKickoffResult extends AbstractStep {
 		return StepId.APPLY_KICKOFF_RESULT;
 	}
 
-    /** One placement and one correction per selected player, including swaps. */
-    public int solidDefencePlacementLimit() {
-        return 2 * selectedPlayers.size();
+    @Override
+    public boolean kickoffAdjustmentsExhausted() {
+        return kickoffAdjustments >= KICKOFF_ADJUSTMENT_LIMIT;
     }
 
-    public boolean solidDefencePlacementsExhausted() {
-        return nrOfMovedPlayers >= solidDefencePlacementLimit();
+    @Override
+    public void recordSelectionAdjustment() {
+        if (kickoffAdjustmentsExhausted()) throw new IllegalStateException("Kick-off stage adjustment allowance exhausted");
+        kickoffAdjustments++;
     }
 
+    @Override
     public int solidDefenceCompleted() {
         // Older native checkpoints did not count Solid Defence placements.
         if (nrOfMovedPlayers == 0) return 0;
@@ -216,26 +222,23 @@ public final class StepApplyKickoffResult extends AbstractStep {
 				case CLIENT_SETUP_PLAYER:
                     if (!UtilServerSteps.checkCommandIsFromCurrentPlayer(getGameState(), pReceivedCommand)) return StepCommandStatus.SKIP_STEP;
 					ClientCommandSetupPlayer setupPlayerCommand = (ClientCommandSetupPlayer) pReceivedCommand.getCommand();
+                    // Reject an over-budget native command without touching positions, counters or stage flow.
+                    if (kickoffAdjustmentsExhausted()) return StepCommandStatus.SKIP_STEP;
 					if (getGameState().getGame().getTurnMode() == TurnMode.QUICK_SNAP) {
 						movedPlayer = setupPlayerCommand.getPlayerId();
 						toCoordinate = setupPlayerCommand.getCoordinate();
 						commandStatus = StepCommandStatus.EXECUTE_STEP;
 					} else if (getGameState().getGame().getTurnMode() == TurnMode.SOLID_DEFENCE) {
                         Game game = getGameState().getGame();
-                        if (solidDefencePlacementsExhausted()) {
-                            restoreInvalidSolidDefence();
-                            fEndKickoff = true;
-                            executeStep();
-                            return StepCommandStatus.SKIP_STEP;
-                        }
                         if (!pitchRedeployment) {
                             Player<?> legacyPlayer = game.getPlayerById(setupPlayerCommand.getPlayerId());
                             if (!selectedPlayers.contains(legacyPlayer)) return StepCommandStatus.SKIP_STEP;
                             FieldCoordinate before = legacyPlayer == null ? null : game.getFieldModel().getPlayerCoordinate(legacyPlayer);
                             UtilServerSetup.setupPlayer(getGameState(), setupPlayerCommand.getPlayerId(), setupPlayerCommand.getCoordinate());
-                            if (legacyPlayer != null && !java.util.Objects.equals(before, game.getFieldModel().getPlayerCoordinate(legacyPlayer))) {
+                            if (legacyPlayer != null && !Objects.equals(before, game.getFieldModel().getPlayerCoordinate(legacyPlayer))) {
                                 nrOfMovedPlayers++;
-                                if (solidDefencePlacementsExhausted()) restoreInvalidSolidDefence();
+                                kickoffAdjustments++;
+                                if (kickoffAdjustmentsExhausted()) restoreInvalidSolidDefence();
                             }
                             return StepCommandStatus.SKIP_STEP;
                         }
@@ -252,7 +255,8 @@ public final class StepApplyKickoffResult extends AbstractStep {
                         game.getFieldModel().setPlayerCoordinate(player, to);
                         if (occupant != null && occupant != player) game.getFieldModel().setPlayerCoordinate(occupant, from);
                         nrOfMovedPlayers++;
-                        if (solidDefencePlacementsExhausted()) restoreInvalidSolidDefence();
+                        kickoffAdjustments++;
+                        if (kickoffAdjustmentsExhausted()) restoreInvalidSolidDefence();
                         commandStatus = StepCommandStatus.SKIP_STEP;
 					} else {
                         Game current = getGameState().getGame();
@@ -271,6 +275,7 @@ public final class StepApplyKickoffResult extends AbstractStep {
                         Game game = getGameState().getGame();
                         if (game.getTurnMode() == TurnMode.HIGH_KICK
                             && game.getFieldModel().getBallCoordinate().equals(game.getFieldModel().getPlayerCoordinate(game.getPlayerById(setupPlayerCommand.getPlayerId())))) {
+                            kickoffAdjustments++;
                             fEndKickoff = true;
                             commandStatus = StepCommandStatus.EXECUTE_STEP;
                         } else commandStatus = StepCommandStatus.SKIP_STEP;
@@ -305,6 +310,8 @@ public final class StepApplyKickoffResult extends AbstractStep {
 							if (selectedPlayers.stream().anyMatch(player -> !eligiblePlayers.contains(player))) {
 								throw new FantasyFootballException("Client selected player that is not eligible");
 							}
+                            // Confirmation starts the movement stage with a fresh technical allowance.
+                            kickoffAdjustments = 0;
 							UtilServerDialog.hideDialog(getGameState());
 							if (commandPlayerChoice.getPlayerChoiceMode() == PlayerChoiceMode.QUICK_SNAP) {
 								Game game = getGameState().getGame();
@@ -725,6 +732,7 @@ public final class StepApplyKickoffResult extends AbstractStep {
 					}
 
 					nrOfMovedPlayers++;
+                    kickoffAdjustments++;
 					UtilServerSetup.setupPlayer(getGameState(), movedPlayer,
 						toCoordinate);
 
@@ -1005,6 +1013,7 @@ public final class StepApplyKickoffResult extends AbstractStep {
 		IServerJsonOption.PLAYER_ID.addTo(jsonObject, movedPlayer);
 		IServerJsonOption.COORDINATE_TO.addTo(jsonObject, toCoordinate);
 		IServerJsonOption.NR_OF_PLAYERS.addTo(jsonObject, nrOfMovedPlayers);
+        if (kickoffAdjustments > 0) jsonObject.add("kickoffAdjustments", kickoffAdjustments);
 		List<String> selectedIds = selectedPlayers.stream().map(Player::getId).collect(Collectors.toList());
 		IServerJsonOption.PLAYER_IDS_SELECTED.addTo(jsonObject, selectedIds);
 		List<String> eligiblePlayerIds = eligiblePlayers.stream().map(Player::getId).collect(Collectors.toList());
@@ -1033,6 +1042,11 @@ public final class StepApplyKickoffResult extends AbstractStep {
 		movedPlayer = IServerJsonOption.PLAYER_ID.getFrom(source, jsonObject);
 		toCoordinate = IServerJsonOption.COORDINATE_TO.getFrom(source, jsonObject);
 		nrOfMovedPlayers = IServerJsonOption.NR_OF_PLAYERS.getFrom(source, jsonObject);
+        kickoffAdjustments = jsonObject.getInt("kickoffAdjustments", 0);
+        if (kickoffAdjustments < 0 || kickoffAdjustments > KICKOFF_ADJUSTMENT_LIMIT)
+            throw new IllegalArgumentException("Invalid kick-off adjustment allowance");
+        selectedPlayers.clear();
+        eligiblePlayers.clear();
 		Arrays.stream(IServerJsonOption.PLAYER_IDS_SELECTED.getFrom(source, jsonObject))
 			.map(id -> getGameState().getGame().getPlayerById(id)).forEach(selectedPlayers::add);
 		Arrays.stream(IServerJsonOption.ELIGIBLE_PLAYER_IDS.getFrom(source, jsonObject))

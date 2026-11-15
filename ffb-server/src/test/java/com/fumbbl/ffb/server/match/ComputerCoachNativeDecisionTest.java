@@ -25,6 +25,7 @@ import com.fumbbl.ffb.server.step.StepParameter;
 import com.fumbbl.ffb.server.step.StepParameterKey;
 import com.fumbbl.ffb.server.step.bb2025.kickoff.StepApplyKickoffResult;
 import com.fumbbl.ffb.server.step.generator.Sequence;
+import com.fumbbl.ffb.server.step.generator.bb2025.Select;
 
 import com.eclipsesource.json.JsonArray;
 import com.eclipsesource.json.JsonObject;
@@ -42,12 +43,95 @@ import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 /** Cross-runtime regression: server offers -> shipped Node policy -> accepted native action. Requires Node 26. */
 class ComputerCoachNativeDecisionTest {
+    @Test void fiftySelectionTogglesStopWithoutEndingTheEventAndSurviveRestore() throws Exception {
+        for (KickoffResult event : new KickoffResult[] { KickoffResult.CHARGE, KickoffResult.QUICK_SNAP, KickoffResult.SOLID_DEFENCE }) {
+            BogrukEngineFixture fixture = kickoffFixture(event);
+            JsonObject view = fixture.reply("away").get("state").asObject();
+            String toggle = view.get("actions").asArray().values().stream().map(JsonValue::asObject)
+                .map(action -> action.getString("id", "")).filter(id -> id.contains("event-pick:")).findFirst().orElseThrow().split(":", 2)[1];
+            for (int i = 0; i < 50; i++) {
+                if (i == 49) { fixture.restore(); view = fixture.reply("away").get("state").asObject(); }
+                view = rawAction(fixture, view, toggle, "toggle-" + i).get("state").asObject();
+            }
+            assertEquals("selection", view.get("kickoff").asObject().getString("stage", null));
+            assertTrue(view.get("actions").asArray().values().stream()
+                .noneMatch(value -> value.asObject().getString("id", "").contains("event-pick:")));
+            assertRejectedWithoutMutation(fixture, view, toggle);
+            fixture.restore();
+            view = fixture.reply("away").get("state").asObject();
+            assertRejectedWithoutMutation(fixture, view, toggle);
+            if (event == KickoffResult.SOLID_DEFENCE) {
+                String player = toggle.substring("event-pick:".length());
+                JsonObject request = actionRequest(fixture, view, "event-confirm", "confirm-selection")
+                    .add("playerIds", new JsonArray().add(player));
+                view = fixture.session.apply("away", request).get("state").asObject();
+                assertEquals("movement", view.get("kickoff").asObject().getString("stage", null));
+                assertEquals(0, nativeState(fixture).getCurrentStep().toJsonValue().getInt("kickoffAdjustments", 0),
+                    "Movement has a fresh stage allowance after fifty selection toggles");
+                assertTrue(view.get("actions").asArray().values().stream()
+                    .anyMatch(value -> "kickoffMove".equals(value.asObject().getString("kind", null))));
+            } else assertEquals("ACCEPTED", rawAction(fixture, view, "decline-event", "decline").getString("code", null));
+        }
+    }
+
+    @Test void fiftySolidDefencePlacementsWithFivePlayersLeaveConfirmationAndRejectFiftyOne() throws Exception {
+        for (boolean illegalLast : new boolean[] { false, true }) {
+            BogrukEngineFixture fixture = kickoffFixture(KickoffResult.SOLID_DEFENCE);
+            JsonObject view = fixture.reply("away").get("state").asObject();
+            JsonArray chosen = new JsonArray();
+            for (JsonValue value : view.get("actions").asArray()) {
+                JsonObject action = value.asObject();
+                if (action.getString("id", "").contains("event-pick:") && chosen.size() < 5)
+                    chosen.add(action.get("target").asObject().getString("playerId", null));
+            }
+            assertEquals(5, chosen.size());
+            JsonObject confirm = actionRequest(fixture, view, "event-confirm", "selection").add("playerIds", chosen);
+            view = fixture.session.apply("away", confirm).get("state").asObject();
+            JsonArray base = JsonArray.readFrom(view.get("players").toString());
+            String player = chosen.get(0).asString();
+            String placement = null;
+            for (int i = 0; i < 50; i++) {
+                if (i == 49) { fixture.restore(); view = fixture.reply("away").get("state").asObject(); }
+                placement = "solid-place:" + player + ":" + 17 + ":" + (illegalLast && i == 49 ? 13 : i % 2 == 0 ? 1 : 2);
+                view = rawAction(fixture, view, placement, "placement-" + i).get("state").asObject();
+            }
+            assertEquals(5, view.get("kickoff").asObject().getInt("selected", -1));
+            assertEquals(1, view.get("actions").asArray().size());
+            assertRejectedWithoutMutation(fixture, view, placement);
+            if (illegalLast) assertEquals(base, view.get("players"), "An illegal last edit restores the stage's base positions");
+            fixture.restore();
+            view = fixture.reply("away").get("state").asObject();
+            assertRejectedWithoutMutation(fixture, view, placement);
+            assertEquals("ACCEPTED", rawAction(fixture, view, "confirm-solid-defence", "confirm").getString("code", null));
+        }
+    }
+
+    private JsonObject rawAction(BogrukEngineFixture fixture, JsonObject view, String action, String id) {
+        JsonObject response = fixture.session.apply("away", actionRequest(fixture, view, action, id));
+        assertEquals("ACCEPTED", response.getString("code", null));
+        return response;
+    }
+
+    private JsonObject actionRequest(BogrukEngineFixture fixture, JsonObject view, String action, String id) {
+        return new JsonObject().add("version", 2).add("type", "setup").add("operation", "action")
+            .add("matchId", fixture.document.matchId).add("requestId", id).add("expectedRevision", view.get("revision"))
+            .add("actionId", view.getInt("revision", -1) + ":" + action);
+    }
+
+    private void assertRejectedWithoutMutation(BogrukEngineFixture fixture, JsonObject view, String action) {
+        String before = fixture.session.recoveryArtifact();
+        MatchService.Failure failure = assertThrows(MatchService.Failure.class,
+            () -> fixture.session.apply("away", actionRequest(fixture, view, action, "over-limit")));
+        assertEquals("INVALID_OPTION", failure.code);
+        assertEquals(before, fixture.session.recoveryArtifact(), "Rejected adjustment changes no state, revision, history or event");
+    }
     @Test void genericLimitEndsAChargeActivationWithoutStartingANormalTurn() throws Exception {
         BogrukEngineFixture fixture = kickoffFixture(KickoffResult.CHARGE);
         JsonObject view = fixture.reply("away").get("state").asObject();
@@ -91,8 +175,7 @@ class ComputerCoachNativeDecisionTest {
         state.getGame().setHomePlaying(true);
         state.getGame().getTurnDataHome().setTurnNr(1);
         state.getStepStack().clear();
-        new com.fumbbl.ffb.server.step.generator.bb2025.Select().pushSequence(
-            new com.fumbbl.ffb.server.step.generator.Select.SequenceParams(state, false));
+        new Select().pushSequence(new Select.SequenceParams(state, false));
         state.startNextStep();
         JsonObject view = fixture.reply("home").get("state").asObject();
         assertEquals("REGULAR", view.getString("turnMode", null));
@@ -154,8 +237,7 @@ class ComputerCoachNativeDecisionTest {
                 if (view.get("kickoff") == null || view.get("kickoff").isNull()) { finished = true; break; }
             }
             assertTrue(finished, event + " finishes within a bounded number of decisions");
-            // Solid Defence can keep a valid formation when none of the canonical empty targets is offered.
-            if (event != KickoffResult.SOLID_DEFENCE) assertTrue(moves > 0, event + " takes an offered movement");
+            assertTrue(moves > 0, event + " takes an offered movement from a formation with a canonical empty target");
         }
     }
 
@@ -208,7 +290,7 @@ class ComputerCoachNativeDecisionTest {
             for (Player<?> player : team.getPlayers()) {
                 int homeX = index < 3 ? 12 : 8;
                 game.getFieldModel().setPlayerCoordinate(player, new FieldCoordinate(team == game.getTeamHome() ? homeX : 25 - homeX,
-                    index < 3 ? 6 + index : index));
+                    index == 6 ? 12 : index == 10 ? 14 : index < 3 ? 6 + index : index));
                 game.getFieldModel().setPlayerState(player, new PlayerState(PlayerState.STANDING).changeActive(true));
                 index++;
             }
@@ -227,6 +309,7 @@ class ComputerCoachNativeDecisionTest {
         sequence.add(StepId.COIN_CHOICE, "finished");
         state.getStepStack().clear();
         state.getStepStack().push(sequence.getSequence());
+        state.getDiceRoller().setRecoveryRoll(sides -> Math.min(3, sides));
         state.startNextStep();
         return fixture;
     }

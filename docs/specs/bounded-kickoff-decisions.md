@@ -54,25 +54,43 @@ row, into an empty square in the same setup zone and column. Each offered player
 can qualify once; the policy then confirms within `selected + 1` movement-stage
 decisions, even if every response has null policy memory.
 
-The server permits `2 * selected` placement commands: one redeployment and one
-correction per participant (at most 12). This is an operational editing allowance,
-not an additional BB2025 entitlement. Repeated edits and swaps spend it. At the
-bound, only confirmation remains. An illegal final edit restores the selected
-players' original valid formation; a direct native placement beyond the bound
-ends the event. `completed` counts selected players currently displaced from
-their original squares, including players displaced by a swap, rather than edit
-commands. Legacy checkpoints with zero native placement count retain their old
-zero completion projection until a new placement.
+Each kick-off-event stage permits at most **50 adjustments**, for human and
+computer coaches alike. The one named constant is
+`KickoffAdjustmentBudget.KICKOFF_ADJUSTMENT_LIMIT`. This is the maintainer's
+technical safety net from [ADR 0008 as amended in #560](https://github.com/the-grognard-codes/fumbbl-rebuild/pull/560),
+not a BB2025 rule. Every accepted selection toggle in Solid Defence, Quick Snap
+or Charge spends one adjustment. Every accepted Solid Defence placement or swap,
+Quick Snap movement or High Kick movement spends one adjustment in its movement
+stage. A swap counts once. Reserve moves in the legacy placement path also count.
+Selection confirmation starts a fresh movement-stage allowance; Charge movement
+continues to use its ordinary native rules, not this editing allowance.
+
+The counter lives on the native kick-off step until #556 moves it into the staging
+layer. Its optional `kickoffAdjustments` native field survives checkpoint restore;
+older checkpoints without it start with zero adjustments. Projections query the
+shared `KickoffAdjustmentBudget` interface without importing a BB2025 step type.
+
+Adjustment 50 is accepted. At the ceiling, only confirm, decline or end remains;
+adjustment 51 is rejected with `INVALID_OPTION`, with no new state, event, request
+history or revision. It never ends the stage. If the final Solid Defence edit
+leaves illegal positions, the board reverts to the stage's valid base positions
+and confirmation remains possible. `completed` counts selected players currently
+displaced from those positions, including players displaced by a swap, rather
+than editing commands. Historical zero-count progress stays compatible until a
+new placement.
 
 Quick Snap already permits one adjacent move per selected player and ends when
 none remain active. Charge's native movement/activation limits remain authoritative;
 Bogruk also ends an activation when its authoritative movement budget has
 decreased, without requiring a remembered plan.
 
-A separate emergency limit ends a turn or kick-off after 1,024 accepted action or
-selection decisions. It counts recorded snapshots across selection/movement and
+A separate emergency limit fires **on accepted decision 1,024**, before its result
+is recorded; decision 1,023 does not fire it. It ends the native turn or kick-off. It counts recorded snapshots across selection/movement and
 reacting coaches, and therefore survives recovery without a new storage format.
-It resets on a new turn, drive or kick-off event. Forced exits use native kick-off
+It resets on a new turn, drive or kick-off event; a transition action belongs to
+the period it ended, rather than spending the new period's allowance. The guard
+runs in command acceptance before `recordEvent`, which only records state and
+outcomes. Forced exits use native kick-off
 or end-selection cleanup and log `DECISION_LIMIT matchId=<public ID> limit=1024`.
 The ordinary movement bounds are much smaller; this limit catches pathological
 selection or command loops, including clients other than the computer coach.
@@ -81,7 +99,7 @@ selection or command loops, including clients other than the computer coach.
 
 Artifact sizing, quarantine, heap analysis and restart admission belong to #554.
 Staged non-durable placements belong to #555/#556. Other computer playing-quality
-changes and publishing are excluded.
+changes, merges, deployment and soak execution are excluded by the resume handoff.
 
 ## Constraints
 
@@ -95,8 +113,9 @@ separate actions.
 
 - Confirm from the five-selected/no-memory capture within six decisions, moving
   each selected player at most once.
-- Stop offering Solid Defence placements at the stated allowance; leave a legal
-  confirmation path and retain the allowance across native checkpoint restore.
+- Accept adjustment 50 and reject 51 without mutation for five selected Solid
+  Defence players. Stop selection toggles at 50, reset at movement, preserve the
+  ceiling across native restore, and keep confirm/decline/end available.
 - Retain one move per selected Quick Snap player and bounded Charge activation.
 - End pathological turn/event loops with a public-match-ID `DECISION_LIMIT` warning.
 - Pass the affected policy, browser and server checks and record soak coverage.
@@ -107,7 +126,8 @@ The [BB2025 kick-off table transcription](https://bloodbowlbase.ru/bb2025/core_r
 describes Solid Defence as selecting up to D3+3 Open players to set up again under
 the usual restrictions. It does not prescribe a count for intermediate UI edits.
 Quick Snap gives each selected player one square; Charge uses bounded player
-activations. The placement correction allowance above is an application safeguard.
+activations. The flat 50-adjustment allowance is the maintainer's application
+safety net, not a limit derived from these rules.
 The existing repository contract in [kick-off selection](bb2025-kickoff-selection.md)
 continues to allow swaps and temporarily invalid formations before confirmation.
 
@@ -118,8 +138,11 @@ continues to allow swaps and temporarily invalid formations before confirmation.
 - Native server/policy tests for all three kick-off events and decision-limit exits.
 - Native repeated-placement, illegal-formation and checkpoint-counter tests.
 - Existing computer memory acceptance, exact-retry and recovery tests.
-- Browser unit suite and production build; full `mvn clean install`.
-- Isolated computer-versus-computer engine run; later three-hour soak rerun.
+- Full `mvn clean install`, once on resume (one retry only after a fix).
+- Browser suite/build only if client code changes; none changed on resume.
+- Seeded engine runs reporting maximum accepted decisions in each turn and
+  kick-off event, including any emergency guard activations. Soak execution is
+  outside the resume authorization.
 
 See [the outcome](bounded-kickoff-decisions-outcome.md) for results and remaining gaps.
 

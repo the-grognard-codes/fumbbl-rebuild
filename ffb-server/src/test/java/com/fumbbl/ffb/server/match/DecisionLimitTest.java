@@ -9,6 +9,23 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class DecisionLimitTest {
+    @Test void theActionThatEnteredANewTurnDoesNotSpendItsBudget() {
+        JsonArray events = new JsonArray().add(event("START", state().set("homeTurn", 2)))
+            .add(event(DecisionLimit.ACTION, state()));
+        for (int i = 0; i < 1022; i++) events.add(event(DecisionLimit.ACTION, state()));
+        assertFalse(new DecisionLimit().reached(events, state()));
+        events.add(event(DecisionLimit.ACTION, state()));
+        assertTrue(new DecisionLimit().reached(events, state()));
+    }
+
+    @Test void guardFiresOnThe1024thAcceptedDecisionAndNotThe1023rd() {
+        JsonArray events = new JsonArray();
+        for (int i = 0; i < 1022; i++) events.add(event(DecisionLimit.ACTION, state()));
+        assertFalse(new DecisionLimit().reached(events, state()), "Decision 1,023 remains below the guard");
+        events.add(event(DecisionLimit.ACTION, state()));
+        assertTrue(new DecisionLimit().reached(events, state()), "Decision 1,024 fires before its result is recorded");
+    }
+
     @Test void countsAcceptedDecisionsAcrossKickoffStagesAndIgnoresNonDecisionEvents() {
         JsonObject selection = state().add("kickoff", new JsonObject().add("event", "SOLID_DEFENCE").add("stage", "selection"));
         JsonObject movement = state().add("kickoff", new JsonObject().add("event", "SOLID_DEFENCE").add("stage", "movement"));

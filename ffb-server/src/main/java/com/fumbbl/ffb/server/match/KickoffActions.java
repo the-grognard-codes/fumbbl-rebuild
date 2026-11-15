@@ -17,8 +17,8 @@ import com.fumbbl.ffb.net.commands.ClientCommandSetupPlayer;
 import com.fumbbl.ffb.net.commands.ClientCommandTouchback;
 import com.fumbbl.ffb.server.GameState;
 import com.fumbbl.ffb.server.match.CoreTurnActions.Action;
+import com.fumbbl.ffb.server.step.KickoffAdjustmentBudget;
 import com.fumbbl.ffb.server.step.StepId;
-import com.fumbbl.ffb.server.step.bb2025.kickoff.StepApplyKickoffResult;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -38,6 +38,7 @@ public final class KickoffActions {
     public List<Action> actions() {
         List<Action> actions = new ArrayList<>();
         Game game = state.getGame();
+        boolean exhausted = adjustmentsExhausted();
         String role = game.isHomePlaying() ? "home" : "away";
         if (state.getCurrentStep().getId() == StepId.KICKOFF) {
             for (int x = game.isHomePlaying() ? 13 : 0; x < (game.isHomePlaying() ? 26 : 13); x++) {
@@ -69,7 +70,7 @@ public final class KickoffActions {
             if (dialog.getPlayerChoiceMode() == PlayerChoiceMode.SOLID_DEFENCE || dialog.getPlayerChoiceMode() == PlayerChoiceMode.CHARGE || dialog.getPlayerChoiceMode() == PlayerChoiceMode.QUICK_SNAP) {
                 role = game.getTeamHome().getId().equals(dialog.getTeamId()) ? "home" : "away";
                 List<Player<?>> eligible = eligible(game, dialog);
-                for (Player<?> player : eligible) {
+                if (!exhausted) for (Player<?> player : eligible) {
                     boolean selected = selectedPlayers.contains(player.getId());
                     if (!selected && selectedPlayers.size() >= dialog.getMaxSelects()) continue;
                     actions.add(new Action("event-pick:" + player.getId(), "kickoffChoice",
@@ -85,12 +86,12 @@ public final class KickoffActions {
                     new ClientCommandPlayerChoice(dialog.getPlayerChoiceMode(), new Player<?>[0])));
             }
         } else if (game.getTurnMode() == TurnMode.SOLID_DEFENCE) {
-            solidDefence(actions, game, role);
+            solidDefence(actions, game, role, exhausted);
 
         } else if (game.getTurnMode() == TurnMode.HIGH_KICK || game.getTurnMode() == TurnMode.QUICK_SNAP) {
             actions.add(new Action("end-event", "kickoffChoice", "Finish " + game.getTurnMode().name(), role,
                 new ClientCommandEndTurn(game.getTurnMode(), null)));
-            for (Player<?> player : game.getActingTeam().getPlayers()) {
+            if (!exhausted) for (Player<?> player : game.getActingTeam().getPlayers()) {
                 FieldCoordinate from = game.getFieldModel().getPlayerCoordinate(player);
                 if (!FieldCoordinateBounds.FIELD.isInBounds(from) || !game.getFieldModel().getPlayerState(player).isActive()) continue;
                 for (int x = 0; x < 26; x++) for (int y = 0; y < 15; y++) {
@@ -103,6 +104,13 @@ public final class KickoffActions {
             }
         }
         return actions;
+    }
+
+    private boolean adjustmentsExhausted() {
+        if (state.getCurrentStep() instanceof KickoffAdjustmentBudget budget) return budget.kickoffAdjustmentsExhausted();
+        if (state.getStepStack() != null) for (var step : state.getStepStack().toArray())
+            if (step instanceof KickoffAdjustmentBudget budget) return budget.kickoffAdjustmentsExhausted();
+        return false;
     }
 
     ClientCommandPlayerChoice confirmSelection(String role, List<String> ids) {
@@ -144,9 +152,9 @@ public final class KickoffActions {
         return result;
     }
 
-    private void solidDefence(List<Action> actions, Game game, String role) {
+    private void solidDefence(List<Action> actions, Game game, String role, boolean exhausted) {
         if (!state.getCurrentStep().toJsonValue().getBoolean("pitchRedeployment", false)) {
-            legacySolidDefence(actions, game, role);
+            legacySolidDefence(actions, game, role, exhausted);
             return;
         }
         Team team = game.getActingTeam();
@@ -155,8 +163,6 @@ public final class KickoffActions {
             if (game.getFieldModel().getPlayerState(player).isActive()
                 && FieldCoordinateBounds.FIELD.isInBounds(game.getFieldModel().getPlayerCoordinate(player))) placing.add(player);
         }
-        boolean exhausted = state.getCurrentStep() instanceof StepApplyKickoffResult kickoff
-            && kickoff.solidDefencePlacementsExhausted();
         if (!exhausted) for (Player<?> player : placing) {
             for (int x = "home".equals(role) ? 0 : 13; x < ("home".equals(role) ? 13 : 26); x++) for (int y = 0; y < 15; y++) {
                 FieldCoordinate to = new FieldCoordinate(x, y);
@@ -171,7 +177,7 @@ public final class KickoffActions {
     }
 
     // Resume checkpoints created before on-pitch redeployment without rewriting their actions.
-    private void legacySolidDefence(List<Action> actions, Game game, String role) {
+    private void legacySolidDefence(List<Action> actions, Game game, String role, boolean exhausted) {
         Team team = game.getActingTeam();
         List<Player<?>> reserves = new ArrayList<>();
         for (Player<?> player : team.getPlayers()) {
@@ -180,7 +186,7 @@ public final class KickoffActions {
                 reserves.add(player);
             }
         }
-        if (state.getCurrentStep() instanceof StepApplyKickoffResult kickoff && kickoff.solidDefencePlacementsExhausted()) {
+        if (exhausted) {
             actions.add(new Action("confirm-solid-defence", "kickoffChoice", "Confirm Solid Defence", role,
                 new ClientCommandEndTurn(TurnMode.SOLID_DEFENCE, coordinates(game, team, role))));
             return;

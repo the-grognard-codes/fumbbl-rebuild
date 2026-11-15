@@ -46,6 +46,7 @@ import com.fumbbl.ffb.server.match.bb2025.SkillMarkerProjection;
 import com.fumbbl.ffb.server.mechanic.SetupMechanic;
 import com.fumbbl.ffb.server.net.ReceivedCommand;
 import com.fumbbl.ffb.server.skilluse.SkillUsePreferences;
+import com.fumbbl.ffb.server.step.KickoffAdjustmentBudget;
 import com.fumbbl.ffb.server.step.StepId;
 import com.fumbbl.ffb.server.step.generator.EndGame;
 import com.fumbbl.ffb.server.step.generator.SequenceGenerator;
@@ -775,11 +776,15 @@ public final class SetupSession {
             }
             if (command == null) {
                 if (!selected.id.startsWith("event-pick:")) throw new MatchService.Failure("INVALID_OPTION");
+                if (!(state.getCurrentStep() instanceof KickoffAdjustmentBudget budget) || budget.kickoffAdjustmentsExhausted())
+                    throw new MatchService.Failure("INVALID_OPTION");
+                budget.recordSelectionAdjustment();
                 String player = selected.id.substring("event-pick:".length());
                 if (!kickoffSelection.remove(player)) kickoffSelection.add(player);
                 revision++;
                 history.put(key, new Record(fingerprint, "ACCEPTED"));
-				recordEvent("SELECTION", role, acceptedDecision, rollPresentation);
+				endRunawayPeriod(decisionTime);
+                recordEvent(DecisionLimit.SELECTION, role, acceptedDecision, rollPresentation);
                 return reply(id, "ACCEPTED", false, role);
             }
             if ("confirm-solid-defence".equals(selected.id)) {
@@ -937,7 +942,8 @@ public final class SetupSession {
 				deployDefaultSetup();
             JsonObject progress = narrative.finishMovement(game, movement, pendingRoute != null);
             logPresentation.set("movement", progress == null ? JsonValue.NULL : progress);
-			recordEvent(isComplete() ? "FULL_TIME" : newHalf ? "HALFTIME" : touchdown ? "TOUCHDOWN" : "ACTION", role, acceptedDecision, rollPresentation);
+            if (!isComplete() && !newHalf && !touchdown) endRunawayPeriod(decisionTime);
+			recordEvent(isComplete() ? "FULL_TIME" : newHalf ? "HALFTIME" : touchdown ? "TOUCHDOWN" : DecisionLimit.ACTION, role, acceptedDecision, rollPresentation);
 			return reply(id, "ACCEPTED", false, role);
 		} catch (RuntimeException failure) {
 			failed = true;
@@ -1373,26 +1379,34 @@ public final class SetupSession {
     public boolean isComplete() { return state.getGame().getFinished() != null; }
     private int homeScore() { return state.getGame().getGameResult().getTeamResultHome().getScore(); }
     private int awayScore() { return state.getGame().getGameResult().getTeamResultAway().getScore(); }
+    private void endRunawayPeriod(long decisionTime) {
+        Game game = state.getGame();
+        JsonObject period = new JsonObject().add("phase", browsePhase())
+            .add("half", Math.max(1, Math.min(2, game.getHalf()))).add("drive", drive)
+            .add("homeTurn", game.getTurnDataHome().getTurnNr()).add("awayTurn", game.getTurnDataAway().getTurnNr());
+        JsonObject kickoff = new KickoffPresentation().project(state, kickoffSelection);
+        if (kickoff == null && confirmedKickoff != null && "CHARGE".equals(confirmedKickoff.getString("event", null)))
+            kickoff = new JsonObject().add("event", "CHARGE");
+        if (kickoff != null) period.add("kickoff", kickoff);
+        if (!new DecisionLimit().reached(events, period)) return;
+        System.err.println("DECISION_LIMIT matchId=" + matchId + " limit=" + DecisionLimit.MAX_DECISIONS);
+        pendingRoute = null;
+        pendingActivation = null;
+        kickoffSelection.clear();
+        TurnMode periodMode = kickoff != null && "CHARGE".equals(kickoff.getString("event", null)) ? TurnMode.BLITZ : TurnMode.REGULAR;
+        int halfBefore = game.getHalf(), scoreBefore = homeScore() + awayScore();
+        new DecisionPeriodEnd().finish(state,
+            reactiveDecision.pending() ? reactiveDecision.normalHome() : game.isHomePlaying(), periodMode);
+        if (!isComplete() && (halfBefore != game.getHalf() || scoreBefore != homeScore() + awayScore())) drive++;
+        confirmedKickoff = null;
+        if (defaultSetup && step() == StepId.SETUP) deployDefaultSetup();
+        refreshReaction(decisionTime);
+    }
+
     private void recordEvent(String kind, String role, JsonValue decision) { recordEvent(kind, role, decision, null); }
 
     private void recordEvent(String kind, String role, JsonValue decision, NativeRollPresentation rollPresentation) {
         JsonObject snapshot = view("home").set("actions", new JsonArray()).set("prompt", JsonValue.NULL);
-        if (("ACTION".equals(kind) || "SELECTION".equals(kind)) && new DecisionLimit().reached(events, snapshot)) {
-            System.err.println("DECISION_LIMIT matchId=" + matchId + " limit=" + DecisionLimit.MAX_DECISIONS);
-            pendingRoute = null;
-            pendingActivation = null;
-            kickoffSelection.clear();
-            JsonValue kickoff = snapshot.get("kickoff");
-            boolean charge = kickoff != null && kickoff.isObject() && "CHARGE".equals(kickoff.asObject().getString("event", null));
-            int halfBefore = state.getGame().getHalf(), scoreBefore = homeScore() + awayScore();
-            new DecisionPeriodEnd().finish(state,
-                reactiveDecision.pending() ? reactiveDecision.normalHome() : state.getGame().isHomePlaying(), charge);
-            if (!isComplete() && (halfBefore != state.getGame().getHalf() || scoreBefore != homeScore() + awayScore())) drive++;
-            confirmedKickoff = null;
-            if (defaultSetup && step() == StepId.SETUP) deployDefaultSetup();
-            refreshReaction(System.currentTimeMillis());
-            snapshot = view("home").set("actions", new JsonArray()).set("prompt", JsonValue.NULL);
-        }
         snapshot.remove("savedFormations");
         if (computerPolicy != null) computerPolicy.observe(snapshot,
             reactiveDecision.pending() ? reactiveDecision.normalHome() : state.getGame().isHomePlaying());

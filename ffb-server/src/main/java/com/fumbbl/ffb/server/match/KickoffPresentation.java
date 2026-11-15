@@ -9,8 +9,8 @@ import com.fumbbl.ffb.model.Player;
 import com.fumbbl.ffb.server.GameState;
 import com.fumbbl.ffb.server.IServerJsonOption;
 import com.fumbbl.ffb.server.step.IStep;
+import com.fumbbl.ffb.server.step.KickoffAdjustmentBudget;
 import com.fumbbl.ffb.server.step.StepId;
-import com.fumbbl.ffb.server.step.bb2025.kickoff.StepApplyKickoffResult;
 
 import com.eclipsesource.json.JsonObject;
 import com.eclipsesource.json.JsonArray;
@@ -47,7 +47,7 @@ final class KickoffPresentation {
         JsonObject nativeState = step.toJsonValue();
         int allowed = IServerJsonOption.NR_OF_PLAYERS_ALLOWED.getFrom(state.getServer(), nativeState);
         int completed = mode == TurnMode.QUICK_SNAP ? IServerJsonOption.NR_OF_PLAYERS.getFrom(state.getServer(), nativeState) : 0;
-        if (mode == TurnMode.SOLID_DEFENCE && step instanceof StepApplyKickoffResult kickoff)
+        if (mode == TurnMode.SOLID_DEFENCE && step instanceof KickoffAdjustmentBudget kickoff)
             completed = kickoff.solidDefenceCompleted();
         String[] selected = IServerJsonOption.PLAYER_IDS_SELECTED.getFrom(state.getServer(), nativeState);
         return progress(mode.name(), actor, "movement", allowed, completed, selected == null ? 0 : selected.length).add("participantIds", participants(game));
