@@ -6,6 +6,7 @@ import { announcementHeadline, announcementText } from './match-announcements.ts
 import type { MatchAnnouncement } from './match-announcements.ts';
 import './match-splash.css';
 import { teamColorRamps } from './team-color-art.ts';
+import { weatherPresentation } from './weather-presentation.ts';
 
 export type MatchSplashProps = {
   announcement: MatchAnnouncement; onDismiss: () => void; hold: boolean;
@@ -33,8 +34,16 @@ export function MatchSplash({ announcement, onDismiss, hold, exiting, rate, icon
     return () => window.removeEventListener('keydown', escape, true);
   }, [onDismiss]);
   const kit = teamColors[announcement.team];
+  const neutral = announcement.kind === 'weather' || announcement.kind === 'halfTime' || announcement.code === 'DRAW'
+    || announcement.kind === 'kickoff' && !['SOLID_DEFENCE', 'QUICK_SNAP', 'CHARGE', 'HIGH_KICK'].includes(announcement.code ?? '');
+  const weatherTint: Record<string, string> = { SWELTERING_HEAT: '#ef9847', VERY_SUNNY: '#ffe17b', NICE: '#49beae', POURING_RAIN: '#9bbdd2', BLIZZARD: '#edf5ff' };
+  const emblem = announcement.kind === 'weather' ? `weather/weather_${weatherPresentation(announcement.code ?? '').sprite}.png`
+    : announcement.kind === 'kickoff' ? 'match-events/kickoff.svg' : ['halfTime', 'fullTime'].includes(announcement.kind) ? 'match-events/whistle.svg' : null;
   const style = { '--splash-accent': colors?.accent ?? teamColorRamps.find(ramp => ramp.id === kit?.primary)?.colors[9],
-    '--splash-secondary': colors?.secondary ?? teamColorRamps.find(ramp => ramp.id === kit?.secondary)?.colors[12] } as CSSProperties;
+    '--splash-secondary': colors?.secondary ?? teamColorRamps.find(ramp => ramp.id === kit?.secondary)?.colors[12],
+    ...(neutral ? { '--splash-accent': weatherTint[announcement.code ?? ''] ?? '#edb644', '--splash-secondary': '#426c9b' } : {}),
+    '--splash-home': teamColorRamps.find(ramp => ramp.id === teamColors.home?.primary)?.colors[9] ?? '#426c9b',
+    '--splash-away': teamColorRamps.find(ramp => ramp.id === teamColors.away?.primary)?.colors[9] ?? '#edb644' } as CSSProperties;
   return <div className="match-splash-shade" data-announcement-id={announcement.id} data-exiting={exiting} data-phase={exiting ? 'exit' : phase} data-team={announcement.team}
     style={{ '--splash-rate': rate } as CSSProperties}
     onAnimationEnd={event => { if (event.target === event.currentTarget && event.animationName === 'match-splash-dim-out' && exiting) onExited?.(); }}
@@ -42,14 +51,14 @@ export function MatchSplash({ announcement, onDismiss, hold, exiting, rate, icon
     onClick={event => event.stopPropagation()} onDoubleClick={event => event.stopPropagation()}
     onContextMenu={event => { event.preventDefault(); event.stopPropagation(); }}
     onKeyDown={event => event.stopPropagation()}>
-    <section className={`match-splash match-splash-${announcement.kind}`} style={style} aria-label="Match announcement">
+    <section className={`match-splash match-splash-${announcement.kind}`} data-code={announcement.code} style={style} aria-label="Match announcement">
       {hold && <button type="button" className="match-splash-close" aria-label="Dismiss announcement" aria-keyshortcuts="Escape"
         onClick={event => { event.stopPropagation(); onDismiss(); }}><span aria-hidden="true">×</span></button>}
       <div className="match-splash-backdrop" aria-hidden="true"/>
       <div className="match-splash-ribbon" aria-hidden="true"/>
       <div className="match-splash-rule" aria-hidden="true"/>
-      <div className="match-splash-icon" aria-hidden="true">{icon ?? <MatchArt name={announcement.helmet} colors={teamColors[announcement.team]}/>}</div>
-      <p className="match-splash-team">{announcement.teamName}</p>
+      <div className="match-splash-icon" aria-hidden="true">{icon ?? (emblem ? <img className="match-art" src={`${import.meta.env.BASE_URL}assets/game/ui/${emblem}`} alt=""/> : <MatchArt name={announcement.helmet} colors={teamColors[announcement.team]}/>)}</div>
+      {!neutral && announcement.kind !== 'fullTime' && <p className="match-splash-team">{announcement.teamName}</p>}
       <h2>{announcementHeadline(announcement)}</h2>
       {announcement.reason && <p className="match-splash-reason">{announcement.reason}</p>}
     </section>

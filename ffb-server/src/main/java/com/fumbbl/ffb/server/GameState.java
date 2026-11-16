@@ -9,6 +9,7 @@ import com.fumbbl.ffb.factory.IFactorySource;
 import com.fumbbl.ffb.json.IJsonSerializable;
 import com.fumbbl.ffb.json.UtilJson;
 import com.fumbbl.ffb.model.BlitzTurnState;
+import com.fumbbl.ffb.kickoff.KickoffResult;
 import com.fumbbl.ffb.model.Game;
 import com.fumbbl.ffb.model.ISkillBehaviour;
 import com.fumbbl.ffb.model.Player;
@@ -61,6 +62,9 @@ public class GameState implements IModelChangeObserver, IJsonSerializable {
 	public void observeTurnoverReason(String reason) { }
 	public void observeTurnEnd(Player<?> scorer, boolean halfEnded) { }
 	public void observePlayableTurn() { }
+	public void observeKickoffResult(KickoffResult result) { }
+	public void observeWeather() { }
+	public void observeMatchFinished() { }
 
 	private Game fGame;
 	private final GameLog fGameLog;
@@ -277,6 +281,7 @@ public class GameState implements IModelChangeObserver, IJsonSerializable {
 		}
 		activeEffects.setSkipRestoreWeather(true);
 		getGame().getFieldModel().setWeather(weather);
+		observeWeather();
 		return activeEffects.getOldWeather();
 	}
 
@@ -284,6 +289,7 @@ public class GameState implements IModelChangeObserver, IJsonSerializable {
 		if (endOfDrive) {
 			if (activeEffects.getOldWeather() != null) {
 				getGame().getFieldModel().setWeather(activeEffects.getOldWeather());
+				observeWeather();
 			}
 			activeEffects.setSkipRestoreWeather(false);
 			activeEffects.setOldWeather(null);
@@ -291,6 +297,7 @@ public class GameState implements IModelChangeObserver, IJsonSerializable {
 			activeEffects.setSkipRestoreWeather(false);
 		} else if (activeEffects.getOldWeather() != null) {
 			getGame().getFieldModel().setWeather(activeEffects.getOldWeather());
+			observeWeather();
 			activeEffects.setOldWeather(null);
 		}
 	}

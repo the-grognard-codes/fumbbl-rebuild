@@ -20,6 +20,7 @@ import com.fumbbl.ffb.inducement.Inducement;
 import com.fumbbl.ffb.inducement.Usage;
 import com.fumbbl.ffb.mechanics.GameMechanic;
 import com.fumbbl.ffb.mechanics.Mechanic;
+import com.fumbbl.ffb.kickoff.KickoffResult;
 import com.fumbbl.ffb.model.Game;
 import com.fumbbl.ffb.model.Player;
 import com.fumbbl.ffb.model.Team;
@@ -170,6 +171,9 @@ public final class SetupSession {
 			@Override public void observeTurnoverReason(String reason) { announcements.reason(getGame(), reason); }
 			@Override public void observeTurnEnd(Player<?> scorer, boolean halfEnded) { announcements.end(getGame(), scorer, halfEnded); announcements.flush(this); }
 			@Override public void observePlayableTurn() { announcements.playable(getGame()); announcements.flush(this); }
+			@Override public void observeKickoffResult(KickoffResult result) { announcements.kickoff(getGame(), result); }
+			@Override public void observeWeather() { announcements.weather(getGame()); }
+			@Override public void observeMatchFinished() { announcements.finished(getGame()); announcements.flush(this); }
 		};
 		if (recoverable) {
 			recoveryDice = new RecoveryDice();
@@ -216,6 +220,9 @@ public final class SetupSession {
 			@Override public void observeTurnoverReason(String reason) { announcements.reason(getGame(), reason); }
 			@Override public void observeTurnEnd(Player<?> scorer, boolean halfEnded) { announcements.end(getGame(), scorer, halfEnded); announcements.flush(this); }
 			@Override public void observePlayableTurn() { announcements.playable(getGame()); announcements.flush(this); }
+			@Override public void observeKickoffResult(KickoffResult result) { announcements.kickoff(getGame(), result); }
+			@Override public void observeWeather() { announcements.weather(getGame()); }
+			@Override public void observeMatchFinished() { announcements.finished(getGame()); announcements.flush(this); }
 		};
 		try {
 			JsonObject envelope = new MatchJson().parse(artifact, RecoveryArtifactJson.MAX_CHECKPOINT_BYTES, 128);

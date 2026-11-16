@@ -14,10 +14,10 @@
 }
 .play-runtime .match-splash-shade[data-team=away] .match-splash { --splash-direction: 1; }
 .match-splash-backdrop { position: absolute; inset: 0; z-index: -2; background: #101c2bf5; border-block: 2px solid #40637e; animation: splash-backdrop calc(150ms / var(--splash-rate, 1)) steps(4) both; }
-.match-splash-ribbon { position: absolute; inset: 14px 0; z-index: -1; border-block: 6px solid var(--splash-accent); box-shadow: inset 0 2px var(--splash-secondary), inset 0 -2px var(--splash-secondary); animation: splash-ribbon calc(200ms / var(--splash-rate, 1)) calc(150ms / var(--splash-rate, 1)) steps(5) both; }
+.match-splash-ribbon { position: absolute; inset: 8px 0; z-index: -1; border-block: 6px solid var(--splash-accent); box-shadow: inset 0 2px var(--splash-secondary), inset 0 -2px var(--splash-secondary); animation: splash-ribbon calc(200ms / var(--splash-rate, 1)) calc(150ms / var(--splash-rate, 1)) steps(5) both; }
 .play-runtime .match-splash-shade .match-splash-rule { display: none; }
 .play-runtime .match-splash-shade .match-splash-icon { width: clamp(58px, 8vw, 88px); height: clamp(58px, 8vw, 88px); margin: 0 auto 10px; animation: splash-impact calc(200ms / var(--splash-rate, 1)) calc(250ms / var(--splash-rate, 1)) steps(4) both; }
-.play-runtime .match-splash-shade .match-splash-icon .match-art { display: block; width: 100%; height: 100%; }
+.play-runtime .match-splash-shade .match-splash-icon .match-art { display: block; width: 100%; height: 100%; object-fit: contain; }
 .play-runtime .match-splash-shade .match-splash .match-splash-team { margin: 0 24px 12px; font-size: clamp(18px, 2.4vw, 28px); line-height: 1.2; text-wrap: balance; animation: match-splash-dim-in calc(150ms / var(--splash-rate, 1)) calc(550ms / var(--splash-rate, 1)) linear both; }
 .play-runtime .match-splash-shade .match-splash h2 { width: fit-content; max-width: 100%; margin: 0 auto; font-family: MUTP, sans-serif; color: #ffe17b; font-size: clamp(27px, 3.7vw, 52px); line-height: 1.05; letter-spacing: .025em; text-wrap: balance; animation: splash-impact calc(200ms / var(--splash-rate, 1)) calc(350ms / var(--splash-rate, 1)) steps(4) both; }
 .play-runtime .match-splash-shade .match-splash-turnover h2 { color: #edf5ff; }
@@ -51,3 +51,21 @@
 
 
 .match-splash-ribbon { transform-origin: left center; } .match-splash-shade[data-team=away] .match-splash-ribbon { transform-origin: right center; }
+.match-splash-halfTime .match-splash-ribbon, .match-splash-fullTime[data-code=DRAW] .match-splash-ribbon { border: 0; background: linear-gradient(90deg, var(--splash-home) 50%, var(--splash-away) 50%) top / 100% 6px no-repeat, linear-gradient(90deg, var(--splash-home) 50%, var(--splash-away) 50%) bottom / 100% 6px no-repeat; }
+.play-runtime .match-splash-shade .match-splash-kickoff .match-splash-icon { animation-name: splash-flip; }
+.play-runtime .match-splash-shade .match-splash-fullTime .match-splash-reason { padding: 12px; background: #070d16; border: 1px solid #40637e; font-variant-numeric: tabular-nums; animation-name: splash-impact; }
+@keyframes splash-flip { from { transform: rotate(-90deg) scale(.5); opacity: 0; } to { transform: rotate(0) scale(1); opacity: 1; } }
+@media(prefers-reduced-motion: reduce) {
+  .play-runtime .match-splash-shade .match-splash-kickoff .match-splash-icon,
+  .play-runtime .match-splash-shade .match-splash-fullTime .match-splash-reason { animation: none; }
+}
+
+.match-splash-halfTime .match-splash-ribbon,
+.match-splash-fullTime[data-code=DRAW] .match-splash-ribbon { background: none; box-shadow: none; animation: none; }
+:is(.match-splash-halfTime, .match-splash-fullTime[data-code=DRAW]) .match-splash-ribbon::before,
+:is(.match-splash-halfTime, .match-splash-fullTime[data-code=DRAW]) .match-splash-ribbon::after { content: ''; position: absolute; inset: 0 50% 0 0; border-block: 6px solid var(--splash-home); transform-origin: left; animation: splash-ribbon calc(200ms / var(--splash-rate, 1)) calc(150ms / var(--splash-rate, 1)) steps(5) both; }
+:is(.match-splash-halfTime, .match-splash-fullTime[data-code=DRAW]) .match-splash-ribbon::after { inset: 0 0 0 50%; border-color: var(--splash-away); transform-origin: right; }
+@media(prefers-reduced-motion: reduce) {
+  :is(.match-splash-halfTime, .match-splash-fullTime[data-code=DRAW]) .match-splash-ribbon::before,
+  :is(.match-splash-halfTime, .match-splash-fullTime[data-code=DRAW]) .match-splash-ribbon::after { animation: none; }
+}

@@ -10,11 +10,11 @@ const output = fileURLToPath(new URL(`../../.tools/animated-splashes/${process.e
 mkdirSync(output, { recursive: true });
 try {
  const page = await browser.newPage();
- for (const width of [1440, 390]) {
-  await page.setViewportSize({width, height: width === 390 ? 844 : 900});
+ for (const width of [1440, 390, 1024, 844]) {
+  await page.setViewportSize({width, height: width === 390 ? 844 : width === 1024 ? 768 : width === 844 ? 390 : 900});
   await page.goto(`http://127.0.0.1:${server.httpServer.address().port}/splash-review.html`);
   await page.locator('.match-splash').waitFor(); await page.evaluate(() => document.fonts.ready);
-  for (const kind of ['touchdown','turnover','turnStart']) {
+  for (const kind of ['touchdown','turnover','turnStart','kickoff','weather','halfTime','fullTime']) {
    await page.getByLabel('Event', {exact:true}).selectOption(kind);
    for (const time of [0,150,350,500,700,1300]) {
     await page.getByRole('button',{name:'Replay animation',exact:true}).click();
@@ -27,6 +27,19 @@ try {
     assert.ok(await page.locator('.match-splash').evaluate(node => node.scrollWidth <= node.clientWidth));
     await page.screenshot({path:`${output}/${kind}-${width}-${team}-${pair}.png`});
    }
+   if (kind === 'kickoff' || kind === 'weather' || kind === 'fullTime') {
+    const control = page.getByLabel(kind === 'fullTime' ? 'Outcome' : 'Variant', {exact:true});
+    const values = await control.locator('option').evaluateAll(nodes => nodes.map(node => node.value));
+    for (const value of values) {
+     await control.selectOption(value);
+     await page.locator('.match-splash-shade').evaluate(node => { for (const animation of node.getAnimations({subtree:true})) { animation.pause(); animation.currentTime=900; } });
+     assert.ok(await page.locator('.match-splash').evaluate(node => node.scrollWidth <= node.clientWidth));
+     await page.screenshot({path:`${output}/${kind}-${width}-${value}.png`});
+    }
+   }
+   await page.getByRole('button',{name:'Exit',exact:true}).click();
+   await page.locator('.match-splash-shade').evaluate(node => { for(const animation of node.getAnimations({subtree:true})) { animation.pause(); animation.currentTime=100; } });
+   await page.screenshot({path:`${output}/${kind}-${width}-exit.png`});
    await page.emulateMedia({reducedMotion:'reduce'});
    await page.getByRole('button',{name:'Replay animation',exact:true}).click();
    assert.ok(await page.locator('.match-splash').evaluate(node => node.getAnimations({subtree:true}).length === 0));

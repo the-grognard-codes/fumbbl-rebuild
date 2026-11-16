@@ -648,6 +648,7 @@ public final class StepApplyKickoffResult extends AbstractStep implements Kickof
 		int[] weatherRoll = getGameState().getDiceRoller().rollWeather();
 		Weather weather = DiceInterpreter.getInstance().interpretRollWeather(weatherRoll);
 		game.getFieldModel().setWeather(weather);
+		getGameState().observeWeather();
 		getResult().addReport(new ReportWeather(weather, weatherRoll));
 
 		switch (game.getFieldModel().getWeather()) {

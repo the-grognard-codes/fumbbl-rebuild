@@ -112,3 +112,33 @@ test('native friendly throw collision resolves both players before the turnover 
   }
   assert.deepEqual(announcements, ['turnover', 'turnStart']);
 });
+
+test('extended authoritative kinds retain ordering and rate-scaled durations', () => {
+  const facts: MatchAnnouncementEvent[] = [
+    { ...turnover, kind: 'weather', code: 'NICE', headline: 'Nice Weather', reason: 'No additional weather effects.' },
+    { ...turnover, kind: 'kickoff', code: 'WEATHER_CHANGE', headline: 'Weather Change' },
+    { ...turnover, kind: 'weather', code: 'BLIZZARD', headline: 'Blizzard' },
+    { ...turnover, kind: 'turnStart', team: 'away' },
+    { ...turnover, kind: 'touchdown' },
+    { ...turnover, kind: 'halfTime' },
+    { ...turnover, kind: 'fullTime', code: 'CONCEDED', headline: 'MATCH CONCEDED' }
+  ];
+  const native = sync(facts);
+  assert.deepEqual(syncAnnouncements(record([native]), native).map(event => event.kind), facts.map(event => event.kind));
+  assert.deepEqual(facts.map(event => announcementDuration(event, 2)), [1250, 1250, 1250, 750, 1500, 1500, 2000]);
+  for (const patch of [{ code: 'INTRO' }, { code: 'unknown' }, { headline: '' }, { headline: 7 }]) {
+    assert.throws(() => decodeMatchAnnouncements({ version: 1, events: [{ ...facts[0], ...patch }] }));
+  }
+});
+
+test('browser consumes all engine-generated kickoff and weather facts', () => {
+  const facts: MatchAnnouncementEvent[] = JSON.parse(readFileSync(new URL('./fixtures/match-splash-events.json', import.meta.url), 'utf8'));
+  assert.equal(facts.filter(event => event.kind === 'kickoff').length, 11);
+  assert.equal(facts.filter(event => event.kind === 'weather').length, 5);
+  for (const fact of facts) {
+    assert.deepEqual(decodeMatchAnnouncements({ version: 1, events: [fact] }), [fact]);
+    const native = sync([fact]);
+    assert.equal(playbackBeats(record([native])).filter(beat => beat.kind === 'announcement').length, 1);
+    assert.ok(matchLogLines([record([native])]).some(line => line.text.includes(fact.headline!.toUpperCase())));
+  }
+});

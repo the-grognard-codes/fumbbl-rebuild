@@ -168,6 +168,23 @@ try {
   }
   await reset();
   assert.equal(await page.locator('*').count(), baseline, '50 splashes retain no DOM');
+  await reset(); await advance([event('touchdown')]); await splash('touchdown').waitFor();
+  await page.keyboard.press('Escape');
+  await page.locator('.match-splash-shade').evaluate(node => node.dispatchEvent(new AnimationEvent('animationend', { bubbles: true, animationName: 'match-splash-dim-out' })));
+  await page.locator('.match-splash').waitFor({ state: 'detached' });
+  await page.clock.runFor(350); await active(false);
+  const facts = JSON.parse(readFileSync(new URL('./fixtures/match-splash-events.json', import.meta.url), 'utf8'));
+  for (const fact of [...facts, { ...event('halfTime'), reason: 'Badgers 1 – 1 Giants' },
+    { ...event('fullTime'), headline: 'MATCH CONCEDED', code: 'CONCEDED', reason: 'Badgers 1 – 0 Giants — Giants wins' }]) {
+    await reset();
+    const next = record(1, [fact]);
+    next.state.callerRole = 'spectator';
+    if (fact.kind === 'fullTime') next.state.phase = 'FULL_TIME';
+    await publish({ view: next.state, records: [start, next] });
+    await splash(fact.kind).waitFor();
+    assert.ok((await splash(fact.kind).textContent()).includes((fact.headline ?? 'HALF-TIME').toUpperCase()));
+    await page.keyboard.press('Escape'); await page.clock.runFor(550); await active(false);
+  }
   await page.clock.resume();
   const output = fileURLToPath(new URL('../../.notes/art-preview/match-announcements/', import.meta.url));
   mkdirSync(output, { recursive: true });
