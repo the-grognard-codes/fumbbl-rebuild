@@ -1,5 +1,10 @@
 # Feature: Self-play training harness and learned computer coach
 
+Implementation note (2026-11-16): the owner's subsequent implementation request
+requires a small sample and **no long execution**, overriding the overnight and
+large-run instructions below. See the [implementation outcome](computer-coach-training-harness-outcome.md)
+for delivered work, bounded evidence and deferred long acceptance checks.
+
 Date: 2026-11-16. Owner decisions: a fast headless runner and a dependency-free
 Node tuning loop over Bogruk's weights first; then use the owner's CUDA GPU for
 a learned policy. Work runs unattended overnight; follow the

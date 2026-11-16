@@ -2,7 +2,11 @@ package com.fumbbl.ffb.server.match;
 
 import com.fumbbl.ffb.FactoryManager;
 import com.fumbbl.ffb.FactoryType;
+import com.fumbbl.ffb.FieldCoordinateBounds;
 import com.fumbbl.ffb.factory.INamedObjectFactory;
+import com.fumbbl.ffb.model.Game;
+import com.fumbbl.ffb.model.Player;
+import com.fumbbl.ffb.model.property.NamedProperties;
 import com.fumbbl.ffb.server.DebugLog;
 import com.fumbbl.ffb.server.FantasyFootballServer;
 import com.fumbbl.ffb.server.GameState;
@@ -32,6 +36,7 @@ final class BogrukEngineFixture {
 	final MatchDocument document;
 	SetupSession session;
 	private final Random dice;
+	private GameState gameState;
 
 	BogrukEngineFixture(String homeRoster, String awayRoster, long seed) throws Exception {
 		ComputerOpponentService computers = new ComputerOpponentService(null);
@@ -68,7 +73,18 @@ final class BogrukEngineFixture {
 	private void pinDice() throws Exception {
 		Field field = SetupSession.class.getDeclaredField("state");
 		field.setAccessible(true);
-		((GameState) field.get(session)).getDiceRoller().setRecoveryRoll(sides -> dice.nextInt(sides) + 1);
+		gameState = (GameState) field.get(session);
+		gameState.getDiceRoller().setRecoveryRoll(sides -> dice.nextInt(sides) + 1);
+	}
+
+	/** Same visible movement budget as the away computer projection, for the synthetic home coach. */
+	JsonValue homeMovement() {
+		Game game = gameState.getGame();
+		Player<?> mover = game.getActingPlayer().getPlayer();
+		if (mover != null && game.getTeamHome().hasPlayer(mover)
+			&& FieldCoordinateBounds.FIELD.isInBounds(game.getFieldModel().getPlayerCoordinate(mover))
+			&& !mover.hasSkillProperty(NamedProperties.movesRandomly)) return new RoutePlanner(gameState, true).budget();
+		return JsonValue.NULL;
 	}
 
 	JsonObject reply(String role) {
