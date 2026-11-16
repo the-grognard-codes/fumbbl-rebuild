@@ -116,6 +116,15 @@
         ],
         "createdAt": "2026-11-08T00:47:13.613Z",
         "reason": "Existing HEAD declarations retained under the approved idle-panning requirement to preserve MUTP styling; no font addition. Legacy typography cleanup is outside this performance fix."
+      },
+      {
+        "rule": "border-accent-on-rounded",
+        "value": "*",
+        "files": [
+          "browser-client/src/live-pitch.css"
+        ],
+        "createdAt": "2026-11-16T23:11:25.366Z",
+        "reason": "Codex review: .live-marker is an on-pitch player marker with a curved base indicator, not a rounded content card; unchanged from base 85e2c839b."
       }
     ]
   }
