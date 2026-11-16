@@ -16,7 +16,6 @@ import com.fumbbl.ffb.net.commands.ClientCommandPlayerChoice;
 import com.fumbbl.ffb.net.commands.ClientCommandSetupPlayer;
 import com.fumbbl.ffb.net.commands.ClientCommandTouchback;
 import com.fumbbl.ffb.server.GameState;
-import com.fumbbl.ffb.server.IServerJsonOption;
 import com.fumbbl.ffb.server.match.CoreTurnActions.Action;
 import com.fumbbl.ffb.server.step.KickoffAdjustmentBudget;
 import com.fumbbl.ffb.server.step.StepId;
@@ -36,10 +35,12 @@ public final class KickoffActions {
         this.state = state;
         this.selectedPlayers = selectedPlayers;
     }
-    public List<Action> actions() {
+    public List<Action> actions() { return actions(new KickoffBudgetLookup().find(state)); }
+
+    List<Action> actions(KickoffAdjustmentBudget budget) {
         List<Action> actions = new ArrayList<>();
         Game game = state.getGame();
-        boolean exhausted = adjustmentsExhausted();
+        boolean exhausted = budget != null && budget.kickoffAdjustmentsExhausted();
         String role = game.isHomePlaying() ? "home" : "away";
         if (state.getCurrentStep().getId() == StepId.KICKOFF) {
             for (int x = game.isHomePlaying() ? 13 : 0; x < (game.isHomePlaying() ? 26 : 13); x++) {
@@ -87,7 +88,7 @@ public final class KickoffActions {
                     new ClientCommandPlayerChoice(dialog.getPlayerChoiceMode(), new Player<?>[0])));
             }
         } else if (game.getTurnMode() == TurnMode.SOLID_DEFENCE) {
-            solidDefence(actions, game, role, exhausted);
+            solidDefence(actions, game, role, exhausted, budget);
 
         } else if (game.getTurnMode() == TurnMode.HIGH_KICK || game.getTurnMode() == TurnMode.QUICK_SNAP) {
             actions.add(new Action("end-event", "kickoffChoice", "Finish " + game.getTurnMode().name(), role,
@@ -105,11 +106,6 @@ public final class KickoffActions {
             }
         }
         return actions;
-    }
-
-    private boolean adjustmentsExhausted() {
-        KickoffAdjustmentBudget budget = new KickoffBudgetLookup().find(state);
-        return budget != null && budget.kickoffAdjustmentsExhausted();
     }
 
     ClientCommandPlayerChoice confirmSelection(String role, List<String> ids) {
@@ -151,15 +147,14 @@ public final class KickoffActions {
         return result;
     }
 
-    private void solidDefence(List<Action> actions, Game game, String role, boolean exhausted) {
-        if (!state.getCurrentStep().toJsonValue().getBoolean("pitchRedeployment", false)) {
+    private void solidDefence(List<Action> actions, Game game, String role, boolean exhausted, KickoffAdjustmentBudget budget) {
+        if (budget == null || !budget.usesPitchRedeployment()) {
             legacySolidDefence(actions, game, role, exhausted);
             return;
         }
         Team team = game.getActingTeam();
         List<Player<?>> placing = new ArrayList<>();
-        String[] selected = IServerJsonOption.PLAYER_IDS_SELECTED.getFrom(game.getRules(), state.getCurrentStep().toJsonValue());
-        if (selected != null) for (String id : selected) {
+        for (String id : budget.selectedParticipantIds()) {
             Player<?> player = game.getPlayerById(id);
             if (player != null && team.hasPlayer(player)
                 && FieldCoordinateBounds.FIELD.isInBounds(game.getFieldModel().getPlayerCoordinate(player))) placing.add(player);

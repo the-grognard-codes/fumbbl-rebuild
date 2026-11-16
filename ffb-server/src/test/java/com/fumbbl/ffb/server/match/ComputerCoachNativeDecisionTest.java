@@ -24,6 +24,7 @@ import com.fumbbl.ffb.server.net.ReceivedCommand;
 import com.fumbbl.ffb.server.step.IStep;
 import com.fumbbl.ffb.server.step.StepId;
 import com.fumbbl.ffb.server.step.StepParameter;
+import com.fumbbl.ffb.server.step.StepStack;
 import com.fumbbl.ffb.server.step.StepParameterKey;
 import com.fumbbl.ffb.server.step.bb2025.kickoff.StepApplyKickoffResult;
 import com.fumbbl.ffb.server.step.generator.Sequence;
@@ -107,7 +108,18 @@ class ComputerCoachNativeDecisionTest {
         JsonObject nativeStep = step.toJsonValue();
         Map<Player<?>, FieldCoordinate> base = new LinkedHashMap<>();
         for (Player<?> player : game.getTeamAway().getPlayers()) base.put(player, game.getFieldModel().getPlayerCoordinate(player));
-        List<CoreTurnActions.Action> offers = new KickoffActions(state).actions();
+        List<CoreTurnActions.Action> uninterrupted = new KickoffActions(state).actions();
+        GameState interrupted = mock(GameState.class);
+        IStep interruption = mock(IStep.class);
+        when(interrupted.getGame()).thenReturn(game);
+        when(interrupted.getCurrentStep()).thenReturn(interruption);
+        when(interruption.getId()).thenReturn(StepId.APOTHECARY);
+        when(interruption.toJsonValue()).thenReturn(new JsonObject());
+        StepStack stack = new StepStack(interrupted);
+        stack.push(step);
+        when(interrupted.getStepStack()).thenReturn(stack);
+        List<CoreTurnActions.Action> offers = new KickoffActions(interrupted).actions();
+        assertEquals(uninterrupted.size(), offers.size(), "An interruption retains all native selected-player placements and swaps");
         int moves = 0, swaps = 0;
         for (CoreTurnActions.Action action : offers) {
             if (!action.id.startsWith("solid-place:")) continue;
@@ -247,8 +259,10 @@ class ComputerCoachNativeDecisionTest {
         field.setAccessible(true);
         JsonArray events = (JsonArray) field.get(fixture.session);
         while (events.size() > 0) events.remove(events.size() - 1);
+        events.add(new JsonObject().add("kind", "START").add("state", view));
         JsonObject recorded = new JsonObject().add("kind", "ACTION").add("state", view);
         for (int i = 0; i < DecisionLimit.MAX_DECISIONS - 1; i++) events.add(recorded);
+        fixture.session.restoreDecisionLimit();
     }
 
     private JsonObject request(BogrukEngineFixture fixture, JsonObject view, JsonObject outcome, String id) {

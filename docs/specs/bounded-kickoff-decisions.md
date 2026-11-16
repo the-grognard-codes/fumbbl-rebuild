@@ -74,7 +74,10 @@ older checkpoints without it start with zero adjustments. Offers and accepted se
 only ruleset-neutral operations, including `completedParticipants()`. The BB2025
 step implements event-specific progress: displaced selected players for Solid
 Defence, the native moved-player count for Quick Snap, and completed High Kick
-movement. Presentation uses the generic query without event-specific counting.
+movement. Typed selected-participant, allowance and redeployment-mode accessors
+also come from the resolved step, including underneath an interruption; projections
+never serialize the native step to read them. The main view's action list, actor
+and period projection reuse the same resolved budget.
 
 Adjustment 50 is accepted. At the ceiling, only confirm, decline or end remains;
 adjustment 51 is rejected with `INVALID_OPTION`, with no new state, event, request
@@ -109,9 +112,12 @@ selection or command loops, including clients other than the computer coach.
 
 The guard and recorded public views use the same `periodView()` projection for
 phase, half, drive, turn numbers and kick-off progress (including the Charge
-fallback). A session-owned `DecisionLimit` reads each appended snapshot once.
-Recovery derives its running count from the existing event history on first use;
-repeated queries and exact retries do not spend decisions. Decision 1,024 remains
+fallback). `recordEvent` updates the session-owned `DecisionLimit` as it appends
+each snapshot. Recovery explicitly rebuilds this derived counter once after
+installing the durable history; no cache infers changes from array identity or
+size. All period-entering actions, including an initial ACTION entry, are excluded
+from the new period's allowance; there is no first-index exception.
+Repeated queries and exact retries do not spend decisions. Decision 1,024 remains
 the emergency boundary. The separate reroll-choice loop is tracked in
 [#561](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/561); keep #553
 open until the remaining seeded-match and soak criteria are met.

@@ -132,7 +132,7 @@ not reset a turn. The accounting has a dedicated regression test.
 | Seed / fixture | Result | Accepted decisions | Largest turn | Largest kick-off event | Emergency guard warnings |
 | --- | --- | ---: | ---: | ---: | ---: |
 | 42, Human / Orc | Stopped at known home setup-candidate limitation | 403 | 53 | 8 (Solid Defence) | 0 |
-| 73, Orc / Human | Full time, 0-2 | 1,817 | 1,024 | 7 (Quick Snap) | 1 |
+| 73, Orc / Human | Full time, 0-3 | 1,817 | 1,024 | 7 (Quick Snap) | 1 |
 
 Seed 42 had zero rejected actions, 10 duplicate checks and 4 restores. Its
 High Kick event had one decision. Seed 73 had zero rejected actions, 49 duplicate
@@ -244,3 +244,93 @@ for the user's added maintainer decision. The final amended focused suite passed
 checks and seeded engine runs were not repeated for this revision; no client or
 policy code changed. Historical seeded limitations and the pending soak remain
 as documented above. Self-review and `git diff --check` passed.
+
+
+## #558 third review
+
+Source: [third-round review at `ccd417598`](https://github.com/the-grognard-codes/fumbbl-rebuild/pull/558#issuecomment-6907401840).
+
+- Offers resolve the kick-off budget once through the shared lookup, then read
+  typed participant IDs and redeployment mode from that native step. They no
+  longer read either field from the interrupting step. The native regression
+  compares all 941 offers before/under an interruption and independently executes
+  every offered placement/swap on the real kick-off step.
+- The generic interface also provides typed allowance data. Neither action offers
+  nor progress projection calls `toJsonValue()`. A view reuses its resolved budget
+  for its action list and period projection, and derives its actor from that
+  existing list. The typed interface remains ruleset-neutral; BB2025 owns its data.
+- `recordEvent` updates the derived decision counter on append. Recovery rebuilds
+  it explicitly once from installed history. No array-identity/size/first-element
+  cache remains, and queries do not spend decisions. The existing #544-deferred
+  test helper now invokes the same counter restoration path after installing its
+  synthetic history, without adding another reflection access.
+- The first ACTION entry follows the same period-entry rule as every later entry.
+  The regression showed the old first-index exception consuming allowance early;
+  the fixed implementation retains the exact 1,023/1,024 boundary with a START
+  snapshot and handles histories beginning with ACTION consistently.
+- Seeds 42 and 73 are repeated on the revised source because its offered action
+  set is a policy input. Results are recorded below; the earlier runs remain
+  historical, including #561's reroll cycle and seed 42's setup-candidate stop.
+
+### Validation and execution boundary
+
+The initial sandboxed focused compile failed before running tests, with
+`AccessDeniedException` while javac resolves the cached gRPC OpenTelemetry JAR.
+The JAR itself was readable; the diagnostic stack located the denial in Windows
+real-path resolution while closing javac's ZIP filesystem. No escalation was
+attempted before asking. The user explicitly approved outside-sandbox focused/full
+Maven validation and seeded engine runs in this run. The approved baseline then
+failed both intended assertions: interrupted offers 941 -> 12, and the first
+ACTION incorrectly consuming the new period's allowance.
+
+Receipts: `.tools/558-round3-red*.log`, `.tools/558-round3-focused.log` and the
+seed/full-build receipts recorded below. Browser and policy source did not change;
+new seeded evidence is required nonetheless and is reported here. The hosted
+three-hour soak is not authorized and remains pending; #553 stays referenced.
+
+### Fresh seeded runs on the third-review source
+
+| Seed / fixture | Result | Accepted decisions | Largest turn | Largest kick-off | Guard warnings |
+| --- | --- | ---: | ---: | ---: | ---: |
+| 42, Human / Orc | Known home setup-candidate stop at revision 402 | 403 | 53 | 8 (Solid Defence) | 0 |
+| 73, Orc / Human | Full time, 0-3 | 1,817 | 1,024 | 7 (Quick Snap) | 1 |
+
+Both runs had zero rejected actions and zero stalled responses. Seed 42 passed
+10 duplicate checks and 4 restores; seed 73 passed 49 duplicate checks and 18
+restores. Seed 73's longest period is still half 2 / drive 3 / home turn 1 / away
+turn 2; all its other turns have at most 61 decisions. The reroll loop is still
+#561, and these results do not satisfy the pending quiet-guard/soak criterion.
+The earlier table's 0-2 score was a transcription error: both its original receipt
+and this fresh seed-73 receipt show 0-3; the table is corrected accordingly.
+
+Command: `node computer-player/test/engine-match.mjs --java <pinned-JDK21-java>
+--classpath <current-worktree-test+main+dependencies> --seed <42|73>
+--home-roster <Human|Orc> --away-roster <Orc|Human> --recklessness on
+--max-decisions 4000 --timeout-ms 180000 --output <receipt>`.
+Runs were sequential, after the focused build and before the full clean build.
+Receipts: `.tools/558-round3-engine-{42,73}.json`, matching `.log` files, and
+`.tools/558-round3-seeded-status.json`. Seed 42 exit 1 is the disclosed setup stop;
+seed 73 exit 0 is full time. Focused Java validation passed 30 cases (22 server,
+8 native). The full-build result is appended below on completion. The unchanged
+56-test computer-player unit-suite result remains historical; this revision adds
+fresh real-engine policy/transport/restore evidence instead of claiming a new
+unit-suite run. No browser code changed.
+
+### Full build, third-review source
+
+`mvn clean install` **passed** on attempt 1 in 17:37: 1,180 reported tests, zero failures/errors, 22 standard skips. No full-build retry ran.
+Module counts: 19 common (0 skips), 861 server (15 skips), 300 native (7 skips).
+Command: `powershell -NoProfile -ExecutionPolicy Bypass -File tools/target-build.ps1 install`.
+Started 2026-11-15T23:46:46.3338948-05:00; finished 2026-11-16T00:04:27.9164031-05:00.
+Receipt: `.tools/558-round3-full-attempt-1.log` and `.status.json`.
+Both seed runs preceded this clean build; source hashes in
+`.tools/558-round3-source-manifest.json` confirm no production/test source changed
+between those runs and full validation. Self-review and `git diff --check` passed.
+Git staging was separately denied creating the worktree index lock; no outside-
+sandbox Git retry is covered by the validation approval. Publication requires
+explicit approval for that execution boundary, as the review requests.
+
+The user subsequently explicitly approved scoped owner Git execution to stage,
+commit and normally push the validated branch. That approval is separate from
+the earlier validation approval; no owner Git retry preceded it. Publication
+keeps `Refs #553`, with no merge, auto-merge or main push.

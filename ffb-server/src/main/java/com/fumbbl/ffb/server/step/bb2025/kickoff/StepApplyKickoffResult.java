@@ -138,6 +138,15 @@ public final class StepApplyKickoffResult extends AbstractStep implements Kickof
             && !playersAtCoordinates.get(player.getId()).equals(game.getFieldModel().getPlayerCoordinate(player))).count();
     }
 
+    @Override
+    public int allowedParticipants() { return nrOfPlayersAllowed; }
+
+    @Override
+    public List<String> selectedParticipantIds() { return selectedPlayers.stream().map(Player::getId).toList(); }
+
+    @Override
+    public boolean usesPitchRedeployment() { return pitchRedeployment; }
+
     public String endAtDecisionLimit() {
         Game game = getGameState().getGame();
         if (game.getTurnMode() == TurnMode.SOLID_DEFENCE) {
