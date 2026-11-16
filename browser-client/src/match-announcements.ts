@@ -39,7 +39,7 @@ function announcementHelmet(view: SetupState, team: 'home' | 'away'): 'human' | 
 }
 
 export function announcementHeadline(event: MatchAnnouncementEvent): string {
-  return event.kind === 'turnStart' ? `START OF TURN ${event.turn}` : event.kind === 'touchdown' ? 'TOUCHDOWN' : 'TURNOVER';
+  return event.kind === 'turnStart' ? `START OF TURN ${event.turn}` : event.kind === 'touchdown' ? 'TOUCHDOWN!' : 'TURNOVER';
 }
 
 export function announcementText(event: MatchAnnouncement): string {

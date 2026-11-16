@@ -117,7 +117,7 @@ function ReplayBoardContent({ event, records, skipAnimations, speed, snapshotKey
   onBusy: (busy: boolean) => void; onRevision: (revision: number) => void;
 }) {
   const { pitchView, presentationRevision, playbackActive, diceMoment, diceSnapshot, movementDuration,
-    announcement, announcementExiting, announcementRate, dismissAnnouncement, holdAnnouncements } = usePitchPlayback(event.state, records, !skipAnimations, speed, 'replay', null, snapshotKey);
+    announcement, announcementExiting, announcementRate, dismissAnnouncement, finishAnnouncementExit, holdAnnouncements } = usePitchPlayback(event.state, records, !skipAnimations, speed, 'replay', null, snapshotKey);
   useDiagnosticPresentation(event.state.revision, pitchView.revision, playbackActive, false, !!announcement, false, 'replay', speed, `${event.state.matchId}:${snapshotKey ?? ''}`, presentationRevision);
   const [hover, setHover] = useState<{ id: string } | null>(null);
   const clearHover = useCallback(() => setHover(null), []);
@@ -133,7 +133,7 @@ function ReplayBoardContent({ event, records, skipAnimations, speed, snapshotKey
   const visibleDice = diceMoment ?? (!playbackActive && (skipAnimations || diceSnapshot) ? moments.at(-1) ?? null : null);
   return <><div className="replay-board">
     <LivePitch view={pitchView} selectedId="" actions={[]} readOnly allowEndChoice diceMoment={visibleDice}
-      splash={announcement ? { announcement, onDismiss: dismissAnnouncement, hold: holdAnnouncements, exiting: announcementExiting, rate: announcementRate } : undefined}
+      splash={announcement ? { announcement, onDismiss: dismissAnnouncement, onExited: finishAnnouncementExit, hold: holdAnnouncements, exiting: announcementExiting, rate: announcementRate } : undefined}
       diceSnapshot={skipAnimations || diceSnapshot && !playbackActive}
       interactionBlocked={interactionBlocked}
       animateBlockMarkers={!skipAnimations}

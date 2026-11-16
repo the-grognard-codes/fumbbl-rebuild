@@ -26,7 +26,7 @@ const errors = []; page.on('pageerror', error => errors.push(error.message));
 const publish = input => page.evaluate(input => window.publishAnnouncements(input), { enabled: true, mode: 'live', ...input });
 const active = value => page.locator(`#announcement-state[data-active="${value}"]`).waitFor({ state: 'attached' });
 const finishTimed = async (duration, transition = 550) => {
-  await page.clock.runFor(duration);
+  await page.clock.runFor(duration - 200 / (duration === 1500 && transition === 275 ? 2 : 1));
   await page.locator('.match-splash-shade[data-exiting=true]').waitFor({ state: 'attached' });
   await page.clock.runFor(transition);
   await active(false);
@@ -67,7 +67,11 @@ try {
   assert.match(await page.locator('[role=status]').last().textContent(), /TURNOVER.*Pippin/);
   assert.equal(await splash('turnover').getByRole('button').count(), 0, 'Timed announcements have no controls');
   assert.equal(await splash('turnover').getByRole('checkbox').count(), 0);
-  await page.clock.runFor(1000);
+  await page.clock.runFor(350);
+  assert.equal(await page.locator('.match-splash-shade').getAttribute('data-phase'), 'impact');
+  await page.clock.runFor(350);
+  assert.equal(await page.locator('.match-splash-shade').getAttribute('data-phase'), 'hold');
+  await page.clock.runFor(300);
   await page.keyboard.press('Escape');
   await page.locator('.match-splash-shade[data-exiting=true]').waitFor({ state: 'attached' });
   await page.clock.runFor(100);
@@ -156,6 +160,14 @@ try {
     assert.equal(await page.locator('.match-splash').count(), 0, 'Reconnect cancels fade and gap callbacks');
   }
 
+  await reset();
+  const baseline = await page.locator('*').count();
+  for (let index = 0; index < 50; index++) {
+    await reset(); await advance([event('touchdown')]); await splash('touchdown').waitFor();
+    await page.keyboard.press('Escape'); await page.clock.runFor(550); await active(false);
+  }
+  await reset();
+  assert.equal(await page.locator('*').count(), baseline, '50 splashes retain no DOM');
   await page.clock.resume();
   const output = fileURLToPath(new URL('../../.notes/art-preview/match-announcements/', import.meta.url));
   mkdirSync(output, { recursive: true });
@@ -184,7 +196,7 @@ try {
   assert.equal(await splash('turnover').evaluate(node => node.scrollWidth <= node.clientWidth), true);
   assert.ok((await splash('turnover').boundingBox()).y >= 0, 'Tall content starts within the scrollable overlay');
   await page.getByRole('button', { name: 'Dismiss announcement' }).scrollIntoViewIfNeeded();
-  await page.getByRole('button', { name: 'Dismiss announcement' }).click(); await page.clock.runFor(360); await active(false);
+  await page.getByRole('button', { name: 'Dismiss announcement' }).click(); await page.clock.runFor(550); await active(false);
   assert.deepEqual(errors, []);
   console.log('PASS match announcements: ordering, duration, dismissal, choice priority, deduplication, catch-up, replay, rapid turns and responsive previews');
 } finally { await browser.close(); await server.close(); }

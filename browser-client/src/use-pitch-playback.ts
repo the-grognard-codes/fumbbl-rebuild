@@ -36,6 +36,7 @@ export function usePitchPlayback(view: SetupState, records: TranscriptRecord[], 
   const pendingAnnouncement = useRef<{ id: string; closing: boolean; advance: () => void } | null>(null);
   const announcementTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const announcementTransitionTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const announcementExitComplete = useRef<(() => void) | null>(null);
   const announced = useRef(new Set<string>());
   const presented = useRef(view), received = useRef(view), latest = useRef(view);
   // Observation only: the revision whose first beat is being committed can be
@@ -63,6 +64,7 @@ export function usePitchPlayback(view: SetupState, records: TranscriptRecord[], 
     if (timer.current) clearTimeout(timer.current);
     pendingBeat.current = null;
     pendingAnnouncement.current = null; setAnnouncement(null);
+    announcementExitComplete.current = null;
     setAnnouncementExiting(false);
     if (announcementTimer.current) clearTimeout(announcementTimer.current);
     announcementTimer.current = null;
@@ -329,9 +331,10 @@ export function usePitchPlayback(view: SetupState, records: TranscriptRecord[], 
   useLayoutEffect(() => {
     const pending = pendingAnnouncement.current;
     if (!announcementExiting || !pending) return;
-    const reduced = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false;
-    announcementTransitionTimer.current = setTimeout(() => {
+    const complete = () => {
       if (pendingAnnouncement.current !== pending) return;
+      announcementExitComplete.current = null;
+      if (announcementTransitionTimer.current) clearTimeout(announcementTransitionTimer.current);
       setAnnouncement(null);
       announcementTransitionTimer.current = setTimeout(() => {
         if (pendingAnnouncement.current !== pending) return;
@@ -340,15 +343,18 @@ export function usePitchPlayback(view: SetupState, records: TranscriptRecord[], 
         setAnnouncementExiting(false);
         pending.advance();
       }, ANNOUNCEMENT_GAP_MS / playbackRate(currentSpeed.current, mode));
-    }, reduced ? 0 : DICE_EXIT_MS / playbackRate(currentSpeed.current, mode));
+    };
+    announcementExitComplete.current = complete;
+    announcementTransitionTimer.current = setTimeout(complete, DICE_EXIT_MS / playbackRate(currentSpeed.current, mode));
     return () => {
+      announcementExitComplete.current = null;
       if (announcementTransitionTimer.current) clearTimeout(announcementTransitionTimer.current);
       announcementTransitionTimer.current = null;
     };
   }, [announcementExiting, mode]);
   useLayoutEffect(() => {
     if (!announcement || announcementExiting || announcementPreferences.holdAnnouncements) return;
-    const timeout = setTimeout(dismissAnnouncement, announcementDuration(announcement, playbackRate(speed, mode)));
+    const timeout = setTimeout(dismissAnnouncement, announcementDuration(announcement, playbackRate(speed, mode)) - DICE_EXIT_MS / playbackRate(speed, mode));
     announcementTimer.current = timeout;
     return () => { clearTimeout(timeout); };
   }, [announcement, announcementExiting, announcementPreferences.holdAnnouncements, speed, mode]);
@@ -360,6 +366,7 @@ export function usePitchPlayback(view: SetupState, records: TranscriptRecord[], 
     setTick(value => value + 1);
   };
   return { pitchView, presentationRevision: active ? Math.max(pitchView.revision, presentationRevision.current, diceMoment?.revision ?? -1) : pitchView.revision, provisionalActive: !!provisional.current, playbackActive: active, diceMoment, synchronizing, movementDuration: moveMillis, beginProvisional,
-    announcement, announcementExiting, announcementRate: playbackRate(speed, mode), dismissAnnouncement, ...announcementPreferences,
+    announcement, announcementExiting, announcementRate: playbackRate(speed, mode), dismissAnnouncement,
+    finishAnnouncementExit: () => announcementExitComplete.current?.(), ...announcementPreferences,
     diceSnapshot: pitchView.revision === snapshotRevision.current };
 }
