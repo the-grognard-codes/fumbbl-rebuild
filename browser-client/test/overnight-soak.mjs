@@ -377,7 +377,7 @@ async function repeatRetainedRequest() {
   if (!await repeat.isVisible().catch(() => false)) return false;
   log('retained-request-repeated', { url: page.url() });
   await repeat.click();
-  await sleep(5000);
+  await repeat.waitFor({ state: 'hidden', timeout: 30_000 });
   return true;
 }
 
@@ -533,6 +533,9 @@ while (Date.now() < deadline) {
         exports: exportsSaved, traces: tracesSaved, revision: view?.revision, phase: view?.phase, half: view?.half, score: view ? [view.homeScore, view.awayScore] : null };
       writeFileSync(resolve(output, 'status.json'), JSON.stringify(status, null, 2)); log('status', status); due.status = now + every.status;
     }
+    // A checkpoint refusal can retain a request during any phase, including setup.
+    // Finish its exact retry before deriving another intent from the displayed state.
+    if (await repeatRetainedRequest()) { lastView = null; lastChange = Date.now(); continue; }
     await maybeDecide();
     const view = lastView;
     if (view?.phase === 'FULL_TIME') {

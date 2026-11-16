@@ -155,11 +155,13 @@ class StepExecutor {
 	private StepCommandStatus handleCurrentCommand(ReceivedCommand received) {
 		IDialogParameter offered = gameState.getGame().getDialogParameter();
 		StepCommandStatus status = fCurrentStep.handleCommand(received);
-		// Some native steps leave consumed skill dialogs for the next step to clear. Do it
-		// before automatic policy sees them again, while retaining newly produced decisions.
-		boolean answeredSkill = received.getCommand() instanceof ClientCommandUseSkill;
+		// Some native steps leave consumed dialogs for the next step to clear. A reroll
+		// answer consumes its dialog even when browser skill preferences are not configured.
+		// Retain newly produced decisions and dialogs whose command was not handled.
+		boolean answeredSkill = gameState.getOptionalSkillUse().enabled()
+			&& received.getCommand() instanceof ClientCommandUseSkill;
 		boolean answeredReroll = received.getCommand() instanceof ClientCommandUseReRoll && offered instanceof DialogReRollPropertiesParameter;
-		if (gameState.getOptionalSkillUse().enabled() && (answeredSkill || answeredReroll)
+		if ((answeredSkill || answeredReroll)
 			&& status == StepCommandStatus.EXECUTE_STEP && gameState.getGame().getDialogParameter() == offered)
 			UtilServerDialog.hideDialog(gameState);
 		return status;

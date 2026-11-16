@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Clear consumed reroll dialogs even without configured skill preferences, so a successful Bone Head reroll cannot leave coaches answering the same stale choice.
+
 - Limit each kick-off selection or placement stage to 50 adjustments for every coach; reject extra edits without ending the event, preserve confirmation after reverting an illegal final formation, and let the computer coach finish Solid Defence and Charge without retained plans. Offer Solid Defence placements and swaps only for selected players, including during interrupted stages. End runaway turns with match-specific diagnostics.
 
 - Reject checkpoint diagnostics with missing fixture files and accept the zero-decision baseline regardless of fixture order.
