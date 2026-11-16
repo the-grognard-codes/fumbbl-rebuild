@@ -44,6 +44,18 @@ test('parameter factory preserves production defaults over seeded choices', () =
   assert.notDeepEqual(mutate(BOGRUK_PARAMETERS, 42), BOGRUK_PARAMETERS);
 });
 
+test('training observes Bogruk block-face scores without changing its chosen action', () => {
+  const state = view();
+  state.activePlayerId = 'p';
+  state.players = [{ id: 'p', role: 'home', x: 5, y: 7, ma: 6, st: 3, ag: 3, pa: 4, av: 9, state: 'standing', skills: [] }];
+  state.actions = [{ id: 'pow', actor: 'home', kind: 'blockDie', label: 'POW' }, { id: 'skull', actor: 'home', kind: 'blockDie', label: 'SKULL' }];
+  let scored = [];
+  const observed = chooseBogrukDecision(state, { onCandidates: candidates => { scored = candidates; } });
+  assert.deepEqual(observed, chooseBogrukDecision(state));
+  assert.equal(observed.decision.actionId, 'pow');
+  assert.ok(scored.find(c => c.action.id === 'pow').score > scored.find(c => c.action.id === 'skull').score);
+});
+
 const pair = (i, win = true) => [0, 1].map(swap => ({ pair: i, swap, completed: true, failureCode: null,
   score: win ? swap ? [0, 1] : [1, 0] : swap ? [1, 0] : [0, 1] }));
 test('promotion uses independent seed pairs, never failed or one-sided matches', () => {

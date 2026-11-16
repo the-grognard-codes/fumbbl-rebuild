@@ -1,4 +1,4 @@
-import { readFile } from 'node:fs/promises';
+import { readFile, mkdir, writeFile } from 'node:fs/promises';
 import { join, resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { run } from './run.mjs';
@@ -50,8 +50,14 @@ export async function train(input, simulate = run) {
       const evidence = promotion(gate.records, minimumMatches);
       if (evidence.promoted) {
         const champion = { schemaVersion: 1, parameters: best.parameters, parent: hash(state.champion), generation: state.generation, evidence, engineCommit: gate.config.engineCommit };
+        const directory = 'computer-player/training/champions';
+        await mkdir(directory, { recursive: true });
+        // A fresh training run must never replace a previous run's champion metadata.
+        for (let number = 0; ; number++) {
+          try { await writeFile(join(directory, `${number}.json`), `${JSON.stringify(champion, null, 2)}\n`, { flag: 'wx' }); break; }
+          catch (error) { if (error.code !== 'EEXIST') throw error; }
+        }
         state.parent = champion.parent; state.champion = best.parameters;
-        await atomicJson(join('computer-player/training/champions', `${state.generation}.json`), champion);
       }
       state.history.push({ generation: state.generation, fitness: best.fitness, evidence }); state.generation++;
       await atomicJson(checkpoint, state);

@@ -1,7 +1,8 @@
 import { readFile, writeFile, readdir } from 'node:fs/promises';
-import { join } from 'node:path';
+import { join, dirname } from 'node:path';
 import { argumentsOf } from './config.mjs';
 import { BOGRUK_PARAMETERS } from '../src/bogruk-parameters.mjs';
+import { atomicJson, hash } from './records.mjs';
 
 const args = argumentsOf();
 if (!args.run) throw Error('Usage: node computer-player/training/report.mjs --run <run-directory>');
@@ -11,7 +12,24 @@ const lines = ['# Training run', '', `Completed ${summary.completed}/${summary.a
   `Profile: ${summary.config.profile}; ${summary.config.workers} workers × ${summary.config.heapMiB} MiB; ${summary.config.matchesPerJvm} matches/JVM. Contended: ${summary.machine.contended}.`,
   '', '| Seconds | Matches/hour | Decisions/second |', '|---:|---:|---:|', ...summary.samples.map(s => `| ${s.seconds.toFixed(1)} | ${s.matchesPerHour.toFixed(1)} | ${s.decisionsPerSecond.toFixed(1)} |`), '',
   `Failures: ${JSON.stringify(summary.failures)}.`, `Inference: ${summary.records.reduce((n,r) => n+(r.fallbackCount??0),0)} fallbacks / ${summary.records.reduce((n,r) => n+(r.inferenceCount??0),0)} requests.`, '', '## Reproduction', ''];
-for (const r of summary.records.filter(r => r.failureCode)) lines.push(`- ${r.id} (${r.failureCode}): \`node computer-player/training/run.mjs --seed ${r.seed} --games 2 --home ${r.coaches[0]} --away ${r.coaches[1]} --rosters ${r.rosters.join(',')} --max-decisions ${summary.config.maxDecisions} --timeout-ms ${summary.config.timeoutMs}\`. Exact parameters/hashes are in the match record.`);
+const written = new Set();
+for (const r of summary.records.filter(r => r.failureCode)) {
+  const paths = [];
+  for (const parameters of r.parameters) {
+    const path = join(args.run, `reproduce-${hash(parameters).slice(0, 16)}.json`);
+    if (!written.has(path)) { await atomicJson(path, { schemaVersion: 1, parameters }); written.add(path); }
+    paths.push(path);
+  }
+  lines.push(`- ${r.id} (${r.failureCode}): \`node computer-player/training/run.mjs --seed ${r.seed} --games 2 --home ${r.coaches[0]} --away ${r.coaches[1]} --rosters ${r.rosters.join(',')} --max-decisions ${summary.config.maxDecisions} --timeout-ms ${summary.config.timeoutMs} --recklessness ${summary.config.recklessness} --home-params "${paths[0]}" --away-params "${paths[1]}"\`.`);
+  if (r.coaches.includes('learned')) lines.push(`  Start inference with model hashes ${JSON.stringify(r.modelHashes)} and supply its current --home-port/--away-port; old localhost ports are not reusable checkpoint identities.`);
+}
+for (const path of args.trainingReport ? [args.trainingReport] : [join(dirname(args.run), 'report.json'), join(dirname(args.run), 'checkpoint.json')]) {
+  let training; try { training = JSON.parse(await readFile(path, 'utf8')); } catch (error) { if (error.code === 'ENOENT') continue; throw error; }
+  lines.push('', '## Training progress', '', `Generation: ${training.generation ?? 'n/a'}; steps: ${training.steps ?? 'see iteration history'}.`,
+    ...((training.history ?? []).map(row => `- ${JSON.stringify(row)}`)));
+  if (training.heldout_agreement !== undefined) lines.push(`Held-out agreement: ${training.heldout_agreement}; samples/second: ${training.samples_per_second}.`);
+  break;
+}
 lines.push('', '## Utilisation', '', 'CPU is whole-machine utilisation; GPU is the device sample, including other work.', '',
   '| Seconds | CPU % | GPU % | Node RSS MiB |', '|---:|---:|---:|---:|',
   ...summary.samples.map(s => `| ${s.seconds.toFixed(1)} | ${s.systemCpuPercent?.toFixed(1) ?? 'unavailable'} | ${s.gpuUtilization ?? 'unavailable'} | ${s.rssMiB.toFixed(1)} |`));

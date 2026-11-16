@@ -97,6 +97,8 @@ node computer-player/training/report.mjs --run .tools/training/<run>
 
 The report includes throughput, system CPU/device GPU utilisation, failures,
 reproduction settings, an available ladder, and champion parameter differences.
+It discovers sibling ES/PPO progress automatically; `--training-report <json>`
+can select a BC metrics file or another trainer's progress record.
 Use the recorded parameters and model hashes when reproducing tuned/learned
 failures. Timing and machine utilisation are intentionally nondeterministic;
 decision hashes, outcomes, seeds, rosters, and failure codes can be compared.

@@ -54,7 +54,7 @@ export function chooseBogrukDecision(state, options = {}) {
     kick.sort((a, b) => distance(a.target, centre) - distance(b.target, centre) || a.id.localeCompare(b.id));
     return actionResult(kick[0], depth > 5 ? 'Try a deep kick.' : 'Try a shallow kick.');
   }
-  const prompt = promptDecision(state, actions, board, memory.plan, memory.actions >= settings.maxActions);
+  const prompt = promptDecision(state, actions, board, memory.plan, memory.actions >= settings.maxActions, options.onCandidates);
   if (prompt) return actionResult(prompt, 'Resolve the offered choice with basic judgment.', memory.plan);
 
   const candidates = [];
@@ -256,7 +256,7 @@ function transferScore(board, passer, catcher, handOff, from) {
   return (board.parameters.transferBase + advance * board.parameters.transferAdvance + safer * board.parameters.transferSafety + scoringThreat) * catchReroll * throwReroll - (1 - catchReroll * throwReroll) * board.parameters.transferRisk;
 }
 
-function promptDecision(state, actions, board, plan, exhausted) {
+function promptDecision(state, actions, board, plan, exhausted, observe) {
   const weights = board.parameters;
   const regular = new Set(['select', 'stand', 'blitz', 'selectBlock', 'declareFoul', 'declarePass', 'declareHandOff', 'secureBall', 'move', 'jump', 'block', 'blitzTarget', 'foul', 'foulChainsaw', 'pass', 'handOff', 'endAction', 'endTurn', 'forgo', 'jumpMode']);
   if (actions.some(action => regular.has(action.kind))) return null;
@@ -282,6 +282,7 @@ function promptDecision(state, actions, board, plan, exhausted) {
       return score;
     };
     faces.sort((a, b) => faceScore(b) - faceScore(a));
+    observe?.(faces.map(action => ({ action, score: faceScore(action) })));
     if (faceScore(faces[0]) >= 0) return faces[0];
     return actions.find(action => action.kind === 'reroll' && !/none|keep|do not/i.test(action.label)) ?? faces[0];
   }
@@ -305,6 +306,7 @@ function promptDecision(state, actions, board, plan, exhausted) {
     if (action.kind === 'apothecary') return /accept all|decline|do not|old/i.test(label) ? 0 : weights.apothecaryUse;
     return 0;
   };
+  observe?.(actions.map(action => ({ action, score: rank(action) })).filter(candidate => Number.isFinite(candidate.score)));
   return [...actions].sort((a, b) => rank(b) - rank(a) || a.id.localeCompare(b.id))[0];
 }
 

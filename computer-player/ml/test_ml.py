@@ -65,6 +65,8 @@ console.log(JSON.stringify(encode(s,[{score:20},{score:0}])));
         self.assertEqual(metrics['samples'], 1)
         self.assertTrue(any(not torch.equal(a, b) for a, b in zip(before, model.parameters())))
         self.assertEqual(ppo(model, optimizer, [row], {'a': dict(completed=False)}, 'abc', 'cpu', 1, 42)['samples'], 0)
+        stopped = ppo(model, optimizer, [row], {'a': dict(completed=True, result='home')}, 'abc', 'cpu', 1, 42, stop_requested=lambda: True)
+        self.assertEqual(stopped['updates'], 0)
 
     def test_profiles_and_pair_gate(self):
         self.assertEqual(profile(8192)['width'], 32)
@@ -73,6 +75,7 @@ console.log(JSON.stringify(encode(s,[{score:20},{score:0}])));
                 for i in range(200) for swap in [0, 1]]
         self.assertTrue(paired_evidence(rows)['promoted'])
         self.assertFalse(paired_evidence(rows[:-2])['promoted'])
+        self.assertEqual(paired_evidence([rows[0], rows[0]])['pairs'], 0)
 
 
 if __name__ == '__main__':

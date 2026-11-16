@@ -81,7 +81,7 @@ def rollout(args, output, port, opponent, seed, seconds, opponent_port=0, sample
     return json.loads(summary_path.read_text())
 
 
-def ppo(model, optimizer, rows, terminals, behavior_hash, device, batch_size, seed, epochs=2, deadline=float('inf')):
+def ppo(model, optimizer, rows, terminals, behavior_hash, device, batch_size, seed, epochs=2, deadline=float('inf'), stop_requested=None):
     eligible = [r for r in rows if r.get('modelHash') == behavior_hash and r.get('logProbability') is not None
                 and terminals.get(r['episode'], {}).get('completed') and not terminals[r['episode']].get('failureCode')]
     if not eligible:
@@ -90,7 +90,7 @@ def ppo(model, optimizer, rows, terminals, behavior_hash, device, batch_size, se
     for epoch in range(epochs):
         random.Random(seed + epoch).shuffle(eligible)
         for start in range(0, len(eligible), batch_size):
-            if time.monotonic() >= deadline:
+            if time.monotonic() >= deadline or (stop_requested and stop_requested()):
                 return dict(samples=len(eligible), updates=updates, loss=loss_value)
             selected = eligible[start:start + batch_size]
             rewards = []
@@ -119,7 +119,8 @@ def paired_evidence(records, minimum=400):
     pairs = {}
     for row in records:
         pairs.setdefault(row['pair'], []).append(row)
-    complete = [p for p in pairs.values() if len(p) == 2 and all(r['completed'] and not r['failureCode'] for r in p)]
+    complete = [p for p in pairs.values() if len(p) == 2 and {r['swap'] for r in p} == {0, 1}
+                and all(r['completed'] and not r['failureCode'] for r in p)]
     wins = 0
     for pair in complete:
         score = 0
@@ -241,7 +242,7 @@ def main():
             if opponent_server:
                 stop_process(opponent_server)
         rows, terminals = trajectories(summary['output'])
-        metrics = ppo(model, optimizer, rows, terminals, ready['modelHash'], args.device, args.batch_size, iteration, deadline=deadline)
+        metrics = ppo(model, optimizer, rows, terminals, ready['modelHash'], args.device, args.batch_size, iteration, deadline=deadline, stop_requested=lambda: stopped)
         history.append(dict(iteration=iteration, opponent=opponent, completed=summary['completed'], failures=summary['failures'], **metrics))
         current = output / f'checkpoint-{iteration+1}.pt'
         save(current, model, optimizer, iteration+1, training='ppo', history=history, shaping_schedule='zero throughout', device_info=info, champion=str(champion))

@@ -3,6 +3,9 @@
 2026-11-16 · Branch `codex/567-coach-training-harness` ·
 [Issue #567](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/567)
 
+Review: [draft PR #570](https://github.com/the-grognard-codes/fumbbl-rebuild/pull/570).
+Pushed for owner review; not merged, marked ready, or deployed.
+
 The owner's latest request overrides the overnight protocol: **small samples,
 no long execution**. No detached training job is left running. The original
 200-match smoke, 20-full-match equivalence, 50-learned-match acceptance,
@@ -126,13 +129,17 @@ projection optimisation and the other heap/loop issues remain separate work.
 
 ## Validation and evidence
 
-- Computer-player `npm test`: **63 passed**; focused reruns cover final changes.
+- Computer-player `npm test`: **64 passed**; focused final run: **31 passed**.
 - Browser `npm test`: **540 passed**; `npm run build`: **passed**.
 - Focused Maven reactor: **7 passed** (`TrainingEngineHostTest`, `ComputerPolicyStateTest`).
 - Opt-in Python `python -m unittest ml.test_ml`: **2 passed**, covering cross-language
   values/shapes, masking, checkpoint load, PPO update/exclusion, device profiles and gate.
-- Pinned-toolchain `mvn clean install`: **running at draft creation**; final result
-  will be recorded before handoff.
+- Pinned-toolchain `mvn clean install`: **passed**, all five reactor modules,
+  16:38 elapsed under contention. Surefire reports: **1,181 tests, zero failures,
+  zero errors, 22 skipped** by existing suite configuration.
+- Live Node-to-Python CPU inference round trip, all three PowerShell script syntax
+  checks, final bounded CLI/compiled-host fingerprint check, and diff whitespace
+  checks passed. Process inspection confirmed no training child remained.
 
 Ignored local evidence: `.tools/bc-smoke.log`, `bc-resume.log`, `ppo-smoke.log`,
 `training/determinism.json`, `training/benchmark.json`, and
@@ -146,6 +153,10 @@ types, safe checkpoint metadata, worker argument inheritance, PID lifecycle
 tracking, fallback preservation and strict parameter/option checks. No server
 runtime, daemon, browser product, replay or recovery code changed. Standard
 browser/reactor tests cover shared paths. The shared dev-local stack was not touched.
+
+Final review also exposed existing block-face/prompt ranks to trajectory
+observers without changing Bogruk's decision, added prompt PPO cancellation
+checks, and protected prior CPU champion metadata from new-run overwrites.
 
 ## Next steps
 
