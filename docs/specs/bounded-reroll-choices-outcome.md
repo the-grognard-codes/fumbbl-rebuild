@@ -73,6 +73,45 @@ chunks independently of the bounded diagnostic tail. Optional `--trace-choices`
 retains synthetic choice evidence; temporary native instrumentation is confined
 to ignored diagnostic artifacts.
 
+## PR #564 feedback updates
+
+The [review](https://github.com/the-grognard-codes/fumbbl-rebuild/pull/564#issuecomment-6925978298)
+accepted the native fix and requested three updates. All three are implemented:
+
+- Every observed setup refusal is logged, including refusals recovered by an
+  exact retry. Every repeated request logs its first observed refusal code.
+  Periodic `status.json`, final status and `run-finished` include
+  `retainedRetries` counts by that code. Counts include rejected repeats;
+  `errors` continues to count failed driver iterations. Zero driver errors
+  therefore does not imply zero checkpoint refusals. Causes survive page
+  reloads within a driver process; unavailable historical causes are explicitly
+  counted as `UNKNOWN`.
+- Retained recovery waits for a new outgoing send before looking up its receipt,
+  then waits for the receipt associated with that send's sequence. Delayed sends
+  and old receipts for a reused request ID cannot complete the wait early.
+- The changelog now names the unconfigured native/harness path and states that
+  configured browser sessions already received consumed-dialog cleanup.
+
+Self-review retained the generic executor cleanup. `EXECUTE_STEP` identifies a
+consumed command and dialog identity protects a replacement; skipped/unhandled
+commands retain the offered dialog. This applies the existing configured-session
+contract to unconfigured native callers. A Bone Head-specific workaround would
+leave the same configuration dependency in other native reroll handlers. The
+four-case regression and previously passed optional-reroll/reaction suites cover
+the affected contract; this is not exhaustive coverage of all skill combinations.
+
+The new regression's reflected state access and fixture coupling are recorded
+on the existing [#544 consolidation workstream](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/544#issuecomment-6928798186).
+No additional accessor was introduced. Java indentation now follows the
+surrounding tests, and duplicate match-counting blocks use one helper.
+
+Review validation: the five new deterministic retry tests failed against the
+previous behavior and pass with the fix. They exercise delayed sends, receipt
+timing, rejected retries, reused request IDs, unknown causes and refusal logging.
+The full browser suite passes **545 tests**; the focused native regression passes
+**4 cases**. Driver syntax and whitespace checks pass. No production Java source
+changed in this follow-up; the Java test edit is whitespace-only.
+
 ## Other choice-handler audit
 
 The basic-judgment handler ranks offered choices; it does not create native
@@ -94,6 +133,25 @@ commands or persist action IDs. Audited categories:
   progress. Injury/apothecary/bribe/argue choices use `resourceDecision` before
   the generic judgment path. No additional loop was identified in this audit;
   it is not an exhaustive proof for every BB2025 skill combination.
+
+A follow-up seed-73 run used `--trace-choices` and completed in 31.0 seconds:
+737 decisions, largest turn 61, largest kick-off 7, zero guard warnings,
+rejections or stalls, 19 exact retries and 7 restores. The trace contains 42
+Bogruk `basic-judgment` choices. Consecutive counts require adjacent accepted
+revisions; a revision gap resets the streak. Per-turn counts use half, drive and
+both turn counters. These measurements cover only the observed categories:
+
+| Choice kind | Total observed | Maximum consecutive accepted revisions | Maximum in one turn |
+| --- | ---: | ---: | ---: |
+| Reroll | 6 | 1 | 2 |
+| Push | 11 | 1 | 2 |
+| Follow-up | 11 | 1 | 2 |
+| Block die | 13 | 1 | 2 |
+| Touchback | 1 | 1 | 1 |
+
+Other choice categories were not observed in this trace. Local receipts:
+`.tools/564-review-choices-73.jsonl`, `.tools/564-review-engine-73.json` and
+`.tools/564-choice-audit.json`.
 
 ## Validation
 
@@ -169,11 +227,11 @@ least 5.3 minutes, then resumed before the driver was stopped. The daemon also
 cycled through unfinished diagnostic matches from earlier attempts; this run
 does not establish a quiet three-hour acceptance result.
 
-The driver is stopped; the healthy dev-local stack remains running for manual
-testing. A read-only inventory finds 5 games, 5 recovery records and 45 journal
+The driver was stopped; the healthy dev-local stack remained running for manual
+testing. A read-only inventory found 5 games, 5 recovery records and 45 journal
 rows. Clearing these additional validation-period games was rejected by
 automatic approval review because the prior permission covered the original
-old-game set, not these newly accumulated records. No second deletion occurred.
+old-game set, not these newly accumulated records. Deletion waited for approval.
 The user explicitly approved clearing this additional set and continuing the
 soak on 2026-11-16. The repository clear script then removed those 5 games and
 their recovery/journal records, retaining teams, accounts and preferences. The
@@ -199,7 +257,7 @@ automatically resumed active match. It also retries a held request before using
 the generic UI-action fallback. Syntax checks pass; all 540 browser unit tests
 passed again. The real resumed-match/receipt check remains pending.
 
-The attempted continuation could not sign in. A new direct mounted-ADC probe
+The attempted continuation could not sign in. A direct mounted-ADC probe
 returned **`SESSION_EXPIRED`**, unlike the earlier successful probe. The
 repository's recovery script opened Google sign-in and is awaiting the user's
 interactive authentication. Existing match data was retained. A diagnostic-only
@@ -207,6 +265,11 @@ server recreation enabled the existing payload-free auth diagnostics; no
 additional data reset occurred. The interrupted window is not counted as a
 completed three-hour soak. A fresh full window will start after credential
 recovery and verification that the same match resumes.
+
+At review follow-up, the server remains running and healthy with zero restarts;
+the mounted-ADC probe still returns `SESSION_EXPIRED`. No new reset or soak was
+performed for these review updates. The live resumed-match/receipt check and a
+fresh full three-hour measurement remain pending interactive credential recovery.
 
 Three-hour soak acceptance: **incomplete, awaiting Google sign-in**.
 The checkpoint-budget refusal is distinct from the fixed stale reroll dialog;

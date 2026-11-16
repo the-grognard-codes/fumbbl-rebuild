@@ -22,6 +22,7 @@ import { fileURLToPath } from 'node:url';
 import { createGzip } from 'node:zlib';
 import { chromium } from 'playwright';
 import { squarePosition } from './projected-pitch-helper.mjs';
+import { SoakRetainedRequests } from './soak-retained-requests.mjs';
 
 const root = fileURLToPath(new URL('../../', import.meta.url));
 const args = process.argv.slice(2);
@@ -137,7 +138,7 @@ function instrument() {
         const sent = message.requestId && soak.outgoing.findLast(entry => entry.requestId === message.requestId);
         if (sent && message.code) soak.receipts.push({ seq: sent.seq, code: message.code });
         if (soak.receipts.length > 200) soak.receipts.splice(0, 100);
-        if (sent && message.code && message.code !== 'ACCEPTED') soak.failures.push({ seq: sent.seq, code: message.code, operation: sent.operation });
+        if (sent && message.code && message.code !== 'ACCEPTED') soak.failures.push({ seq: sent.seq, requestId: sent.requestId, code: message.code, operation: sent.operation });
         if (soak.failures.length > 200) soak.failures.splice(0, 100);
       });
     }
@@ -355,6 +356,7 @@ async function decide(view) {
     if (/COMPLETION_PENDING/.test(failure.message)) {
       // The final decision is durable; the server's timer retries the result write. Wait, then reload.
       log('completion-pending', { revision: view.revision });
+      await retainedRequests.captureRefusals();
       await sleep(5000); await page.reload(); await page.getByLabel('Live match pitch').waitFor({ timeout: 60_000 });
       await ensureDiagnostics();
       return state();
@@ -370,27 +372,19 @@ async function decide(view) {
 // ---------------------------------------------------------------- match lifecycle
 let matches = 0, completed = 0, decisions = 0, errors = 0, screenshots = 0;
 const observedMatches = new Set();
+const retainedRequests = new SoakRetainedRequests(() => page, log);
+
+function recordMatch(event, details) {
+  const id = new URL(page.url()).searchParams.get('matchId');
+  if (!observedMatches.has(id)) { observedMatches.add(id); matches++; }
+  log(event, { matches, ...details });
+}
 async function rejectedSignIn() {
   const alerts = (await page.getByRole('alert').allTextContents().catch(() => [])).join(' ');
   if (/AUTHENTICATION FAILED/i.test(alerts)) throw Error('AUTHENTICATION_FAILED: the game server rejected sign-in; refresh its ADC (gcloud auth application-default login) and restart the server');
 }
-// A refused completion write (COMPLETION_PENDING) leaves the client holding the request; repeating it is the
-// coach's documented recovery, and until it succeeds Play keeps routing back to the unfinished match.
-async function repeatRetainedRequest() {
-  const repeat = page.getByRole('button', { name: 'Repeat retained request', exact: true });
-  if (!await repeat.isVisible().catch(() => false)) return false;
-  const mark = await page.evaluate(() => window.__soak.seq);
-  log('retained-request-repeated', { url: page.url() });
-  await repeat.click();
-  const sent = await page.evaluate(mark => window.__soak.outgoing.findLast(request => request.seq > mark), mark);
-  if (!sent) throw Error('Retained request did not send a setup command');
-  await page.waitForFunction(seq => window.__soak.receipts.some(reply => reply.seq === seq), sent.seq, { timeout: 30_000 });
-  const reply = await page.evaluate(seq => window.__soak.receipts.find(reply => reply.seq === seq), sent.seq);
-  if (reply.code !== 'ACCEPTED') throw Error(`Retained request rejected: ${reply.code}`);
-  await repeat.waitFor({ state: 'hidden', timeout: 30_000 });
-  log('retained-request-accepted', { revision: await revision() });
-  return true;
-}
+// A held exact request must finish before deriving a new intent from the displayed state.
+const repeatRetainedRequest = () => retainedRequests.repeat();
 
 async function resumeActiveMatch() {
   if (!/\/play\/match/.test(page.url())) return false;
@@ -398,13 +392,12 @@ async function resumeActiveMatch() {
   const view = await state();
   if (!view || view.phase === 'FULL_TIME') return false;
   await repeatRetainedRequest();
-  const id = new URL(page.url()).searchParams.get('matchId');
-  if (!observedMatches.has(id)) { observedMatches.add(id); matches++; }
-  log('match-resumed', { matches, revision: view.revision, phase: view.phase });
+  recordMatch('match-resumed', { revision: view.revision, phase: view.phase });
   return true;
 }
 
 async function createMatch() {
+  await retainedRequests.captureRefusals();
   await page.goto(`${origin}/play`);
   if (await resumeActiveMatch()) return;
   if (/\/play\/match/.test(page.url()) && await repeatRetainedRequest()) await page.goto(`${origin}/play`);
@@ -443,9 +436,7 @@ async function createMatch() {
   await page.getByRole('button', { name: 'Start game', exact: true }).click({ timeout: 60_000 });
   await page.waitForURL(/\/play\/match/, { timeout: 60_000 });
   await page.getByLabel('Live match pitch').waitFor({ timeout: 60_000 });
-  const id = new URL(page.url()).searchParams.get('matchId');
-  if (!observedMatches.has(id)) { observedMatches.add(id); matches++; }
-  log('match-started', { matches, url: page.url() });
+  recordMatch('match-started', { url: page.url() });
 }
 
 // ---------------------------------------------------------------- recorders
@@ -547,6 +538,7 @@ let consecutiveFailures = 0, needMatch = true, unavailableSince = null;
 while (Date.now() < deadline) {
   try {
     if (!browser.isConnected()) { log('browser-reconnect'); await closeChrome(); await launchChrome('about:blank'); await context.addInitScript(instrument); cdp = null; needMatch = true; }
+    await retainedRequests.captureRefusals();
     if (needMatch) { await createMatch(); await ensureDiagnostics(); needMatch = false; unavailableSince = null; lastChange = Date.now(); lastView = null; }
     const now = Date.now();
     if (now >= due.export) { await exportCapture(); due.export = now + every.export; }
@@ -557,7 +549,7 @@ while (Date.now() < deadline) {
     if (now >= due.status) {
       const view = await state();
       const status = { wall: new Date().toISOString(), elapsedMinutes: Math.round((now - started) / 60_000), matches, completed, decisions, errors,
-        exports: exportsSaved, traces: tracesSaved, revision: view?.revision, phase: view?.phase, half: view?.half, score: view ? [view.homeScore, view.awayScore] : null };
+        exports: exportsSaved, traces: tracesSaved, retainedRetries: retainedRequests.counts(), revision: view?.revision, phase: view?.phase, half: view?.half, score: view ? [view.homeScore, view.awayScore] : null };
       writeFileSync(resolve(output, 'status.json'), JSON.stringify(status, null, 2)); log('status', status); due.status = now + every.status;
     }
     // A checkpoint refusal can retain a request during any phase, including setup.
@@ -573,11 +565,13 @@ while (Date.now() < deadline) {
     if (Date.now() - lastChange > 20 * 60_000) { log('stalled-new-match', { revision: view?.revision }); await screenshot('stalled'); needMatch = true; continue; }
     if (Date.now() - lastChange > 8 * 60_000 && !mine(view)) {
       log('stalled-reload', { revision: view?.revision }); await screenshot('stall'); lastChange = Date.now() - 8 * 60_000 + 60_000;
+      await retainedRequests.captureRefusals();
       await page.reload(); await page.getByLabel('Live match pitch').waitFor({ timeout: 60_000 }); await ensureDiagnostics(); continue;
     }
     consecutiveFailures = 0;
     await page.waitForFunction(revision => window.__soak?.revision !== revision, lastView?.revision ?? -1, { timeout: 1000 }).catch(() => {});
   } catch (failure) {
+    await retainedRequests.captureRefusals();
     errors++; consecutiveFailures++;
     log('error', { consecutive: consecutiveFailures, message: String(failure?.message ?? failure).split('\n')[0].slice(0, 300) });
     if (/NOT_SIGNED_IN|AUTHENTICATION_FAILED/.test(failure?.message)) break;
@@ -595,8 +589,9 @@ while (Date.now() < deadline) {
     await sleep(2000);
   }
 }
+await retainedRequests.captureRefusals();
 await flushArrivals().catch(() => {});
-log('run-finished', { matches, completed, decisions, errors, exports: exportsSaved, traces: tracesSaved });
-writeFileSync(resolve(output, 'status.json'), JSON.stringify({ finished: new Date().toISOString(), matches, completed, decisions, errors, exports: exportsSaved, traces: tracesSaved }, null, 2));
+log('run-finished', { matches, completed, decisions, errors, retainedRetries: retainedRequests.counts(), exports: exportsSaved, traces: tracesSaved });
+writeFileSync(resolve(output, 'status.json'), JSON.stringify({ finished: new Date().toISOString(), matches, completed, decisions, errors, retainedRetries: retainedRequests.counts(), exports: exportsSaved, traces: tracesSaved }, null, 2));
 await closeChrome();
 process.exit(matches === 0 ? 1 : 0);
