@@ -8,6 +8,7 @@ import { decodeSetupStateValue } from '../../browser-client/src/setup-protocol.t
 import { assertV2Projection } from '../../browser-client/src/v2-projection.ts';
 import { chooseComputerDecision, isComputerGameOperation } from '../src/computer-policy.mjs';
 import { chooseDecision } from '../src/policy.mjs';
+import { PeriodDecisionCounts } from './period-decision-counts.mjs';
 
 const option = (name, fallback) => {
   const index = process.argv.indexOf(name);
@@ -87,6 +88,7 @@ let setupKey = null;
 let setupVariant = 0;
 let noRevisionProgress = 0;
 let captured = false;
+const periodCounts = new PeriodDecisionCounts();
 
 try {
   state = accepted(await command({ operation: 'load', role: 'away' }));
@@ -131,6 +133,8 @@ try {
     }
     if (response.code !== 'ACCEPTED') { summary.invalid++; throw Error(`Rejected ${kind}: ${JSON.stringify(response)}`); }
     const next = accepted(response);
+    // Exact duplicate probes and restore/load operations below are deliberately not counted.
+    periodCounts.accept(state);
     if (next.revision === state.revision) {
       summary.stalledResponses++; noRevisionProgress++;
       if (noRevisionProgress > 10) throw Error('Eleven accepted responses did not advance revision');
@@ -164,6 +168,8 @@ try {
   process.exitCode = 1;
 } finally {
   summary.elapsedMs = Date.now() - started;
+  summary.periodDecisions = periodCounts.summary();
+  summary.decisionLimitWarnings = (diagnostic.match(/DECISION_LIMIT matchId=/g) ?? []).length;
   lines.close(); child.stdin.destroy(); child.kill();
   if (output) { await mkdir(dirname(output), { recursive: true }); await writeFile(output, `${JSON.stringify(summary, null, 2)}\n`); }
   console.log(JSON.stringify(summary));

@@ -7,9 +7,7 @@ import com.fumbbl.ffb.dialog.DialogPlayerChoiceParameter;
 import com.fumbbl.ffb.model.Game;
 import com.fumbbl.ffb.model.Player;
 import com.fumbbl.ffb.server.GameState;
-import com.fumbbl.ffb.server.IServerJsonOption;
-import com.fumbbl.ffb.server.step.IStep;
-import com.fumbbl.ffb.server.step.StepId;
+import com.fumbbl.ffb.server.step.KickoffAdjustmentBudget;
 
 import com.eclipsesource.json.JsonObject;
 import com.eclipsesource.json.JsonArray;
@@ -18,6 +16,10 @@ import java.util.Set;
 /** Read-only public progress from the native kickoff step, including interruptions on its stack. */
 final class KickoffPresentation {
     JsonObject project(GameState state, Set<String> selection) {
+        return project(state, selection, new KickoffBudgetLookup().find(state));
+    }
+
+    JsonObject project(GameState state, Set<String> selection, KickoffAdjustmentBudget budget) {
         Game game = state.getGame();
         String actor = game.isHomePlaying() ? "home" : "away";
         if (game.getTurnMode() != TurnMode.SOLID_DEFENCE && game.getDialogParameter() instanceof DialogPlayerChoiceParameter) {
@@ -28,26 +30,17 @@ final class KickoffPresentation {
                 return progress(mode.name(), actor, "selection", dialog.getMaxSelects(), 0, selection.size());
             }
         }
+        int completed = budget == null ? 0 : budget.completedParticipants();
         TurnMode mode = game.getTurnMode();
         if (mode == TurnMode.BLITZ || mode == TurnMode.SELECT_BLITZ_TARGET && game.getLastTurnMode() == TurnMode.BLITZ) {
             JsonArray participants = participants(game);
-            return progress("CHARGE", actor, "movement", participants.size(), 0, participants.size()).add("participantIds", participants);
+            return progress("CHARGE", actor, "movement", participants.size(), completed, participants.size()).add("participantIds", participants);
         }
-        if (mode == TurnMode.HIGH_KICK) return progress("HIGH_KICK", actor, "movement", 1, 0, 0);
+        if (mode == TurnMode.HIGH_KICK) return progress("HIGH_KICK", actor, "movement", 1, completed, 0);
         if (mode != TurnMode.QUICK_SNAP && mode != TurnMode.SOLID_DEFENCE) return null;
-        IStep step = state.getCurrentStep();
-        if (step == null || step.getId() != StepId.APPLY_KICKOFF_RESULT) {
-            step = null;
-            for (IStep candidate : state.getStepStack().toArray()) {
-                if (candidate.getId() == StepId.APPLY_KICKOFF_RESULT) { step = candidate; break; }
-            }
-        }
-        if (step == null) return null;
-        JsonObject nativeState = step.toJsonValue();
-        int allowed = IServerJsonOption.NR_OF_PLAYERS_ALLOWED.getFrom(state.getServer(), nativeState);
-        int completed = mode == TurnMode.QUICK_SNAP ? IServerJsonOption.NR_OF_PLAYERS.getFrom(state.getServer(), nativeState) : 0;
-        String[] selected = IServerJsonOption.PLAYER_IDS_SELECTED.getFrom(state.getServer(), nativeState);
-        return progress(mode.name(), actor, "movement", allowed, completed, selected == null ? 0 : selected.length).add("participantIds", participants(game));
+        if (budget == null) return null;
+        return progress(mode.name(), actor, "movement", budget.allowedParticipants(), completed, budget.selectedParticipantIds().size())
+            .add("participantIds", participants(game));
     }
 
     private JsonArray participants(Game game) {

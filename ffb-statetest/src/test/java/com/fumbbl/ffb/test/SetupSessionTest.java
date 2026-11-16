@@ -492,10 +492,16 @@ class SetupSessionTest {
         String role = pick.getString("actor", null);
         String engineBefore = serialized(session);
         assertEquals("ACCEPTED", session.apply(role, toggle).getString("code", null));
-        assertEquals(engineBefore, serialized(session), "Selection does not yet execute the engine");
+        JsonObject afterSelection = JsonObject.readFrom(serialized(session));
+        assertEquals(1, afterSelection.get("currentStep").asObject().getInt("kickoffAdjustments", -1));
+        afterSelection.get("currentStep").asObject().remove("kickoffAdjustments");
+        assertEquals(JsonObject.readFrom(engineBefore), afterSelection,
+            "Selection only spends the native stage allowance; positions, commands and step progression do not change");
         String selected = view(session).toString();
+        String engineAfter = serialized(session);
         assertTrue(session.apply(role, toggle).getBoolean("duplicate", false));
         assertEquals(selected, view(session).toString());
+        assertEquals(engineAfter, serialized(session), "A duplicate does not spend another adjustment");
         submit(session, actionEnding(session, ":event-confirm"));
         assertEquals("BLITZ", view(session).getString("turnMode", null));
         submit(session, findAction(session, "select"));
