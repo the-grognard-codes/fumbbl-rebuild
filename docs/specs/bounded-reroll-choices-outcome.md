@@ -174,10 +174,41 @@ testing. A read-only inventory finds 5 games, 5 recovery records and 45 journal
 rows. Clearing these additional validation-period games was rejected by
 automatic approval review because the prior permission covered the original
 old-game set, not these newly accumulated records. No second deletion occurred.
-An explicit question asking whether to clear these games and restart an isolated
-Bogruk measurement is pending. Teams, accounts and preferences would be retained.
+The user explicitly approved clearing this additional set and continuing the
+soak on 2026-11-16. The repository clear script then removed those 5 games and
+their recovery/journal records, retaining teams, accounts and preferences. The
+stack restarted with `--quick`, passed proxy and ADC checks, and a dry run
+confirmed zero game records before the next driver started.
 
-Three-hour soak acceptance: **incomplete, awaiting the additional reset decision**.
+The isolated Bogruk measurement started at **06:56:52 UTC / 01:56:52
+America/New_York**, with exactly one tracked driver and an empty match database.
+It uses `.tools/561-soak-isolated/` and matching stdout/stderr logs. Production
+and regression source hashes still match the completed validation manifest.
+
+The clean run reached revision 622 in half 2 (turns 6/6), with 98 home decisions
+in its last periodic progress receipt and no guard warning, heap failure or
+restart. Checkpoint-budget refusals still occurred with only that one match.
+Inspection showed the match remained connected, offered legal home actions and
+held an exact request for retry; the driver had misclassified automatic match
+resumption as an unavailable lobby. Its earlier wait for the retry button to
+disappear could also return before the request was acknowledged.
+
+The driver now associates replies with the latest send of a reused request ID,
+waits for the matching `ACCEPTED` receipt before continuing, and recognizes an
+automatically resumed active match. It also retries a held request before using
+the generic UI-action fallback. Syntax checks pass; all 540 browser unit tests
+passed again. The real resumed-match/receipt check remains pending.
+
+The attempted continuation could not sign in. A new direct mounted-ADC probe
+returned **`SESSION_EXPIRED`**, unlike the earlier successful probe. The
+repository's recovery script opened Google sign-in and is awaiting the user's
+interactive authentication. Existing match data was retained. A diagnostic-only
+server recreation enabled the existing payload-free auth diagnostics; no
+additional data reset occurred. The interrupted window is not counted as a
+completed three-hour soak. A fresh full window will start after credential
+recovery and verification that the same match resumes.
+
+Three-hour soak acceptance: **incomplete, awaiting Google sign-in**.
 The checkpoint-budget refusal is distinct from the fixed stale reroll dialog;
 the existing memory/persistence workstreams remain relevant to the soak.
 

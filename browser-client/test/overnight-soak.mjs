@@ -121,7 +121,7 @@ mkdirSync(resolve(output, 'screenshots'), { recursive: true });
 function instrument() {
   const prefs = (() => { try { return JSON.parse(localStorage.getItem('moles.diagnostics.preferences') ?? '{}') ?? {}; } catch { return {}; } })();
   try { localStorage.setItem('moles.diagnostics.preferences', JSON.stringify({ ...prefs, window: 60, details: true, probes: true })); } catch { /* optional */ }
-  const soak = window.__soak = { state: null, revision: -1, arrivals: [], outgoing: [], failures: [], seq: 0, exports: [], sockets: 0 };
+  const soak = window.__soak = { state: null, revision: -1, arrivals: [], outgoing: [], receipts: [], failures: [], seq: 0, exports: [], sockets: 0 };
   const Native = window.WebSocket;
   window.WebSocket = class extends Native {
     constructor(...rest) {
@@ -134,7 +134,9 @@ function instrument() {
             phase: message.state.phase, bytes: event.data.length });
           if (soak.arrivals.length > 20_000) soak.arrivals.splice(0, 10_000);
         }
-        const sent = message.requestId && soak.outgoing.find(entry => entry.requestId === message.requestId);
+        const sent = message.requestId && soak.outgoing.findLast(entry => entry.requestId === message.requestId);
+        if (sent && message.code) soak.receipts.push({ seq: sent.seq, code: message.code });
+        if (soak.receipts.length > 200) soak.receipts.splice(0, 100);
         if (sent && message.code && message.code !== 'ACCEPTED') soak.failures.push({ seq: sent.seq, code: message.code, operation: sent.operation });
         if (soak.failures.length > 200) soak.failures.splice(0, 100);
       });
@@ -357,6 +359,7 @@ async function decide(view) {
       await ensureDiagnostics();
       return state();
     }
+    if (await repeatRetainedRequest()) return state();
     log('ui-action-fallback', { kind: action.kind, reason: failure.message.slice(0, 200) });
     const fresh = await state();
     if (fresh.revision !== view.revision || !fresh.actions.some(item => item.id === action.id)) return fresh;
@@ -366,6 +369,7 @@ async function decide(view) {
 
 // ---------------------------------------------------------------- match lifecycle
 let matches = 0, completed = 0, decisions = 0, errors = 0, screenshots = 0;
+const observedMatches = new Set();
 async function rejectedSignIn() {
   const alerts = (await page.getByRole('alert').allTextContents().catch(() => [])).join(' ');
   if (/AUTHENTICATION FAILED/i.test(alerts)) throw Error('AUTHENTICATION_FAILED: the game server rejected sign-in; refresh its ADC (gcloud auth application-default login) and restart the server');
@@ -375,16 +379,37 @@ async function rejectedSignIn() {
 async function repeatRetainedRequest() {
   const repeat = page.getByRole('button', { name: 'Repeat retained request', exact: true });
   if (!await repeat.isVisible().catch(() => false)) return false;
+  const mark = await page.evaluate(() => window.__soak.seq);
   log('retained-request-repeated', { url: page.url() });
   await repeat.click();
+  const sent = await page.evaluate(mark => window.__soak.outgoing.findLast(request => request.seq > mark), mark);
+  if (!sent) throw Error('Retained request did not send a setup command');
+  await page.waitForFunction(seq => window.__soak.receipts.some(reply => reply.seq === seq), sent.seq, { timeout: 30_000 });
+  const reply = await page.evaluate(seq => window.__soak.receipts.find(reply => reply.seq === seq), sent.seq);
+  if (reply.code !== 'ACCEPTED') throw Error(`Retained request rejected: ${reply.code}`);
   await repeat.waitFor({ state: 'hidden', timeout: 30_000 });
+  log('retained-request-accepted', { revision: await revision() });
+  return true;
+}
+
+async function resumeActiveMatch() {
+  if (!/\/play\/match/.test(page.url())) return false;
+  await page.getByLabel('Live match pitch').waitFor({ timeout: 30_000 });
+  const view = await state();
+  if (!view || view.phase === 'FULL_TIME') return false;
+  await repeatRetainedRequest();
+  const id = new URL(page.url()).searchParams.get('matchId');
+  if (!observedMatches.has(id)) { observedMatches.add(id); matches++; }
+  log('match-resumed', { matches, revision: view.revision, phase: view.phase });
   return true;
 }
 
 async function createMatch() {
   await page.goto(`${origin}/play`);
+  if (await resumeActiveMatch()) return;
   if (/\/play\/match/.test(page.url()) && await repeatRetainedRequest()) await page.goto(`${origin}/play`);
   if (!await connected(30_000)) {
+    if (await resumeActiveMatch()) return;
     // Only a redirect to the login page means signed out. Otherwise the game server is down or restarting.
     // The server rejects every sign-in when its Google credentials (ADC) can no longer refresh.
     await rejectedSignIn();
@@ -418,7 +443,9 @@ async function createMatch() {
   await page.getByRole('button', { name: 'Start game', exact: true }).click({ timeout: 60_000 });
   await page.waitForURL(/\/play\/match/, { timeout: 60_000 });
   await page.getByLabel('Live match pitch').waitFor({ timeout: 60_000 });
-  matches++; log('match-started', { matches, url: page.url() });
+  const id = new URL(page.url()).searchParams.get('matchId');
+  if (!observedMatches.has(id)) { observedMatches.add(id); matches++; }
+  log('match-started', { matches, url: page.url() });
 }
 
 // ---------------------------------------------------------------- recorders
