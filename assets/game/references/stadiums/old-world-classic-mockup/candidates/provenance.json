@@ -1,0 +1,69 @@
+{
+  "assets": [
+    {
+      "file": "human-crowd-v1.png",
+      "width": 1536,
+      "height": 1024,
+      "sha256": "dff45d1540a846ca6459dc46ef611782884b8aadea517484c1c3b8a55cbe594f",
+      "tool": "built-in image_gen",
+      "reference": "assets/game/references/stadiums/concept-round-3/01-old-world-classic-human-home.webp",
+      "prompt": "Use case stylized-concept. Transparent production game crowd sprite atlas, matching the supplied Old World Classic stadium concept's chibi Humans in blue and gold: expressive large heads, visible shoulders and upper torsos, dark crisp outlines, tightly clustered SNES-era pixels, varied skin tones genders hair and beards with a few Dwarfs and Halflings. NO architecture, NO grass, NO stadium, NO text, NO backdrop. Six LARGE dense crowd section paintings laid out in an exact TWO COLUMN by THREE ROW atlas with broad transparent gutters. Top left: dense standing Human crowd bank seen from LEFT PROFILE, all looking right into the pitch. Top right: different dense bank seen from RIGHT PROFILE looking left. Middle left: dense FRONT FACING crowd bank looking toward viewer, four densely packed tiers. Middle right: dense BACK FACING crowd bank, backs of heads and blue shoulders looking away, four packed tiers. Bottom left: genuine TOP DOWN overhead densely packed crowd looking right. Bottom right: genuine TOP DOWN overhead densely packed crowd looking left. Each panel about 650 wide by 250 high, aligned rectangular bases with irregular head silhouettes above; 35-50 individual spectators each. Do not make tiny individual fan cards. No waving long flags. Occasional mugs or scarves in the hands. Rich blue cloth primary and golden yellow secondary, faces/skin and hair distinct from cloth. Keep all 6 panels entirely separate with genuine zero-alpha transparency between them. Avoid blurry painterly shading. Do not stretch faces, do not repeat faces.",
+      "status": "candidate; not mounted",
+      "decision": "Rejected for horizontal layout unsuitable for long side banks"
+    },
+    {
+      "file": "architecture-v1.png",
+      "prompt": "Use case: stylized-concept. Create a production sprite atlas for the Old World Classic fantasy football stadium. The reference image is the visual authority for richly detailed SNES-style pixel clusters, dark outlines, weathered grey stone, heavy dark timber, brass fittings and warm torch light. Transparent background. NO crowds, NO pitch, NO text, NO banners or colored cloth in this architecture atlas. Four clearly separated horizontal rows with broad transparent gutters: top row a long straight FRONT stone retaining wall, visually thick, about 900 pixels wide and 180 tall, timber reinforcement at ends, torches on two substantial columns; second row the same wall's TOP DOWN overhead coping and timber tops, 900 wide 80 tall; third row four individual large sprites spaced apart: stone column with burning brazier front, overhead counterpart of same column, wooden bench with awning frame WITHOUT cloth front, overhead wooden bench; bottom row four spaced objects: barrel and mugs, barrel overhead, inward curved stone corner front, curved stone corner overhead. Crisp clustered pixel art matching the concept. Architecture must have strong wall thickness and stone depth, rich warm highlights and cool shadows. Orthographic front surfaces for registration to actual raised 3D planes; no overall isometric scene. All individual objects isolated with actual transparent alpha gutters. Preserve authored original pixel density, no blur. These assets will be projected by a game engine; do not draw an entire stadium.",
+      "width": 1536,
+      "height": 1024,
+      "sha256": "486924399c0e39ac23095e86a0db29ca1e50c844a9c619a8f611373bcc7d1e29",
+      "tool": "built-in image_gen",
+      "reference": "assets/game/references/stadiums/concept-round-3/01-old-world-classic-human-home.webp",
+      "decision": "Superseded by cleaner alpha/gutters in v2"
+    },
+    {
+      "file": "architecture-v2.png",
+      "width": 1536,
+      "height": 1024,
+      "sha256": "935ffde657da74c73604ab31e1285716f2dff5711c33596e15ce0d8dbc9c20b0",
+      "tool": "built-in image_gen",
+      "reference": "assets/game/references/stadiums/concept-round-3/01-old-world-classic-human-home.webp",
+      "prompt": "Precise background extraction edit. Keep every sprite, position, size, stone texture, wood texture and hard outline exactly unchanged. Remove ALL the brown/grey atmospheric backdrop and all soft glow outside solid sprite silhouettes. Export actual transparent alpha, including between rows and inside the empty bench awning frame. The entire background must be zero alpha, NOT checkerboard pixels, NOT brown, NOT a painted backdrop. Only solid architecture, fire, barrels and benches remain. No added shadows, no new objects, no text. This is a game sprite atlas needing clean transparent gutters.",
+      "status": "review candidate; not owner accepted",
+      "parent": "../../../references/stadiums/old-world-classic-mockup/candidates/architecture-v1.png",
+      "decision": "Selected for gallery only, original alpha preserved"
+    },
+    {
+      "file": "human-sides-v1.png",
+      "prompt": "Generate a transparent pixel-art game sprite atlas for the TWO LONG SIDELINE CROWD BANKS of the supplied stadium. Layout is FOUR TALL NARROW vertical rectangular strips side by side, each roughly 250 wide and 950 tall, with generous transparent gutters. ALL strips completely isolated, no walls, no turf, no props, no background, no text. Strip 1: dense blue/gold chibi Human home supporters seen in left side profile looking RIGHT, about 4 heads across and 18 ranks running vertically down the strip. Strip 2: different dense blue/gold Human crowd in right side profile looking LEFT, 4 heads across and 18 ranks down. Strip 3: same packed crowd looking RIGHT viewed from EXACTLY 90 degrees overhead, only tops of hair, hats, shoulders, no faces visible. Strip 4: same looking LEFT from EXACTLY 90 degrees overhead. Human crowd with some dwarfs and halflings, diverse skin and faces, medieval caps, mugs. Each head consistent 35-45 pixels wide, crisp dark outlines, rich clustered SNES-style pixel shading matching supplied concept. The long axis of each crowd bank MUST run VERTICALLY, not horizontal panels. No perspective size taper within each strip. The engine will apply world perspective. Dense tightly packed visible upper bodies, no empty ranks, no large gaps, no background.",
+      "width": 1536,
+      "height": 1024,
+      "sha256": "04a6316a1137f3461ab7a215a303a484560d286c6bf3e1d3ba5b51c553eea191",
+      "tool": "built-in image_gen",
+      "reference": "assets/game/references/stadiums/concept-round-3/01-old-world-classic-human-home.webp",
+      "decision": "Rejected for oversized heads and insufficient density"
+    },
+    {
+      "file": "human-ends-v1.png",
+      "width": 2172,
+      "height": 724,
+      "sha256": "4d3ad3b779ebfe53e500c2379b992f7c394da7312726ec54cd7011c00f23051d",
+      "tool": "built-in image_gen",
+      "reference": "assets/game/references/stadiums/concept-round-3/01-old-world-classic-human-home.webp",
+      "prompt": "Production transparent pixel art crowd atlas, THREE long WIDE HORIZONTAL strips stacked in three rows, generous transparent gutters. Each strip roughly 1450 pixels wide, 260 pixels high. Extremely dense tiny chibi Human fans in blue/gold, varied genders ages skin tones dwarfs halflings, expressive faces and dark crisp SNES clustered pixels matching reference. TOP strip: front-facing crowd looking toward viewer. MIDDLE strip: back-facing crowd looking away, backs of heads and shoulders. BOTTOM strip: EXACT 90-degree overhead looking upward, tops of heads and hats only. Each strip contains approximately FIFTY spectators ACROSS and SIX densely overlapping ranks deep; consistent tiny 25-pixel-wide heads, no giant portrait faces. Full upper torsos, hats and occasional mugs, tightly packed standing crowd. Uniform scale across whole strip, no perspective taper. No architecture, no grass, no objects outside crowd, no text, no background. Genuine transparent alpha around strips. These are large stadium end-bank assets, not tiny repeated cards.",
+      "status": "review candidate; no owner visual acceptance",
+      "decision": "Rejected: visible translucent grey matte in assembled end bank; replaced by clean alpha v2"
+    },
+    {
+      "file": "human-ends-indexed-v1.png",
+      "width": 2172,
+      "height": 724,
+      "sha256": "dae84c543764e11eef2c5a81453559b3795249906b6bdf6376436b3fe7b6a933",
+      "tool": "built-in image_gen",
+      "reference": "human-ends-v1.png",
+      "prompt": "Precise palette preparation edit of this three-row Human crowd game atlas. Keep exact 2172x724 canvas, all three horizontal strip locations and bounds, every spectator position, face size, face, skin, hair and direction unchanged. Repaint ONLY yellow/gold CLOTHING trim, jersey emblems/stripes, scarf stripes, cloth hat trim to vivid MAGENTA/PINK with dark/base/light shades. Keep primary clothing BLUE. Keep golden blond HAIR golden; hair is not cloth. This blue/magenta working palette is for automatic cloth indexing. No skin, hair, mugs, outlines or other materials may become blue or magenta. True transparent alpha gutters. No new spectators, no layout changes, no text.",
+      "status": "review candidate; no owner visual acceptance",
+      "decision": "Rejected: visible translucent grey matte in assembled end bank; replaced by clean alpha v2"
+    }
+  ]
+}

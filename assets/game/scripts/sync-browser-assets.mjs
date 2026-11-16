@@ -1,4 +1,5 @@
 import './build-stadium-jigsaw.mjs';
+import './build-stadium-mockup.mjs';
 import './build-modular-stadium-catalog.mjs';
 import './build-stadium-catalog.mjs';
 import { createHash } from 'node:crypto';

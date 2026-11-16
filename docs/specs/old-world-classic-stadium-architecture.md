@@ -82,3 +82,32 @@ Lustrian architecture can supply the same slots; their stone, foliage, banners
 and crowd populations are separate future bundles. League selection is venue
 configuration, team selection is crowd/cloth configuration; neither belongs in
 rules or protocol. No second League is implemented here.
+
+## Implemented findings
+
+The gallery retains `PitchProjection`, jigsaw registration, depth sorting, team
+colour ramps and the crowd gesture scheduler. It does not change the production
+renderer. Repeated full-atlas DOM images caused missing wall surfaces in Chromium
+under the assembled crowd load. `StadiumMockupSurface` paints only each clipped
+source rectangle to a small canvas before applying the production homography.
+This retains original source pixels and fixed world anchors while reducing
+compositor work. Decoding failures install the successful images independently.
+
+The production turf component returns no scenery when a viewport edge looks
+above the horizon. The valid gallery 30-degree camera exposed this condition.
+`StadiumMockupTurf` instead projects a finite 30 × 19 grass plane with the same
+grass sample. No live turf changes were made. Chalk uses clipped world segments,
+so a segment remains visible when its other endpoint is behind the lens.
+
+Crowd material masks are generated offline from reserved blue/magenta authoring
+colours because the image generator provides RGBA rather than palette indices.
+The original PNG and mask are hash-bound and runtime uses the player recolouring
+function. Mask invariance tests cannot certify semantic boundaries: an artist
+still needs to inspect cloth/skin/metal assignment in the colour contact sheets.
+
+The current art is a review candidate, not a finished concept match. Orthogonal
+wall joins, repeated source rows, imperfect crowd transparency, incomplete
+overhead cloth edges and limited gesture orientations remain. See the
+[outcome report](old-world-classic-stadium-mockup-outcome.md) for evidence and the
+exact remaining assets. Architecture and visitor factories are independent, but
+a second League would still require a new measured art bundle and factory entry.
