@@ -112,6 +112,18 @@ The full browser suite passes **545 tests**; the focused native regression passe
 **4 cases**. Driver syntax and whitespace checks pass. No production Java source
 changed in this follow-up; the Java test edit is whitespace-only.
 
+The second review identified two further driver issues. Recovery now selects
+the first outgoing send after the click, so later setup load/status traffic
+cannot replace the retry or acknowledge it. Refusal capture uses a highest-sequence
+cursor stored with the page instrumentation and leaves the bounded failure queue
+intact for action polling. Navigation resets the cursor with the instrumentation.
+Two additional regressions cover later accepted setup traffic, preserved failures,
+deduplicated logging and cursor reset. All seven focused retry tests and all
+547 browser tests pass; driver syntax and whitespace checks pass.
+The mounted-ADC probe still reports `SESSION_EXPIRED`. After renewal, first run
+a short live check that resumes an active match and observes a real retained retry
+with its counted cause; only then begin the fresh three-hour acceptance window.
+
 ## Other choice-handler audit
 
 The basic-judgment handler ranks offered choices; it does not create native

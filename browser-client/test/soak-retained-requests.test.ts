@@ -120,3 +120,41 @@ test('refusals are logged even when no retained retry is sent', async () => {
   assert.deepEqual(page.recovery.counts(), {});
   assert.equal(page.events.find(event => event.event === 'setup-refused').code, 'COMPLETION_PENDING');
 });
+
+test('later setup traffic cannot acknowledge or reclassify the retained retry', async () => {
+  const page = new PageFixture();
+  page.refuse();
+  const originalSend = page.send.bind(page);
+  page.send = () => {
+    originalSend();
+    page.soak.outgoing.push({ seq: ++page.soak.seq, requestId: 'load', operation: 'load' });
+    page.reply('ACCEPTED');
+  };
+  let settled = false;
+  const result = page.recovery.repeat().then(value => { settled = true; return value; });
+  await page.clicked.promise;
+  await turn();
+  assert.equal(settled, false);
+  assert.deepEqual(page.recovery.counts(), { PERSISTENCE_FAILED: 1 });
+  page.soak.receipts.push({ seq: 1, code: 'ACCEPTED' });
+  page.changed();
+  assert.equal(await result, true);
+});
+
+test('capture preserves action failures, logs each sequence once and resets on a new page', async () => {
+  const page = new PageFixture();
+  page.refuse();
+  await page.recovery.captureRefusals();
+  await page.recovery.captureRefusals();
+  assert.equal(page.soak.failures.length, 1, 'action polling must still see its refusal');
+  assert.equal(page.events.filter(event => event.event === 'setup-refused').length, 1);
+  page.send();
+  page.reply('STALE_REVISION');
+  await page.recovery.captureRefusals();
+  assert.equal(page.soak.failures.length, 2);
+  assert.equal(page.events.filter(event => event.event === 'setup-refused').length, 2);
+  page.soak = { seq: 0, revision: 10, outgoing: [], receipts: [], failures: [] };
+  page.refuse('COMPLETION_PENDING');
+  await page.recovery.captureRefusals();
+  assert.equal(page.events.filter(event => event.event === 'setup-refused').length, 3);
+});

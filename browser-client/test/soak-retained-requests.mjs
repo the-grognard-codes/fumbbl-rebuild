@@ -7,7 +7,16 @@ export class SoakRetainedRequests {
 
   async captureRefusals() {
     let failures;
-    try { failures = await this.getPage().evaluate(() => window.__soak?.failures.splice(0) ?? []); }
+    try {
+      failures = await this.getPage().evaluate(() => {
+        const soak = window.__soak;
+        if (!soak) return [];
+        // Keep action failures available to advanced(); the cursor resets with page instrumentation.
+        const pending = soak.failures.filter(failure => failure.seq > (soak.capturedFailureSeq ?? -1));
+        if (pending.length) soak.capturedFailureSeq = Math.max(...pending.map(failure => failure.seq));
+        return pending;
+      });
+    }
     catch { this.log('refusal-capture-unavailable'); return; }
     for (const failure of failures) {
       if (failure.requestId && !this.#causes.has(failure.requestId)) this.#causes.set(failure.requestId, failure.code);
@@ -26,7 +35,8 @@ export class SoakRetainedRequests {
     const mark = await page.evaluate(() => window.__soak.seq);
     await repeat.click();
     await page.waitForFunction(mark => window.__soak.outgoing.some(request => request.seq > mark), mark, { timeout: 30_000 });
-    const sent = await page.evaluate(mark => window.__soak.outgoing.findLast(request => request.seq > mark), mark);
+    // The click sends the retry first; subsequent reconnect/status traffic must not replace it.
+    const sent = await page.evaluate(mark => window.__soak.outgoing.find(request => request.seq > mark), mark);
     if (!sent) throw Error('Retained request did not send a setup command');
     const code = this.#causes.get(sent.requestId) ?? 'UNKNOWN';
     this.#retries.set(code, (this.#retries.get(code) ?? 0) + 1);
