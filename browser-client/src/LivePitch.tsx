@@ -558,7 +558,7 @@ export function LivePitch({ view, selectedId, selectedIds = [], actions, pinnedA
           onAction={onDecisionAction}/>}
         {backgroundFailed && <span className="live-pitch-error">Pitch texture unavailable; plain field shown.</span>}
       </div>
-      {splash && <MatchSplash {...splash}/>}
+      {splash && <MatchSplash {...splash} cameraEnd={camera.end}/>}
     </div>
     <MatchAnnouncementStatus announcement={splash?.announcement ?? null}/>
     {routePreview && <ol className="sr-only" aria-label="Planned route">{routePreview.steps.map((step, index) => <li key={index}>Square {step.x}, {step.y}</li>)}</ol>}

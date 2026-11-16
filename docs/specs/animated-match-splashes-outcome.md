@@ -1,119 +1,56 @@
 # Animated match splashes — implementation outcome
 
 Issue: https://github.com/the-grognard-codes/fumbbl-rebuild/issues/565
+Draft PR: https://github.com/the-grognard-codes/fumbbl-rebuild/pull/569
 Branch: `codex/565-animated-splashes`; isolated worktree `.worktrees/565`.
 
-## Tier 1
+## Delivered
 
-Implemented shared enter → impact → hold → exit phases. CSS animates transform
-and opacity only; React updates at phase boundaries. The existing queue retains
-required-choice priority, dedupe, reconnect and seek suppression. Animation-end
-completes exit with a timer fallback. Exit now fits inside the total duration.
-Saved team ramps colour ribbons; text stays on dark navy independent of kit
-contrast. Reduced motion retains fades and removes spatial child animations.
+Tiers 1 and 2 are complete. Tier 3 adds optional decoration and per-kind preferences; additional high-drama event kinds remain disabled. Tier 4's visual iteration is complete for this delivery, with nine capture/review rounds across the three implementation stages. The PR remains draft; no merge or deployment was performed.
 
-Review page: `browser-client/splash-review.html`, served by Vite.
-Captures: `.tools/animated-splashes/round-{1,2,3}/` (local generated evidence).
-Each round includes six timed frames per core kind at 1440 and 390 widths,
-Human/Orc, gold/blue, black/black, white/ivory, and reduced motion.
+| Requirement | Result and evidence |
+| --- | --- |
+| Animated core events | Shared enter → impact → hold → exit phases; stepped ribbons, headline impacts, restrained turn start and torn turnover treatment. |
+| Event timing | Total durations include exit: turn 1.5s; touchdown/turnover/half 3s; kickoff/weather 2.5s; final 4s. Animation-end completion has a timer fallback. |
+| Authoritative kickoff | All 11 engine enum results; pending events survive staged placement/bonus actions and checkpoints, then precede the first playable turn. |
+| Weather | Five engine weather kinds, initial and changed conditions; no INTRO or unchanged-weather announcement. Deferred kickoff weather follows its kickoff fact. |
+| Half and final | Native half/match completion, scorer name/number and authoritative score; winner, draw and concession treatment. |
+| Queue and recovery | Required-choice priority, dedupe, reconnect/hidden-tab recovery, replay seek/speed and spectator coverage remain tested. Old five-field checkpoints remain readable. |
+| Accessibility | Persistent live region, explicit dismiss/Escape, no focus transfer or click-through, reduced-motion fades with decorative movement disabled. |
+| Team identity | Saved ramps, camera-aware ribbon direction, split-team ribbons and independent black/white contrast edges. All 256 primary/secondary combinations tested. |
+| Optional polish | Short team-colour bursts, five-step weather effects, score pulse and final plate entrance. Seven local visibility preferences preserve gameplay/log facts. |
+| Review tooling | `browser-client/splash-review.html`: every engine variant, winner/draw/concession, saved colours, speed, camera direction and manual paused frame inspector. |
 
-### Visual review rounds
+CSS keyframes use transform and opacity. React updates only at phase boundaries; there is no product per-frame animation loop. Headline, reminder and score remain DOM text on a stable dark plate. Original geometric SVG emblems/masks live in `assets/game/ui/match-events`; weather reuses existing approved sprites. No BB3 artwork or new runtime dependency was copied or introduced.
 
-1. Initial captures exposed missing production font in the review page,
-   descendant motion overriding reduced-motion CSS, and a wide headline
-   transform overflowing its card. Fixed font loading, selector specificity,
-   and bounded headline overshoot. The animated ribbon is contained.
-2. Phone review controls consumed too much vertical space; review stage extended
-   beyond its viewport. Ribbon origin did not distinguish teams and touchdown
-   lacked its requested punctuation. Fixed grid sizing, directional origin and
-   `TOUCHDOWN!`.
-3. Captured corrected output at desktop and phone sizes. Text remains legible
-   on a constant dark plate for extreme kit pairs. Motion uses stepped impact,
-   restrained turn-start scaling, and a torn turnover ribbon. The helmet and
-   ribbon carry identity; no copied third-party artwork or runtime dependencies.
+Kickoff names/descriptions come directly from the engine. Weather reminders were checked against the repository's BB2025 reference index, [its linked weather table](https://bloodbowlbase.ru/bb2025/core_rules/the_game_of_blood_bowl/#weather-table), engine modifier collections and heat handling.
 
-### Validation
+## Visual review and evidence
 
-- Browser unit suite: 540 passed before final Tier 1 run.
-- Announcement UI: ordering, dismissal, hold, mandatory choices, dedupe,
-  hidden-tab recovery, reconnect, replay seeks/speed and responsive long text.
-- Added phase assertions and 50 consecutive splashes with equal baseline DOM.
-- TypeScript and production build passed.
-- Final affected UI and unit validation pending below.
+Local full captures: `.tools/animated-splashes/round-{1,2,3}`, `tier2-round-{1,2,3}` and `polish-round-{1,2,3}`. Final expanded rounds contain 468 captures at 1440×900, 390×844, 1024×768 and 844×390, including six timed frames per kind, exits, engine variants, extreme saved colours and reduced motion. Tracked final representative images: `.notes/art-preview/animated-splashes/{kind}-{1440,390}.png`; existing core harness captures: `.notes/art-preview/match-announcements/`.
 
-One colour UI run was interrupted by our source edit triggering Vite reload;
-rerun without concurrent edits. No product failure inferred from that run.
+- Core rounds fixed missing production font, reduced-motion selector precedence, headline overflow, crowded phone controls and team entrance direction.
+- New-event rounds added draw/concession coverage and tablet/landscape checks, corrected emblem aspect ratio, separated reminders from ribbons and opposed split-ribbon entrances.
+- Polish rounds confined bursts/weather texture to the emblem area, enlarged wide weather artwork, added independent contrast edges and camera direction. Final round passed frame scrubbing, exit and reduced-motion checks.
 
-## Remaining scope
+No additional casualty/death, interception, perfect-pass/catch or sent-off splashes were enabled. Those are optional scope; this delivery conservatively avoids additional interruptions.
 
-Tier 2 authoritative kickoff/weather/half/final events; Tier 3 optional drama
-and decorative effects; expanded review rounds and live Bogruk validation.
-No merge, ready-for-review transition or deployment is authorized.
+Next three review opportunities: observe pacing during a complete live Bogruk match; evaluate short nonblocking high-drama badges with the owner; check motion/readability on physical low-end mobile hardware.
 
-Tier 1 final validation: all 540 browser unit tests, announcement UI (including 50 splashes), team-colour UI, playback UI, DOM-growth UI, TypeScript and production build passed. No Java changes in Tier 1.
+## Verification
 
-## Tier 2 implementation
+- `tools/target-build.ps1 install`: pinned Maven 3.9.9/JDK 21.0.11 full `mvn clean install` passed all reactor modules in 16m06s. Reports total 1,182 tests, 22 environment-gated skips, zero failures/errors (common 19; server 863/15 skipped; state tests 300/7 skipped).
+- Focused `MatchAnnouncementPresentationTest`: 11 tests passed, including all kickoff enums, checkpoint recovery/staging, weather and completion facts. Browser fixture variants are generated from native engine tests.
+- `npm test`: 543 tests passed, including all 256 team-colour combinations.
+- `npm run build`: TypeScript and production bundle passed.
+- `npm run assets:check`: canonical/mirrored assets and asset contract tests passed (578 assets).
+- Browser drivers passed: `match-announcements-ui`, `game-menu-events-ui`, `match-dom-growth-ui`, `team-colors-ui`, `playback-ui`, `reconnect-ui`, and final `splash-review-ui` capture round.
+- Actual GameView DOM-growth check warms a capped 100-row history, then presents/removes 51 announcements: the 50 iterations after warm-up retain identical DOM counts. The broader driver also covers 450 revisions.
 
-The server emits kickoff facts when the native roll is resolved, retains them
-through mandatory placement/bonus-action stages and checkpoints, and releases
-them at the first regular playable turn. Deferred kickoff weather follows the
-kickoff fact. Initial weather and later spell/restoration weather use native
-weather-setting notifications. The client does not read dice or logs to invent
-an announcement. INTRO and unchanged weather are suppressed.
+An early UI run was interrupted by source-edit HMR; its clean rerun passed. Test harness corrections respected revision-indexed transcripts and waited for the observable exit state before advancing the mock clock; no product timing workaround was introduced.
 
-Half-ending touchdowns retain the scorer name/number and authoritative score;
-half-time follows them. Native match completion emits full time or concession
-with score and winner/draw. Both old five-field announcement checkpoints and
-new pending-kickoff checkpoints remain readable. Optional event headline/code
-fields retain playback support for previously recorded core events.
+## Verification limits
 
-Emblems: original 32-pixel geometric kickoff ball and whistle SVGs in
-`assets/game/ui/match-events`; weather uses the existing approved sprites.
-Headlines, reminders and scores are DOM text; the persistent live region emits
-one message per event. Team ramps tint relevant ribbons, while shared kickoff
-results and weather have neutral treatment. Full-time uses a dark score plate;
-half-time and drawn results use the two team's colours.
+`.git/dev-local-state.json` identifies the main checkout as owner. As required by #565, this worktree did not take over or stop the shared stack. Native engine tests and browser harnesses provide the permitted fallback; an end-to-end live Bogruk match was not observed. Mobile coverage uses browser viewport emulation, not physical Android hardware. The 22 environment-gated Java tests remain skipped.
 
-Weather reminders were checked against the repository's BB2025 reference index,
-[its linked weather table](https://bloodbowlbase.ru/bb2025/core_rules/the_game_of_blood_bowl/#weather-table),
-and the engine's Catch/Pickup/Pass/Interception/GoForIt modifier collections and
-StepEndTurn heat handling. Kickoff names/descriptions come directly from the
-BB2025 engine enum, including its existing wording.
-
-### Tier 2 review rounds
-
-1. Seven kinds captured on desktop and phone. The review initially omitted a
-   winner line and had no concession/draw selector; added those. The original
-   review only covered portrait phones; added 844×390 landscape and 1024×768
-   tablet. Added explicit exit frames and every engine weather/kickoff variant.
-2. Expanded capture pass running under `.tools/animated-splashes/tier2-round-2`.
-3. Final polish/capture pending.
-
-### Environment and verification limits
-
-Shared `.git/dev-local-state.json` identifies the main checkout as owner. Per
-#565, this worktree did not take it over or stop it. Live Bogruk validation is
-therefore replaced by the announcement harness and real native engine tests;
-no claim of an observed end-to-end Bogruk match is made.
-
-Pinned Maven 3.9.9 and JDK 21.0.11 are used. Bootstrap's network download failed,
-so the existing archive was copied and checksum-verified. Dependencies were
-copied to this worktree's own Maven cache. Sandboxed javac failed closing JARs;
-the identical focused reactor run succeeded through approved host execution.
-Eleven focused engine announcement tests and 542 browser unit tests pass.
-The full clean install and expanded capture validation are in progress.
-
-Tier 2 review round 3 completed: fixed emblem aspect ratio, broadened the pixel
-football silhouette, separated copy from the lower ribbon, and made split-team
-ribbons enter from opposite ends. 468 captures cover 1440×900, 390×844,
-1024×768 and 844×390, every kickoff/weather enum, concession/draw/win, saved
-colour extremes, reduced motion and exits. Representative captures are tracked
-in `.notes/art-preview/animated-splashes/`.
-
-The extended DOM-growth driver now warms a capped 100-row history, then presents
-and removes 51 announcements through GameView. The 50 iterations after warm-up
-have identical DOM counts. The earlier test attempt incorrectly supplied a
-sparse transcript; the harness now respects revision-indexed records. No
-product workaround was needed.
-
-Tier 2 final validation: pinned Maven clean install passed all reactor modules (16m06s; ffb-statetest: 300 tests, 7 environment-gated skips). Browser: 542 unit tests, TypeScript/build, 574-asset check, announcements (including animation-end completion), team colours, playback, reconnect, and extended DOM-growth drivers passed. No rules changes. Tier 2 ready for draft review.
+Bootstrap download failure was recovered using the existing checksum-verified Maven archive and a worktree-local dependency cache. Sandboxed javac failed closing JARs; identical focused/full builds passed with approved host execution. Root checkout user changes were preserved.

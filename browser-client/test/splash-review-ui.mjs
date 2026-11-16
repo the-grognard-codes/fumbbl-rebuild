@@ -16,6 +16,8 @@ try {
   await page.locator('.match-splash').waitFor(); await page.evaluate(() => document.fonts.ready);
   for (const kind of ['touchdown','turnover','turnStart','kickoff','weather','halfTime','fullTime']) {
    await page.getByLabel('Event', {exact:true}).selectOption(kind);
+   const properties = await page.locator('.match-splash-shade').evaluate(node => node.getAnimations({subtree:true}).flatMap(animation => animation.effect.getKeyframes().flatMap(frame => Object.keys(frame))));
+   assert.ok(properties.every(property => ['offset','computedOffset','easing','composite','opacity','transform'].includes(property)), 'Splash keyframes animate only transform and opacity');
    for (const time of [0,150,350,500,700,1300]) {
     await page.getByRole('button',{name:'Replay animation',exact:true}).click();
     await page.locator('.match-splash-shade').evaluate((node,time) => { for(const animation of node.getAnimations({subtree:true})) { animation.pause(); animation.currentTime=time; } },time);
@@ -47,5 +49,12 @@ try {
    await page.emulateMedia({reducedMotion:'no-preference'});
   }
  }
+ await page.getByText('Inspect frames', {exact:true}).click();
+ await page.getByRole('slider', {name:'Frame time'}).focus(); await page.keyboard.press('Home'); await page.keyboard.press('ArrowRight');
+ assert.ok(await page.locator('.review-stage').evaluate(node => node.getAnimations({subtree:true}).every(animation => animation.playState === 'paused')));
+ await page.getByLabel('Camera', {exact:true}).selectOption('away');
+ await page.getByLabel('Event', {exact:true}).selectOption('turnStart');
+ await page.getByLabel('Team', {exact:true}).selectOption('home');
+ assert.equal(await page.locator('.match-splash-shade').getAttribute('data-team'), 'away');
  console.log(`PASS splash review captures: ${output}`);
 } finally { await browser.close(); await server.close(); }

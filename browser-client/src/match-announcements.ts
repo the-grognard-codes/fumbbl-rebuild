@@ -51,7 +51,8 @@ export function announcementHeadline(event: MatchAnnouncementEvent): string {
 }
 
 export function announcementText(event: MatchAnnouncement): string {
-  const team = ['weather', 'kickoff', 'halfTime', 'fullTime'].includes(event.kind) ? '' : `${event.teamName} — `;
+  const shared = ['weather', 'halfTime', 'fullTime'].includes(event.kind) || event.kind === 'kickoff' && !['SOLID_DEFENCE', 'QUICK_SNAP', 'CHARGE', 'HIGH_KICK'].includes(event.code ?? '');
+  const team = shared ? '' : `${event.teamName} — `;
   return `${team}${announcementHeadline(event)}${event.reason ? `. ${event.reason}` : ''}`;
 }
 

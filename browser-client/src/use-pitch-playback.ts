@@ -33,6 +33,8 @@ export function usePitchPlayback(view: SetupState, records: TranscriptRecord[], 
   const [announcement, setAnnouncement] = useState<MatchAnnouncement | null>(null);
   const [announcementExiting, setAnnouncementExiting] = useState(false);
   const announcementPreferences = useAnnouncementPreferences();
+  const hiddenAnnouncements = useRef(announcementPreferences.hiddenAnnouncements);
+  hiddenAnnouncements.current = announcementPreferences.hiddenAnnouncements;
   const pendingAnnouncement = useRef<{ id: string; closing: boolean; advance: () => void } | null>(null);
   const announcementTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const announcementTransitionTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -265,6 +267,7 @@ export function usePitchPlayback(view: SetupState, records: TranscriptRecord[], 
             || latest.current.actions.some(action => responseKinds.has(action.kind)));
           if (response && !deferScoringResponse || announced.current.has(beat.announcement.id)) continue;
           announced.current.add(beat.announcement.id);
+          if (hiddenAnnouncements.current.includes(beat.announcement.kind)) continue;
           clearDice(); setMoveMillis(0);
           if (beat.announcement.kind === 'touchdown') {
             // Reveal the score with its announcement, retaining the pitch and
@@ -325,6 +328,9 @@ export function usePitchPlayback(view: SetupState, records: TranscriptRecord[], 
     announcementTimer.current = null;
     setAnnouncementExiting(true);
   };
+  useEffect(() => {
+    if (announcement && announcementPreferences.hiddenAnnouncements.includes(announcement.kind)) dismissAnnouncement();
+  }, [announcement, announcementPreferences.hiddenAnnouncements]);
   // Start the fade timer after its visual state commits. Keep the queue active
   // through the clear interval, and retain pending state so recovery/choices
   // can cancel both phases without a stale callback advancing the old queue.

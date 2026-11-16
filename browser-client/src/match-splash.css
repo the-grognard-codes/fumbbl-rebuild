@@ -6,16 +6,16 @@
   animation: match-splash-dim-in calc(150ms / var(--splash-rate, 1)) linear both;
 }
 .play-runtime .match-splash-shade .match-splash {
-  --splash-accent: #edb644; --splash-secondary: #426c9b; --splash-direction: -1;
+  --splash-accent: #edb644; --splash-secondary: #426c9b;
   position: relative; isolation: isolate; width: min(620px, 100%); box-sizing: border-box;
   margin: 0; padding: clamp(20px, 3vw, 36px); border: 0; border-radius: 0;
   color: #edf5ff; background: none; box-shadow: none; text-shadow: 0 2px 2px #070d16;
   text-align: center; font-family: MUTP, sans-serif; overflow-wrap: anywhere;
 }
-.play-runtime .match-splash-shade[data-team=away] .match-splash { --splash-direction: 1; }
+
 .match-splash-backdrop { position: absolute; inset: 0; z-index: -2; background: #101c2bf5; border-block: 2px solid #40637e; animation: splash-backdrop calc(150ms / var(--splash-rate, 1)) steps(4) both; }
 .match-splash-ribbon { position: absolute; inset: 8px 0; z-index: -1; border-block: 6px solid var(--splash-accent); box-shadow: inset 0 2px var(--splash-secondary), inset 0 -2px var(--splash-secondary); animation: splash-ribbon calc(200ms / var(--splash-rate, 1)) calc(150ms / var(--splash-rate, 1)) steps(5) both; }
-.play-runtime .match-splash-shade .match-splash-rule { display: none; }
+
 .play-runtime .match-splash-shade .match-splash-icon { width: clamp(58px, 8vw, 88px); height: clamp(58px, 8vw, 88px); margin: 0 auto 10px; animation: splash-impact calc(200ms / var(--splash-rate, 1)) calc(250ms / var(--splash-rate, 1)) steps(4) both; }
 .play-runtime .match-splash-shade .match-splash-icon .match-art { display: block; width: 100%; height: 100%; object-fit: contain; }
 .play-runtime .match-splash-shade .match-splash .match-splash-team { margin: 0 24px 12px; font-size: clamp(18px, 2.4vw, 28px); line-height: 1.2; text-wrap: balance; animation: match-splash-dim-in calc(150ms / var(--splash-rate, 1)) calc(550ms / var(--splash-rate, 1)) linear both; }
@@ -51,7 +51,7 @@
 
 
 .match-splash-ribbon { transform-origin: left center; } .match-splash-shade[data-team=away] .match-splash-ribbon { transform-origin: right center; }
-.match-splash-halfTime .match-splash-ribbon, .match-splash-fullTime[data-code=DRAW] .match-splash-ribbon { border: 0; background: linear-gradient(90deg, var(--splash-home) 50%, var(--splash-away) 50%) top / 100% 6px no-repeat, linear-gradient(90deg, var(--splash-home) 50%, var(--splash-away) 50%) bottom / 100% 6px no-repeat; }
+.match-splash-halfTime .match-splash-ribbon, .match-splash-fullTime[data-code=DRAW] .match-splash-ribbon { border: 0; background: linear-gradient(90deg, var(--splash-left) 50%, var(--splash-right) 50%) top / 100% 6px no-repeat, linear-gradient(90deg, var(--splash-left) 50%, var(--splash-right) 50%) bottom / 100% 6px no-repeat; }
 .play-runtime .match-splash-shade .match-splash-kickoff .match-splash-icon { animation-name: splash-flip; }
 .play-runtime .match-splash-shade .match-splash-fullTime .match-splash-reason { padding: 12px; background: #070d16; border: 1px solid #40637e; font-variant-numeric: tabular-nums; animation-name: splash-impact; }
 @keyframes splash-flip { from { transform: rotate(-90deg) scale(.5); opacity: 0; } to { transform: rotate(0) scale(1); opacity: 1; } }
@@ -63,9 +63,33 @@
 .match-splash-halfTime .match-splash-ribbon,
 .match-splash-fullTime[data-code=DRAW] .match-splash-ribbon { background: none; box-shadow: none; animation: none; }
 :is(.match-splash-halfTime, .match-splash-fullTime[data-code=DRAW]) .match-splash-ribbon::before,
-:is(.match-splash-halfTime, .match-splash-fullTime[data-code=DRAW]) .match-splash-ribbon::after { content: ''; position: absolute; inset: 0 50% 0 0; border-block: 6px solid var(--splash-home); transform-origin: left; animation: splash-ribbon calc(200ms / var(--splash-rate, 1)) calc(150ms / var(--splash-rate, 1)) steps(5) both; }
-:is(.match-splash-halfTime, .match-splash-fullTime[data-code=DRAW]) .match-splash-ribbon::after { inset: 0 0 0 50%; border-color: var(--splash-away); transform-origin: right; }
+:is(.match-splash-halfTime, .match-splash-fullTime[data-code=DRAW]) .match-splash-ribbon::after { content: ''; position: absolute; inset: 0 50% 0 0; border-block: 6px solid var(--splash-left); transform-origin: left; animation: splash-ribbon calc(200ms / var(--splash-rate, 1)) calc(150ms / var(--splash-rate, 1)) steps(5) both; }
+:is(.match-splash-halfTime, .match-splash-fullTime[data-code=DRAW]) .match-splash-ribbon::after { inset: 0 0 0 50%; border-color: var(--splash-right); transform-origin: right; }
 @media(prefers-reduced-motion: reduce) {
   :is(.match-splash-halfTime, .match-splash-fullTime[data-code=DRAW]) .match-splash-ribbon::before,
   :is(.match-splash-halfTime, .match-splash-fullTime[data-code=DRAW]) .match-splash-ribbon::after { animation: none; }
 }
+.match-splash-ribbon { outline: 1px solid var(--splash-outline, #070d16); }
+.match-splash-turnover .match-splash-ribbon { border-color: color-mix(in srgb, var(--splash-accent) 45%, #9bb0c4); }
+.match-splash-burst, .match-splash-weather-fx { position: absolute; inset: 16px 0; overflow: hidden; z-index: -1; pointer-events: none; }
+.match-splash-burst::before, .match-splash-burst::after { content: ''; position: absolute; inset: 0; background: var(--splash-accent); mask: url('/assets/game/ui/match-events/burst.svg') center / contain no-repeat; animation: splash-burst calc(600ms / var(--splash-rate, 1)) calc(400ms / var(--splash-rate, 1)) steps(5) both; }
+.match-splash-burst::after { background: var(--splash-secondary); animation-delay: calc(500ms / var(--splash-rate, 1)); }
+.match-splash-weather-fx::before { content: ''; position: absolute; inset: -12px 0; background: var(--splash-accent); opacity: .12; mask: url('/assets/game/ui/match-events/weather-pixels.svg') center / 64px 64px; animation: splash-weather calc(1100ms / var(--splash-rate, 1)) steps(5) infinite; }
+.match-splash-weather:is([data-code=NICE], [data-code=VERY_SUNNY]) .match-splash-weather-fx::before { mask: url('/assets/game/ui/match-events/weather-rays.svg') center / contain no-repeat; animation-name: splash-rays; }
+.match-splash-weather[data-code=SWELTERING_HEAT] .match-splash-weather-fx::before { animation-name: splash-heat; }
+.match-splash-touchdown .match-splash-reason { font-variant-numeric: tabular-nums; }
+@keyframes splash-burst { from { opacity: 0; transform: scale(.4); } 30% { opacity: .8; } to { opacity: 0; transform: scale(1); } }
+@keyframes splash-weather { from { transform: translateY(-10px); } to { transform: translateY(10px); } }
+@keyframes splash-rays { 0%,100% { opacity: .06; transform: scale(.92); } 50% { opacity: .18; transform: scale(1); } }
+@keyframes splash-heat { 0%,100% { opacity: .06; transform: translateY(4px); } 50% { opacity: .16; transform: translateY(-4px); } }
+@media(prefers-reduced-motion: reduce) { .match-splash-burst, .match-splash-weather-fx { display: none; } .match-splash-burst::before, .match-splash-burst::after, .match-splash-weather-fx::before { animation: none; } }
+.match-splash-weather[data-code=BLIZZARD] .match-splash-weather-fx::before { mask-image: url('/assets/game/ui/match-events/weather-snow.svg'); }
+.play-runtime .match-splash-shade .match-splash-touchdown .match-splash-reason { animation-name: splash-score-tick; }
+@keyframes splash-score-tick { from { opacity: 0; transform: scale(.98); } 70% { opacity: 1; transform: scale(1.025); } to { opacity: 1; transform: scale(1); } }
+@media(prefers-reduced-motion: reduce) { .play-runtime .match-splash-shade .match-splash-touchdown .match-splash-reason { animation: none; } }
+.match-splash-burst { inset: 16px 0 48%; }
+.match-splash-weather-fx { inset: 16px 0 auto; height: 40%; }
+.play-runtime .match-splash-shade .match-splash-weather .match-splash-icon { width: clamp(100px, 12vw, 150px); height: 48px; }
+:is(.match-splash-halfTime, .match-splash-fullTime[data-code=DRAW]) .match-splash-ribbon::before { outline: 1px solid var(--splash-left-outline); }
+:is(.match-splash-halfTime, .match-splash-fullTime[data-code=DRAW]) .match-splash-ribbon::after { outline: 1px solid var(--splash-right-outline); }
+@media(max-height:500px) { .play-runtime .match-splash-shade .match-splash-weather .match-splash-icon { width:100px; height:32px; } }

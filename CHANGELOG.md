@@ -2,7 +2,7 @@
 
 ## Unreleased
 
-- Show authoritative kick-off, initial/changed weather, half-time, full-time and concession announcements with scorer/score details and staged-event ordering. Animate match announcements with stepped ribbons and headline impacts, saved team colours, reduced-motion fades, and exits included in playback timing.
+- Show authoritative kick-off, initial/changed weather, half-time, full-time and concession announcements with scorer/score details and staged-event ordering. Animate match announcements with stepped ribbons and headline impacts, saved team colours, reduced-motion fades, and exits included in playback timing. Add per-kind visibility preferences, brief celebration bursts, weather effects, camera-aware ribbons and contrasting team-colour edges.
 
 - Limit each kick-off selection or placement stage to 50 adjustments for every coach; reject extra edits without ending the event, preserve confirmation after reverting an illegal final formation, and let the computer coach finish Solid Defence and Charge without retained plans. Offer Solid Defence placements and swaps only for selected players, including during interrupted stages. End runaway turns with match-specific diagnostics.
 

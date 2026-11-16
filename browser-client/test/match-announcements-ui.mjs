@@ -65,7 +65,7 @@ try {
   await splash('turnover').waitFor(); await active(true);
   assert.equal(await page.evaluate(() => document.activeElement.id), 'focus-anchor', 'No focus theft');
   assert.match(await page.locator('[role=status]').last().textContent(), /TURNOVER.*Pippin/);
-  assert.equal(await splash('turnover').getByRole('button').count(), 0, 'Timed announcements have no controls');
+  assert.equal(await splash('turnover').getByRole('button').count(), 1, 'Timed announcements have an explicit dismiss button');
   assert.equal(await splash('turnover').getByRole('checkbox').count(), 0);
   await page.clock.runFor(350);
   assert.equal(await page.locator('.match-splash-shade').getAttribute('data-phase'), 'impact');
@@ -185,6 +185,23 @@ try {
     assert.ok((await splash(fact.kind).textContent()).includes((fact.headline ?? 'HALF-TIME').toUpperCase()));
     await page.keyboard.press('Escape'); await page.clock.runFor(550); await active(false);
   }
+  await reset();
+  await page.getByRole('button', { name: 'Game Menu', exact: true }).click();
+  await page.getByRole('tab', { name: 'Game Settings', exact: true }).click();
+  await page.getByRole('checkbox', { name: 'Start of turn', exact: true }).uncheck();
+  await page.keyboard.press('Escape');
+  await advance([event('turnStart')]); await page.clock.runFor(1000); await active(false);
+  assert.equal(await splash('turnStart').count(), 0, 'Hidden kind never blocks play');
+  assert.equal(await page.evaluate(() => localStorage.getItem('ffb.match.announcements.hidden')), '["turnStart"]');
+  await reset(); await advance([event('touchdown')]); await splash('touchdown').waitFor();
+  await page.getByRole('button', { name: 'Game Menu', exact: true }).click();
+  await page.getByRole('tab', { name: 'Game Settings', exact: true }).click();
+  await page.getByRole('checkbox', { name: 'Touchdowns', exact: true }).uncheck();
+  await page.locator('.match-splash-shade[data-exiting=true]').waitFor();
+  await page.clock.runFor(550); await active(false);
+  await page.getByRole('checkbox', { name: 'Touchdowns', exact: true }).check();
+  await page.getByRole('checkbox', { name: 'Start of turn', exact: true }).check();
+  await page.keyboard.press('Escape');
   await page.clock.resume();
   const output = fileURLToPath(new URL('../../.notes/art-preview/match-announcements/', import.meta.url));
   mkdirSync(output, { recursive: true });
