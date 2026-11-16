@@ -174,3 +174,73 @@ no third full build was run. Logs and timestamps are retained in
 Self-review checked the scoped diff against AGENTS.md, #553 and amended ADR 0008.
 `git diff --check` passed. GitHub reported the PR mergeable, so the branch was
 neither rebased nor merged with main. The hosted soak remains pending.
+
+
+## #558 second review
+
+Source: [second-round review at `95b116a19`](https://github.com/the-grognard-codes/fumbbl-rebuild/pull/558#issuecomment-6906493921).
+
+1. Solid Defence offers now use `PLAYER_IDS_SELECTED` on the native step for
+   movers and swap targets, independently of active flags. The regression applies
+   every offered placement independently to the real native step and verifies a
+   position change, including both players in swaps. It reproduces the old no-op
+   when unselected players retain active flags as in the reviewed soak state.
+2. `SetupSession.periodView()` supplies all period fields and the complete Charge
+   fallback to both recorded views and the guard. There is one derivation.
+3. Offers and accepted selection toggles share `KickoffBudgetLookup`, including
+   the case where the allowance lives below an interrupting step. Its regression
+   checks current, stacked and absent budgets.
+4. Under the [additional maintainer decision](https://github.com/the-grognard-codes/fumbbl-rebuild/pull/558#issuecomment-6906648989),
+   `KickoffAdjustmentBudget.completedParticipants()` is ruleset-neutral. The BB2025
+   step implements Solid Defence's displaced-selected-player count, Quick Snap's
+   native moved-player count, and High Kick movement progress. Other events have
+   no participant moves in this step or hand off to a native turn. Presentation
+   gets `completed` through the interface without event-specific counting.
+   Native progress/restore/swap assertions and the Quick Snap projection exercise
+   that method. The interim BB2025 projection helper was removed before commit.
+5. A session owns its `DecisionLimit`. It rebuilds lazily once from restored
+   events, then reads only appended snapshots. No new checkpoint or wire fields.
+   The regression verifies each of 1,023 recorded snapshots is read once across
+   repeated guard queries, while retaining exact 1,023/1,024 and transition tests.
+6. The separate seed-73 reroll-choice loop already has
+   [#561](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/561).
+   No duplicate issue was created or existing issue edited. `Refs #553` remains;
+   full quiet-guard seeded-match evidence and the hosted soak remain pending.
+
+### Reproduction and validation
+
+The first test fixture used the wrong factory source for native-step restore;
+its correction initially failed compilation. Those fixture attempts are recorded
+in `.tools/558-round2-red*.log`. With the correct rules factory, a fresh event did
+not reproduce the mismatch because it deactivates unselected players. Retaining
+the reviewed active flags made the exact symptom fail: `solid-place` left its
+mover at `(13,6)`. The fix filters by native selection, so no activation-state
+assumption is needed.
+
+The first affected-suite run passed all 21 server cases, then failed native test
+compilation because one progress assertion still referenced the removed native
+method. The assertion now calls the BB2025 projection helper. Final pre-amendment validation passed 29 focused cases. After the user's
+additional maintainer decision, the amended focused selector again passed 29
+cases (21 server, 8 native), including generic progress through native restore.
+The full-build result is recorded below after completion.
+
+The first full-build attempt for this second review was interrupted when the user
+added the maintainer's generic-progress amendment. It is not a validated build of
+the final source. Its status/log are `.tools/558-round2-full-attempt-1.*`.
+The final-source full build is recorded separately after amended focused checks.
+The sandboxed computer-player invocation encountered denied Windows process
+inspection and was stopped; the owner-permission rerun passed all 56 tests
+(`.tools/558-round2-computer-tests-owner.log`).
+
+Final-source full build: **PASSED** in 17 minutes 33 seconds, 1,179
+reported tests, zero failures/errors, 22 standard skips. Module counts:
+19 common (0 skips), 860 server (15 skips), 300 native (7 skips).
+Command: `powershell -NoProfile -ExecutionPolicy Bypass -File tools/target-build.ps1 install`.
+Started 2026-11-15T22:49:08.1715376-05:00; finished 2026-11-15T23:06:46.3408985-05:00.
+Receipt: `.tools/558-round2-full-attempt-2.log` and `.status.json`.
+Only one full build completed in this review round; the other was interrupted
+for the user's added maintainer decision. The final amended focused suite passed
+29 cases and the owner-permission computer-player suite passed 56. Browser
+checks and seeded engine runs were not repeated for this revision; no client or
+policy code changed. Historical seeded limitations and the pending soak remain
+as documented above. Self-review and `git diff --check` passed.

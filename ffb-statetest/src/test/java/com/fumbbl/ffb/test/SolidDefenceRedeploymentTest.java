@@ -64,7 +64,7 @@ class SolidDefenceRedeploymentTest {
                 "Legacy checkpoints cannot spend placement edits moving unselected players");
             for (int i = 0; i < 49; i++) {
                 perform(state, home, "solid-place:own0:" + line + ":" + (i % 2 == 0 ? 8 : 9));
-                assertEquals(1, kickoff.solidDefenceCompleted());
+                assertEquals(1, kickoff.completedParticipants());
             }
             // Adjustment 50 is accepted, then an illegal final formation returns to its base.
             perform(state, home, "solid-place:own0:" + (home ? 8 : 17) + ":8");

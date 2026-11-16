@@ -128,9 +128,11 @@ public final class StepApplyKickoffResult extends AbstractStep implements Kickof
     }
 
     @Override
-    public int solidDefenceCompleted() {
-        // Older native checkpoints did not count Solid Defence placements.
-        if (nrOfMovedPlayers == 0) return 0;
+    public int completedParticipants() {
+        if (fKickoffResult == KickoffResult.QUICK_SNAP) return nrOfMovedPlayers;
+        if (fKickoffResult == KickoffResult.HIGH_KICK) return Math.min(1, kickoffAdjustments);
+        // Other events either have no participant moves, or hand off to a native turn.
+        if (fKickoffResult != KickoffResult.SOLID_DEFENCE || nrOfMovedPlayers == 0) return 0;
         Game game = getGameState().getGame();
         return (int) selectedPlayers.stream().filter(player -> playersAtCoordinates.containsKey(player.getId())
             && !playersAtCoordinates.get(player.getId()).equals(game.getFieldModel().getPlayerCoordinate(player))).count();

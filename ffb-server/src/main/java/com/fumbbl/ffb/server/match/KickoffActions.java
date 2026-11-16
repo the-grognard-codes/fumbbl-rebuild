@@ -16,6 +16,7 @@ import com.fumbbl.ffb.net.commands.ClientCommandPlayerChoice;
 import com.fumbbl.ffb.net.commands.ClientCommandSetupPlayer;
 import com.fumbbl.ffb.net.commands.ClientCommandTouchback;
 import com.fumbbl.ffb.server.GameState;
+import com.fumbbl.ffb.server.IServerJsonOption;
 import com.fumbbl.ffb.server.match.CoreTurnActions.Action;
 import com.fumbbl.ffb.server.step.KickoffAdjustmentBudget;
 import com.fumbbl.ffb.server.step.StepId;
@@ -107,10 +108,8 @@ public final class KickoffActions {
     }
 
     private boolean adjustmentsExhausted() {
-        if (state.getCurrentStep() instanceof KickoffAdjustmentBudget budget) return budget.kickoffAdjustmentsExhausted();
-        if (state.getStepStack() != null) for (var step : state.getStepStack().toArray())
-            if (step instanceof KickoffAdjustmentBudget budget) return budget.kickoffAdjustmentsExhausted();
-        return false;
+        KickoffAdjustmentBudget budget = new KickoffBudgetLookup().find(state);
+        return budget != null && budget.kickoffAdjustmentsExhausted();
     }
 
     ClientCommandPlayerChoice confirmSelection(String role, List<String> ids) {
@@ -159,8 +158,10 @@ public final class KickoffActions {
         }
         Team team = game.getActingTeam();
         List<Player<?>> placing = new ArrayList<>();
-        for (Player<?> player : team.getPlayers()) {
-            if (game.getFieldModel().getPlayerState(player).isActive()
+        String[] selected = IServerJsonOption.PLAYER_IDS_SELECTED.getFrom(game.getRules(), state.getCurrentStep().toJsonValue());
+        if (selected != null) for (String id : selected) {
+            Player<?> player = game.getPlayerById(id);
+            if (player != null && team.hasPlayer(player)
                 && FieldCoordinateBounds.FIELD.isInBounds(game.getFieldModel().getPlayerCoordinate(player))) placing.add(player);
         }
         if (!exhausted) for (Player<?> player : placing) {

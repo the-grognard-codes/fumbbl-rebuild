@@ -101,6 +101,7 @@ public final class SetupSession {
 	private int drive = 1;
 	private int replayBytes;
 	private final JsonArray events = new JsonArray();
+	private final DecisionLimit decisionLimit = new DecisionLimit();
 	private final MatchDocument document;
 	private boolean failed;
 	private RecoveryDice recoveryDice;
@@ -776,8 +777,8 @@ public final class SetupSession {
             }
             if (command == null) {
                 if (!selected.id.startsWith("event-pick:")) throw new MatchService.Failure("INVALID_OPTION");
-                if (!(state.getCurrentStep() instanceof KickoffAdjustmentBudget budget) || budget.kickoffAdjustmentsExhausted())
-                    throw new MatchService.Failure("INVALID_OPTION");
+                KickoffAdjustmentBudget budget = new KickoffBudgetLookup().find(state);
+                if (budget == null || budget.kickoffAdjustmentsExhausted()) throw new MatchService.Failure("INVALID_OPTION");
                 budget.recordSelectionAdjustment();
                 String player = selected.id.substring("event-pick:".length());
                 if (!kickoffSelection.remove(player)) kickoffSelection.add(player);
@@ -1101,14 +1102,15 @@ public final class SetupSession {
         FieldCoordinate ball = new KickoffBallPresentation().coordinate(state);
         DialogKickSkillParameter kickChoice = game.getDialogParameter() instanceof DialogKickSkillParameter
             ? (DialogKickSkillParameter) game.getDialogParameter() : null;
-        JsonObject projected = new JsonObject().add("projectionVersion", 4).add("half", Math.max(1, Math.min(2, game.getHalf()))).add("drive", drive)
+        JsonObject period = periodView();
+        JsonObject projected = new JsonObject().add("projectionVersion", 4).add("half", period.get("half")).add("drive", period.get("drive"))
             .add("homeScore", homeScore()).add("awayScore", awayScore())
-            .add("homeTurn", game.getTurnDataHome().getTurnNr()).add("awayTurn", game.getTurnDataAway().getTurnNr())
+            .add("homeTurn", period.get("homeTurn")).add("awayTurn", period.get("awayTurn"))
             .add("actions", legal).add("turn", game.getTurnData().getTurnNr()).add("turnMode", game.getTurnMode().name())
             .add("activePlayerId", game.getActingPlayer().getPlayerId())
             .add("ball", FieldCoordinateBounds.FIELD.isInBounds(ball) ? new JsonObject().add("x", ball.getX()).add("y", ball.getY()) : JsonValue.NULL)
             .add("matchId", matchId).add("revision", revision).add("callerRole", role)
-			.add("phase", browsePhase())
+			.add("phase", period.get("phase"))
 			.add("actor", actor()).add("prompt", prompt).add("players", players)
 			.add("weather", game.getFieldModel().getWeather().name())
 			.add("homeRerolls", game.getTurnDataHome().getReRolls()).add("awayRerolls", game.getTurnDataAway().getReRolls())
@@ -1143,18 +1145,7 @@ public final class SetupSession {
 			JsonValue context = blockPresentation.json();
 			if (!context.isNull()) projected.add("blockContext", context);
 		}
-		JsonObject kickoff = new KickoffPresentation().project(state, kickoffSelection);
-        if (kickoff == null && confirmedKickoff != null && "CHARGE".equals(confirmedKickoff.getString("event", null))) {
-            int count = confirmedKickoff.get("playerIds").asArray().size();
-            kickoff = new JsonObject().add("version", 1).add("event", "CHARGE").add("actor", confirmedKickoff.get("actor"))
-                .add("stage", "movement").add("allowed", count).add("completed", 0).add("selected", count);
-        }
-        if (kickoff != null && confirmedKickoff != null && "movement".equals(kickoff.getString("stage", null))
-            && kickoff.getString("event", "").equals(confirmedKickoff.getString("event", null))) {
-            JsonArray ids = confirmedKickoff.get("playerIds").asArray();
-            kickoff.set("participantIds", ids).set("selected", ids.size());
-            if ("CHARGE".equals(kickoff.getString("event", null))) kickoff.set("allowed", ids.size());
-        }
+        JsonValue kickoff = period.get("kickoff");
 		if (kickoff != null && "PLAY".equals(projected.getString("phase", null))) projected.add("kickoff", kickoff);
 		JsonObject driveTracker = new DriveTrackerPresentation().project(state, transcript, drive, browsePhase());
 		if (driveTracker != null) projected.add("driveTracker", driveTracker);
@@ -1379,16 +1370,33 @@ public final class SetupSession {
     public boolean isComplete() { return state.getGame().getFinished() != null; }
     private int homeScore() { return state.getGame().getGameResult().getTeamResultHome().getScore(); }
     private int awayScore() { return state.getGame().getGameResult().getTeamResultAway().getScore(); }
-    private void endRunawayPeriod(long decisionTime) {
+    /** One source for the guard and the period fields frozen in every public snapshot. */
+    private JsonObject periodView() {
         Game game = state.getGame();
         JsonObject period = new JsonObject().add("phase", browsePhase())
             .add("half", Math.max(1, Math.min(2, game.getHalf()))).add("drive", drive)
             .add("homeTurn", game.getTurnDataHome().getTurnNr()).add("awayTurn", game.getTurnDataAway().getTurnNr());
-        JsonObject kickoff = new KickoffPresentation().project(state, kickoffSelection);
-        if (kickoff == null && confirmedKickoff != null && "CHARGE".equals(confirmedKickoff.getString("event", null)))
-            kickoff = new JsonObject().add("event", "CHARGE");
-        if (kickoff != null) period.add("kickoff", kickoff);
-        if (!new DecisionLimit().reached(events, period)) return;
+		JsonObject kickoff = new KickoffPresentation().project(state, kickoffSelection);
+        if (kickoff == null && confirmedKickoff != null && "CHARGE".equals(confirmedKickoff.getString("event", null))) {
+            int count = confirmedKickoff.get("playerIds").asArray().size();
+            kickoff = new JsonObject().add("version", 1).add("event", "CHARGE").add("actor", confirmedKickoff.get("actor"))
+                .add("stage", "movement").add("allowed", count).add("completed", 0).add("selected", count);
+        }
+        if (kickoff != null && confirmedKickoff != null && "movement".equals(kickoff.getString("stage", null))
+            && kickoff.getString("event", "").equals(confirmedKickoff.getString("event", null))) {
+            JsonArray ids = confirmedKickoff.get("playerIds").asArray();
+            kickoff.set("participantIds", ids).set("selected", ids.size());
+            if ("CHARGE".equals(kickoff.getString("event", null))) kickoff.set("allowed", ids.size());
+        }
+        if (kickoff != null && "PLAY".equals(period.getString("phase", null))) period.add("kickoff", kickoff);
+        return period;
+    }
+
+    private void endRunawayPeriod(long decisionTime) {
+        Game game = state.getGame();
+        JsonObject period = periodView();
+        if (!decisionLimit.reached(events, period)) return;
+        JsonObject kickoff = period.get("kickoff") == null ? null : period.get("kickoff").asObject();
         System.err.println("DECISION_LIMIT matchId=" + matchId + " limit=" + DecisionLimit.MAX_DECISIONS);
         pendingRoute = null;
         pendingActivation = null;

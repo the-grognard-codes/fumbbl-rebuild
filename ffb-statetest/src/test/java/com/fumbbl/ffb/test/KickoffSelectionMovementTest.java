@@ -39,9 +39,11 @@ class KickoffSelectionMovementTest {
             FieldCoordinate to = new FieldCoordinate(home ? 13 : 12, 5);
             StepEngine.respond(state, new ClientCommandSetupPlayer("one", home ? to : to.transform()), home);
             assertEquals(50, kickoff.toJsonValue().getInt("kickoffAdjustments", -1));
+            assertEquals(1, kickoff.completedParticipants());
             assertEquals(TurnMode.QUICK_SNAP, game.getTurnMode());
             StepApplyKickoffResult restored = new StepApplyKickoffResult(state).initFrom(game.getRules(), kickoff.toJsonValue());
             assertTrue(restored.kickoffAdjustmentsExhausted());
+            assertEquals(1, restored.completedParticipants());
             assertEquals(1, new KickoffActions(state).actions().size());
             assertEquals("end-event", new KickoffActions(state).actions().get(0).id);
             FieldCoordinate fixed = game.getFieldModel().getPlayerCoordinate(game.getPlayerById("two"));
@@ -111,6 +113,7 @@ class KickoffSelectionMovementTest {
             StepEngine.respond(state, new ClientCommandSetupPlayer("one", home ? landing : landing.transform()), home);
             assertEquals(landing, game.getFieldModel().getPlayerCoordinate(game.getPlayerById("one")));
             assertEquals(1, kickoff.toJsonValue().getInt("kickoffAdjustments", -1));
+            assertEquals(1, kickoff.completedParticipants());
             assertEquals(TurnMode.KICKOFF, game.getTurnMode());
         }
     }

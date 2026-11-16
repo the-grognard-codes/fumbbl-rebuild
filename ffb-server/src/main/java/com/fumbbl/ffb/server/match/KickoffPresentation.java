@@ -29,12 +29,14 @@ final class KickoffPresentation {
                 return progress(mode.name(), actor, "selection", dialog.getMaxSelects(), 0, selection.size());
             }
         }
+        KickoffAdjustmentBudget budget = new KickoffBudgetLookup().find(state);
+        int completed = budget == null ? 0 : budget.completedParticipants();
         TurnMode mode = game.getTurnMode();
         if (mode == TurnMode.BLITZ || mode == TurnMode.SELECT_BLITZ_TARGET && game.getLastTurnMode() == TurnMode.BLITZ) {
             JsonArray participants = participants(game);
-            return progress("CHARGE", actor, "movement", participants.size(), 0, participants.size()).add("participantIds", participants);
+            return progress("CHARGE", actor, "movement", participants.size(), completed, participants.size()).add("participantIds", participants);
         }
-        if (mode == TurnMode.HIGH_KICK) return progress("HIGH_KICK", actor, "movement", 1, 0, 0);
+        if (mode == TurnMode.HIGH_KICK) return progress("HIGH_KICK", actor, "movement", 1, completed, 0);
         if (mode != TurnMode.QUICK_SNAP && mode != TurnMode.SOLID_DEFENCE) return null;
         IStep step = state.getCurrentStep();
         if (step == null || step.getId() != StepId.APPLY_KICKOFF_RESULT) {
@@ -46,9 +48,6 @@ final class KickoffPresentation {
         if (step == null) return null;
         JsonObject nativeState = step.toJsonValue();
         int allowed = IServerJsonOption.NR_OF_PLAYERS_ALLOWED.getFrom(state.getServer(), nativeState);
-        int completed = mode == TurnMode.QUICK_SNAP ? IServerJsonOption.NR_OF_PLAYERS.getFrom(state.getServer(), nativeState) : 0;
-        if (mode == TurnMode.SOLID_DEFENCE && step instanceof KickoffAdjustmentBudget kickoff)
-            completed = kickoff.solidDefenceCompleted();
         String[] selected = IServerJsonOption.PLAYER_IDS_SELECTED.getFrom(state.getServer(), nativeState);
         return progress(mode.name(), actor, "movement", allowed, completed, selected == null ? 0 : selected.length).add("participantIds", participants(game));
     }

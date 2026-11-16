@@ -7,6 +7,9 @@ import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 
 class DecisionLimitTest {
     @Test void theActionThatEnteredANewTurnDoesNotSpendItsBudget() {
@@ -48,6 +51,24 @@ class DecisionLimitTest {
         assertTrue(new DecisionLimit().reached(events, current));
         assertFalse(new DecisionLimit().reached(events, state().set("homeTurn", 4)));
         assertFalse(new DecisionLimit().reached(events, state().set("phase", "SETUP")));
+    }
+
+    @Test void liveCountingReadsEachRecordedSnapshotOnlyOnceAndQueriesDoNotSpendBudget() {
+        DecisionLimit limit = new DecisionLimit();
+        JsonArray events = new JsonArray();
+        JsonObject recorded = spy(event(DecisionLimit.ACTION, state()));
+        for (int i = 0; i < DecisionLimit.MAX_DECISIONS - 2; i++) {
+            events.add(recorded);
+            assertFalse(limit.reached(events, state()));
+            assertFalse(limit.reached(events, state()));
+        }
+        events.add(recorded);
+        assertTrue(limit.reached(events, state()));
+        assertTrue(limit.reached(events, state()));
+        verify(recorded, times(DecisionLimit.MAX_DECISIONS - 1)).get("state");
+        assertTrue(new DecisionLimit().reached(JsonArray.readFrom(events.toString()), state()), "Restore rebuilds the same allowance");
+        events.add(event(DecisionLimit.ACTION, state().set("homeTurn", 4)));
+        assertFalse(limit.reached(events, state().set("homeTurn", 4)), "A turn transition starts a fresh count");
     }
 
     private JsonObject state() {

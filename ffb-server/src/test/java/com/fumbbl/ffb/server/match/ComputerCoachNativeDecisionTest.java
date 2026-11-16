@@ -18,7 +18,9 @@ import com.fumbbl.ffb.kickoff.bb2025.KickoffResult;
 import com.fumbbl.ffb.model.Game;
 import com.fumbbl.ffb.model.Player;
 import com.fumbbl.ffb.model.Team;
+import com.fumbbl.ffb.net.commands.ClientCommandSetupPlayer;
 import com.fumbbl.ffb.server.GameState;
+import com.fumbbl.ffb.server.net.ReceivedCommand;
 import com.fumbbl.ffb.server.step.IStep;
 import com.fumbbl.ffb.server.step.StepId;
 import com.fumbbl.ffb.server.step.StepParameter;
@@ -36,12 +38,15 @@ import java.lang.reflect.Field;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.util.Arrays;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -79,6 +84,51 @@ class ComputerCoachNativeDecisionTest {
                     .anyMatch(value -> "kickoffMove".equals(value.asObject().getString("kind", null))));
             } else assertEquals("ACCEPTED", rawAction(fixture, view, "decline-event", "decline").getString("code", null));
         }
+    }
+
+    @Test void everyOfferedSolidDefencePlacementChangesPositions() throws Exception {
+        BogrukEngineFixture fixture = kickoffFixture(KickoffResult.SOLID_DEFENCE);
+        JsonObject view = fixture.reply("away").get("state").asObject();
+        JsonArray chosen = new JsonArray();
+        for (JsonValue value : view.get("actions").asArray()) {
+            JsonObject action = value.asObject();
+            if (action.getString("id", "").contains("event-pick:") && chosen.size() < 5)
+                chosen.add(action.get("target").asObject().getString("playerId", null));
+        }
+        assertEquals(5, chosen.size());
+        fixture.session.apply("away", actionRequest(fixture, view, "event-confirm", "selection").add("playerIds", chosen));
+        GameState state = nativeState(fixture);
+        Game game = state.getGame();
+        // A restored soak checkpoint can retain active flags on unselected players.
+        // Selection, not activation state, authorizes Solid Defence redeployment.
+        for (Player<?> player : game.getTeamAway().getPlayers())
+            game.getFieldModel().setPlayerState(player, game.getFieldModel().getPlayerState(player).changeActive(true));
+        IStep step = state.getCurrentStep();
+        JsonObject nativeStep = step.toJsonValue();
+        Map<Player<?>, FieldCoordinate> base = new LinkedHashMap<>();
+        for (Player<?> player : game.getTeamAway().getPlayers()) base.put(player, game.getFieldModel().getPlayerCoordinate(player));
+        List<CoreTurnActions.Action> offers = new KickoffActions(state).actions();
+        int moves = 0, swaps = 0;
+        for (CoreTurnActions.Action action : offers) {
+            if (!action.id.startsWith("solid-place:")) continue;
+            ClientCommandSetupPlayer command = (ClientCommandSetupPlayer) action.command;
+            Player<?> player = game.getPlayerById(command.getPlayerId());
+            FieldCoordinate from = game.getFieldModel().getPlayerCoordinate(player);
+            Player<?> occupant = game.getFieldModel().getPlayer(command.getCoordinate().transform());
+            step.handleCommand(new ReceivedCommand(command, false));
+            assertNotEquals(from, game.getFieldModel().getPlayerCoordinate(player), action.id + " must move its player");
+            if (occupant != null) {
+                assertEquals(from, game.getFieldModel().getPlayerCoordinate(occupant), "Offered swaps move both selected players");
+                swaps++;
+            }
+            moves++;
+            // Replay each offer independently without hitting the technical stage cap.
+            for (Player<?> reset : base.keySet()) game.getFieldModel().setPlayerCoordinate(reset, null);
+            base.forEach((reset, square) -> game.getFieldModel().setPlayerCoordinate(reset, square));
+            step.initFrom(game.getRules(), nativeStep);
+        }
+        assertTrue(moves > 0);
+        assertTrue(swaps > 0, "The fixture exercises selected-player swaps as well as empty targets");
     }
 
     @Test void fiftySolidDefencePlacementsWithFivePlayersLeaveConfirmationAndRejectFiftyOne() throws Exception {

@@ -31,14 +31,16 @@ Fixing either defect is useful without the other.
 - #554 owns decoded storage budgets, append admission, recovery loading,
   activation/quarantine and restart handling. It should avoid changing kick-off
   mechanics or computer policy.
-- `SetupSession` is shared: #553 adds its guard at `recordEvent`; #554 is expected
+- `SetupSession` is shared: #553 runs its guard in command acceptance before `recordEvent`; #554 is expected
   to touch artifact accounting and admission. Keep these edits localized and
   coordinate any move of the event-recording boundary.
 - Both branches may add a changelog entry. That is a small merge conflict.
 - #554 can explicitly hand per-event snapshot/delta redesign to #548, as its issue
   permits. If it instead changes event representation itself, coordinate that
   slice with `DecisionLimit`, which reads period keys from recorded snapshots;
-  preserve equivalent durable decision counting before removing those fields.
+  preserve equivalent durable decision counting before removing those fields. The
+  session incrementally processes appended events and rebuilds its count once
+  after restore, without adding another stored format.
 - #555/#556's staged placements are a separate coordination concern: a placement
   that no longer records an event must still count toward the decision guard.
   Do not remove the native placement cap when staging is introduced.
@@ -67,8 +69,12 @@ continues to use its ordinary native rules, not this editing allowance.
 
 The counter lives on the native kick-off step until #556 moves it into the staging
 layer. Its optional `kickoffAdjustments` native field survives checkpoint restore;
-older checkpoints without it start with zero adjustments. Projections query the
-shared `KickoffAdjustmentBudget` interface without importing a BB2025 step type.
+older checkpoints without it start with zero adjustments. Offers and accepted selection toggles resolve the same current-or-stacked
+`KickoffAdjustmentBudget` through `KickoffBudgetLookup`. The interface contains
+only ruleset-neutral operations, including `completedParticipants()`. The BB2025
+step implements event-specific progress: displaced selected players for Solid
+Defence, the native moved-player count for Quick Snap, and completed High Kick
+movement. Presentation uses the generic query without event-specific counting.
 
 Adjustment 50 is accepted. At the ceiling, only confirm, decline or end remains;
 adjustment 51 is rejected with `INVALID_OPTION`, with no new state, event, request
@@ -78,6 +84,12 @@ and confirmation remains possible. `completed` counts selected players currently
 displaced from those positions, including players displaced by a swap, rather
 than editing commands. Historical zero-count progress stays compatible until a
 new placement.
+
+Solid Defence offers placements only for the native step's selected players,
+including when a restored checkpoint retains active flags on unselected players.
+Swaps target selected players only. Every offered placement changes positions;
+stale requests for unselected movers or swap targets are not offered and fail
+normal action validation.
 
 Quick Snap already permits one adjacent move per selected player and ends when
 none remain active. Charge's native movement/activation limits remain authoritative;
@@ -94,6 +106,15 @@ outcomes. Forced exits use native kick-off
 or end-selection cleanup and log `DECISION_LIMIT matchId=<public ID> limit=1024`.
 The ordinary movement bounds are much smaller; this limit catches pathological
 selection or command loops, including clients other than the computer coach.
+
+The guard and recorded public views use the same `periodView()` projection for
+phase, half, drive, turn numbers and kick-off progress (including the Charge
+fallback). A session-owned `DecisionLimit` reads each appended snapshot once.
+Recovery derives its running count from the existing event history on first use;
+repeated queries and exact retries do not spend decisions. Decision 1,024 remains
+the emergency boundary. The separate reroll-choice loop is tracked in
+[#561](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/561); keep #553
+open until the remaining seeded-match and soak criteria are met.
 
 ## Out of Scope
 

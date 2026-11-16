@@ -8,6 +8,7 @@ import com.fumbbl.ffb.model.Team;
 import com.fumbbl.ffb.server.GameState;
 import com.fumbbl.ffb.server.IServerJsonOption;
 import com.fumbbl.ffb.server.step.IStep;
+import com.fumbbl.ffb.server.step.KickoffAdjustmentBudget;
 import com.fumbbl.ffb.server.step.StepId;
 import com.fumbbl.ffb.server.step.StepStack;
 
@@ -23,6 +24,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.withSettings;
 
 class KickoffPresentationTest {
     private final GameState state = mock(GameState.class);
@@ -38,12 +40,14 @@ class KickoffPresentationTest {
     @Test void quickSnapUsesNativeCountsForReceivingActorIncludingAnInterruptedStep() {
         when(game.getTurnMode()).thenReturn(TurnMode.QUICK_SNAP);
         when(game.isHomePlaying()).thenReturn(false);
-        IStep kickoff = mock(IStep.class), interruption = mock(IStep.class);
+        IStep kickoff = mock(IStep.class, withSettings().extraInterfaces(KickoffAdjustmentBudget.class));
+        IStep interruption = mock(IStep.class);
+        when(((KickoffAdjustmentBudget) kickoff).completedParticipants()).thenReturn(2);
         when(kickoff.getId()).thenReturn(StepId.APPLY_KICKOFF_RESULT);
         when(interruption.getId()).thenReturn(StepId.APOTHECARY);
         JsonObject nativeState = new JsonObject();
         IServerJsonOption.NR_OF_PLAYERS_ALLOWED.addTo(nativeState, 5);
-        IServerJsonOption.NR_OF_PLAYERS.addTo(nativeState, 2);
+        IServerJsonOption.NR_OF_PLAYERS.addTo(nativeState, 9); // Projection must use the generic query, not this raw field.
         IServerJsonOption.PLAYER_IDS_SELECTED.addTo(nativeState, new String[0]);
         when(kickoff.toJsonValue()).thenReturn(nativeState);
         when(state.getCurrentStep()).thenReturn(interruption);
@@ -84,7 +88,8 @@ class KickoffPresentationTest {
 
     @Test void solidDefenceMovementUsesNativeSelectionDespiteRetainedChoiceDialog() {
         Team home = mock(Team.class);
-        IStep step = mock(IStep.class);
+        IStep step = mock(IStep.class, withSettings().extraInterfaces(KickoffAdjustmentBudget.class));
+        when(((KickoffAdjustmentBudget) step).completedParticipants()).thenReturn(2);
         when(state.getCurrentStep()).thenReturn(step);
         when(game.getTeamHome()).thenReturn(home);
         when(home.getId()).thenReturn("home-team");
@@ -102,5 +107,6 @@ class KickoffPresentationTest {
         JsonObject movement = presentation.project(state, Collections.emptySet());
         assertEquals("movement", movement.getString("stage", null));
         assertEquals(3, movement.getInt("selected", -1));
+        assertEquals(2, movement.getInt("completed", -1));
     }
 }

@@ -4,27 +4,44 @@ import com.eclipsesource.json.JsonArray;
 import com.eclipsesource.json.JsonObject;
 import com.eclipsesource.json.JsonValue;
 
-/** Count accepted decisions from recorded snapshots so reconnect/recovery cannot reset the allowance. */
+import java.util.Objects;
+
+/** Lazily rebuild once from recovery snapshots, then count only newly appended events. */
 final class DecisionLimit {
     static final int MAX_DECISIONS = 1024;
     static final String ACTION = "ACTION";
     static final String SELECTION = "SELECTION";
 
+    private JsonArray observedEvents;
+    private JsonValue firstEvent;
+    private int observedSize;
+    private Period recordedPeriod;
+    private int decisions;
+
     /** Includes the accepted decision about to be recorded: fire on decision 1,024, never 1,023. */
     boolean reached(JsonArray events, JsonObject current) {
-        Period period = period(current);
-        if (period == null) return false;
-        int count = 1; // The decision about to be recorded.
-        for (int index = events.size() - 1; index >= 0; index--) {
-            JsonObject event = events.get(index).asObject();
-            if (!period.equals(period(event.get("state").asObject()))) break;
-            String kind = event.getString("kind", "");
-            // An action that entered this period belongs to the preceding turn/event.
-            if ((ACTION.equals(kind) || SELECTION.equals(kind)) && index > 0
-                && !period.equals(period(events.get(index - 1).asObject().get("state").asObject()))) break;
-            if ((ACTION.equals(kind) || SELECTION.equals(kind)) && ++count >= MAX_DECISIONS) return true;
+        JsonValue first = events.size() == 0 ? null : events.get(0);
+        if (observedEvents != events || observedSize > events.size() || firstEvent != first) {
+            observedEvents = events;
+            firstEvent = first;
+            observedSize = 0;
+            recordedPeriod = null;
+            decisions = 0;
         }
-        return false;
+        while (observedSize < events.size()) {
+            JsonObject event = events.get(observedSize).asObject();
+            Period next = period(event.get("state").asObject());
+            String kind = event.getString("kind", "");
+            boolean decision = ACTION.equals(kind) || SELECTION.equals(kind);
+            if (!Objects.equals(recordedPeriod, next)) decisions = 0;
+            // An action entering a period belongs to the preceding turn/event.
+            else if (next != null && decision) decisions++;
+            if (observedSize == 0 && next != null && decision) decisions = 1;
+            recordedPeriod = next;
+            observedSize++;
+        }
+        Period period = period(current);
+        return period != null && period.equals(recordedPeriod) && decisions + 1 >= MAX_DECISIONS;
     }
 
     private Period period(JsonObject view) {

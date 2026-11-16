@@ -9,5 +9,6 @@ public interface KickoffAdjustmentBudget {
 
     void recordSelectionAdjustment();
 
-    int solidDefenceCompleted();
+    /** Participants that have completed placement or movement in the current event. */
+    int completedParticipants();
 }
