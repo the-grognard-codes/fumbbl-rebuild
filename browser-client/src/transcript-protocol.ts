@@ -40,8 +40,12 @@ export function decodeTranscript(json: string, allowLive = false): TranscriptRes
   let priorCommand = 0;
   const records = page.records.map((entry, offset) => {
     const record = object(entry, ['index', 'revision', 'kind', 'actor', 'at', 'decision', 'native', 'state']);
+    const systemSizeLimit = record.actor === 'system' && record.kind === 'FULL_TIME'
+      && record.decision !== null && typeof record.decision === 'object'
+      && (record.decision as Record<string, unknown>).operation === 'sizeLimit'
+      && (record.decision as Record<string, unknown>).reason === 'MATCH_SIZE_LIMIT';
     if (record.index !== from + offset || record.revision !== record.index
-      || (record.index === 0 ? record.actor !== 'system' : record.actor !== 'home' && record.actor !== 'away')
+      || (record.index === 0 ? record.actor !== 'system' : record.actor !== 'home' && record.actor !== 'away' && !systemSizeLimit)
       || !['START', 'ACTION', 'SELECTION', 'TOUCHDOWN', 'HALFTIME', 'FULL_TIME'].includes(record.kind as string))
       throw Error('Invalid transcript record');
     if (record.index === 0 ? record.kind !== 'START' : record.kind === 'START') throw Error('Invalid transcript start');

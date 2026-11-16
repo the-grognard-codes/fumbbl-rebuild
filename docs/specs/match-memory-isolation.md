@@ -82,3 +82,19 @@ uses a bounded maintenance-thread handoff, requires evidence from the prior
 run's exact heap-dump file and delays automatic reloads for at most thirty
 minutes. Ordinary exits and tracking-storage failures do not reject gameplay.
 See the outcome and heap reports above for evidence and limitations.
+
+
+### Follow-up review and merge order
+
+[PR #559 follow-up](https://github.com/the-grognard-codes/fumbbl-rebuild/pull/559#issuecomment-6906842421)
+requires immediate safety-writer handoff; quarantine at every recovery entry
+point, persisted across restarts until absolute expiry or selective admin clear;
+one shared working allowance with idle/terminal eviction preference; and cached,
+neutral system attribution for size stops.
+
+The size-limit result is retained under a **merge hold**: #556 must first land
+staged placement **including setup adjustment limits**, and #558 must land its
+computer/kick-off guards. Rebase onto integrated main, recalibrate limits after
+per-placement history removal, then run a three-hour soak with several concurrent
+matches. The earlier twenty-minute soak does not satisfy that acceptance check.
+Issue #554 remains open pending this integrated evidence.

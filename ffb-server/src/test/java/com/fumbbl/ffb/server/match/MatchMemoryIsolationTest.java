@@ -18,6 +18,7 @@ import java.util.Set;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -39,9 +40,9 @@ class MatchMemoryIsolationTest {
 		assertEquals(32, budget.residentLimit());
 		assertEquals(544 * MIB / 11, budget.decodedLimit());
 		assertEquals(budget.decodedLimit() - 4 * MIB, budget.appendLimit());
-		assertTrue(budget.admits(32 * MIB, budget.decodedLimit()));
-		assertFalse(budget.admits(300 * MIB, 45 * MIB));
-		assertFalse(budget.admits(budget.residentBytes(22 * MIB), 45 * MIB));
+		assertTrue(budget.admitsResidents(budget.residentBytes(budget.decodedLimit()), budget.decodedLimit()));
+		assertFalse(budget.admitsResidents(480 * MIB, 45 * MIB));
+		assertFalse(budget.admitsResidents(budget.residentBytes(22 * MIB) + budget.residentBytes(45 * MIB), 45 * MIB));
 		assertThrows(IllegalArgumentException.class, () -> new MatchMemoryBudget(63 * MIB));
 	}
 
@@ -137,6 +138,62 @@ class MatchMemoryIsolationTest {
 		}
 	}
 
+	@Test void quarantineSurvivesOrdinaryRestartsAndAdminClearIsSelective(@TempDir Path directory) throws Exception {
+		Path file = directory.resolve("safety.json"), dump = directory.resolve("oom.hprof");
+		Clock now = Clock.fixed(Instant.ofEpochMilli(1_000), ZoneOffset.UTC);
+		try (MatchSafetyJournal prior = new MatchSafetyJournal(file, dump, now)) {
+			prior.configureResidentMatches(() -> Set.of(ID, OTHER)); prior.beginTask(null);
+		}
+		Files.writeString(dump, "test OOM evidence");
+		try (MatchSafetyJournal restart = new MatchSafetyJournal(file, directory.resolve("next.hprof"), now)) {
+			assertThrows(MatchService.Failure.class, () -> restart.requireAutomaticAvailable(ID));
+			restart.beginTask("00000000-0000-0000-0000-000000000333"); restart.finishWork();
+		}
+		try (MatchSafetyJournal restart = new MatchSafetyJournal(file, directory.resolve("third.hprof"), now)) {
+			assertThrows(MatchService.Failure.class, () -> restart.requireAutomaticAvailable(ID));
+			assertThrows(MatchService.Failure.class, () -> restart.requireAutomaticAvailable(OTHER));
+		}
+		new MatchSafetyAdmin().clear(file, ID);
+		try (MatchSafetyJournal restart = new MatchSafetyJournal(file, directory.resolve("fourth.hprof"), now)) {
+			restart.requireAutomaticAvailable(ID);
+			assertThrows(MatchService.Failure.class, () -> restart.requireAutomaticAvailable(OTHER));
+		}
+		try (MatchSafetyJournal restart = new MatchSafetyJournal(file, directory.resolve("fifth.hprof"), Clock.offset(now, Duration.ofMinutes(31)))) {
+			restart.requireAutomaticAvailable(OTHER);
+		}
+	}
+
+	@Test void quarantineMergeRoundTripsAndOversizedTrackingPreservesTheLastValidState(@TempDir Path directory) throws Exception {
+		Path file = directory.resolve("safety.json"), dump = directory.resolve("oom.hprof");
+		Clock now = Clock.fixed(Instant.ofEpochMilli(1_000), ZoneOffset.UTC);
+		Map<String, Long> blocks = new LinkedHashMap<>();
+		for (int index = 0; index < 512; index++) blocks.put("00000000-0000-0000-0000-%012d".formatted(index), 1_801_000L);
+		try (MatchSafetyJournal.FileStore store = new MatchSafetyJournal.FileStore(file)) {
+			store.write(new MatchSafetyJournal.State("prior", 1_000, dump.toString(), 1, Set.of(ID), blocks));
+		}
+		Files.writeString(dump, "test OOM evidence");
+		try (MatchSafetyJournal restart = new MatchSafetyJournal(file, directory.resolve("next.hprof"), now)) {
+			assertThrows(MatchService.Failure.class, () -> restart.requireAutomaticAvailable(ID));
+		}
+		try (MatchSafetyJournal.FileStore store = new MatchSafetyJournal.FileStore(file)) {
+			MatchSafetyJournal.State saved = store.read();
+			assertEquals(513, saved.quarantines().size());
+			for (int index = 512; index < 1400; index++) blocks.put("00000000-0000-0000-0000-%012d".formatted(index), 1_801_000L);
+			assertThrows(IOException.class, () -> store.write(new MatchSafetyJournal.State("overflow", 1_000, "", 2, Set.of(), blocks)));
+			assertEquals(saved, store.read());
+		}
+	}
+
+	@Test void earlierVersionOneBreadcrumbsStillEstablishOomQuarantine(@TempDir Path directory) throws Exception {
+		Path file = directory.resolve("safety.json"), dump = directory.resolve("oom.hprof");
+		Files.writeString(file, new JsonObject().add("version", 1).add("run", "old").add("startedAt", 1_000)
+			.add("dump", dump.toString()).add("sequence", 1).add("matches", new com.eclipsesource.json.JsonArray().add(ID)).toString());
+		Files.writeString(dump, "test OOM evidence");
+		try (MatchSafetyJournal restart = new MatchSafetyJournal(file, directory.resolve("next.hprof"), Clock.systemUTC())) {
+			assertThrows(MatchService.Failure.class, () -> restart.requireAutomaticAvailable(ID));
+		}
+	}
+
 	@Test void stalledOrFailedStoreNeverRejectsGameplayAndHasOnlyOnePendingUpdate() throws Exception {
 		CountDownLatch entered = new CountDownLatch(1), release = new CountDownLatch(1);
 		AtomicInteger writes = new AtomicInteger();
@@ -149,8 +206,10 @@ class MatchMemoryIsolationTest {
 			}
 		};
 		try (MatchSafetyJournal safety = new MatchSafetyJournal(store, null, Clock.systemUTC())) {
-			long started = System.nanoTime(); safety.beginTask(ID);
-			assertTrue(TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - started) < 500);
+			assertTrue(entered.await(5, TimeUnit.SECONDS));
+			long started = System.nanoTime();
+			for (int i = 0; i < 100; i++) safety.beginTask(ID);
+			assertTrue(TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - started) < 500, "Advisory handoffs must never wait for the stalled writer");
 			assertTrue(entered.await(5, TimeUnit.SECONDS));
 			for (int i = 0; i < 100; i++) safety.finishWork(); // Coalesced, not 100 queued writes.
 			safety.requireAutomaticAvailable(ID);
@@ -188,15 +247,26 @@ class MatchMemoryIsolationTest {
 
 	public static class OutOfMemoryChild {
 		public static void main(String[] args) throws Exception {
-			try (MatchSafetyJournal safety = new MatchSafetyJournal(Path.of(args[0]))) {
-				safety.beginTask(ID);
-				// This probe verifies an acknowledged breadcrumb; production deliberately fails open
-				// if the bounded handoff is late, which leaves an explicitly documented attribution gap.
-				long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(5);
-				while (!Files.exists(Path.of(args[0])) || !Files.readString(Path.of(args[0])).contains(ID)) {
-					if (System.nanoTime() >= deadline) throw new IllegalStateException("Tracking handoff not persisted");
-					Thread.sleep(10);
+			CountDownLatch persisted = new CountDownLatch(1);
+			AtomicReference<Throwable> problem = new AtomicReference<>();
+			MatchSafetyJournal.FileStore files = new MatchSafetyJournal.FileStore(Path.of(args[0]));
+			MatchSafetyJournal.StateStore observed = new MatchSafetyJournal.StateStore() {
+				@Override public MatchSafetyJournal.State read() throws IOException { return files.read(); }
+				@Override public void write(MatchSafetyJournal.State snapshot) throws IOException {
+					try { files.write(snapshot); }
+					catch (IOException | RuntimeException failure) { problem.set(failure); persisted.countDown(); throw failure; }
+					if (snapshot.matches().contains(ID)) persisted.countDown();
 				}
+				@Override public void close() throws IOException { files.close(); }
+			};
+			Path dump = Path.of(java.lang.management.ManagementFactory.getPlatformMXBean(com.sun.management.HotSpotDiagnosticMXBean.class)
+				.getVMOption("HeapDumpPath").getValue());
+			try (MatchSafetyJournal safety = new MatchSafetyJournal(observed, dump, Clock.systemUTC())) {
+				safety.beginTask(ID);
+				// Test-only acknowledgement: avoid racing a file reader against atomic replacement.
+				// Production never waits, and deliberately permits missing attribution on a late write.
+				if (!persisted.await(10, TimeUnit.SECONDS)) throw new IllegalStateException("Tracking handoff not persisted");
+				if (problem.get() != null) throw new IllegalStateException("Tracking store failed", problem.get());
 				System.out.println(new byte[64 * 1024 * 1024].length);
 			}
 		}

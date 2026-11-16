@@ -2,6 +2,7 @@ package com.fumbbl.ffb.server.match;
 
 import java.io.IOException;
 import java.nio.file.Path;
+import java.util.HashMap;
 import java.util.HashSet;
 
 /** Local operator command. The exclusive store lease requires the server to be stopped. */
@@ -12,8 +13,11 @@ public final class MatchSafetyAdmin {
 			MatchSafetyJournal.State state = store.read();
 			if (state == null) return;
 			var ids = new HashSet<>(state.matches());
-			if (!ids.remove(matchId)) return;
-			store.write(new MatchSafetyJournal.State(state.runId(), state.startedAt(), state.dumpFile(), state.sequence() + 1, ids));
+			var quarantines = new HashMap<>(state.quarantines());
+			boolean removed = ids.remove(matchId);
+			removed |= quarantines.remove(matchId) != null;
+			if (!removed) return;
+			store.write(new MatchSafetyJournal.State(state.runId(), state.startedAt(), state.dumpFile(), state.sequence() + 1, ids, quarantines));
 		}
 	}
 

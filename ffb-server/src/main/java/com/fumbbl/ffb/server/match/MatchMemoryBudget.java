@@ -27,8 +27,11 @@ public final class MatchMemoryBudget {
 	int appendLimit() { return decodedLimit - appendReserve(); }
 	int appendReserve() { return Math.min(RecoveryJournal.MAX_ENTRY_BYTES, decodedLimit / 8); }
 	long residentBytes(long decodedBytes) { return Math.max(MIB, decodedBytes * RETAINED_FACTOR); }
-	long workingBytes(long decodedBytes) { return Math.max(MIB, decodedBytes * WORKING_FACTOR); }
-	boolean admits(long otherResidentBytes, long decodedBytes) { return otherResidentBytes + workingBytes(decodedBytes) <= availableBytes; }
+	/** One workspace shared by the serial engine worker, sized for the largest admitted history. */
+	long sharedWorkingBytes(long largestDecodedBytes) { return largestDecodedBytes * (WORKING_FACTOR - RETAINED_FACTOR); }
+	boolean admitsResidents(long residentBytes, long largestDecodedBytes) {
+		return residentBytes + sharedWorkingBytes(largestDecodedBytes) <= availableBytes;
+	}
 	void configureAdmission(BiConsumer<String, Long> admission) { this.admission = admission; }
 	/** @throws MatchService.Failure for over-budget records or exhausted resident admission. */
 	void beforeLoad(String id, long decodedBytes) { requireDecodedBytes(decodedBytes); admission.accept(id, decodedBytes); }

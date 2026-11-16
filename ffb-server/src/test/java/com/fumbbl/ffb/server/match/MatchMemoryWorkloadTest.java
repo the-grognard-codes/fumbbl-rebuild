@@ -63,9 +63,9 @@ class MatchMemoryWorkloadTest {
 		MatchMemoryBudget budget = new MatchMemoryBudget();
 		long incoming = codec.decodedBytes(stored) + new Utf8Size().bytes(change.json);
 		budget.requireDecodedBytes(incoming);
-		boolean evicted = resident != null && !budget.admits(budget.residentBytes(residentBytes), incoming);
+		boolean evicted = resident != null && !budget.admitsResidents(budget.residentBytes(residentBytes) + budget.residentBytes(incoming), Math.max(residentBytes, incoming));
 		if (evicted) resident = null;
-		assertTrue(budget.admits(resident == null ? 0 : budget.residentBytes(residentBytes), incoming));
+		assertTrue(budget.admitsResidents((resident == null ? 0 : budget.residentBytes(residentBytes)) + budget.residentBytes(incoming), resident == null ? incoming : Math.max(residentBytes, incoming)));
 		System.gc();
 		long before = usedHeap(), started = System.nanoTime();
 		RecoveryRepository.Record record = journal.restore(fixture.document.matchId, 2, 1, codec.decode(stored),

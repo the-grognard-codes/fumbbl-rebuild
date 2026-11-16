@@ -3,7 +3,11 @@
 Issue: [#554](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/554).
 PR: [#559](https://github.com/the-grognard-codes/fumbbl-rebuild/pull/559).
 Branch: `codex/554-match-memory-isolation`; base: `33d95b7c6`.
-Date: 2026-11-15.
+Date: 2026-11-15; follow-up review: 2026-11-16 UTC.
+
+**Merge held:** #556 must include staged placement and its setup adjustment limit;
+#558 must land, followed by rebase, recalibration and the integrated three-hour
+concurrent soak. Issue #554 remains open. See the second review response below.
 
 ## Result
 
@@ -61,11 +65,12 @@ ownership investigation, formula and measured headroom.
 
 Production owns `backup.dir/match-safety.json`. It contains a run UUID, startup
 time, the exact configured heap-dump filename, a sequence and at most 33 canonical
-match IDs. One central transport boundary covers ingress, restoration,
+match IDs, plus independent suspect IDs with absolute quarantine expiry. The
+version-2 advisory state reads the earlier version-1 breadcrumbs. One central transport boundary covers ingress, restoration,
 publication and control tasks; control snapshots include resident engines and bounded detached reaction/completion retries. Startup/admin reads occur off-worker.
 
-The engine waits at most 25 ms (or remaining request allowance) for the writer.
-A late or failed handoff never rejects gameplay. One pending snapshot replaces
+The engine enqueues an immutable snapshot and returns immediately, without an
+acknowledgement wait. A late or failed write never rejects gameplay. One pending snapshot replaces
 older pending snapshots, preventing an unbounded I/O backlog. Runtime writes
 and atomic replacement belong exclusively to the daemon. A fatal `Error` does
 not clear the last operation snapshot; ordinary handled exits do.
@@ -73,9 +78,11 @@ not clear the last operation snapshot; ordinary handled exits do.
 On startup, automatic reloads of prior suspects are delayed only if the prior
 run's named OOM dump exists, is nonempty and has a timestamp from that run.
 Ordinary kills/crashes without that evidence do not quarantine matches. The
-block expires after thirty minutes, applies only to automatic computer loads
-and does not prevent an authorized manual load. A normal subsequent run rotates
-the evidence. Tracking corruption or I/O failure emits
+block expires after thirty minutes and applies before every recovery read,
+including browser reconnects, observers, computer loads and detached retries.
+There is no browser bypass: coaches see an unavailable-after-failure message
+with the expiry and administrator-clear route. Current-task rotation preserves unexpired quarantines across ordinary restarts;
+the stopped-server clear removes only the named suspect. Tracking corruption or I/O failure emits
 `MATCH_SAFETY_TRACKING_UNAVAILABLE` once and leaves gameplay admission active.
 This diagnostic is not a protocol rejection code.
 
@@ -97,7 +104,7 @@ be absent or stale. This is advisory crash-loop mitigation, not a power-loss or
 synchronous durability guarantee. The memory admission policy operates
 independently. The real OOM child test explicitly verifies a persisted
 breadcrumb before triggering `ExitOnOutOfMemoryError`; a separate blocked-store
-test verifies bounded fail-open behavior and coalescing.
+test verifies immediate fail-open handoff and coalescing.
 
 ## Validation
 
@@ -225,3 +232,87 @@ warm engine. `MATCH_MEMORY_RESIDENT_DECISIONS=450` retains a smaller admitted
 engine; `MATCH_MEMORY_WORKLOAD_MIB=48` exercises the upper decoded boundary.
 These test processes require no database or Firebase credentials. The local
 soak uses the existing signed-in browser profile and normal application flow.
+
+
+## Second review response (2026-11-16)
+
+Review: [maintainer follow-up](https://github.com/the-grognard-codes/fumbbl-rebuild/pull/559#issuecomment-6906842421).
+
+**Merge hold:** retain the size-limit result feature, but merge this PR only after
+#556 implements staged placement **and the setup adjustment limit**, and #558
+lands the computer/kick-off guards. Neither dependency was merged at this review.
+Rebase onto their integrated main before final validation. This PR must not ship
+the size-limit result ahead of those safeguards: unlimited placements currently
+let a leading coach inflate history into a forced victory.
+
+- Removed the safety writer's acknowledgement/latch and all worker waiting.
+- Persisted absolute quarantine expiry separately from current-task breadcrumbs,
+  protecting repeated restarts and selective administrator clear.
+- Enforced OOM quarantine at the shared recovery-read boundary, including coach,
+  observer, chat, computer and maintenance entry points. The coach message states
+  that the match is unavailable, the thirty-minute pause and admin-clear option.
+- Expressed admission as total retained charges plus **one shared working
+  allowance**, sized for the largest admitted history on the serial worker.
+  Stable or shrinking checkpoints reuse their existing reservation. Terminal or
+  idle durable victims precede active victims; timed reactions remain pinned.
+- Cached the size-stop flag when ending and rebuilt it once on restore, retaining
+  compatibility with older coach-attributed records.
+- Recorded new server-generated stops with `system` history/transcript attribution.
+  Recovery and browser transcript validation accept that specific terminal reason;
+  the match log describes the server limit without blaming either coach.
+
+The integrated **three-hour, several-concurrent-match soak remains required** after
+#556/#558 and rebase. The earlier twenty-minute run is not that acceptance test.
+Recalibrate decoded/append limits against placement histories after #556 removes
+per-placement snapshots. Issue #554 remains open until that evidence is recorded.
+
+### Follow-up validation
+
+- Regression baseline: stalled-writer handoff exceeded the no-wait bound, and
+  coach reconnect returned `ACCEPTED` instead of `MATCH_QUARANTINED`. The separate
+  constructor probe failed with `Second restart bypassed quarantine`; it now passes.
+- Full clean install passed (20m22s): 19 common, 879 server and 297 native cases,
+  with 23 expected opt-in skips. The later persistence/expiry corrections were
+  then covered by the full affected server suite: **882 cases, 0 failures/errors,
+  16 expected skips** (4m24s). The final diagnostic-only result-read logging hunk
+  also passed `MatchResultV2Test`.
+- Focused final safety/checkpoint/reaction/transcript suite: **64 passed**. Covers
+  the shared recovery-read quarantine boundary, three 25 MiB active accounting
+  fixtures without eviction, terminal-before-active preference, selective clear,
+  repeated restart, expiry, v1 compatibility, 513-suspect round trip and overflow
+  preserving the last valid tracking file.
+- An earlier final-server attempt had one OOM-child breadcrumb handoff failure.
+  The child now confirms persistence through a test-only writer signal rather
+  than polling a file concurrently with atomic replacement. Production remains
+  nonblocking. Five separate real JVM OOM children then each exited **3** and
+  produced the configured dump; the full final server suite passed afterward.
+- At `-Xmx768m`, the real Unicode checkpoint/delta/native restore and terminal
+  result probe passed with **47,672,358 decoded bytes** and a **13,903,827-byte**
+  warm resident retained. Sampled retained heap afterward: 348,008,360 bytes;
+  restore/serialization took 11,799 ms. This is memory evidence, not a two-second
+  latency pass. #548 remains relevant.
+- Browser: 544 complete unit tests plus the added neutral server-log regression
+  pass (545 distinct cases); production build and reconnect UI checks pass.
+  The browser accepts the specific system size-stop record, rejects system coach
+  decisions, renders a neutral score notice and explains quarantine to coaches.
+- Both independent review axes approve, with no remaining scoped findings.
+- Dev-local restarted using `node tools/dev-local.mjs --restart --quick`; Java
+  server and database became healthy with zero automatic restarts. The real
+  proxy authentication gate and reconnect checks passed. No persisted game data
+  or local credential configuration was cleared.
+
+A separate normal-UI stored-result read repeatedly returned `PERSISTENCE_FAILED`
+while the server stayed healthy. This is **not a clean runtime UI acceptance
+pass**; the result boundary now logs the existing redacted persistence diagnostic
+without changing its response. The diagnostic confirmed `CleanupNotStarted`,
+SQL state `HYT00`: the JDBC allowance was exhausted before cleanup. This is a
+remaining request-budget gap relevant to #548 and integrated validation; the
+memory probe and healthy startup do not establish a clean result-page pass.
+The service remained healthy with zero automatic restarts after the diagnostic
+restart. No broader latency fix is claimed by these review corrections.
+
+Local ignored evidence: `.tools/554-round2-install.log`,
+`.tools/554-round2-server-release.log`, `.tools/554-round2-focused-final.log`,
+`.tools/554-round2-native-memory.log`, `.tools/554-round2-browser.log`,
+`.tools/554-round2-browser-final.log`, `.tools/554-round2-browser-build.log`,
+`.tools/554-round2-reconnect-final.log` and the dev-local startup logs.

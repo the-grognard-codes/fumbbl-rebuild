@@ -104,6 +104,7 @@ public final class SetupSession {
 	private final JsonArray events = new JsonArray();
 	private final MatchDocument document;
 	private boolean failed;
+	private boolean endedForSizeLimit;
 	private RecoveryDice recoveryDice;
 	private SaveResumeState saveResumeState;
 	private ComputerPolicyState computerPolicy;
@@ -343,7 +344,9 @@ public final class SetupSession {
 				JsonObject entry = item.asObject();
 				if (entry.get("setupErrors") == null) exactRecovery(entry, "key", "fingerprint", "code");
 				else exactRecovery(entry, "key", "fingerprint", "code", "setupErrors");
-				if (!entry.get("key").asString().matches("(home|away)\\n[A-Za-z0-9_-]{1,100}")
+				if (!(entry.get("key").asString().matches("(home|away)\\n[A-Za-z0-9_-]{1,100}")
+					|| entry.get("key").asString().matches("system\\nserver-size-limit-[0-9]+-[0-9]+")
+						&& entry.getString("fingerprint", "").equals(canonical(new JsonObject().add("operation", "sizeLimit").add("reason", MatchStopReason.MATCH_SIZE_LIMIT.name()))))
 					|| !("ACCEPTED".equals(entry.getString("code", null)) || "ILLEGAL_SETUP".equals(entry.getString("code", null))))
 					throw new IllegalArgumentException("Invalid recovery request history");
 				JsonArray setupErrors = entry.get("setupErrors") == null ? null : entry.get("setupErrors").asArray();
@@ -354,6 +357,8 @@ public final class SetupSession {
 				if (history.put(entry.get("key").asString(), new Record(entry.get("fingerprint").asString(), entry.get("code").asString(), setupErrors)) != null)
 					throw new IllegalArgumentException("Duplicate recovery history");
 			}
+			endedForSizeLimit = isComplete() && history.values().stream().anyMatch(record -> record.fingerprint.equals(
+				canonical(new JsonObject().add("operation", "sizeLimit").add("reason", MatchStopReason.MATCH_SIZE_LIMIT.name()))));
 			if (history.size() > 8192) throw new IllegalArgumentException("Recovery history limit");
 			for (JsonValue selection : payload.get("kickoffSelection").asArray()) kickoffSelection.add(selection.asString());
 			for (JsonValue event : JsonArray.readFrom(payload.get("eventsJson").asString())) {
@@ -409,7 +414,7 @@ public final class SetupSession {
 	/** End an exhibition at its current score, without attributing a concession to either coach. */
 	void endForSizeLimit(long now) {
 		if (isComplete()) return;
-		String role = actor();
+		String role = "system";
 		Game game = state.getGame();
 		game.setDialogParameter(null);
 		pendingRoute = null; pendingActivation = null; confirmedKickoff = null; kickoffSelection.clear();
@@ -420,6 +425,7 @@ public final class SetupSession {
 		if (!isComplete()) throw new IllegalStateException("Size-limit termination did not complete");
 		revision++;
 		refreshReaction(now);
+		endedForSizeLimit = true;
 		JsonObject decision = new JsonObject().add("operation", "sizeLimit").add("reason", MatchStopReason.MATCH_SIZE_LIMIT.name());
 		int suffix = 0;
 		String key;
@@ -428,11 +434,7 @@ public final class SetupSession {
 		recordEvent("FULL_TIME", role, decision);
 	}
 
-	boolean endedForSizeLimit() {
-		if (!isComplete()) return false;
-		String fingerprint = canonical(new JsonObject().add("operation", "sizeLimit").add("reason", MatchStopReason.MATCH_SIZE_LIMIT.name()));
-		return history.values().stream().anyMatch(record -> record.fingerprint.equals(fingerprint));
-	}
+	boolean endedForSizeLimit() { return endedForSizeLimit; }
 
 	JsonObject orderedRecoveryPayload() { return ordered(recoveryPayload(null)).asObject(); }
 

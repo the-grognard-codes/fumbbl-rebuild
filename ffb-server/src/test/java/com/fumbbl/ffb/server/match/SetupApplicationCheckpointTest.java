@@ -690,6 +690,60 @@ class SetupApplicationCheckpointTest {
 		}
 	}
 
+	@Test void quarantineBlocksCoachReconnectAndObserverRestoreBeforeReadingRecovery() throws Exception {
+		try (Fixture fixture = new Fixture()) {
+			MatchSafetyJournal safety = mock(MatchSafetyJournal.class);
+			doThrow(new MatchService.Failure("MATCH_QUARANTINED")).when(safety).requireAutomaticAvailable(MATCH);
+			SetupApplication app = new SetupApplication(fixture.server, fixture.matches, fixture.recovery, false,
+				fixture.clock, false, fixture.memoryBudget, safety);
+			assertEquals("MATCH_QUARANTINED", app.handle("home", load()).getString("code", null));
+			assertEquals("MATCH_QUARANTINED", assertThrows(MatchService.Failure.class, () -> app.spectatorView(MATCH)).code);
+			assertEquals("MATCH_QUARANTINED", assertThrows(MatchService.Failure.class, () -> app.chatPage(MATCH, 0, 10)).code);
+			verify(fixture.recovery, never()).find(anyString());
+			assertTrue(fixture.construction.constructed().isEmpty());
+		}
+	}
+
+	@Test void checkpointsOfThreeLargeActiveMatchesDoNotEvictEachOther() throws Exception {
+		try (Fixture fixture = new Fixture(new MatchMemoryBudget(768L * 1024 * 1024))) {
+			fixture.application.handle("home", load());
+			long bytes = 25L * 1024 * 1024;
+			when(fixture.session().recoveryBytes()).thenReturn(bytes);
+			fixture.<Long>map("residentDecodedBytes").put(MATCH, bytes);
+			for (int index = 1; index <= 2; index++) {
+				String id = "00000000-0000-0000-0000-%012d".formatted(index);
+				fixture.<SetupSession>map("sessions").put(id, mock(SetupSession.class));
+				fixture.<Long>map("residentDecodedBytes").put(id, bytes);
+				fixture.<Long>map("lastAccess").put(id, NOW);
+				fixture.<byte[]>map("committedFingerprints").put(id, new byte[32]);
+			}
+			for (int index = 0; index < 12; index++)
+				assertEquals("ACCEPTED", fixture.application.handle("home", request("concurrent-" + index)).getString("code", null));
+			assertEquals(3, fixture.mapSize("sessions"));
+			assertEquals(0, fixture.application.lifecycleMetrics().getInt("memoryEvictions", -1));
+		}
+	}
+
+	@Test void memoryPressureEvictsATerminalMatchBeforeAnOlderActiveMatch() throws Exception {
+		try (Fixture fixture = new Fixture(new MatchMemoryBudget(768L * 1024 * 1024))) {
+			fixture.application.handle("home", load());
+			String active = "00000000-0000-0000-0000-000000000001";
+			String terminal = "00000000-0000-0000-0000-000000000002";
+			for (String id : List.of(active, terminal)) {
+				SetupSession session = mock(SetupSession.class);
+				when(session.isComplete()).thenReturn(id.equals(terminal));
+				fixture.<SetupSession>map("sessions").put(id, session);
+				fixture.<Long>map("residentDecodedBytes").put(id, 20L * 1024 * 1024);
+				fixture.<Long>map("lastAccess").put(id, NOW - (id.equals(active) ? 1000 : 500));
+				fixture.<byte[]>map("committedFingerprints").put(id, new byte[32]);
+			}
+			Method admit = SetupApplication.class.getDeclaredMethod("admitDecoded", String.class, long.class);
+			admit.setAccessible(true); admit.invoke(fixture.application, MATCH, 45L * 1024 * 1024);
+			assertTrue(fixture.map("sessions").containsKey(active));
+			assertFalse(fixture.map("sessions").containsKey(terminal));
+		}
+	}
+
 	private JsonObject request(String id) { return new JsonObject().add("version", 1).add("type", "setup").add("operation", "action")
 		.add("requestId", id).add("matchId", MATCH).add("expectedRevision", 3).add("actionId", "server-action"); }
 	private JsonObject load() { return new JsonObject().add("version", 1).add("type", "setup").add("operation", "load").add("requestId", "load").add("matchId", MATCH); }

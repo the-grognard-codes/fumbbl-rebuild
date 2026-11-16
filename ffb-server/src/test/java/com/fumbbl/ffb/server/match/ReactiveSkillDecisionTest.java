@@ -61,6 +61,8 @@ class ReactiveSkillDecisionTest {
         assertTrue(restored.endedForSizeLimit());
         assertNull(live(restored, "home").get("reaction"));
         assertTrue(restored.completedMatch().json().contains("MATCH_SIZE_LIMIT"));
+        JsonObject transcript = restored.transcriptPage(restored.revision(), 1);
+        assertEquals("system", transcript.get("records").asArray().get(0).asObject().getString("actor", null));
     }
 
     @Test void nativeTackleAndTentaclesPromptsExposeCalculatedTargetsAndTimeoutAsDeclines() throws Exception {

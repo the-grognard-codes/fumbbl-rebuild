@@ -316,6 +316,7 @@ public final class SetupApplication {
 
 	private RecoveryRepository.Record findRecovery(String id) throws SQLException {
 
+		safety.requireAutomaticAvailable(id);
 		try {
 			RecoveryRepository.Record record = recovery.find(id);
 			if (record != null) requireSize(id, new Utf8Size().bytes(record.json), memoryBudget.decodedLimit());
@@ -362,15 +363,25 @@ public final class SetupApplication {
 	private void admitDecoded(String id, long decodedBytes) {
 		if (recovery == null) return;
 		List<String> candidates = lastAccess.entrySet().stream().filter(entry -> !entry.getKey().equals(id))
-			.sorted(Map.Entry.comparingByValue()).map(Map.Entry::getKey).toList();
+			.sorted(java.util.Comparator.<Map.Entry<String, Long>, Boolean>comparing(entry -> {
+				SetupSession session = sessions.get(entry.getKey());
+				return !session.isComplete() && clock.millis() - entry.getValue() < IDLE_MILLIS;
+			}).thenComparing(Map.Entry.comparingByValue())).map(Map.Entry::getKey).toList();
 		for (String candidate : candidates) {
-			if (memoryBudget.admits(otherResidentBytes(id), decodedBytes)) break;
+			if (fitsResidentBudget(id, decodedBytes)) break;
 			if (!committedFingerprints.containsKey(candidate)) continue;
 			// These engines own server-driven expiry; evicting them would stall connected peers.
 			if (sessions.get(candidate).hasPendingReactiveDecision()) continue;
 			releaseEngine(candidate); memoryEvictions++;
 		}
-		if (!memoryBudget.admits(otherResidentBytes(id), decodedBytes)) throw new MatchService.Failure("ACTIVATION_LIMIT");
+		if (!fitsResidentBudget(id, decodedBytes)) throw new MatchService.Failure("ACTIVATION_LIMIT");
+	}
+
+	private boolean fitsResidentBudget(String id, long decodedBytes) {
+		long largest = residentDecodedBytes.entrySet().stream().filter(entry -> !entry.getKey().equals(id))
+			.mapToLong(Map.Entry::getValue).max().orElse(0);
+		return memoryBudget.admitsResidents(otherResidentBytes(id) + memoryBudget.residentBytes(decodedBytes),
+			Math.max(largest, decodedBytes));
 	}
 
 	private long otherResidentBytes(String id) {
@@ -419,7 +430,8 @@ public final class SetupApplication {
 			timing.value(BrowserRequestTiming.Value.REVISION, session.revision());
 		} } catch (RuntimeException unavailable) { /* Diagnostic context must not affect checkpoint behavior. */ }
 		try (BrowserRequestTiming.Scope ignored = timing.span(BrowserRequestTiming.Phase.CHECKPOINT)) {
-			admitDecoded(id, decodedBytes);
+			// The shared workspace was reserved at admission. Stable/smaller checkpoints need no cache churn.
+			if (decodedBytes > residentDecodedBytes.getOrDefault(id, 0L)) admitDecoded(id, decodedBytes);
 			RecoveryJournal.Cursor cursor = journalCursors.get(id);
 			if (cursor != null) { timing.value(BrowserRequestTiming.Value.JOURNAL_ENTRIES, cursor.entries); timing.value(BrowserRequestTiming.Value.JOURNAL_BYTES, cursor.journalBytes); }
 			long generation = generations.get(id);
@@ -643,7 +655,6 @@ public final class SetupApplication {
 		String phase = "match-load";
 		try {
 			validate(request, computerChannel);
-			if (computerChannel && "load".equals(request.getString("operation", ""))) safety.requireAutomaticAvailable(request.getString("matchId", ""));
 			String id = request.getString("matchId", null);
 			MatchDocument document = matches.loadForSetup(owner, id).document;
 			if (computerChannel && new ComputerOpponentService(null).coach(document) == null)

@@ -138,3 +138,11 @@ test('renders fan, weather, and injury rolls as current numeric dice with concis
   assert.ok(lines.some(line => line.text.startsWith('Injury · Runner - injury roll')));
   assert.ok(lines.some(line => line.text.startsWith('Casualty · Runner - casualty roll') && line.dice?.kinds[0] === 'd16'));
 });
+
+
+test('describes a server size stop without attributing a coach action', () => {
+  const terminal: TranscriptRecord = { index: 1, revision: 1, kind: 'FULL_TIME', actor: 'system', at: 101,
+    decision: { operation: 'sizeLimit', reason: 'MATCH_SIZE_LIMIT' }, native: [],
+    state: { ...state(1, 4), phase: 'FULL_TIME', homeScore: 1, awayScore: 0 } };
+  assert.ok(matchLogLines([terminal]).some(line => line.text === 'Match ended at the server memory limit. Score 1-0.'));
+});

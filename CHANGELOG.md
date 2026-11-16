@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Match-memory recovery pauses now cover coach and observer reconnects after OOM; safety tracking never waits on disk, and server size stops have neutral replay attribution. Size-limit results remain blocked on staged placement and adjustment limits (#556) and kick-off guards (#558).
+
 - End size-limited matches at their current score with a recorded result, evict cold checkpointed engines according to actual history size while preserving the 32-slot ceiling, and briefly pause automatic reloads only after confirmed heap exhaustion.
 
 - Reject checkpoint diagnostics with missing fixture files and accept the zero-decision baseline regardless of fixture order.

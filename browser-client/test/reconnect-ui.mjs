@@ -61,7 +61,7 @@ try {
   for (const [code, notice] of [
     ['MATCH_SIZE_LIMIT', 'The safe size limit has been reached for this match. Other matches remain available.'],
     ['ACCEPTED', 'Match ended at its current score after reaching the safe size limit.'],
-    ['MATCH_QUARANTINED', "This match's automatic reload is paused after a server memory failure. Other matches are available."],
+    ['MATCH_QUARANTINED', "This match is unavailable after a server memory failure. Reloads are paused for up to 30 minutes; an administrator can clear the pause. Other matches are available."],
   ]) {
     const page = await browser.newPage();
     const errors = [];

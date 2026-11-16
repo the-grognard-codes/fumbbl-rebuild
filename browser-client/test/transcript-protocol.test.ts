@@ -72,3 +72,16 @@ test('recovery pages cannot move public command order or time backward across a 
     assert.equal(history.records.length, 2, 'Invalid pages leave the accepted prefix untouched');
   }
 });
+
+
+test('accepts a neutral server size stop but rejects system coach decisions', () => {
+  const terminal = { index: 1, revision: 1, kind: 'FULL_TIME', actor: 'system', at: 101,
+    decision: { operation: 'sizeLimit', reason: 'MATCH_SIZE_LIMIT' }, native: [],
+    state: { ...state, revision: 1, phase: 'FULL_TIME' } };
+  const read = (record: unknown) => decodeTranscript(JSON.stringify({ ...response,
+    page: { ...page, from: 1, next: 2, total: 2, records: [record] } }));
+  assert.equal(read(terminal).page.records[0].actor, 'system');
+  assert.throws(() => read({ ...terminal, kind: 'ACTION' }));
+  assert.throws(() => read({ ...terminal, decision: { operation: 'concede' } }));
+  assert.throws(() => read({ ...terminal, decision: { operation: 'sizeLimit', reason: 'other' } }));
+});

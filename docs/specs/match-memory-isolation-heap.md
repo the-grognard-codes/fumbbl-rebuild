@@ -93,12 +93,15 @@ baseline = 32 * 1 MiB
 perMatchDecoded = min(64 MiB, (available - baseline) / 11)
 appendThreshold = perMatchDecoded - min(4 MiB, perMatchDecoded / 8)
 residentCharge(bytes) = max(1 MiB, 4 * bytes)
-workingCharge(bytes) = max(1 MiB, 11 * bytes)
-admit = other resident charges + workingCharge(incoming) <= available
+sharedWorkingAllowance = 7 * largest admitted decoded history
+admit = sum(all resident charges, including incoming) + sharedWorkingAllowance <= available
 ```
 
 At `-Xmx768m`, these give **49.45 MiB decoded** and **45.45 MiB at append**.
-Before decoding a stored record, LRU engines with committed checkpoints can be
+The serial worker reserves one shared workspace, rather than one per match or
+checkpoint. Stable/shrinking checkpoints reuse admission; only growth or a cold
+load needs readmission. Before decoding a stored record, durable terminal/idle
+victims are preferred, then active LRU engines with committed checkpoints can be
 released until admission fits. The current match is excluded from eviction.
 Detached completion retries retain their slot and a baseline memory charge, so
 eviction cannot create an unbounded retry queue. A 33rd occupied slot still

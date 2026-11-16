@@ -218,6 +218,7 @@ function decisionLine(record: TranscriptRecord, presentation?: LogPresentation):
   const decision = record.decision ?? {};
   const operation = typeof decision.operation === 'string' ? decision.operation : record.kind;
   const team = record.actor === 'system' ? 'Match' : matchTeamName(record.state, record.actor);
+  if (operation === 'sizeLimit') return `Match ended at the server memory limit. Score ${record.state.homeScore}-${record.state.awayScore}.`;
   if (operation === 'action') {
     const action = presentation?.action;
     if (!action || ['move', 'jump', 'select', 'selectBlock', 'stand', 'blitz', 'forgo'].includes(action.kind) || action.kind.startsWith('declare')) return null;
