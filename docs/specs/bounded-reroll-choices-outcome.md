@@ -161,11 +161,39 @@ default random coach and are startup/recovery evidence only. The final acceptanc
 run explicitly selects `--opponent 'Bogruk the Almost Clever'`; its three-hour
 clock started at 06:06:09 UTC / 01:06:09 America/New_York.
 
-Three-hour soak acceptance: running; final result to be recorded.
+The Bogruk attempt reached 24 minutes, 119 home decisions and revision 612 in
+half 2, score 0–2, with zero decision-limit warnings, heap failures or container
+restarts. It did not finish a match. Four driver errors occurred around repeated
+checkpoint-budget refusals. At revision 581 the match stopped advancing for at
+least 5.3 minutes, then resumed before the driver was stopped. The daemon also
+cycled through unfinished diagnostic matches from earlier attempts; this run
+does not establish a quiet three-hour acceptance result.
+
+The driver is stopped; the healthy dev-local stack remains running for manual
+testing. A read-only inventory finds 5 games, 5 recovery records and 45 journal
+rows. Clearing these additional validation-period games was rejected by
+automatic approval review because the prior permission covered the original
+old-game set, not these newly accumulated records. No second deletion occurred.
+An explicit question asking whether to clear these games and restart an isolated
+Bogruk measurement is pending. Teams, accounts and preferences would be retained.
+
+Three-hour soak acceptance: **incomplete, awaiting the additional reset decision**.
+The checkpoint-budget refusal is distinct from the fixed stale reroll dialog;
+the existing memory/persistence workstreams remain relevant to the soak.
+
+## Independent review
+
+[Draft PR #564](https://github.com/the-grognard-codes/fumbbl-rebuild/pull/564)
+contains the implementation and report. All applicable checks at code commit
+`232a596e9` passed, including Java 21 target verification and four native shards,
+browser assets/unit/build checks, local lifecycle/computer-player tests,
+Firebase service checks, validation, security/lint checks and CodeQL. The optional
+`full-browser` job retained its standard skip. No merge or auto-merge was enabled.
 
 ## Completion status
 
-The code fix, minimal regression, affected suites, full build and seeded
-acceptance are complete. The final Bogruk local-soak result remains to be
-recorded before final handoff. Publishing a review PR is authorized; merging
-and auto-merge are not.
+The code fix, minimal regression, affected suites, full build, seeded acceptance
+and independent CI checks are complete. The three-hour Bogruk soak remains
+incomplete; #563 and the parent acceptance gate remain open, and the PR remains
+draft. The original checkout's unrelated soak-review edit is preserved. There
+was no merge, auto-merge or remote deployment.
