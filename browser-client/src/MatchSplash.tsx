@@ -61,6 +61,7 @@ export function MatchSplash({ announcement, onDismiss, hold, exiting, rate, icon
         onClick={event => { event.stopPropagation(); onDismiss(); }}><span aria-hidden="true">×</span></button>
       <div className="match-splash-backdrop" aria-hidden="true"/>
       <div className="match-splash-ribbon" aria-hidden="true"/>
+      {announcement.kind === 'halfTime' && <div className="match-splash-half-pitch" aria-hidden="true"/>}
       {(announcement.kind === 'touchdown' || announcement.kind === 'fullTime' && announcement.code === 'WIN') && <div className="match-splash-burst" aria-hidden="true"/>}
       {announcement.kind === 'weather' && <div className="match-splash-weather-fx" aria-hidden="true"/>}
       <div className="match-splash-icon" aria-hidden="true">{icon ?? (emblem ? <img className="match-art" src={`${import.meta.env.BASE_URL}assets/game/ui/${emblem}`} alt=""/> : <MatchArt name={announcement.helmet} colors={teamColors[announcement.team]}/>)}</div>

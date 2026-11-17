@@ -14,7 +14,7 @@ try {
   await page.setViewportSize({width, height: width === 390 ? 844 : width === 1024 ? 768 : width === 844 ? 390 : 900});
   await page.goto(`http://127.0.0.1:${server.httpServer.address().port}/splash-review.html`);
   await page.locator('.match-splash').waitFor(); await page.evaluate(() => document.fonts.ready);
-  for (const kind of ['touchdown','turnover','turnStart','kickoff','weather','halfTime','fullTime']) {
+  for (const kind of (process.env.SPLASH_KINDS?.split(',') ?? ['touchdown','turnover','turnStart','kickoff','weather','halfTime','fullTime'])) {
    await page.getByLabel('Event', {exact:true}).selectOption(kind);
    const properties = await page.locator('.match-splash-shade').evaluate(node => node.getAnimations({subtree:true}).flatMap(animation => animation.effect.getKeyframes().flatMap(frame => Object.keys(frame))));
    assert.ok(properties.every(property => ['offset','computedOffset','easing','composite','opacity','transform'].includes(property)), 'Splash keyframes animate only transform and opacity');
@@ -27,6 +27,19 @@ try {
     await page.getByLabel('Team',{exact:true}).selectOption(team); await page.getByLabel('Colours',{exact:true}).selectOption(pair);
     await page.locator('.match-splash-shade').evaluate(node => { for(const animation of node.getAnimations({subtree:true})) { animation.pause(); animation.currentTime=900; } });
     assert.ok(await page.locator('.match-splash').evaluate(node => node.scrollWidth <= node.clientWidth));
+    if (kind === 'halfTime') {
+     const layout = await page.locator('.match-splash').evaluate(card => {
+      const heading = card.querySelector('h2'), pitch = card.querySelector('.match-splash-half-pitch');
+      const h = heading.getBoundingClientRect(), p = pitch.getBoundingClientRect();
+      const range = document.createRange(); range.selectNodeContents(heading);
+      return { lines: range.getClientRects().length, dx: Math.abs(h.x + h.width / 2 - p.x - p.width / 2),
+       dy: Math.abs(h.y + h.height / 2 - p.y - p.height / 2), dotted: getComputedStyle(pitch, '::before').borderLeftStyle,
+       wide: getComputedStyle(pitch, '::after').borderTopStyle };
+     });
+     assert.equal(layout.lines, 1, 'Halftime heading stays on one line');
+     assert.ok(layout.dx < 1 && layout.dy < 1, 'Halftime heading is centred on the scrimmage midpoint');
+     assert.equal(layout.dotted, 'dotted'); assert.equal(layout.wide, 'dashed');
+    }
     await page.screenshot({path:`${output}/${kind}-${width}-${team}-${pair}.png`});
    }
    if (kind === 'kickoff' || kind === 'weather' || kind === 'fullTime') {

@@ -81,6 +81,16 @@
 .play-runtime .match-splash-shade .match-splash-touchdown .match-splash-reason { max-width: 100%; }
 .match-splash-scorer, .match-splash-score { display: block; }
 .match-splash-score { margin-top: 8px; }
+.play-runtime .match-splash-shade .match-splash-halfTime { display: grid; grid-template-rows: 1fr auto 1fr; gap: 12px; min-height: 320px; container-type: inline-size; }
+.match-splash-half-pitch { position: absolute; inset: 24px 20px; z-index: -1; pointer-events: none; }
+.match-splash-half-pitch::before { content: ''; position: absolute; left: 50%; top: 20%; bottom: 20%; border-left: 2px dotted #d9e9f766; transform: translateX(-1px); }
+.match-splash-half-pitch::after { content: ''; position: absolute; inset: 26.667% 0; border-block: 1px dashed #d9e9f722; }
+.play-runtime .match-splash-shade .match-splash-halfTime .match-splash-icon { align-self: center; margin: 0 auto; }
+.play-runtime .match-splash-shade .match-splash-halfTime h2 { align-self: center; padding: 6px 10px; background: #101c2b; white-space: nowrap; font-size: clamp(24px, 10cqi, 52px); }
+.play-runtime .match-splash-shade .match-splash-halfTime .match-splash-reason { align-self: center; margin: 0 auto; }
+.play-runtime .match-splash-shade .match-splash-halfTime .match-splash-ribbon::before { outline: 0; box-shadow: none; }
+.play-runtime .match-splash-shade .match-splash-halfTime .match-splash-ribbon::after { outline: 0; box-shadow: none; }
+@media(max-height:500px) { .play-runtime .match-splash-shade .match-splash-halfTime { min-height: 240px; gap: 8px; } }
 @keyframes splash-burst { from { opacity: 0; transform: scale(.4); } 30% { opacity: .8; } to { opacity: 0; transform: scale(1); } }
 @keyframes splash-weather { from { transform: translateY(-10px); } to { transform: translateY(10px); } }
 @keyframes splash-rays { 0%,100% { opacity: .06; transform: scale(.92); } 50% { opacity: .18; transform: scale(1); } }
