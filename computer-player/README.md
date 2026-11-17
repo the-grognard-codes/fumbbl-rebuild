@@ -74,4 +74,10 @@ Rules sources: [BB2025 reference register](../docs/specs/bb2025-rules-reference.
 
 The optional real-engine runner is separate from `npm test`: `node test/engine-match.mjs --java <exe> --classpath <test-and-runtime-classpath> --home-roster Human --away-roster Orc --seed 42 --output <summary.json>`. It starts the server test-scope `BogrukEngineHarness`, plays the human seat with seeded Bugman and the computer seat with Bogruk, checks exact request duplication every 37 decisions and checkpoint restore every 100, and reports scores, reasons, actions, policy timing, invalid/stalled responses and completion. It prints compact progress to stderr every 100 decisions. Defaults are 4,000 decisions and 180 seconds; use `--max-decisions`, `--timeout-ms`, or `--recklessness off` for a specific acceptance scenario. `--capture-state <json>` captures the first computer PLAY projection for local profiling. The server harness currently supports Human and Orc rosters and is not part of the hosted daemon.
 
+Acceptance also fails if a turn reaches 200 decisions or the emergency guard logs
+`DECISION_LIMIT`. `--max-turn-decisions <count>` changes the exclusive turn ceiling;
+it does not change the server guard. `--trace-choices <jsonl>` records the basic-judgment
+choice catalog, selected action and following catalog for local diagnosis. This
+opt-in trace uses synthetic engine fixtures and is separate from production logs.
+
 Coach display names are frozen for new matches. Older random matches without this display metadata keep Coach Bugman - Random; completed records are not rewritten. The internal `coach-bugman-random` ID, derived membership and clone IDs, service token paths, and deployment units remain unchanged. Gobbo's team remains **Bugman's Best**; Bogruk uses **Bogruk's Almost Best**. Setup, action limits, authentication, and transport are unchanged.
