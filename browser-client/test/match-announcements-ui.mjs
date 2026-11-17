@@ -101,6 +101,18 @@ try {
 
   // Holding never prevents a mandatory response from becoming available.
   await setHold(true);
+  await reset();
+  const scored = record(1, [{ ...event('touchdown'), reason: 'Lineman2 #8 — Skill-Test Humans 1 1 – 0 Bogruk\'s Almost Best' }]);
+  scored.state.homeScore = start.state.homeScore + 1;
+  scored.state.prompt = { kind: 'setup', message: 'Prepare the next drive' };
+  await publish({ view: scored.state, records: [start, scored] });
+  await splash('touchdown').waitFor();
+  assert.equal(await splash('touchdown').locator('.match-splash-scorer').textContent(), 'Lineman2 #8');
+  assert.equal(await splash('touchdown').locator('.match-splash-score').textContent(), "Skill-Test Humans 1 1 – 0 Bogruk's Almost Best");
+  await publish({ view: { ...scored.state }, records: [start, scored] });
+  await page.clock.runFor(10000);
+  assert.equal(await splash('touchdown').count(), 1, 'Held scoring announcement survives same-revision next-drive prompt refresh');
+  await page.keyboard.press('Escape'); await page.clock.runFor(550); await active(false);
   await reset(); await advance([event('turnover')]); await splash('turnover').waitFor();
   await page.clock.runFor(10000); await splash('turnover').waitFor();
   await page.getByRole('button', { name: 'Dismiss announcement' }).waitFor();

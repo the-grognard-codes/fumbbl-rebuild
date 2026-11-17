@@ -78,6 +78,9 @@
 .match-splash-weather:is([data-code=NICE], [data-code=VERY_SUNNY]) .match-splash-weather-fx::before { mask: url('/assets/game/ui/match-events/weather-rays.svg') center / contain no-repeat; animation-name: splash-rays; }
 .match-splash-weather[data-code=SWELTERING_HEAT] .match-splash-weather-fx::before { animation-name: splash-heat; }
 .match-splash-touchdown .match-splash-reason { font-variant-numeric: tabular-nums; }
+.play-runtime .match-splash-shade .match-splash-touchdown .match-splash-reason { max-width: 100%; }
+.match-splash-scorer, .match-splash-score { display: block; }
+.match-splash-score { margin-top: 8px; }
 @keyframes splash-burst { from { opacity: 0; transform: scale(.4); } 30% { opacity: .8; } to { opacity: 0; transform: scale(1); } }
 @keyframes splash-weather { from { transform: translateY(-10px); } to { transform: translateY(10px); } }
 @keyframes splash-rays { 0%,100% { opacity: .06; transform: scale(.92); } 50% { opacity: .18; transform: scale(1); } }

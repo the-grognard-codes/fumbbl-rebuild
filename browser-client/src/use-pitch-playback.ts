@@ -35,7 +35,7 @@ export function usePitchPlayback(view: SetupState, records: TranscriptRecord[], 
   const announcementPreferences = useAnnouncementPreferences();
   const hiddenAnnouncements = useRef(announcementPreferences.hiddenAnnouncements);
   hiddenAnnouncements.current = announcementPreferences.hiddenAnnouncements;
-  const pendingAnnouncement = useRef<{ id: string; closing: boolean; advance: () => void } | null>(null);
+  const pendingAnnouncement = useRef<{ id: string; closing: boolean; deferredResponseRevision: number | null; advance: () => void } | null>(null);
   const announcementTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const announcementTransitionTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const announcementExitComplete = useRef<(() => void) | null>(null);
@@ -130,7 +130,8 @@ export function usePitchPlayback(view: SetupState, records: TranscriptRecord[], 
       snapshot();
       return;
     }
-    if (mode === 'live' && requiresResponse && pendingAnnouncement.current && !deferScoringResponse) {
+    if (mode === 'live' && requiresResponse && pendingAnnouncement.current && !deferScoringResponse
+      && pendingAnnouncement.current.deferredResponseRevision !== view.revision) {
       snapshot();
       return;
     }
@@ -276,7 +277,10 @@ export function usePitchPlayback(view: SetupState, records: TranscriptRecord[], 
             setPitchView(presented.current);
           }
           const nextIndex = index + 1;
-          pendingAnnouncement.current = { id: beat.announcement.id, closing: false, advance: () => advance(nextIndex) };
+          // Revealing the score changes presented.current. Remember the already
+          // deferred prompt so a refresh cannot mistake it for a new choice.
+          pendingAnnouncement.current = { id: beat.announcement.id, closing: false,
+            deferredResponseRevision: deferScoringResponse ? view.revision : null, advance: () => advance(nextIndex) };
           presentationRevision.current = record.revision;
           setAnnouncement(beat.announcement);
           return;

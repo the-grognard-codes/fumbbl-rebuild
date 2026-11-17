@@ -54,3 +54,9 @@ An early UI run was interrupted by source-edit HMR; its clean rerun passed. Test
 `.git/dev-local-state.json` identifies the main checkout as owner. As required by #565, this worktree did not take over or stop the shared stack. Native engine tests and browser harnesses provide the permitted fallback; an end-to-end live Bogruk match was not observed. Mobile coverage uses browser viewport emulation, not physical Android hardware. The 22 environment-gated Java tests remain skipped.
 
 Bootstrap download failure was recovered using the existing checksum-verified Maven archive and a worktree-local dependency cache. Sandboxed javac failed closing JARs; identical focused/full builds passed with approved host execution. Root checkout user changes were preserved.
+
+## Manual review follow-up — 2026-11-17
+
+Reproduced a held touchdown disappearing after a same-revision next-drive prompt refresh. Revealing its score changed the presented state, so the repeated prompt was misclassified as a new mandatory choice. The pending card now remembers the deferred response revision; genuine new choices and recovery still preempt presentation. A browser regression failed before the fix and passes afterward.
+
+Touchdown scorer and score now occupy separate block lines; legacy reasons retain their original text. Verified desktop/phone captures, 543 unit tests, TypeScript/build, announcement and playback drivers. Local Hosting artifacts refreshed without restarting the live game server. The requested halftime markings/text change awaits clarification of whether it targets the pitch or announcement card.
