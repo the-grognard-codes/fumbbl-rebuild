@@ -2,23 +2,9 @@
 
 ## Unreleased
 
-- Keep the scoreboard and turn counter on the outgoing revision until its splash and gap finish. Fade the pitch shade in with CSS keyframes and preserve opacity when an early exit interrupts the fade.
+- Animate touchdowns, turnovers, turn starts, all 11 kickoff results, weather, half-time, and the end of a match, including concessions. Touchdown splashes name the scorer. Touchdown, half-time, and final splashes show both teams' scores side by side.
 
-- Keep the pitch shade continuous when an announcement is skipped or a required choice interrupts it. Escape during the gap opens the next queued card immediately.
-
-- Keep the pitch dimmed and block input between queued match announcements. Show turnovers for two seconds at normal speed and apply replay speed changes to the next announcement.
-
-- Share the sports whistle and starburst animations between half-time and End of Match, and blend weather artwork into its animated background.
-
-- Give kickoff events individual emblems and show the resulting condition in a single Changing Weather splash.
-
-- Show touchdown, half-time and final scores in two columns so each number is clearly paired with its team.
-
-- Keep the current step notice clear of match splashes and their exit transitions.
-
-- Keep held scoring announcements visible when the same deferred next-drive prompt refreshes. Show the touchdown scorer on a separate line above the score.
-
-- Show authoritative kick-off, initial/changed weather, half-time, full-time and concession announcements with scorer/score details and staged-event ordering. Animate match announcements with stepped ribbons and headline impacts, saved team colours, reduced-motion fades, and exits included in playback timing. Add per-kind visibility preferences, brief celebration bursts, weather effects, camera-aware ribbons and contrasting team-colour edges.
+- Keep the pitch dimmed between consecutive splashes. Turnovers last two seconds at normal speed, and splash timings scale with replay speed. Game Settings lets you choose which splashes to show or keep them visible until dismissed. Reduced motion replaces the larger movements with fades.
 
 - Limit each kick-off selection or placement stage to 50 adjustments for every coach; reject extra edits without ending the event, preserve confirmation after reverting an illegal final formation, and let the computer coach finish Solid Defence and Charge without retained plans. Offer Solid Defence placements and swaps only for selected players, including during interrupted stages. End runaway turns with match-specific diagnostics.
 
