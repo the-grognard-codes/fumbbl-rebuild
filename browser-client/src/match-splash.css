@@ -53,10 +53,20 @@
 .match-splash-ribbon { transform-origin: left center; } .match-splash-shade[data-team=away] .match-splash-ribbon { transform-origin: right center; }
 .match-splash-halfTime .match-splash-ribbon, .match-splash-fullTime[data-code=DRAW] .match-splash-ribbon { border: 0; background: linear-gradient(90deg, var(--splash-left) 50%, var(--splash-right) 50%) top / 100% 6px no-repeat, linear-gradient(90deg, var(--splash-left) 50%, var(--splash-right) 50%) bottom / 100% 6px no-repeat; }
 .play-runtime .match-splash-shade .match-splash-kickoff:not([data-weather]) .match-splash-icon { animation-name: splash-flip; }
+.play-runtime .match-splash-shade :is(.match-splash-halfTime, .match-splash-fullTime) .match-splash-icon {
+  animation-name: splash-whistle;
+  animation-timing-function: steps(5);
+}
 .play-runtime .match-splash-shade .match-splash-fullTime .match-splash-reason { padding: 12px; background: #070d16; border: 1px solid #40637e; font-variant-numeric: tabular-nums; animation-name: splash-impact; }
 @keyframes splash-flip { from { transform: rotate(-90deg) scale(.5); opacity: 0; } to { transform: rotate(0) scale(1); opacity: 1; } }
+@keyframes splash-whistle {
+  from { transform: translateY(-12px) rotate(-16deg) scale(.78); opacity: 0; }
+  65% { transform: translateY(1px) rotate(5deg) scale(1.06); opacity: 1; }
+  to { transform: translateY(0) rotate(0) scale(1); opacity: 1; }
+}
 @media(prefers-reduced-motion: reduce) {
   .play-runtime .match-splash-shade .match-splash-kickoff:not([data-weather]) .match-splash-icon,
+  .play-runtime .match-splash-shade :is(.match-splash-halfTime, .match-splash-fullTime) .match-splash-icon,
   .play-runtime .match-splash-shade .match-splash-fullTime .match-splash-reason { animation: none; }
 }
 
@@ -118,9 +128,16 @@
 @media(prefers-reduced-motion: reduce) { .play-runtime .match-splash-shade .match-splash-touchdown .match-splash-reason { animation: none; } }
 .match-splash-burst { inset: 16px 0 48%; }
 .match-splash-weather-fx { inset: 16px 0 auto; height: 40%; }
-.play-runtime .match-splash-shade .match-splash[data-weather] .match-splash-icon { width: clamp(100px, 12vw, 150px); height: 48px; }
+.play-runtime .match-splash-shade .match-splash[data-weather] .match-splash-icon {
+  width: clamp(110px, 13vw, 170px);
+  height: auto;
+  aspect-ratio: 100 / 32;
+}
+.match-splash[data-weather] .match-splash-icon img {
+  mask-image: radial-gradient(ellipse closest-side, black 47%, rgb(0 0 0 / .86) 67%, rgb(0 0 0 / .38) 86%, transparent 100%);
+}
 .match-splash-weather-condition { display: block; color: #edf5ff; }
 .match-splash-weather-condition + span { display: block; margin-top: 4px; }
 :is(.match-splash-halfTime, .match-splash-fullTime[data-code=DRAW]) .match-splash-ribbon::before { outline: 1px solid var(--splash-left-outline); }
 :is(.match-splash-halfTime, .match-splash-fullTime[data-code=DRAW]) .match-splash-ribbon::after { outline: 1px solid var(--splash-right-outline); }
-@media(max-height:500px) { .play-runtime .match-splash-shade .match-splash[data-weather] .match-splash-icon { width:100px; height:32px; } }
+@media(max-height:500px) { .play-runtime .match-splash-shade .match-splash[data-weather] .match-splash-icon { width:100px; } }

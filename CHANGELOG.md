@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Use a shared sports whistle animation on the half-time and End of Regulation cards, and blend weather artwork into its animated background.
+
 - Label the final whistle “End of Regulation,” give kickoff events individual emblems, and show the resulting condition in a single Changing Weather splash.
 
 - Show touchdown scores in two columns so each number is clearly paired with its team.

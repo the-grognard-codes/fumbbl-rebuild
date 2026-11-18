@@ -1,6 +1,10 @@
 # Match event emblems
 
-These assets are used in the #565 match splashes. The existing mole referee from Argue the Call is reused for Get the Ref. Changing Weather uses the existing sprite for the resulting condition. Half-time and End of Regulation share the original geometric whistle.
+These assets are used in the #565 match splashes. The existing mole referee from Argue the Call is reused for Get the Ref. Weather cards and Changing Weather soften the edges of the existing condition sprites over the animated effects. Half-time and End of Regulation share a metal sports whistle with the same animation.
+
+`whistle.png` was created with the built-in ImageGen tool and exported to a transparent 192×192 canvas. The generation prompt follows.
+
+Create a single original emblem for a fantasy sports match event card: a recognizable normal modern metal referee pea whistle, a handheld sports whistle, with a straight short mouthpiece and rounded resonator body showing the rectangular air opening, and a small metal attachment ring. Three-quarter side view, diagonal with mouthpiece toward upper right, readable blocky silhouette at 42 pixels. Brushed silver and pale cool highlights with dark navy pixel outlines and a hint of warm reflection. Chunky hand-placed 16-bit pixel art, crisp block pixels, compact centered composition with a generous transparent perimeter, on true alpha transparent background. No text, no letters, no logo, no lanyard, no sound lines, no framing or scenery.
 
 ## Kickoff art export
 

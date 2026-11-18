@@ -16,6 +16,12 @@ try {
   await page.locator('.match-splash').waitFor(); await page.evaluate(() => document.fonts.ready);
   for (const kind of (process.env.SPLASH_KINDS?.split(',') ?? ['touchdown','turnover','turnStart','kickoff','weather','halfTime','fullTime'])) {
    await page.getByLabel('Event', {exact:true}).selectOption(kind);
+   if (kind === 'halfTime' || kind === 'fullTime') {
+    const icon = page.locator('.match-splash-icon');
+    await icon.locator('img').evaluate(img => img.decode());
+    assert.match(await icon.locator('img').getAttribute('src'), /\/whistle\.png$/);
+    assert.equal(await icon.evaluate(node => getComputedStyle(node).animationName), 'splash-whistle');
+   }
    const properties = await page.locator('.match-splash-shade').evaluate(node => node.getAnimations({subtree:true}).flatMap(animation => animation.effect.getKeyframes().flatMap(frame => Object.keys(frame))));
    assert.ok(properties.every(property => ['offset','computedOffset','easing','composite','opacity','transform'].includes(property)), 'Splash keyframes animate only transform and opacity');
    for (const time of [0,150,350,500,700,1300]) {

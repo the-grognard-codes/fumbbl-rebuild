@@ -56,7 +56,7 @@ export function MatchSplash({ announcement, onDismiss, hold, exiting, rate, icon
   const weatherSprite = weatherCode && weatherPresentation(weatherCode).sprite;
   const weatherTint: Record<string, string> = { SWELTERING_HEAT: '#ef9847', VERY_SUNNY: '#ffe17b', NICE: '#49beae', POURING_RAIN: '#9bbdd2', BLIZZARD: '#edf5ff' };
   const emblem = weatherSprite ? `weather/weather_${weatherSprite}.png`
-    : announcement.kind === 'kickoff' ? kickoffEmblems[announcement.code ?? ''] : ['halfTime', 'fullTime'].includes(announcement.kind) ? 'match-events/whistle.svg' : null;
+    : announcement.kind === 'kickoff' ? kickoffEmblems[announcement.code ?? ''] : ['halfTime', 'fullTime'].includes(announcement.kind) ? 'match-events/whistle.png' : null;
   const accent = neutral ? weatherTint[weatherCode ?? ''] ?? '#edb644'
     : colors?.accent ?? teamColorRamps.find(ramp => ramp.id === kit?.primary)?.colors[9] ?? '#edb644';
   const secondary = neutral ? '#426c9b' : colors?.secondary ?? teamColorRamps.find(ramp => ramp.id === kit?.secondary)?.colors[12] ?? '#426c9b';
