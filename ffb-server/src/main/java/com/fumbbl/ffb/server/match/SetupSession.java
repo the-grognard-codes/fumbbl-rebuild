@@ -11,7 +11,6 @@ import com.fumbbl.ffb.TurnMode;
 import com.fumbbl.ffb.dialog.DialogBriberyAndCorruptionParameter;
 import com.fumbbl.ffb.dialog.DialogBribesParameter;
 import com.fumbbl.ffb.dialog.DialogKickSkillParameter;
-import com.fumbbl.ffb.dialog.DialogPlayerChoiceParameter;
 import com.fumbbl.ffb.dialog.DialogReRollPropertiesParameter;
 import com.fumbbl.ffb.dialog.DialogReceiveChoiceParameter;
 import com.fumbbl.ffb.dialog.DialogSetupErrorParameter;
@@ -21,7 +20,6 @@ import com.fumbbl.ffb.inducement.Inducement;
 import com.fumbbl.ffb.inducement.Usage;
 import com.fumbbl.ffb.mechanics.GameMechanic;
 import com.fumbbl.ffb.mechanics.Mechanic;
-import com.fumbbl.ffb.model.FieldModel;
 import com.fumbbl.ffb.model.Game;
 import com.fumbbl.ffb.model.Player;
 import com.fumbbl.ffb.model.Team;
@@ -54,7 +52,6 @@ import com.fumbbl.ffb.server.step.generator.EndGame;
 import com.fumbbl.ffb.server.step.generator.SequenceGenerator;
 import com.fumbbl.ffb.server.step.generator.StartGame;
 import com.fumbbl.ffb.server.team.bb2025.TeamFormations;
-import com.fumbbl.ffb.server.util.UtilServerSetup;
 import com.fumbbl.ffb.server.util.UtilSkillBehaviours;
 import com.fumbbl.ffb.util.UtilBox;
 
@@ -83,7 +80,7 @@ public final class SetupSession {
 	public static final String CHAT_RUNTIME = "ffb-3.4.0-bb2025-r5.3";
 	public static final String STAGED_RUNTIME = "ffb-3.4.0-bb2025-r5.4";
 	public static final int STAGED_RECOVERY_VERSION = 7;
-	private StagedPlacements staging;
+	private final SetupStaging staging;
 	private boolean defaultSetup;
 	private boolean saveResume;
 	private boolean transcriptV2;
@@ -108,7 +105,6 @@ public final class SetupSession {
 	private int replayBytes;
 	private final JsonArray events = new JsonArray();
 	private final DecisionLimit decisionLimit = new DecisionLimit();
-    private int stagedDecisionsInPeriod;
 	private final MatchDocument document;
 	private boolean failed;
 	private RecoveryDice recoveryDice;
@@ -160,7 +156,6 @@ public final class SetupSession {
 	SetupSession(FantasyFootballServer server, MatchDocument document, long engineId, boolean recoverable,
 		boolean defaultSetup, boolean saveResume, boolean transcriptV2, boolean routeV2, boolean chatV1, boolean staged) {
 		if (staged && !chatV1) throw new IllegalArgumentException("Staging requires the current checkpoint runtime");
-		if (staged) staging = new StagedPlacements();
 		if (defaultSetup && !recoverable) throw new IllegalArgumentException("Default setup requires a versioned recovery lifetime");
 		if (saveResume && !recoverable) throw new IllegalArgumentException("Save/resume requires a versioned recovery lifetime");
 		if (transcriptV2 && !recoverable) throw new IllegalArgumentException("Transcript requires a versioned recovery lifetime");
@@ -185,6 +180,7 @@ public final class SetupSession {
 			@Override public void observeTurnEnd(Player<?> scorer, boolean halfEnded) { announcements.end(getGame(), scorer, halfEnded); announcements.flush(this); }
 			@Override public void observePlayableTurn() { announcements.playable(getGame()); announcements.flush(this); }
 		};
+		staging = staged ? new SetupStaging(state, document, this::mechanic) : null;
 		if (recoverable) {
 			recoveryDice = new RecoveryDice();
 			state.getDiceRoller().setRecoveryRoll(recoveryDice::roll);
@@ -219,12 +215,13 @@ public final class SetupSession {
 		recordEvent("START", "system", JsonValue.NULL);
 	}
 
-	/** Recovery uses native deserialization only: never start a sequence or execute a command. */
-	public SetupSession(FantasyFootballServer server, MatchDocument document, String artifact) {
-		this(server, document, artifact, false);
+	public static SetupSession startRecoverable(FantasyFootballServer server, MatchDocument document, long engineId,
+		boolean defaultSetup, boolean saveResume) {
+		return new SetupSession(server, document, engineId, true, defaultSetup, saveResume, true, true, true, true);
 	}
 
-	SetupSession(FantasyFootballServer server, MatchDocument document, String artifact, boolean requireStaged) {
+	/** Recovery uses native deserialization only: never start a sequence or execute a command. */
+	public SetupSession(FantasyFootballServer server, MatchDocument document, String artifact) {
 		this.document = document;
 		matchId = document.matchId;
 		state = new GameState(server) {
@@ -240,6 +237,11 @@ public final class SetupSession {
 			JsonObject payload = envelope.get("payload").asObject();
 			if (envelope.size() != 2 || !new JsonDigest().sha256(payload).equals(envelope.getString("sha256", null)))
 				throw new IllegalArgumentException("Recovery checksum mismatch");
+			if (payload.getInt("recoveryVersion", -1) != STAGED_RECOVERY_VERSION
+				|| !STAGED_RUNTIME.equals(payload.getString("runtimeVersion", null))
+				|| !"ffb-3.4.0-bb2025-m3d.1".equals(payload.getString("engineVersion", null))
+				|| payload.getInt("replayVersion", -1) != 2)
+				throw new MatchService.Failure("RECOVERY_UNSUPPORTED");
 			JsonValue savedAnnouncements = payload.get("matchAnnouncements");
 			if (savedAnnouncements != null) payload.remove("matchAnnouncements");
 			JsonValue savedBlockPresentation = payload.get("blockPresentation");
@@ -257,35 +259,20 @@ public final class SetupSession {
 				if (reactionVersion.asInt() != 1) throw new IllegalArgumentException("Unsupported reaction version");
 				payload.remove("reactionVersion");
 			}
-			int recoveryVersion = payload.getInt("recoveryVersion", -1);
-			String runtime = payload.getString("runtimeVersion", null);
-			boolean r2 = recoveryVersion == 2 && (LEGACY_RUNTIME.equals(runtime) || DEFAULT_SETUP_RUNTIME.equals(runtime));
-			boolean r41 = recoveryVersion == 3 && SAVE_RESUME_RUNTIME.equals(runtime);
-			boolean r51 = recoveryVersion == 4 && TRANSCRIPT_RUNTIME.equals(runtime);
-			boolean r52 = recoveryVersion == 5 && ROUTE_RUNTIME.equals(runtime);
-			boolean r54 = recoveryVersion == STAGED_RECOVERY_VERSION && STAGED_RUNTIME.equals(runtime);
-			if (requireStaged && !r54) throw new MatchService.Failure("RECOVERY_UNSUPPORTED");
-			if (r54) staging = new StagedPlacements();
-			boolean r53 = r54 || recoveryVersion == 6 && CHAT_RUNTIME.equals(runtime);
-			if ((!r2 && !r41 && !r51 && !r52 && !r53)
-				|| !"ffb-3.4.0-bb2025-m3d.1".equals(payload.getString("engineVersion", null))
-				|| payload.getInt("replayVersion", -1) != (r51 || r52 || r53 ? 2 : 1))
-				throw new MatchService.Failure("RECOVERY_UNSUPPORTED");
-			defaultSetup = !LEGACY_RUNTIME.equals(runtime);
-			saveResume = r41 || (r51 || r52 || r53) && payload.getBoolean("saveResumeEnabled", false);
-			transcriptV2 = r51 || r52 || r53;
-			routeV2 = r52 || r53;
-			chatV1 = r53;
+			staging = new SetupStaging(state, document, this::mechanic);
+			defaultSetup = payload.getBoolean("defaultSetupEnabled", true);
+			payload.remove("defaultSetupEnabled");
+			saveResume = payload.getBoolean("saveResumeEnabled", false);
+			transcriptV2 = true;
+			routeV2 = true;
+			chatV1 = true;
 			JsonValue activationVersion = payload.get("activationVersion");
 			if (activationVersion != null) {
-				if (!routeV2 || activationVersion.asInt() != 1) throw new IllegalArgumentException("Unsupported activation version");
+				if (activationVersion.asInt() != 1) throw new IllegalArgumentException("Unsupported activation version");
 				payload.remove("activationVersion");
 			}
 			JsonValue savedActivation = payload.get("pendingActivation");
-			if (savedActivation != null) {
-				if (!routeV2) throw new IllegalArgumentException("Unexpected pending activation");
-				payload.remove("pendingActivation");
-			}
+			if (savedActivation != null) payload.remove("pendingActivation");
             JsonValue savedKickoff = payload.get("confirmedKickoff");
             if (savedKickoff != null) {
                 confirmedKickoff = savedKickoff.asObject();
@@ -298,33 +285,17 @@ public final class SetupSession {
                     if (!ids.add(id.asString())) throw new IllegalArgumentException("Duplicate kickoff participant");
                 payload.remove("confirmedKickoff");
             }
-			if (r2) exactRecovery(payload, "recoveryVersion", "runtimeVersion", "engineVersion", "replayVersion", "matchId", "frozen",
-				"revision", "drive", "failed", "native", "dice", "testRolls", "turnTimeStarted", "lastCommandNr", "history",
-				"kickoffSelection", "eventsJson", "pendingTerminal", "homeView", "awayView");
-			else if (r41) exactRecovery(payload, "recoveryVersion", "runtimeVersion", "engineVersion", "replayVersion", "matchId", "frozen",
-				"revision", "drive", "failed", "native", "dice", "testRolls", "turnTimeStarted", "lastCommandNr", "history",
-				"kickoffSelection", "eventsJson", "pendingTerminal", "homeView", "awayView", "saveResume");
-			else if (r51) exactRecovery(payload, "recoveryVersion", "runtimeVersion", "engineVersion", "replayVersion", "matchId", "frozen",
+			String[] base = { "recoveryVersion", "runtimeVersion", "engineVersion", "replayVersion", "matchId", "frozen",
 				"revision", "drive", "failed", "native", "dice", "testRolls", "turnTimeStarted", "lastCommandNr", "history",
 				"kickoffSelection", "eventsJson", "pendingTerminal", "homeView", "awayView", "saveResumeEnabled", "transcript",
-				"saveResume");
-			else if (r52) exactRecovery(payload, "recoveryVersion", "runtimeVersion", "engineVersion", "replayVersion", "matchId", "frozen",
-				"revision", "drive", "failed", "native", "dice", "testRolls", "turnTimeStarted", "lastCommandNr", "history",
-				"kickoffSelection", "eventsJson", "pendingTerminal", "homeView", "awayView", "saveResumeEnabled", "transcript",
-				"saveResume", "pendingRoute");
+				"saveResume", "pendingRoute", "chat" };
+			if (payload.get("clock") == null) exactRecovery(payload, base);
 			else {
-				String[] base = { "recoveryVersion", "runtimeVersion", "engineVersion", "replayVersion", "matchId", "frozen",
-					"revision", "drive", "failed", "native", "dice", "testRolls", "turnTimeStarted", "lastCommandNr", "history",
-					"kickoffSelection", "eventsJson", "pendingTerminal", "homeView", "awayView", "saveResumeEnabled", "transcript",
-					"saveResume", "pendingRoute", "chat" };
-				if (payload.get("clock") == null) exactRecovery(payload, base);
-				else {
-					String[] withClock = java.util.Arrays.copyOf(base, base.length + 1);
-					withClock[base.length] = "clock";
-					exactRecovery(payload, withClock);
-				}
+				String[] withClock = java.util.Arrays.copyOf(base, base.length + 1);
+				withClock[base.length] = "clock";
+				exactRecovery(payload, withClock);
 			}
-			if ((r51 || r52 || r53) && !saveResume && !payload.get("saveResume").isNull())
+			if (!saveResume && !payload.get("saveResume").isNull())
 				throw new IllegalArgumentException("Unexpected save/resume state");
 			if (!matchId.equals(payload.getString("matchId", null)) || !ordered(frozen()).equals(payload.get("frozen")))
 				throw new IllegalArgumentException("Recovery frozen inputs differ");
@@ -342,7 +313,7 @@ public final class SetupSession {
 			if (savedReaction != null && !savedReaction.isNull()) reactiveDecision.restore(savedReaction.asObject());
 			UtilSkillBehaviours.registerBehaviours(state.getGame(), server.getDebugLog());
 			state.setTurnTimeStarted(payload.get("turnTimeStarted").asLong());
-			if (r53 && payload.get("clock") != null) {
+			if (payload.get("clock") != null) {
 				JsonObject clock = payload.get("clock").asObject();
 				exactRecovery(clock, "homeUsedMs", "awayUsedMs");
 				homeReserveUsedMs = clock.get("homeUsedMs").asLong();
@@ -385,15 +356,13 @@ public final class SetupSession {
 			if (replayBytes > MAX_MATCH_ARTIFACT_BYTES || events.size() != revision + 1
 				|| payload.get("pendingTerminal").asBoolean() != isComplete()) throw new IllegalArgumentException("Recovery event boundary");
 			if (saveResume) saveResumeState = new SaveResumeState(payload.get("saveResume").asObject());
-			if (r51 || r52 || r53) {
-				transcript = new MatchTranscript(payload.get("transcript").asObject());
-				if (transcript.size() != revision + 1 || transcript.nativeCursor() > state.getLastCommandNr())
-					throw new IllegalArgumentException("Transcript checkpoint boundary");
-			}
-			if (r53) chat = new MatchChat(payload.get("chat").asObject());
+			transcript = new MatchTranscript(payload.get("transcript").asObject());
+			if (transcript.size() != revision + 1 || transcript.nativeCursor() > state.getLastCommandNr())
+				throw new IllegalArgumentException("Transcript checkpoint boundary");
+			chat = new MatchChat(payload.get("chat").asObject());
 			if (artifactBytes() > MAX_MATCH_ARTIFACT_BYTES - MATCH_ARTIFACT_RESERVE_BYTES)
 				throw new IllegalArgumentException("Recovery match artifact limit");
-			if ((r52 || r53) && !payload.get("pendingRoute").isNull())
+			if (!payload.get("pendingRoute").isNull())
 				pendingRoute = new PendingRoute(payload.get("pendingRoute").asObject());
 			if (savedActivation != null) pendingActivation = new PendingActivation(savedActivation.asObject(), state.getGame());
 			// Older checkpoints could retain a route when its last native command ended the match.
@@ -460,6 +429,7 @@ public final class SetupSession {
 			.add("native", recoveryNative(from == null ? -1 : from[2])).add("dice", recoveryDice.snapshot()).add("testRolls", rolls)
 			.add("turnTimeStarted", state.getTurnTimeStarted()).add("lastCommandNr", state.getLastCommandNr()).add("history", requests).add("kickoffSelection", selections)
 			.add("eventsJson", recoveryEvents(from == null ? 0 : from[1])).add("pendingTerminal", isComplete()).add("homeView", view("home")).add("awayView", view("away"));
+		if (staging != null && !defaultSetup) payload.add("defaultSetupEnabled", false);
 		if (confirmedKickoff != null) payload.add("confirmedKickoff", confirmedKickoff);
 		if (reactiveDecision.pending()) payload.add("reactiveDecision", reactiveDecision.checkpoint());
 		payload.add("reactionVersion", 1);
@@ -730,7 +700,10 @@ public final class SetupSession {
 		String operation = request.getString("operation", null);
 		if (!"action".equals(operation) && !"concede".equals(operation) && !role.equals(actor()))
 			throw new MatchService.Failure("WRONG_ACTOR");
-		if (isStagedRequest(request)) return stage(role, request, key, fingerprint);
+		if (isStagedRequest(request)) {
+			staging.stage(role, request, key, fingerprint, () -> offeredAction(role, request));
+			return reply(id, "ACCEPTED", false, role);
+		}
 		// Reserve 1 MiB for one bounded projection, chat growth, canonical JSON, and the terminal envelope.
 		if (artifactBytes() > MAX_MATCH_ARTIFACT_BYTES - MATCH_ARTIFACT_RESERVE_BYTES)
 			throw new MatchService.Failure("REPLAY_LIMIT");
@@ -738,9 +711,7 @@ public final class SetupSession {
 		ClientCommand command;
 		JsonObject committedBlitz = null;
 		Action reactionAction = null;
-		Player<?> swapTarget = null;
-		FieldCoordinate swapOrigin = null;
-		FieldCoordinate swapBuffer = null;
+		SetupPlayerPlacement setupPlacement = null;
 		Game game = state.getGame();
         NativeRollPresentation rollPresentation = new NativeRollPresentation(state);
         AcceptedActionPresentation narrative = new AcceptedActionPresentation();
@@ -811,16 +782,8 @@ public final class SetupSession {
                 return reply(id, "ACCEPTED", false, role);
             }
             if ("confirm-solid-defence".equals(selected.id)) {
-                IDialogParameter previous = game.getDialogParameter();
-                if (staging != null) {
-                    JsonArray errors = stagedSetupErrors(state.getKickingSwarmers());
-                    if (!errors.isEmpty()) return reply(id, "ILLEGAL_SETUP", false, role, errors);
-                } else if (!mechanic().checkSetup(state, game.isHomePlaying(), state.getKickingSwarmers())) {
-                    JsonArray setupErrors = setupErrors(game.getDialogParameter());
-                    game.setDialogParameter(previous);
-                    history.put(key, new Record(fingerprint, "ILLEGAL_SETUP", setupErrors));
-                    return reply(id, "ILLEGAL_SETUP", false, role, setupErrors);
-                }
+                JsonObject rejection = rejectIllegalSetup(id, role, key, fingerprint, state.getKickingSwarmers());
+                if (rejection != null) return rejection;
             }
         } else if ("choice".equals(operation)) {
 			if (!promptId().equals(request.getString("promptId", null))) throw new MatchService.Failure("PROMPT_MISMATCH");
@@ -837,52 +800,12 @@ public final class SetupSession {
             command = null;
         } else if ("place".equals(operation)) {
 			if (step() != StepId.SETUP) throw new MatchService.Failure("WRONG_PHASE");
-			Player<?> player = game.getPlayerById(request.getString("playerId", null));
-			Team team = "home".equals(role) ? game.getTeamHome() : game.getTeamAway();
-			if (player == null || !team.hasPlayer(player)) throw new MatchService.Failure("WRONG_PLAYER");
-			if (!game.getFieldModel().getPlayerState(player).canBeMovedDuringSetup())
-				throw new MatchService.Failure("ILLEGAL_PLACEMENT");
-			JsonValue to = request.get("to");
-			FieldCoordinate coordinate;
-			if (to.isNull()) {
-				int box = "home".equals(role) ? FieldCoordinate.RSV_HOME_X : FieldCoordinate.RSV_AWAY_X;
-				int y = 0;
-				while (game.getFieldModel().getPlayer(new FieldCoordinate(box, y)) != null) y++;
-				coordinate = new FieldCoordinate(box, y);
-			}
-			else {
-				coordinate = new FieldCoordinate(to.asObject().get("x").asInt(), to.asObject().get("y").asInt());
-				FieldCoordinateBounds half = "home".equals(role) ? FieldCoordinateBounds.HALF_HOME : FieldCoordinateBounds.HALF_AWAY;
-				if (!half.isInBounds(coordinate))
-					throw new MatchService.Failure("ILLEGAL_PLACEMENT");
-				Player<?> occupant = game.getFieldModel().getPlayer(coordinate);
-				if (occupant != null) {
-					FieldCoordinate origin = game.getFieldModel().getPlayerCoordinate(player);
-					if (!team.hasPlayer(occupant) || !half.isInBounds(origin) || occupant == player
-						|| !game.getFieldModel().getPlayerState(occupant).canBeMovedDuringSetup())
-						throw new MatchService.Failure("ILLEGAL_PLACEMENT");
-					swapTarget = occupant;
-					swapOrigin = origin;
-					int box = "home".equals(role) ? FieldCoordinate.RSV_HOME_X : FieldCoordinate.RSV_AWAY_X;
-					int row = 0;
-					while (game.getFieldModel().getPlayer(new FieldCoordinate(box, row)) != null) row++;
-					swapBuffer = new FieldCoordinate(box, row);
-				}
-			}
-			command = new ClientCommandSetupPlayer(player.getId(), "home".equals(role) ? coordinate : coordinate.transform());
+			setupPlacement = new SetupPlayerPlacement(game, role, request);
+			command = setupPlacement.command();
 		} else if ("confirm".equals(operation)) {
 			if (step() != StepId.SETUP) throw new MatchService.Failure("WRONG_PHASE");
-			// The retained engine checks the exact current formation. Restore its temporary error dialog on rejection.
-			IDialogParameter previous = game.getDialogParameter();
-			if (staging != null) {
-				JsonArray errors = stagedSetupErrors(0);
-				if (!errors.isEmpty()) return reply(id, "ILLEGAL_SETUP", false, role, errors);
-			} else if (!mechanic().checkSetup(state, game.isHomePlaying())) {
-				JsonArray setupErrors = setupErrors(game.getDialogParameter());
-				game.setDialogParameter(previous);
-				history.put(key, new Record(fingerprint, "ILLEGAL_SETUP", setupErrors));
-				return reply(id, "ILLEGAL_SETUP", false, role, setupErrors);
-			}
+			JsonObject rejection = rejectIllegalSetup(id, role, key, fingerprint, 0);
+			if (rejection != null) return rejection;
 			command = new ClientCommandEndTurn(TurnMode.SETUP, null);
 		} else throw new MatchService.Failure("INVALID_REQUEST");
 		int oldHalf = game.getHalf();
@@ -896,12 +819,8 @@ public final class SetupSession {
 		String oldActor = actor();
 		try {
 			// Commit a verified overlay only for its confirming native command.
-			if (staging != null) {
-				if ("confirm".equals(operation) || reactionAction != null && (
-					"confirm-solid-defence".equals(reactionAction.id) || "end-event".equals(reactionAction.id)))
-					staging.commit(game.getFieldModel());
-				staging.clear();
-			}
+			if (staging != null) staging.finish("confirm".equals(operation) || (reactionAction != null
+				&& ("confirm-solid-defence".equals(reactionAction.id) || "end-event".equals(reactionAction.id))));
 			// No legacy socket is registered for these private engine IDs. Authorization above is persisted-role based.
 			blockPresentation.prepare(state, command);
 			announcements.prepare(game, command);
@@ -928,13 +847,8 @@ public final class SetupSession {
                 new SavedFormationDeployment().apply(state, "home".equals(role), frozen,
                     savedFormations().get(request.getInt("formationIndex", -1)), document.computer != null && "away".equals(role));
             } else if (command != null) {
-				if (swapTarget != null) {
-					boolean home = "home".equals(role);
-					state.handleCommand(new ReceivedCommand(new ClientCommandSetupPlayer(
-						request.getString("playerId", null), home ? swapBuffer : swapBuffer.transform()), home));
-					state.handleCommand(new ReceivedCommand(new ClientCommandSetupPlayer(
-						swapTarget.getId(), home ? swapOrigin : swapOrigin.transform()), home));
-				}
+				if (setupPlacement != null)
+					setupPlacement.prepareSwap(move -> state.handleCommand(new ReceivedCommand(move, "home".equals(role))));
 				if (routeV2 && (reactionAction == null || !reactionAction.kind.startsWith("reaction") && !reactionAction.kind.startsWith("reactive") && !"onTheBall".equals(reactionAction.kind))) {
 					if (!new PlayerActivation(state).handle(command, role))
 						pendingActivation = new PendingActivation(role, (ClientCommandActingPlayer) command, game);
@@ -991,31 +905,13 @@ public final class SetupSession {
 
 	boolean usesStagedPlacements() { return staging != null; }
 
-	boolean isStagedRequest(JsonObject request) {
-		if (staging == null) return false;
-		String operation = request.getString("operation", "");
-		if ("place".equals(operation) || "formation".equals(operation)) return true;
-		if (!"action".equals(operation)) return false;
-		String id = request.getString("actionId", "");
-		String action = id.substring(id.indexOf(':') + 1);
-		if (step() != StepId.APPLY_KICKOFF_RESULT) return false;
-		Game game = state.getGame();
-		TurnMode mode = game.getTurnMode();
-		if (mode == TurnMode.SOLID_DEFENCE) return action.startsWith("solid-place:") || action.startsWith("event-pick:");
-		if (mode == TurnMode.QUICK_SNAP || mode == TurnMode.HIGH_KICK)
-			return action.startsWith("event-") && !"event-confirm".equals(action);
-		return action.startsWith("event-pick:") && game.getDialogParameter() instanceof DialogPlayerChoiceParameter dialog
-			&& (dialog.getPlayerChoiceMode() == PlayerChoiceMode.SOLID_DEFENCE
-				|| dialog.getPlayerChoiceMode() == PlayerChoiceMode.QUICK_SNAP || dialog.getPlayerChoiceMode() == PlayerChoiceMode.CHARGE);
-	}
+	boolean isStagedRequest(JsonObject request) { return staging != null && staging.isStagedRequest(request); }
 
 	JsonObject stagedPlacement() { return staging.message(matchId, revision); }
 
 	private Action offeredAction(String role, JsonObject request) {
 		String id = request.getString("actionId", null);
-		Game game = state.getGame();
-		List<Action> available = staging == null ? actions() : staging.project(game.getFieldModel(),
-			() -> actions(new KickoffBudgetLookup().find(state), true));
+		List<Action> available = staging == null ? actions() : staging.project(this::liveActions);
 		for (Action option : available) if (actionId(option).equals(id)) {
 			if (!role.equals(option.role)) throw new MatchService.Failure("WRONG_ACTOR");
 			return option;
@@ -1023,159 +919,36 @@ public final class SetupSession {
 		throw new MatchService.Failure("INVALID_OPTION");
 	}
 
-	private JsonObject stage(String role, JsonObject request, String key, String fingerprint) {
-		Game game = state.getGame();
-		boolean setup = step() == StepId.SETUP;
-		boolean home = "home".equals(role);
-		Team team = home ? game.getTeamHome() : game.getTeamAway();
-		String operation = request.getString("operation", "");
-		FieldModel field = game.getFieldModel();
-		if (staging.exhausted(setup)) throw new MatchService.Failure("INVALID_OPTION");
-		if ("action".equals(operation)) {
-			Action option = offeredAction(role, request);
-			if (request.get("playerIds") != null) throw new MatchService.Failure("INVALID_OPTION");
-			if (option.id.startsWith("event-pick:")) staging.toggle(option.targetPlayerId);
-			else if (option.command instanceof ClientCommandSetupPlayer move) {
-				staging.adjust(field, team, () -> {
-					if (game.getTurnMode() == TurnMode.SOLID_DEFENCE) {
-						Player<?> player = game.getPlayerById(move.getPlayerId());
-						FieldCoordinate to = option.targetSquare;
-						Player<?> occupant = field.getPlayer(to);
-						if (occupant != null) field.setPlayerCoordinate(occupant, field.getPlayerCoordinate(player));
-						if (FieldCoordinateBounds.FIELD.isInBounds(field.getPlayerCoordinate(player))) field.setPlayerCoordinate(player, to);
-						else UtilServerSetup.setupPlayer(state, move.getPlayerId(), move.getCoordinate());
-					} else UtilServerSetup.setupPlayer(state, move.getPlayerId(), move.getCoordinate());
-				});
-			} else throw new MatchService.Failure("INVALID_OPTION");
-			stagedDecisionsInPeriod++;
-		} else {
-			if (!setup || game.getTurnMode() != TurnMode.SETUP) throw new MatchService.Failure("WRONG_PHASE");
-			staging.adjust(field, team, () -> {
-				if ("formation".equals(operation)) {
-					int index = request.getInt("formationIndex", -1);
-					List<TeamFormations.Formation> forms = savedFormations();
-					if (index < 0 || index >= forms.size()) throw new MatchService.Failure("INVALID_OPTION");
-					new SavedFormationDeployment().apply(state, home, frozenTeam(role), forms.get(index), true, true);
-				} else stageSetupPlayer(role, request);
-			});
-		}
-		staging.record(key, fingerprint);
-		if (staging.exhausted(setup) && (setup || game.getTurnMode() == TurnMode.SOLID_DEFENCE)
-			&& !stagedSetupErrors(setup ? 0 : state.getKickingSwarmers()).isEmpty()) {
-			staging.revert();
-			if (setup && !stagedSetupErrors(0).isEmpty())
-				staging.adjust(field, team, () -> deployStagedDefault(role, true));
-		}
-		return reply(request.getString("requestId", null), "ACCEPTED", false, role);
-	}
-
-	private void stageSetupPlayer(String role, JsonObject request) {
-		Game game = state.getGame();
-		boolean home = "home".equals(role);
-		FieldModel field = game.getFieldModel();
-		Team team = home ? game.getTeamHome() : game.getTeamAway();
-		Player<?> player = game.getPlayerById(request.getString("playerId", null));
-		if (player == null || !team.hasPlayer(player)) throw new MatchService.Failure("WRONG_PLAYER");
-		if (!field.getPlayerState(player).canBeMovedDuringSetup()) throw new MatchService.Failure("ILLEGAL_PLACEMENT");
-		FieldCoordinateBounds half = home ? FieldCoordinateBounds.HALF_HOME : FieldCoordinateBounds.HALF_AWAY;
-		FieldCoordinate from = field.getPlayerCoordinate(player);
-		JsonValue target = request.get("to");
-		FieldCoordinate to;
-		if (target.isNull()) {
-			if (!half.isInBounds(from)) throw new MatchService.Failure("ILLEGAL_PLACEMENT");
-			to = reserveSquare(field, home);
-		} else {
-			JsonObject square = target.asObject();
-			to = new FieldCoordinate(square.get("x").asInt(), square.get("y").asInt());
-			if (!half.isInBounds(to) || to.equals(from)) throw new MatchService.Failure("ILLEGAL_PLACEMENT");
-			Player<?> occupant = field.getPlayer(to);
-			if (occupant != null) {
-				if (!team.hasPlayer(occupant) || !half.isInBounds(from)
-					|| !field.getPlayerState(occupant).canBeMovedDuringSetup()) throw new MatchService.Failure("ILLEGAL_PLACEMENT");
-				placeSetupPlayer(player, reserveSquare(field, home), home);
-				placeSetupPlayer(occupant, from, home);
-			}
-		}
-		placeSetupPlayer(player, to, home);
-	}
-
-	private FieldCoordinate reserveSquare(FieldModel field, boolean home) {
-		int box = home ? FieldCoordinate.RSV_HOME_X : FieldCoordinate.RSV_AWAY_X;
-		int row = 0;
-		while (field.getPlayer(new FieldCoordinate(box, row)) != null) row++;
-		return new FieldCoordinate(box, row);
-	}
-
-	private void placeSetupPlayer(Player<?> player, FieldCoordinate square, boolean home) {
-		UtilServerSetup.setupPlayer(state, player.getId(), home ? square : square.transform());
-	}
-
-	private JsonArray stagedSetupErrors(int swarmers) {
-		return staging.project(state.getGame().getFieldModel(), () -> {
-			JsonArray errors = new JsonArray();
-			new com.fumbbl.ffb.server.mechanic.bb2025.SetupMechanic()
-				.setupErrors(state, state.getGame().isHomePlaying(), swarmers).forEach(errors::add);
-			return errors;
-		});
-	}
-
-	private FrozenTeam frozenTeam(String role) {
-		return "home".equals(role) ? document.home.team : document.away.team;
-	}
-
-	private void deployStagedDefault(String role, boolean quiet) {
-		FrozenTeam frozen = frozenTeam(role);
-		boolean home = "home".equals(role);
-		List<TeamFormations.Formation> group = savedFormations();
-		List<Integer> jerseys = frozen.players.stream().map(player -> player.jerseyNumber > 0 ? player.jerseyNumber : player.slot).toList();
-		TeamFormations.Formation formation = group.isEmpty()
-			? new TeamFormations().fallback(jerseys, state.getGame().isSetupOffense()) : group.getFirst();
-		SavedFormationDeployment deployment = new SavedFormationDeployment();
-		deployment.apply(state, home, frozen, formation, true, quiet);
-		if (!new com.fumbbl.ffb.server.mechanic.bb2025.SetupMechanic().setupErrors(state, home, 0).isEmpty())
-			deployment.apply(state, home, frozen, null, true, quiet);
-	}
-
-	/** Future clock enforcement calls this on the worker through the durable confirmation path. */
 	JsonObject forceConfirmStage(long now) {
 		if (staging == null) throw new MatchService.Failure("WRONG_PHASE");
-		Game game = state.getGame();
 		String role = actor();
-		JsonObject request = new JsonObject().add("requestId", "stage-timeout-" + revision).add("expectedRevision", revision);
-		if (step() == StepId.SETUP) {
-			if (!stagedSetupErrors(0).isEmpty())
-				staging.adjust(game.getFieldModel(), game.getActingTeam(), () -> deployStagedDefault(role, true));
-			request.add("operation", "confirm");
-		} else {
-			String id;
-			switch (game.getTurnMode()) {
-				case SOLID_DEFENCE -> {
-					if (!stagedSetupErrors(state.getKickingSwarmers()).isEmpty()) staging.revert();
-					id = "confirm-solid-defence";
-				}
-				case QUICK_SNAP, HIGH_KICK -> id = "end-event";
-				default -> {
-					List<Action> available = actions(new KickoffBudgetLookup().find(state), true);
-					if (available.stream().anyMatch(action -> "event-confirm".equals(action.id))) id = "event-confirm";
-					else if (available.stream().anyMatch(action -> "decline-event".equals(action.id))) id = "decline-event";
-					else throw new MatchService.Failure("WRONG_PHASE");
-				}
-			}
-			request.add("operation", "action").add("actionId", revision + ":" + id);
+		return apply(role, staging.forcedConfirmation(role, revision, this::liveActions), now);
+	}
+
+	private JsonObject rejectIllegalSetup(String id, String role, String key, String fingerprint, int swarmers) {
+		if (staging != null) {
+			JsonArray errors = staging.setupErrors(swarmers);
+			return errors.isEmpty() ? null : reply(id, "ILLEGAL_SETUP", false, role, errors);
 		}
-		return apply(role, request, now);
+		Game game = state.getGame();
+		IDialogParameter previous = game.getDialogParameter();
+		if (mechanic().checkSetup(state, game.isHomePlaying(), swarmers)) return null;
+		JsonArray errors = setupErrors(game.getDialogParameter());
+		game.setDialogParameter(previous);
+		history.put(key, new Record(fingerprint, "ILLEGAL_SETUP", errors));
+		return reply(id, "ILLEGAL_SETUP", false, role, errors);
+	}
+
+	private List<TeamFormations.Formation> savedFormations() {
+		FrozenTeam frozen = "home".equals(actor()) ? document.home.team : document.away.team;
+		return new SavedFormationDeployment().savedFormations(state, frozen);
 	}
 
 	/** Apply ordinary native setup commands as part of the triggering mutation, before checkpoint/ack. */
-    private List<TeamFormations.Formation> savedFormations() {
-        FrozenTeam frozen = "home".equals(actor()) ? document.home.team : document.away.team;
-        return frozen.formations == null ? List.of() : frozen.formations.forReceiving(state.getGame().isSetupOffense());
-    }
-
 	private void deployDefaultSetup() {
 		Game game = state.getGame();
         if (staging != null) {
-            deployStagedDefault(actor(), false);
+            staging.deployDefault(actor(), false);
             return;
         }
         FrozenTeam selectedTeam = "home".equals(actor()) ? document.home.team : document.away.team;
@@ -1254,9 +1027,9 @@ public final class SetupSession {
 
 	private JsonObject liveView(String role) {
 		if (staging == null || staging.sequence() == 0) return view(role);
-		return staging.project(state.getGame().getFieldModel(), () -> {
+		return staging.project(() -> {
 			JsonObject view = view(role, true).add("stageSeq", staging.sequence());
-			if (step() == StepId.SETUP && staging.exhausted(true)) view.add("setupAdjustmentsExhausted", true);
+			if (staging.setupExhausted()) view.add("setupAdjustmentsExhausted", true);
 			return view;
 		});
 	}
@@ -1560,6 +1333,7 @@ public final class SetupSession {
     }
     private String actionId(Action action) { return revision + ":" + action.id; }
     private List<Action> actions() { return actions(new KickoffBudgetLookup().find(state), false); }
+    private List<Action> liveActions() { return actions(new KickoffBudgetLookup().find(state), true); }
 
     private List<Action> actions(KickoffAdjustmentBudget budget, boolean live) {
         if (isComplete()) return java.util.Collections.emptyList();
@@ -1567,7 +1341,7 @@ public final class SetupSession {
         if (result.isEmpty()) {
             if (staging == null) result = new KickoffActions(state, kickoffSelection).actions(budget);
             else result = new KickoffActions(state, live ? staging.selection() : Set.of())
-                .stagedActions(budget, live ? staging.sequence() : 0, live ? staging.movedPlayers().size() : 0);
+                .stagedActions(budget, live ? staging.sequence() : 0, live ? staging.movedCount() : 0);
         }
         if (result.isEmpty()) result = new CorePromptActions(state).actions();
         if (result.isEmpty()) result = new CoreTurnActions(state, routeV2 && activationSequencing).actions();
@@ -1616,7 +1390,7 @@ public final class SetupSession {
             .add("homeTurn", game.getTurnDataHome().getTurnNr()).add("awayTurn", game.getTurnDataAway().getTurnNr());
 		JsonObject kickoff = new KickoffPresentation().project(state, live && staging != null ? staging.selection() : kickoffSelection, budget);
         if (live && staging != null && kickoff != null && "movement".equals(kickoff.getString("stage", null))
-            && game.getTurnMode() != TurnMode.BLITZ) kickoff.set("completed", staging.movedPlayers().size());
+            && game.getTurnMode() != TurnMode.BLITZ) kickoff.set("completed", staging.movedCount());
         if (kickoff == null && confirmedKickoff != null && "CHARGE".equals(confirmedKickoff.getString("event", null))) {
             int count = confirmedKickoff.get("playerIds").asArray().size();
             kickoff = new JsonObject().add("version", 1).add("event", "CHARGE").add("actor", confirmedKickoff.get("actor"))
@@ -1635,8 +1409,7 @@ public final class SetupSession {
     private void endRunawayPeriod(long decisionTime) {
         Game game = state.getGame();
         JsonObject period = periodView();
-        if (!decisionLimit.reached(period, stagedDecisionsInPeriod)) return;
-        stagedDecisionsInPeriod = 0;
+        if (!decisionLimit.reached(period)) return;
         JsonObject kickoff = period.get("kickoff") == null ? null : period.get("kickoff").asObject();
         System.err.println("DECISION_LIMIT matchId=" + matchId + " limit=" + DecisionLimit.MAX_DECISIONS);
         pendingRoute = null;
@@ -1667,7 +1440,6 @@ public final class SetupSession {
         JsonObject event = new JsonObject().add("revision", revision).add("kind", kind).add("state", snapshot);
         replayBytes += event.toString().getBytes(java.nio.charset.StandardCharsets.UTF_8).length;
         events.add(event);
-        if (!decisionLimit.samePeriod(snapshot)) stagedDecisionsInPeriod = 0;
         decisionLimit.recorded(kind, snapshot);
         if (transcriptV2) {
             NativeOutcomeCapture.Capture capture = new NativeOutcomeCapture().since(state.getGameLog(), transcript.nativeCursor(), rollPresentation);

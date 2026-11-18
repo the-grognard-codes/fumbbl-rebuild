@@ -208,7 +208,7 @@ class RiotousRookiesTest {
 			Field field = SetupSession.class.getDeclaredField("document");
 			field.setAccessible(true);
 			document = (MatchDocument) field.get(seed);
-			session = new SetupSession(server.getServer(), document, -514, true, false, false, true, true, true);
+			session = SetupSession.startRecoverable(server.getServer(), document, -514, false, false);
 		}
 
 		GameState state() throws Exception { return engine(session); }

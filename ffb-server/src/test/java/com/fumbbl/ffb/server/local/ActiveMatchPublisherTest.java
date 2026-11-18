@@ -1,13 +1,21 @@
 package com.fumbbl.ffb.server.local;
 
+import com.fumbbl.ffb.server.match.ApplicationScope;
 import com.fumbbl.ffb.server.match.AuthenticatedPrincipal;
-import com.fumbbl.ffb.server.match.MatchService;
+import com.fumbbl.ffb.server.match.MatchMembershipRepository;
 import com.fumbbl.ffb.server.match.SetupApplication;
 import com.fumbbl.ffb.server.match.V2MatchAccess;
+import com.fumbbl.ffb.server.match.V2PrincipalDirectory;
 
 import com.eclipsesource.json.JsonObject;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
+
+import java.time.Clock;
+import java.time.Instant;
+import java.time.ZoneOffset;
+import java.util.List;
+import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -15,8 +23,10 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 class ActiveMatchPublisherTest {
@@ -47,25 +57,34 @@ class ActiveMatchPublisherTest {
 		ActiveMatchPublisher publisher = new ActiveMatchPublisher(access, setup);
 		publisher.enrollPlayer(peer, principal, "match");
 		publisher.publish("match", null, new JsonObject());
+		publisher.publishPlacement("match", null, new JsonObject().add("type", "stagedPlacement"));
 		verifyNoInteractions(setup);
 		ArgumentCaptor<String> frame = ArgumentCaptor.forClass(String.class);
 		verify(peer).send(frame.capture());
 		assertEquals("VIEW_UNAVAILABLE", JsonObject.readFrom(frame.getValue()).getString("code", null));
 	}
 
-	@Test void placementSendsOneIdenticalFrameToOpponentAndSpectatorWithoutReadingState() throws Exception {
-		V2MatchAccess access = mock(V2MatchAccess.class);
+	@Test void placementSendsIdenticalFramesToEnrolledPeersWithoutServiceReads() throws Exception {
+		MatchMembershipRepository memberships = mock(MatchMembershipRepository.class);
+		V2PrincipalDirectory directory = mock(V2PrincipalDirectory.class);
+		V2MatchAccess access = new V2MatchAccess(memberships, directory, Clock.fixed(Instant.ofEpochMilli(1000), ZoneOffset.UTC));
 		SetupApplication setup = mock(SetupApplication.class);
 		BrowserConnection coach = mock(BrowserConnection.class);
 		BrowserConnection opponent = mock(BrowserConnection.class);
 		BrowserConnection spectator = mock(BrowserConnection.class);
+		BrowserConnection computer = mock(BrowserConnection.class);
+		AuthenticatedPrincipal player = new AuthenticatedPrincipal(
+			"00000000-0000-0000-0000-000000000001", Set.of(ApplicationScope.PLAYER), 2000);
+		AuthenticatedPrincipal watcher = new AuthenticatedPrincipal(
+			"00000000-0000-0000-0000-000000000002", Set.of(ApplicationScope.SPECTATOR), 2000);
 		when(setup.spectatorView("match")).thenReturn(new JsonObject());
-		new PublicationTestGrants().allow(access, target ->
-			target.audience() == com.fumbbl.ffb.server.match.V2PublicationAuthorization.Audience.SPECTATOR ? "spectator" : "away");
+		when(directory.reauthorize(watcher)).thenReturn(watcher);
+		when(memberships.isActive("match")).thenReturn(true);
 		ActiveMatchPublisher publisher = new ActiveMatchPublisher(access, setup);
-		publisher.enrollPlayer(coach, mock(AuthenticatedPrincipal.class), "match");
-		publisher.enrollPlayer(opponent, mock(AuthenticatedPrincipal.class), "match");
-		publisher.watch(spectator, mock(AuthenticatedPrincipal.class), "match", "watch");
+		publisher.enrollPlayer(coach, player, "match");
+		publisher.enrollPlayer(opponent, player, "match");
+		publisher.watch(spectator, watcher, "match", "watch");
+		publisher.enrollComputer(computer, "match");
 		JsonObject frame = new JsonObject().add("version", 2).add("type", "stagedPlacement")
 			.add("baseRevision", 8).add("stageSeq", 1);
 
@@ -75,8 +94,36 @@ class ActiveMatchPublisherTest {
 		verify(coach, never()).send(any(String.class));
 		verify(opponent).send(frame.toString());
 		verify(spectator).send(frame.toString());
+		verify(computer).send(frame.toString());
 		verify(setup).spectatorView("match");
-		org.mockito.Mockito.verifyNoMoreInteractions(setup);
+		verify(directory).reauthorize(watcher);
+		verify(memberships).isActive("match");
+		verifyNoMoreInteractions(setup, directory, memberships);
+	}
+
+	@Test void expiredViewerIsRemovedBeforeStagedDelivery() {
+		Clock clock = mock(Clock.class);
+		when(clock.millis()).thenReturn(1000L, 2000L);
+		MatchMembershipRepository memberships = mock(MatchMembershipRepository.class);
+		V2PrincipalDirectory directory = mock(V2PrincipalDirectory.class);
+		SetupApplication setup = mock(SetupApplication.class);
+		BrowserConnection player = mock(BrowserConnection.class);
+		AuthenticatedPrincipal principal = new AuthenticatedPrincipal(
+			"00000000-0000-0000-0000-000000000001", Set.of(ApplicationScope.PLAYER), 2000);
+		ActiveMatchPublisher publisher = new ActiveMatchPublisher(new V2MatchAccess(memberships, directory, clock), setup);
+		publisher.enrollPlayer(player, principal, "match");
+		JsonObject frame = new JsonObject().add("version", 2).add("type", "stagedPlacement");
+
+		publisher.publishPlacement("match", null, frame);
+		publisher.publishPlacement("match", null, frame);
+		publisher.publishPlacement("match", null, frame);
+
+		ArgumentCaptor<String> frames = ArgumentCaptor.forClass(String.class);
+		verify(player, times(2)).send(frames.capture());
+		List<String> messages = frames.getAllValues();
+		assertEquals(frame.toString(), messages.getFirst());
+		assertEquals("VIEW_UNAVAILABLE", JsonObject.readFrom(messages.getLast()).getString("code", null));
+		verifyNoInteractions(setup, directory, memberships);
 	}
 
 	@Test void spectatorBroadcastExcludesCoachOnlyGuidanceWithoutChangingTheCoachResponse() throws Exception {

@@ -104,7 +104,7 @@ public final class KickoffActions {
             int allowed = game.getTurnMode() == TurnMode.HIGH_KICK ? 1 : budget == null ? 0 : budget.allowedParticipants();
             if (!exhausted && (!staging || stagedMoved < allowed)) for (Player<?> player : game.getActingTeam().getPlayers()) {
                 if (staging && game.getTurnMode() == TurnMode.QUICK_SNAP
-                    && !budget.selectedParticipantIds().contains(player.getId())) continue;
+                    && (budget == null || !budget.selectedParticipantIds().contains(player.getId()))) continue;
                 FieldCoordinate from = game.getFieldModel().getPlayerCoordinate(player);
                 if (!FieldCoordinateBounds.FIELD.isInBounds(from) || !game.getFieldModel().getPlayerState(player).isActive()) continue;
                 for (int x = 0; x < 26; x++) for (int y = 0; y < 15; y++) {

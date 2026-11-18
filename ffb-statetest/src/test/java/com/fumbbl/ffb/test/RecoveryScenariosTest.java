@@ -97,7 +97,8 @@ class RecoveryScenariosTest {
 			assertTrue(!JsonValue.valueOf(movedPlayer).equals(offered.asObject().get("sourcePlayerId")), "A moved player cannot move again");
 		assertEquals(after.get("kickoff"), session.spectatorView().get("kickoff"));
 		assertEquals(after.get("kickoff"), view(session, "home".equals(role) ? "away" : "home").get("kickoff"));
-		SetupSession restored = restore(session);
+		SetupSession restored = new SetupSession(new TestServer().getServer(), document(session), session.recoveryArtifact());
+		assertEquals(initial, view(restored, "home"));
 		JsonObject legacy = JsonObject.readFrom(session.recoveryArtifact()), payload = legacy.get("payload").asObject();
 		for (String key : new String[] { "homeView", "awayView" }) {
 			JsonObject saved = payload.get(key).asObject(); saved.remove("kickoff");
@@ -109,10 +110,11 @@ class RecoveryScenariosTest {
 		for (byte value : hash) checksum.append(String.format("%02x", value & 0xff));
 		legacy.set("sha256", checksum.toString());
 		SetupSession upgraded = new SetupSession(new TestServer().getServer(), document(session), legacy.toString());
-		assertEquals(after, view(upgraded, role), "Old kickoff checkpoint views remain recoverable");
+		assertEquals(initial, view(upgraded, "home"), "Old kickoff checkpoint views remain recoverable");
+		assertTrue(!restored.apply(role, command).getBoolean("duplicate", false));
 		assertTrue(restored.apply(role, command).getBoolean("duplicate", false));
 		assertEquals(1, view(restored, role).get("kickoff").asObject().getInt("completed", -1));
-		JsonObject stale = request(initial, "action", unique("stale-quick")).add("actionId", move.get("id"));
+		JsonObject stale = request(initial, "action", unique("stale-quick")).set("expectedRevision", initial.getInt("revision", -1) - 1).add("actionId", move.get("id"));
 		assertEquals("STALE_REVISION", assertThrows(MatchService.Failure.class, () -> restored.apply(role, stale)).code);
 		assertEquals(1, view(restored, role).get("kickoff").asObject().getInt("completed", -1));
 		// An early finish remains offered; the same checkpoint can instead use its complete native allowance.
@@ -122,8 +124,9 @@ class RecoveryScenariosTest {
 			submit(session, action(session, "kickoffMove"), unique("limit-move"));
 			if (completed < 3) assertEquals(completed + 1, view(session, role).get("kickoff").asObject().getInt("completed", -1));
 		}
-		assertTrue(!"QUICK_SNAP".equals(view(session, role).getString("turnMode", null)));
 		assertTrue(!hasAction(session, "kickoffMove"));
+		submit(session, action(session, "kickoffChoice"), unique("finish-all"));
+		assertTrue(!"QUICK_SNAP".equals(view(session, role).getString("turnMode", null)));
 	}
 	@Test
 	void highKickAndTouchbackUseNativeReceivingPlayerTargets() throws Exception {
@@ -138,6 +141,7 @@ class RecoveryScenariosTest {
 		assertEquals(highView.get("ball"), redeploy.get("target"));
 		String playerId = redeploy.get("sourcePlayerId").asString();
 		submit(highKick, redeploy, unique("redeploy"));
+		submit(highKick, action(highKick, "kickoffChoice"), unique("finish-high"));
 		FieldCoordinate moved = engine(highKick).getGame().getFieldModel().getPlayerCoordinate(engine(highKick).getGame().getPlayerById(playerId));
 		assertEquals(redeploy.get("target").asObject().getInt("x", -1), moved.getX());
 		assertEquals(redeploy.get("target").asObject().getInt("y", -1), moved.getY());
@@ -155,14 +159,17 @@ class RecoveryScenariosTest {
 		assertEquals(game.getFieldModel().getPlayerCoordinate(game.getPlayerById(recipientId)), game.getFieldModel().getBallCoordinate());
 	}
 	@Test
-	void placementCheckpointRestoresBothViewsAndRetry() throws Exception {
+	void placementCheckpointRestoresBaseAndAllowsRetry() throws Exception {
 		SetupSession session = recoverable(); choosePrematch(session);
 		JsonObject snapshot = view(session, "home"); String role = snapshot.getString("actor", null);
 		JsonObject player = firstPlayer(snapshot, role);
 		JsonObject request = request(snapshot, "place", "placement").add("playerId", player.get("id"))
 			.add("to", new JsonObject().add("x", "home".equals(role) ? 10 : 15).add("y", 4));
 		assertEquals("ACCEPTED", session.apply(role, request).getString("code", null));
-		assertRestoresAndRetries(session, role, request);
+		SetupSession restored = new SetupSession(new TestServer().getServer(), document(session), session.recoveryArtifact());
+		assertEquals(snapshot, view(restored, "home"));
+		assertTrue(!restored.apply(role, request).getBoolean("duplicate", false));
+		assertEquals(view(session, role), view(restored, role));
 	}
 
 	@Test
@@ -295,7 +302,7 @@ class RecoveryScenariosTest {
 		requests.put(seed.away.owner + "\njoin", new MatchDocument.Request("join|" + seed.matchId + "|1|" + seed.away.team.sourceTeamId + "|1"));
 		requests.put(seed.home.owner + "\nactivate", new MatchDocument.Request("activate|" + seed.matchId + "|2"));
 		MatchDocument document = new MatchDocument(seed.matchId, 3, seed.intendedOpponent, seed.lifecycle, seed.home, seed.away, requests);
-		return new SetupSession(new TestServer().getServer(), document, -9, true);
+		return SetupSession.startRecoverable(new TestServer().getServer(), document, -9, false, false);
 	}
 	private MatchDocument document(SetupSession session) throws Exception { Field field = SetupSession.class.getDeclaredField("document"); field.setAccessible(true); return (MatchDocument) field.get(session); }
 	private GameState engine(SetupSession session) { try { Field field = SetupSession.class.getDeclaredField("state"); field.setAccessible(true); return (GameState) field.get(session); } catch (Exception failure) { throw new AssertionError(failure); } }

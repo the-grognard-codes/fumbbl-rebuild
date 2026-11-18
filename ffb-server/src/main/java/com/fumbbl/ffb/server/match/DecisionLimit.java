@@ -33,13 +33,9 @@ final class DecisionLimit {
     }
 
     /** Includes the accepted decision about to be recorded: fire on decision 1,024, never 1,023. */
-    boolean reached(JsonObject current) { return reached(current, 0); }
-
-    boolean reached(JsonObject current, int staged) {
-        return samePeriod(current) && recordedPeriod != null && decisions + staged + 1 >= MAX_DECISIONS;
+    boolean reached(JsonObject current) {
+        return recordedPeriod != null && recordedPeriod.equals(period(current)) && decisions + 1 >= MAX_DECISIONS;
     }
-
-    boolean samePeriod(JsonObject current) { return Objects.equals(recordedPeriod, period(current)); }
 
     private Period period(JsonObject view) {
         if (!"PLAY".equals(view.getString("phase", null))) return null;

@@ -2,7 +2,7 @@
 
 ## Unreleased
 
-- Broadcast setup and kick-off adjustments live and save the final formation at confirmation. Setup allows 100 adjustments per stage and kick-off events allow 50.
+- Broadcast setup and kick-off adjustments live and save the final formation at confirmation. Setup allows 100 adjustments per stage and kick-off events allow 50. Live recovery now requires checkpoint version 7 (r5.4). Older checkpoints return `RECOVERY_UNSUPPORTED`.
 
 - Clear consumed reroll dialogs for native callers and engine harnesses without configured skill preferences, including the stale Bone Head choice reproduced by the seeded harness. Configured browser sessions already received this cleanup.
 

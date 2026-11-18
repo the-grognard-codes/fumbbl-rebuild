@@ -231,7 +231,7 @@ public final class SetupApplication {
 				RecoveryRepository.Record staged = recoveryRecord(id, false);
 				if (staged == null) {
 					// Persist an unpublished initial checkpoint first. Activation can then be retried after any crash.
-					SetupSession initial = new SetupSession(server, document, engineId--, true, defaultSetup, saveResume, true, true, true, true);
+					SetupSession initial = SetupSession.startRecoverable(server, document, engineId--, defaultSetup, saveResume);
 					if (saveResume) initial.startSaveResumeRetention(clock.millis());
 					if (!recovery.save(new RecoveryRepository.Record(id, 1, initial.recoveryArtifact()), 0))
 						return preparedFailure(request, "CONFLICT");
@@ -295,7 +295,7 @@ public final class SetupApplication {
 
 	private SetupSession reconstruct(MatchDocument document, RecoveryRepository.Record record) {
 		try {
-			SetupSession session = new SetupSession(server, document, record.json, true);
+			SetupSession session = new SetupSession(server, document, record.json);
 			rejectedRecoveryGenerations.remove(document.matchId);
 			return session;
 		} catch (MatchService.Failure failure) {

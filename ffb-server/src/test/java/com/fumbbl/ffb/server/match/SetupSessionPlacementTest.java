@@ -173,7 +173,7 @@ class SetupSessionPlacementTest {
     }
 
     @Test
-    void swapsOnlyTwoOwnOnPitchPlayersInOneRecoverableDecision() {
+    void swapsOnlyTwoOwnOnPitchPlayersInOneStagedAdjustment() {
         Fixture fixture = new Fixture();
         JsonObject before = fixture.setup();
         String actor = before.getString("actor", null);
@@ -190,10 +190,10 @@ class SetupSessionPlacementTest {
         assertEquals(second.getInt("y", -1), fixture.player(state, first.getString("id", null)).getInt("y", -1));
         assertEquals(originalX, fixture.player(state, second.getString("id", null)).getInt("x", -1));
         assertEquals(originalY, fixture.player(state, second.getString("id", null)).getInt("y", -1));
-        assertEquals(before.getInt("revision", -1) + 1, state.getInt("revision", -1));
+        assertEquals(before.getInt("revision", -1), state.getInt("revision", -1));
         assertTrue(fixture.session.apply(actor, request).getBoolean("duplicate", false));
         SetupSession restored = new SetupSession(fixture.server, fixture.document, fixture.session.recoveryArtifact());
-        assertTrue(restored.apply(actor, request).getBoolean("duplicate", false));
+        assertEquals(false, restored.apply(actor, request).getBoolean("duplicate", false));
 
         JsonObject third = fixture.pitchPlayer(state, actor, 2);
         state = fixture.session.apply(actor, fixture.request("place", "to-reserve", state)
@@ -206,7 +206,7 @@ class SetupSessionPlacementTest {
     }
 
     @Test
-    void reportsNativeSetupErrorsOnConfirmAndExactRetries() {
+    void reportsConsistentSetupErrorsUntilRestoreDiscardsTheIllegalStage() {
         Fixture fixture = new Fixture();
         JsonObject state = fixture.setup();
         String actor = state.getString("actor", null);
@@ -225,12 +225,11 @@ class SetupSessionPlacementTest {
         assertTrue(errors.toString().contains("Line of Scrimmage"));
         assertEquals(state.getInt("revision", -1), rejected.get("state").asObject().getInt("revision", -1));
         JsonObject retry = fixture.session.apply(actor, confirm);
-        assertTrue(retry.getBoolean("duplicate", false));
+        assertTrue(!retry.getBoolean("duplicate", false));
         assertEquals(errors, retry.get("setupErrors"));
         SetupSession restored = new SetupSession(fixture.server, fixture.document, fixture.session.recoveryArtifact());
         JsonObject recoveredRetry = restored.apply(actor, confirm);
-        assertTrue(recoveredRetry.getBoolean("duplicate", false));
-        assertEquals(errors, recoveredRetry.get("setupErrors"));
+        assertEquals("ACCEPTED", recoveredRetry.getString("code", null));
     }
 
     @Test void kickoffBatchSelectionIsValidatedAndConfirmedGroupSurvivesRecovery() throws Exception {
@@ -306,7 +305,7 @@ class SetupSessionPlacementTest {
                 for (JsonValue item : moved.get("actions").asArray())
                     assertTrue(!Json.value(first).equals(item.asObject().get("sourcePlayerId")), "A moved player cannot move twice");
                 SetupSession afterMove = new SetupSession(fixture.server, fixture.document, restored.recoveryArtifact());
-                assertEquals(moved, afterMove.reply("load", "ACCEPTED", false, actor).get("state"));
+                assertEquals(view, afterMove.reply("load", "ACCEPTED", false, actor).get("state"));
             }
         }
     }
@@ -323,7 +322,7 @@ class SetupSessionPlacementTest {
         String checkpoint = fixture.session.recoveryArtifact();
         int[] cursors = fixture.session.recoveryJournalCounts();
         JsonObject lastRequest = null;
-        for (int index = 1; index <= StagedPlacements.SETUP_ADJUSTMENT_LIMIT; index++) {
+        for (int index = 1; index <= SetupStaging.SETUP_ADJUSTMENT_LIMIT; index++) {
             JsonObject target = index % 2 == 1 ? second : first;
             lastRequest = fixture.place("stage-" + index, base, playerId, target.getInt("x", -1), target.getInt("y", -1));
             JsonObject live = fixture.session.apply(actor, lastRequest).get("state").asObject();
@@ -334,13 +333,13 @@ class SetupSessionPlacementTest {
             assertEquals(target.get("y"), fixture.player(fixture.session.reply("reconnect", "ACCEPTED", false, opponent)
                 .get("state").asObject(), playerId).get("y"));
             if (index == 1) {
-                SetupSession restored = new SetupSession(fixture.server, fixture.document, fixture.session.recoveryArtifact(), true);
+                SetupSession restored = new SetupSession(fixture.server, fixture.document, fixture.session.recoveryArtifact());
                 assertEquals(base.get("players"), restored.spectatorView().get("players"));
                 assertTrue(!restored.apply(actor, lastRequest).getBoolean("duplicate", true));
             }
         }
         assertTrue(fixture.session.apply(actor, lastRequest).getBoolean("duplicate", false));
-        for (int index = StagedPlacements.SETUP_ADJUSTMENT_LIMIT + 1; index <= 1000; index++)
+        for (int index = SetupStaging.SETUP_ADJUSTMENT_LIMIT + 1; index <= 1000; index++)
             assertEquals("INVALID_OPTION", fixture.failure(actor,
                 fixture.place("over-limit-" + index, base, playerId, second.getInt("x", -1), second.getInt("y", -1))));
         assertTrue(fixture.session.spectatorView().getBoolean("setupAdjustmentsExhausted", false));
@@ -354,11 +353,11 @@ class SetupSessionPlacementTest {
         assertEquals(cursors[1] + 1, after[1]);
         assertEquals(cursors[3] + 1, after[3]);
         assertEquals(confirmed.get("players"), new SetupSession(fixture.server, fixture.document,
-            fixture.session.recoveryArtifact(), true).spectatorView().get("players"));
+            fixture.session.recoveryArtifact()).spectatorView().get("players"));
         System.out.printf("STAGED_SETUP_CHECKPOINT_BYTES before=%d after=%d accepted=%d attempted=1000%n",
             checkpoint.getBytes(java.nio.charset.StandardCharsets.UTF_8).length,
             fixture.session.recoveryArtifact().getBytes(java.nio.charset.StandardCharsets.UTF_8).length,
-            StagedPlacements.SETUP_ADJUSTMENT_LIMIT);
+            SetupStaging.SETUP_ADJUSTMENT_LIMIT);
     }
 
     @Test void forcedSetupRecoversLegalDeploymentForOneThroughTenPlayers() {
@@ -387,6 +386,23 @@ class SetupSessionPlacementTest {
         }
     }
 
+
+    @Test void stagedKickoffSelectionDoesNotSpendTheDurableDecisionBudget() throws Exception {
+        Fixture fixture = new Fixture("human", "human", true, 11);
+        JsonObject selection = fixture.kick(2, 2);
+        assertEquals("SOLID_DEFENCE", selection.get("kickoff").asObject().getString("event", null));
+
+        Field field = SetupSession.class.getDeclaredField("decisionLimit");
+        field.setAccessible(true);
+        DecisionLimit limit = (DecisionLimit) field.get(fixture.session);
+        limit.restore(new JsonArray().add(new JsonObject().add("kind", "START").add("state", selection)));
+        for (int i = 0; i < DecisionLimit.MAX_DECISIONS - 2; i++) limit.recorded(DecisionLimit.ACTION, selection);
+
+        JsonObject staged = fixture.submit(selection, "pick", fixture.action(selection, "event-pick:"));
+        assertEquals(selection.get("revision"), staged.get("revision"));
+        JsonObject confirmed = fixture.submit(staged, "confirm-selection", fixture.action(staged, "event-confirm"));
+        assertEquals("movement", confirmed.get("kickoff").asObject().getString("stage", null));
+    }
 
     @Test void solidDefenceStagesSelectionsAndRevertsAnIllegalFiftiethPlacement() throws Exception {
         Fixture fixture = new Fixture("human", "human", true, 11);
@@ -481,10 +497,10 @@ class SetupSessionPlacementTest {
     }
 
     @Test void currentRuntimeRejectsRetiredPlacementCheckpoints() {
-        Fixture fixture = new Fixture();
+        Fixture fixture = new Fixture("human", "human", false, 11);
         fixture.setup();
         MatchService.Failure failure = org.junit.jupiter.api.Assertions.assertThrows(MatchService.Failure.class,
-            () -> new SetupSession(fixture.server, fixture.document, fixture.session.recoveryArtifact(), true));
+            () -> new SetupSession(fixture.server, fixture.document, fixture.session.recoveryArtifact()));
         assertEquals("RECOVERY_UNSUPPORTED", failure.code);
     }
 
@@ -499,7 +515,7 @@ class SetupSessionPlacementTest {
         }
 
         Fixture(String homeRoster, String awayRoster) {
-            this(homeRoster, awayRoster, false, 11);
+            this(homeRoster, awayRoster, true, 11);
         }
 
         Fixture(String homeRoster, String awayRoster, boolean staged, int players) {

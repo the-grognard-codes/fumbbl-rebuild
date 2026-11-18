@@ -34,7 +34,7 @@ final class BogrukEngineFixture {
 	private final Random dice;
 
 	BogrukEngineFixture(String homeRoster, String awayRoster, long seed) throws Exception {
-		this(homeRoster, awayRoster, seed, false);
+		this(homeRoster, awayRoster, seed, true);
 	}
 
 	BogrukEngineFixture(String homeRoster, String awayRoster, long seed, boolean staged) throws Exception {

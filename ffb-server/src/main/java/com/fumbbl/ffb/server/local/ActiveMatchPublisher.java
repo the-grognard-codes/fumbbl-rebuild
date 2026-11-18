@@ -101,22 +101,22 @@ final class ActiveMatchPublisher {
 
 	void retryPublications() { delivery.retry(); }
 
-	/** One best-effort broadcast with the same revocation checks as a durable state push. */
+	/**
+	 * Best-effort broadcast using the current worker-local enrollment. Successful watch and match requests
+	 * authorize enrollment. Durable authorization denials and observed provider revocations remove it.
+	 */
 	void publishPlacement(String matchId, BrowserConnection source, JsonObject placement) {
 		if (placement == null) return;
 		List<Recipient> recipients = recipients(matchId, source, false);
 		if (recipients.isEmpty()) return;
-		V2PublicationAuthorization.Snapshot authorization;
 		try (BrowserRequestTiming.Scope ignored = timing.span(BrowserRequestTiming.Phase.PUBLICATION)) {
-			authorization = access.publication(matchId, V2PublicationAuthorization.Family.STATE,
-				recipients.stream().map(Recipient::target).toList());
 			String frame = placement.toString();
-			for (int slot = 0; slot < recipients.size(); slot++) {
-				Recipient recipient = recipients.get(slot);
+			for (Recipient recipient : recipients) {
 				try {
-					access.publicationRole(authorization, recipient.target, slot);
+					access.requireStagedPublication(recipient.target);
 					recipient.connection.send(frame);
 				} catch (V2MatchAccess.PublicationDeferred budgetSpent) {
+					// The next stage message, confirm or reload repairs a missed placement.
 					return;
 				} catch (MatchService.Failure unauthorized) {
 					unavailable(recipient);
@@ -124,8 +124,6 @@ final class ActiveMatchPublisher {
 					disconnect(recipient.connection);
 				}
 			}
-		} catch (SQLException | RuntimeException unavailable) {
-			// Lost presentation frames are repaired by a later stage message, confirm or reload.
 		}
 	}
 

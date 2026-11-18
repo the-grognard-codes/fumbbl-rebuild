@@ -1,63 +1,25 @@
 package com.fumbbl.ffb.server.match;
 
 import com.fumbbl.ffb.FieldCoordinate;
-import com.fumbbl.ffb.FieldCoordinateBounds;
 import com.fumbbl.ffb.PlayerState;
 import com.fumbbl.ffb.model.FieldModel;
 import com.fumbbl.ffb.model.Player;
 import com.fumbbl.ffb.model.Team;
-import com.fumbbl.ffb.server.step.KickoffAdjustmentBudget;
-
-import com.eclipsesource.json.JsonArray;
-import com.eclipsesource.json.JsonObject;
-import com.eclipsesource.json.JsonValue;
-
-import java.util.ArrayList;
 import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.LinkedHashSet;
 import java.util.Map;
-import java.util.Set;
 import java.util.function.Supplier;
 
 /** Worker-owned placement overlay. The native board stays at its durable baseline outside a projection or confirm. */
 final class StagedPlacements {
-    static final int SETUP_ADJUSTMENT_LIMIT = 100;
-
     private record Position(FieldCoordinate square, int state) { }
 
-    private final Set<String> selection = new LinkedHashSet<>();
-    private final Map<String, String> requests = new LinkedHashMap<>();
     private final Map<Player<?>, Position> positions = new LinkedHashMap<>();
     private final Map<Player<?>, Position> base = new LinkedHashMap<>();
 
-    int sequence() { return requests.size(); }
-
-    boolean duplicate(String key, String fingerprint) {
-        String prior = requests.get(key);
-        if (prior == null) return false;
-        if (!prior.equals(fingerprint)) throw new MatchService.Failure("REQUEST_ID_REUSED");
-        return true;
-    }
-
-    boolean exhausted(boolean setup) {
-        return sequence() >= (setup ? SETUP_ADJUSTMENT_LIMIT : KickoffAdjustmentBudget.KICKOFF_ADJUSTMENT_LIMIT);
-    }
-
-    Set<String> selection() { return selection; }
-
-    void toggle(String player) {
-        if (!selection.remove(player)) selection.add(player);
-    }
-
     void clear() {
-        selection.clear();
-        requests.clear();
         positions.clear();
         base.clear();
     }
-
-    void record(String key, String fingerprint) { requests.put(key, fingerprint); }
 
     void adjust(FieldModel field, Team team, Runnable adjustment) {
         Map<Player<?>, Position> before = capture(field, team);
@@ -100,26 +62,15 @@ final class StagedPlacements {
 
     void revert() { positions.replaceAll((player, position) -> base.get(player)); }
 
-    List<String> movedPlayers() {
-        List<String> moved = new ArrayList<>();
-        positions.forEach((player, position) -> {
-            if (!position.square().equals(base.get(player).square())) moved.add(player.getId());
-        });
-        return moved;
+    int movedCount() {
+        return (int) positions.entrySet().stream()
+            .filter(entry -> !entry.getValue().square().equals(base.get(entry.getKey()).square())).count();
     }
 
-    JsonObject message(String matchId, int revision) {
-        JsonArray players = new JsonArray();
-        positions.forEach((player, position) -> {
-            FieldCoordinate square = position.square();
-            boolean pitch = FieldCoordinateBounds.FIELD.isInBounds(square);
-            players.add(new JsonObject().add("playerId", player.getId())
-                .add("x", pitch ? JsonValue.valueOf(square.getX()) : JsonValue.NULL)
-                .add("y", pitch ? JsonValue.valueOf(square.getY()) : JsonValue.NULL));
-        });
-        return new JsonObject().add("version", 2).add("type", "stagedPlacement").add("requestId", JsonValue.NULL)
-            .add("code", "ACCEPTED").add("matchId", matchId).add("baseRevision", revision)
-            .add("stageSeq", sequence()).add("players", players);
+    Map<String, FieldCoordinate> squares() {
+        Map<String, FieldCoordinate> result = new LinkedHashMap<>();
+        positions.forEach((player, position) -> result.put(player.getId(), position.square()));
+        return result;
     }
 
     private Map<Player<?>, Position> capture(FieldModel field, Team team) {

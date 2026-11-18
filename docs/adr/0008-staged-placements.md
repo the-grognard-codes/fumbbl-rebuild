@@ -108,7 +108,7 @@ Replays and the match transcript record only confirmed states. A replay shows a 
   3. If the positions are illegal when the limit is reached, the board reverts to the stage's base positions, which are always legal. Confirm is then offered. This is the same revert rule that clock expiry uses for kick-off events (above).
 - **Where the counter lives:**
   - **Until #556 lands:** the counter lives on the native kick-off step (#553, PR #558) and survives checkpoint restore.
-  - **With #556:** staged actions bypass the native step and the recorded events, so the counter moves into the staging layer. The emergency accepted-decision guard of #553 then counts staged actions too.
+  - **With #556:** staged actions bypass the native step and the recorded events, so the counter moves into the staging layer. Under the [November 17 maintainer decision](https://github.com/the-grognard-codes/fumbbl-rebuild/pull/574#issuecomment-6967747125), the emergency 1,024-decision guard counts durable decisions only. Each stage has its own adjustment limit.
 
 ### Budget
 

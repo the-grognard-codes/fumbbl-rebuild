@@ -10,7 +10,7 @@ public final class CompletedMatchMemoryProbe {
 
 	public static void main(String[] arguments) throws Exception {
 		if (arguments.length > 0 && "retained".equals(arguments[0])) {
-			BogrukEngineFixture fixture = new BogrukEngineFixture("human", "orc", 0xB06A7L);
+			BogrukEngineFixture fixture = new BogrukEngineFixture("human", "orc", 0xB06A7L, false);
 			RecoveryRepository.Record record = paddedRecoveryRecord(fixture, 40 * 1024 * 1024);
 			RetainedConcession retained = new RetainedConcession(record, fixture.document);
 			if (retained.closed() || !retained.unsupported()) throw new AssertionError("retired recovery must remain available for administrative reads");

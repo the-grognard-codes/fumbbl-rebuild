@@ -8,6 +8,7 @@ import com.fumbbl.ffb.model.Team;
 import com.fumbbl.ffb.model.property.NamedProperties;
 import com.fumbbl.ffb.net.commands.ClientCommandSetupPlayer;
 import com.fumbbl.ffb.server.GameState;
+import com.fumbbl.ffb.server.mechanic.SetupMechanic;
 import com.fumbbl.ffb.server.net.ReceivedCommand;
 import com.fumbbl.ffb.server.team.bb2025.TeamFormations;
 import com.fumbbl.ffb.server.util.UtilServerSetup;
@@ -20,6 +21,25 @@ import java.util.Map;
 
 /** Projects jersey templates onto the available players and applies the resulting legal formation. */
 final class SavedFormationDeployment {
+
+	List<TeamFormations.Formation> savedFormations(GameState state, FrozenTeam team) {
+		return team.formations == null ? List.of() : team.formations.forReceiving(state.getGame().isSetupOffense());
+	}
+
+	void applyStaged(GameState state, boolean home, FrozenTeam team, int index) {
+		List<TeamFormations.Formation> forms = savedFormations(state, team);
+		if (index < 0 || index >= forms.size()) throw new MatchService.Failure("INVALID_OPTION");
+		apply(state, home, team, forms.get(index), true, true);
+	}
+
+	void applyDefault(GameState state, boolean home, FrozenTeam team, SetupMechanic mechanic, boolean quiet) {
+		List<TeamFormations.Formation> forms = savedFormations(state, team);
+		List<Integer> jerseys = team.players.stream().map(player -> player.jerseyNumber > 0 ? player.jerseyNumber : player.slot).toList();
+		TeamFormations.Formation formation = forms.isEmpty()
+			? new TeamFormations().fallback(jerseys, state.getGame().isSetupOffense()) : forms.getFirst();
+		apply(state, home, team, formation, true, quiet);
+		if (!mechanic.setupErrors(state, home, 0).isEmpty()) apply(state, home, team, null, true, quiet);
+	}
 
 	void apply(GameState state, boolean home, FrozenTeam frozen, TeamFormations.Formation formation, boolean computer) {
         apply(state, home, frozen, formation, computer, false);
