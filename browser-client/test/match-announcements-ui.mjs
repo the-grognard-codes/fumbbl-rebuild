@@ -189,7 +189,41 @@ try {
   await page.locator('.match-splash').waitFor({ state: 'detached' });
   await page.clock.runFor(350); await active(false);
   const facts = JSON.parse(readFileSync(new URL('./fixtures/match-splash-events.json', import.meta.url), 'utf8'));
+  const changingWeather = facts.find(fact => fact.code === 'WEATHER_CHANGE');
+  const rain = facts.find(fact => fact.code === 'POURING_RAIN');
+  const weatherKickoff = record(1, []);
+  weatherKickoff.state.weather = rain.code;
+  weatherKickoff.native = [{ commandNr: 11, matchAnnouncements: { version: 1,
+    events: [changingWeather, rain, event('turnStart', 'away')] } }];
+  await reset();
+  await publish({ view: weatherKickoff.state, records: [start, weatherKickoff] });
+  await splash('kickoff').waitFor();
+  assert.equal(await splash('kickoff').getByRole('heading').textContent(), 'CHANGING WEATHER');
+  assert.equal(await splash('kickoff').locator('.match-splash-weather-condition').textContent(), rain.headline);
+  assert.match(await splash('kickoff').locator('img').getAttribute('src'), /weather_rain\.png$/);
+  await page.keyboard.press('Escape'); await page.clock.runFor(550);
+  await splash('turnStart').waitFor({ timeout: 1500 });
+  await page.keyboard.press('Escape'); await page.clock.runFor(550); await active(false);
+
+  await reset();
+  await page.getByRole('button', { name: 'Game Menu', exact: true }).click();
+  await page.getByRole('tab', { name: 'Game Settings', exact: true }).click();
+  const showKickoffs = page.getByRole('checkbox', { name: 'Kick-off events', exact: true });
+  await showKickoffs.uncheck();
+  await page.keyboard.press('Escape');
+  await publish({ view: weatherKickoff.state, records: [start, weatherKickoff] });
+  await splash('weather').waitFor(); // The standalone weather card still respects its own visibility setting.
+  assert.equal(await splash('weather').getByRole('heading').textContent(), rain.headline.toUpperCase());
+  await page.keyboard.press('Escape'); await page.clock.runFor(550);
+  await splash('turnStart').waitFor();
+  await page.keyboard.press('Escape'); await page.clock.runFor(550); await active(false);
+  await page.getByRole('button', { name: 'Game Menu', exact: true }).click();
+  await page.getByRole('tab', { name: 'Game Settings', exact: true }).click();
+  await showKickoffs.check();
+  await page.keyboard.press('Escape');
+
   for (const fact of [...facts, { ...event('halfTime'), reason: 'Badgers 1 – 1 Giants' },
+    { ...event('fullTime'), headline: 'FULL TIME', code: 'WIN', reason: 'Badgers 1 – 0 Giants — Badgers wins' },
     { ...event('fullTime'), headline: 'MATCH CONCEDED', code: 'CONCEDED', reason: 'Badgers 1 – 0 Giants — Giants wins' }]) {
     await reset();
     const next = record(1, [fact]);
@@ -197,7 +231,9 @@ try {
     if (fact.kind === 'fullTime') next.state.phase = 'FULL_TIME';
     await publish({ view: next.state, records: [start, next] });
     await splash(fact.kind).waitFor();
-    assert.ok((await splash(fact.kind).textContent()).includes((fact.headline ?? 'HALF-TIME').toUpperCase()));
+    const title = fact.code === 'WEATHER_CHANGE' ? 'CHANGING WEATHER'
+      : fact.code === 'WIN' ? 'END OF REGULATION' : (fact.headline ?? 'HALF-TIME').toUpperCase();
+    assert.equal(await splash(fact.kind).getByRole('heading').textContent(), title);
     await page.keyboard.press('Escape'); await page.clock.runFor(550); await active(false);
   }
   await reset();

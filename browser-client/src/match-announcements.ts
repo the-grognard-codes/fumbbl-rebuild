@@ -1,6 +1,7 @@
 import type { SetupState } from './setup-protocol.ts';
 import type { TranscriptRecord } from './transcript-protocol.ts';
 import { matchTeamName } from './match-team-name.ts';
+import { weatherPresentation } from './weather-presentation.ts';
 
 export type MatchAnnouncementEvent = {
   kind: 'turnover' | 'touchdown' | 'turnStart' | 'kickoff' | 'weather' | 'halfTime' | 'fullTime'; team: 'home' | 'away'; turn: number; half: number; reason: string | null;
@@ -14,6 +15,7 @@ type TouchdownDetails = {
 };
 export type MatchAnnouncement = MatchAnnouncementEvent & {
   id: string; teamName: string; helmet: 'human' | 'orc'; touchdown?: TouchdownDetails;
+  kickoffWeather?: { code: string; label: string; detail: string | null; pairedEventId?: string };
 };
 
 /** Presentation facts are emitted by the server after rules resolution, never inferred from dice. */
@@ -41,17 +43,34 @@ export function decodeMatchAnnouncements(value: unknown): MatchAnnouncementEvent
 export function syncAnnouncements(record: TranscriptRecord, sync: Record<string, unknown>): MatchAnnouncement[] {
   if (sync.matchAnnouncements === undefined) return [];
   const { state } = record;
-  return decodeMatchAnnouncements(sync.matchAnnouncements).map((event, index) => ({ ...event,
-    id: `${state.matchId}:${record.revision}:${sync.commandNr}:${index}`,
-    teamName: matchTeamName(state, event.team), helmet: announcementHelmet(state, event.team),
-    ...(event.kind === 'touchdown' ? { touchdown: {
-      scorer: event.reason?.match(/^(.* #\d+) — (.+)$/s)?.[1] ?? event.reason,
-      score: {
-        home: { name: matchTeamName(state, 'home'), points: state.homeScore },
-        away: { name: matchTeamName(state, 'away'), points: state.awayScore },
-      },
-    } } : {}),
-  }));
+  const events = decodeMatchAnnouncements(sync.matchAnnouncements);
+  const id = (index: number) => `${state.matchId}:${record.revision}:${sync.commandNr}:${index}`;
+  return events.map((event, index) => {
+    const announcement: MatchAnnouncement = { ...event, id: id(index),
+      teamName: matchTeamName(state, event.team), helmet: announcementHelmet(state, event.team) };
+    if (event.kind === 'touchdown') {
+      announcement.touchdown = {
+        scorer: event.reason?.match(/^(.* #\d+) — (.+)$/s)?.[1] ?? event.reason,
+        score: {
+          home: { name: matchTeamName(state, 'home'), points: state.homeScore },
+          away: { name: matchTeamName(state, 'away'), points: state.awayScore },
+        },
+      };
+    }
+    if (event.kind === 'kickoff' && event.code === 'WEATHER_CHANGE') {
+      const weather = events[index + 1];
+      if (weather?.kind === 'weather' && weather.code && weather.headline) {
+        announcement.kickoffWeather = {
+          code: weather.code, label: weather.headline, detail: weather.reason, pairedEventId: id(index + 1),
+        };
+      } else if (weatherCodes.includes(state.weather)) {
+        announcement.kickoffWeather = {
+          code: state.weather, label: weatherPresentation(state.weather).label, detail: null,
+        };
+      }
+    }
+    return announcement;
+  });
 }
 
 function announcementHelmet(view: SetupState, team: 'home' | 'away'): 'human' | 'orc' {
@@ -61,14 +80,18 @@ function announcementHelmet(view: SetupState, team: 'home' | 'away'): 'human' | 
 }
 
 export function announcementHeadline(event: MatchAnnouncementEvent): string {
+  if (event.kind === 'kickoff' && event.code === 'WEATHER_CHANGE') return 'CHANGING WEATHER';
+  if (event.kind === 'fullTime' && event.headline?.toUpperCase() === 'FULL TIME') return 'END OF REGULATION';
   if (event.headline) return event.headline.toUpperCase();
   return event.kind === 'turnStart' ? `START OF TURN ${event.turn}` : event.kind === 'touchdown' ? 'TOUCHDOWN!' : event.kind === 'halfTime' ? 'HALF-TIME' : 'TURNOVER';
 }
 
-export function announcementText(event: MatchAnnouncement): string {
+export function announcementText(event: MatchAnnouncement, surface: 'log' | 'splash' = 'log'): string {
   const shared = ['weather', 'halfTime', 'fullTime'].includes(event.kind) || event.kind === 'kickoff' && !['SOLID_DEFENCE', 'QUICK_SNAP', 'CHARGE', 'HIGH_KICK'].includes(event.code ?? '');
   const team = shared ? '' : `${event.teamName} — `;
-  return `${team}${announcementHeadline(event)}${event.reason ? `. ${event.reason}` : ''}`;
+  const headline = surface === 'log' && event.headline ? event.headline.toUpperCase() : announcementHeadline(event);
+  const detail = surface === 'splash' ? event.kickoffWeather?.label ?? event.reason : event.reason;
+  return `${team}${headline}${detail ? `. ${detail}` : ''}`;
 }
 
 export function announcementDuration(event: MatchAnnouncementEvent, rate: number): number {

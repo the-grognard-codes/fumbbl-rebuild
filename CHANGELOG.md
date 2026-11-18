@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Label the final whistle “End of Regulation,” give kickoff events individual emblems, and show the resulting condition in a single Changing Weather splash.
+
 - Show touchdown scores in two columns so each number is clearly paired with its team.
 
 - Keep the current step notice clear of match splashes and their exit transitions.

@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { readFileSync } from 'node:fs';
-import { decodeMatchAnnouncements, syncAnnouncements, announcementDuration } from '../src/match-announcements.ts';
+import { decodeMatchAnnouncements, syncAnnouncements, announcementDuration, announcementHeadline } from '../src/match-announcements.ts';
 import { playbackBeats, withConfirmedPlayerChanges, withConfirmedMove, withConfirmedBallChanges } from '../src/pitch-playback.ts';
 import { matchLogLines } from '../src/match-log.ts';
 import type { TranscriptRecord } from '../src/transcript-protocol.ts';
@@ -129,6 +129,13 @@ test('extended authoritative kinds retain ordering and rate-scaled durations', (
   for (const patch of [{ code: 'INTRO' }, { code: 'unknown' }, { headline: '' }, { headline: 7 }]) {
     assert.throws(() => decodeMatchAnnouncements({ version: 1, events: [{ ...facts[0], ...patch }] }));
   }
+});
+
+test('regulation replays use the new title and concessions keep their own title', () => {
+  for (const code of ['WIN', 'DRAW']) {
+    assert.equal(announcementHeadline({ ...turnover, kind: 'fullTime', code, headline: 'FULL TIME' }), 'END OF REGULATION');
+  }
+  assert.equal(announcementHeadline({ ...turnover, kind: 'fullTime', code: 'CONCEDED', headline: 'MATCH CONCEDED' }), 'MATCH CONCEDED');
 });
 
 test('browser consumes all engine-generated kickoff and weather facts', () => {

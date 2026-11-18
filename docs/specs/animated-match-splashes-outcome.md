@@ -63,3 +63,9 @@ Touchdown scorer and score now occupy separate block lines; legacy reasons retai
 The touchdown card now pairs each team's score with its name in two columns. It reads both scores from the touchdown revision and highlights the scoring team. The scorer remains on a separate line when the event includes one. The announcement UI check and all 543 browser unit tests passed, and captures verified the layout at four viewport sizes.
 
 For kickoff art review, serve the browser client with Vite and open `/splash-review.html?event=kickoff`. The Variant picker offers all 11 engine results. Replay animation restarts the selected splash, and Inspect frames lets reviewers stop on individual frames. The four-viewport captures are under `.tools/animated-splashes/kickoff-art-review/`.
+
+The final whistle now reads End of Regulation for normal wins and draws. Concessions retain their own title. The post-game summary and potential overtime remain separate work.
+
+All kickoff variants have event artwork. Get the Ref reuses the mole referee from Argue the Call, and Changing Weather uses the actual resulting weather. If the same native sync includes its weather change, the kickoff card includes that fact and the queue plays one card. Both facts remain in the log. The standalone weather card remains available when kickoff splashes are disabled.
+
+The art review includes all 11 kickoff results, all five resulting conditions for Changing Weather, and the End of Regulation and concession cards. Captures at four viewport sizes are in `.tools/animated-splashes/kickoff-emblems/`. The generated art, reuse notes and prompts are documented in `assets/game/ui/match-events/README.md`.

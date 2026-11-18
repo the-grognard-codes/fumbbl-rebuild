@@ -47,9 +47,22 @@ try {
     const values = await control.locator('option').evaluateAll(nodes => nodes.map(node => node.value));
     for (const value of values) {
      await control.selectOption(value);
+     await page.locator('.match-splash-icon img').evaluate(img => img.decode());
      await page.locator('.match-splash-shade').evaluate(node => { for (const animation of node.getAnimations({subtree:true})) { animation.pause(); animation.currentTime=900; } });
      assert.ok(await page.locator('.match-splash').evaluate(node => node.scrollWidth <= node.clientWidth));
      await page.screenshot({path:`${output}/${kind}-${width}-${value}.png`});
+    }
+    if (kind === 'kickoff') {
+     await control.selectOption('WEATHER_CHANGE');
+     const condition = page.getByLabel('Resulting weather', {exact:true});
+     for (const value of await condition.locator('option').evaluateAll(nodes => nodes.map(node => node.value))) {
+      await condition.selectOption(value);
+      const splash = page.locator(`.match-splash-kickoff[data-weather="${value}"]`);
+      await splash.locator('.match-splash-icon img').evaluate(img => img.decode());
+      await splash.evaluate(node => { for (const animation of node.getAnimations({subtree:true})) { animation.pause(); animation.currentTime=900; } });
+      assert.equal(await splash.getByRole('heading').textContent(), 'CHANGING WEATHER');
+      await page.screenshot({path:`${output}/kickoff-${width}-changing-${value}.png`});
+     }
     }
    }
    await page.getByRole('button',{name:'Exit',exact:true}).click();

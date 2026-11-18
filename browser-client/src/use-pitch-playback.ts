@@ -276,7 +276,13 @@ export function usePitchPlayback(view: SetupState, records: TranscriptRecord[], 
             presented.current = { ...presented.current, homeScore: record.state.homeScore, awayScore: record.state.awayScore };
             setPitchView(presented.current);
           }
-          const nextIndex = index + 1;
+          const next = beats[index + 1];
+          // A displayed Changing Weather card already includes this exact weather fact.
+          // If kickoff splashes are hidden, the weather card can still play on its own.
+          const pairedWeather = next?.kind === 'announcement'
+            && next.announcement.id === beat.announcement.kickoffWeather?.pairedEventId;
+          if (pairedWeather) announced.current.add(next.announcement.id);
+          const nextIndex = index + (pairedWeather ? 2 : 1);
           // Revealing the score changes presented.current. Remember the already
           // deferred prompt so a refresh cannot mistake it for a new choice.
           pendingAnnouncement.current = { id: beat.announcement.id, closing: false,
