@@ -69,12 +69,12 @@ function markFailure(matchId, reason) {
   failures.set(matchId, { attempts, retryAt: Date.now() + delay });
   log(`${reason}; retrying active match ${matchId} after ${delay} ms.`);
 }
-function parkWorker(matchId, revision) {
+function parkWorker(matchId, revision, observedGeneration) {
   const previous = waiting.get(matchId);
   const attempts = previous?.revision === revision ? previous.attempts + 1 : 1;
   const delay = Math.round(retryBackoff(attempts, 60000) * (0.8 + Math.random() * 0.2));
   // The next inventory refresh checks this deadline, so fallback retries have refreshMs granularity.
-  waiting.set(matchId, { revision, attempts, retryAt: Date.now() + delay });
+  waiting.set(matchId, { revision, attempts, retryAt: Date.now() + delay, generation: observedGeneration });
   log(`Match ${matchId} yielded its idle worker; waiting for a change or retry after ${delay} ms.`);
 }
 function rememberEndedMatch(matchId) {
@@ -113,13 +113,16 @@ function startQueued() {
       children.delete(matchId);
       if (code === idleWorkerExitCode && !stopped) {
         failures.delete(matchId);
-        if (ready && !completed.has(matchId) && (!activeMatches || activeMatches.has(matchId))) {
+        if (!completed.has(matchId) && (!activeMatches || activeMatches.has(matchId))) {
           // A reconnect can miss publications even if the child exits after registration.
-          if (worker.connectionGeneration !== connectionGeneration || worker.changedRevision > worker.idleRevision
+          if (worker.changedRevision > worker.idleRevision
             || worker.saveResumeRevision >= 0 && worker.saveResumeRevision === worker.idleRevision) {
             waiting.delete(matchId);
             queued.add(matchId);
-          } else parkWorker(matchId, worker.idleRevision);
+          } else {
+            parkWorker(matchId, worker.idleRevision, worker.connectionGeneration);
+            if (ready) queueAvailableMatches([matchId]);
+          }
         }
       } else if (code === persistenceUnavailableExitCode && !stopped) {
         markFailure(matchId, `Match ${matchId} persistence unavailable`);
@@ -135,7 +138,20 @@ function startQueued() {
 function queueAvailableMatches(matches) {
   const now = Date.now();
   for (const matchId of matches) {
-    if (!children.has(matchId) && !completed.has(matchId) && (waiting.get(matchId)?.retryAt ?? 0) <= now) queued.add(matchId);
+    if (children.has(matchId) || completed.has(matchId)) continue;
+    const parked = waiting.get(matchId);
+    if (parked && parked.generation !== connectionGeneration) {
+      // Recheck missed publications only after the server advertises this job on the new connection.
+      const generation = connectionGeneration;
+      const delay = 1000 + Math.floor(Math.random() * Math.min(refreshMs, 30000));
+      parked.generation = generation;
+      parked.retryAt = now + delay;
+      setTimeout(() => {
+        if (ready && connectionGeneration === generation && waiting.get(matchId) === parked) {
+          queueAvailableMatches([matchId]);
+        }
+      }, delay).unref();
+    } else if (!parked || parked.retryAt <= now) queued.add(matchId);
   }
   startQueued();
 }
@@ -226,7 +242,6 @@ async function connect() {
     if (socket !== current || stopped) return;
     socket = null; sentAt = 0; registerId = null; ready = false; authenticated = false;
     connectionGeneration++;
-    waiting.clear();
     queued.clear();
     activeMatches = undefined;
     watchChangesAttempts = 0; watchChangesRetryAt = 0;

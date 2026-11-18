@@ -6,6 +6,7 @@ import com.fumbbl.ffb.server.local.BrowserRequestTiming;
 import com.fumbbl.ffb.server.skilluse.SkillUsePreferences;
 import com.fumbbl.ffb.server.skilluse.SkillUsePreferenceService;
 
+import com.eclipsesource.json.JsonArray;
 import com.eclipsesource.json.JsonObject;
 import com.eclipsesource.json.JsonValue;
 
@@ -729,7 +730,7 @@ public final class SetupApplication {
 
 	private HandleOutcome completedArtifactReply(MatchDocument document, String role, String requestId) {
 		JsonObject artifact = JsonObject.readFrom(document.completion.json());
-		com.eclipsesource.json.JsonArray events = artifact.get("events").asArray();
+		JsonArray events = artifact.get("events").asArray();
 		JsonObject terminal = events.get(events.size() - 1).asObject().get("state").asObject().set("callerRole", role);
 		return outcome(setupReplies.create(requestId, "ACCEPTED", false, terminal), false);
 	}

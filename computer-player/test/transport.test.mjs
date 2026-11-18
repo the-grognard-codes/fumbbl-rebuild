@@ -410,14 +410,18 @@ async function dispatcherHarness(t, handle) {
   };
 }
 
-test('dispatcher reconnect wakes parked jobs even when it missed the human publication', { timeout: 9000 }, async t => {
-  let dispatcher, loads = 0, action, homeActed = false;
+test('dispatcher reconnect staggers parked loads and recovers a missed human publication', { timeout: 9000 }, async t => {
+  let dispatcher, loads = 0, action, homeActed = false, reconnectedAt, retryAt;
   const { waitFor } = await dispatcherHarness(t, (socket, body) => {
     if (body.operation === 'register') {
       dispatcher = socket;
+      if (homeActed) reconnectedAt ??= performance.now();
       registeredJobs(socket, body.requestId, [[matchId]]);
+      if (homeActed) send(socket, { version: 2, type: 'computerJobChanged', requestId: null,
+        matchId, revision: 0, saveResumeChanged: false });
     } else if (body.operation === 'load') {
       loads++;
+      if (homeActed) retryAt = performance.now();
       const actor = homeActed ? 'away' : 'home';
       send(socket, response(body.requestId, { ...state, callerRole: 'away', actor,
         revision: homeActed ? 1 : 0, prompt: { ...state.prompt, actor } }));
@@ -433,6 +437,7 @@ test('dispatcher reconnect wakes parked jobs even when it missed the human publi
   await waitFor(() => action);
   assert.equal(action.expectedRevision, 1);
   assert.equal(loads, 2);
+  assert.ok(retryAt - reconnectedAt >= 950, "registration must not immediately reload a parked match");
 });
 
 test('an empty registration prunes parked jobs before a later job announcement', { timeout: 9000 }, async t => {

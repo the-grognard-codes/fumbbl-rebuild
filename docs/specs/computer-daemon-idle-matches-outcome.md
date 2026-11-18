@@ -4,9 +4,9 @@ The computer daemon now parks workers that are waiting for the human coach. It k
 
 The existing active-job refresh supplies a fallback when a notice is missed. The retry delay starts at 48–60 seconds and doubles up to a jittered range of 4–5 minutes. Registration negotiates change notices so the daemon can still use the fallback with an older server. The worker reports the revision it observed before yielding so a publication racing its exit can still wake it.
 
-Computer state loads no longer refresh the session idle timer. The engine worker releases idle sessions at the existing 30-minute threshold during its maintenance pass. A cold load can return the validated computer-side projection from the current durable checkpoint when the session is waiting for the human and there is no maintenance to run. Active computer decisions, reaction deadlines and save/resume transitions use the normal recovery path. A computer match is abandoned on the first maintenance check or touch after one hour without human player activity. Human matches retain their 30-day deadline. Abandonment uses the existing durable checkpoint state.
+Computer state loads no longer refresh the session idle timer. The engine worker releases idle sessions at the existing 30-minute threshold during its maintenance pass. A cold load can return the validated computer-side projection from the current durable checkpoint when the session is waiting for the human and there is no maintenance to run. Active computer decisions, reaction deadlines and save/resume transitions use the normal recovery path. `SaveResumeState.COMPUTER_RETENTION_MILLIS` sets a one-hour inactivity deadline for computer matches. Accepted human gameplay actions and successful human save/resume operations refresh the activity timestamp. Passive loads, dispatcher wake-ups, and computer actions leave it unchanged. When a match has already left memory, its next setup load or action checks the checkpoint timestamp, records overdue abandonment through `abandonIfInactive`, and returns `MATCH_ABANDONED`. Resident matches also check the deadline during maintenance. Human-versus-human matches use the 30-day `RETENTION_MILLIS` deadline.
 
-The preparation document stores lifecycle and document version. An activated match retains the same document version across gameplay revisions, and its current actor is stored only in the recovery checkpoint. A cold worker therefore still reads preferences and validates the checkpoint before answering. Returning a waiting view skips engine reconstruction.
+The preparation document stores lifecycle and document version. An activated match retains the same document version across gameplay revisions, and its current actor is stored only in the recovery checkpoint. A cold worker therefore still reads preferences and validates the checkpoint before answering. Returning a waiting view skips engine reconstruction. A follow-up tracks persisting a small turn summary with the durable generation so unchanged probes can skip the full read and hash. [Issue #548 follow-up](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/548#issuecomment-6969969843)
 
 ## Self-review
 
@@ -15,7 +15,7 @@ The preparation document stores lifecycle and document version. An activated mat
 - Restored timing coverage around the original recovery lookup after the first Java run caught an instrumentation regression. The timing tests passed on the rerun.
 - The first soak exposed a preference-read ordering regression introduced in the initial PR draft. The cold computer path now reads skill-use preferences before the checkpoint, while JDBC still has budget. A regression test enforces that order for a runnable cold load.
 
-The dispatcher reconciles a complete registration inventory, prunes missing jobs, and reloads parked matches after reconnect. A terminal notice or an abandoned worker response removes the job from scheduling. A negotiated registration that gets a malformed-message response retries without notices and periodically probes for support again. Fallback deadlines are checked on the registration refresh interval.
+The dispatcher reconciles a complete registration inventory, prunes missing jobs, and preserves parked revisions across reconnect. When the server advertises a parked match again, the dispatcher schedules one retry after an independent random delay of 1 to 31 seconds at the default refresh interval. A newer revision or a same-revision save/resume change wakes the worker immediately. A terminal notice or an abandoned worker response removes the job from scheduling. A negotiated registration that gets a malformed-message response retries without notices and periodically probes for support again. Fallback deadlines are checked on the registration refresh interval.
 
 Activation announces a new job. Committed setup changes (including concession), computer actions, decision expiry and deferred completion publish changes. The match-result endpoint reads the result or replay. Expiry of a pending save/resume proposal alone clears metadata and cannot give the computer an engine turn. Periodic refresh covers that case.
 
@@ -29,16 +29,23 @@ Review corrections passed 155 distinct focused Java tests across checkpoint reco
 
 Both the authenticated computer connection and its policy now support either seat. Ordinary human and spectator connections reject private computer policy data. A suspended Bogruk releases its worker even when it holds the turn. After reconnect, the dispatcher keeps ended jobs out of scheduling while they remain in an authoritative inventory.
 
+The second review added the staggered reconnect retry. All 17 dispatcher transport tests and 9 focused Java load tests passed after this change. The soak below ran before this reconnect adjustment.
+
 ## Final uninterrupted dev-local soak
 
-The final quick-built server ran continuously from kickoff to full time. Three previously abandoned matches remained in the database. The browser created three additional Bogruk matches and left them on the human turn, then played a fourth to a 0?3 finish at revision 825 in 11 minutes 44 seconds. MariaDB confirmed the completed match at document version 4 and all three new unattended matches at version 3.
+The final quick-built server ran continuously from kickoff to full time. Three previously abandoned matches remained in the database. The browser created three additional Bogruk matches and left them on the human turn, then played a fourth to a 0-3 finish at revision 825 in 11 minutes 44 seconds. MariaDB confirmed the completed match at document version 4 and all three new unattended matches at version 3.
 
 | Measure | Final run |
 | --- | --- |
 | Browser retained retries | 0 |
-| Server `PERSISTENCE_FAILED` log entries during the run | 0 across all matches |
+| Server `PERSISTENCE_FAILED` log entries during the run | 0 across all matches. Up to 4 separate lobby responses could have been JDBC allowance refusals (see below). |
 | Worker starts for the three new unattended matches | 4 each, including the initial load (9 reloads total) |
 | Browser driver recovery | 5 click timeouts recovered. The socket observer also recorded 105 rate-limit responses. |
+
+The 105 `RATE_LIMITED` responses break down as follows.
+
+- **101 diagnostic probes.** Fourteen retained browser captures directly identify 63 distinct rejected probes, including 57 with matching server traces. The other 38 are attributed by route and message order. On all six live match-page connections, the startup lobby browse preceded the first setup state and the first throttle followed it. The match page did not poll the lobby afterward. The server enforces a one-second probe interval after authorization, so variation in processing time can throttle consecutive probes.
+- **4 lobby reads.** One occurred during each match-creation visit, about half a second after lobby authentication and before entering the match. Both the lobby request limiter and a JDBC operation refused before it starts (`JdbcConnections.NotStarted`) return this code. The observer kept no request IDs for these four errors and the server logged no individual cause. Between 0 and 4 could be JDBC allowance refusals. None of the 105 responses was a gameplay mutation refusal.
 
 The browser observed full time during the same run. Evidence is under `.tools/573-review-final-soak` in the issue worktree.
 
@@ -59,6 +66,6 @@ Local evidence is under `.tools/573-soak-run-3`, `.tools/573-soak-resumed-final`
 
 ## Local review instance
 
-Hosting is available at [localhost:5173/play](http://localhost:5173/play). The isolated instance uses proxy port `22236`, game server port `22235`, and MariaDB port `23318`. The repository’s isolated startup procedure uses `-DskipTests`, the same Maven flag as `--quick`, while the test suite runs separately. The default dev-local ports were occupied by another worktree.
+The review used Hosting at [localhost:5173/play](http://localhost:5173/play). The isolated instance uses proxy port `22236`, game server port `22235`, and MariaDB port `23318`. The repository’s isolated startup procedure uses `-DskipTests`, the same Maven flag as `--quick`, while the test suite runs separately. The default dev-local ports were occupied by another worktree.
 
 The container’s first Firebase sign-in attempts timed out during provider connection setup. The isolated Compose override uses the server’s supported 1,700 ms provider allocation, 400 ms DNS allowance, and 650 ms connection allowance. Synthetic browser sign-in and dispatcher registration both succeeded after recovery.
