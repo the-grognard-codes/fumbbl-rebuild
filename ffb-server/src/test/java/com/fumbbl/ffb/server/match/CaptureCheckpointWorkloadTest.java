@@ -26,7 +26,7 @@ import static org.mockito.Mockito.when;
 /** Native cold/warm append/compaction workload. SQL and provider latency are measured separately. */
 class CaptureCheckpointWorkloadTest {
 	@Test void longMatchColdLoadAndBudgetRefusedWriteReconcileAtTheDurableRevision() throws Exception {
-		SetupSessionMovementTest.Fixture fixture = new SetupSessionMovementTest.Fixture(0, true, true);
+		SetupSessionMovementTest.Fixture fixture = new SetupSessionMovementTest.Fixture(0, true);
 		JsonObject view = fixture.session.reply("opening", "ACCEPTED", false, "home").get("state").asObject();
 		String id = fixture.document.matchId;
 		fixture.session.startSaveResumeRetention(System.currentTimeMillis());
@@ -91,7 +91,7 @@ class CaptureCheckpointWorkloadTest {
 		JsonArray runs = new JsonArray();
 		String initial = null;
 		for (int repeat = 0; repeat < 3; repeat++) {
-			SetupSessionMovementTest.Fixture fixture = new SetupSessionMovementTest.Fixture(0, true, true);
+			SetupSessionMovementTest.Fixture fixture = new SetupSessionMovementTest.Fixture(0, true);
 			long initialStarted = System.nanoTime();
 			String fixtureArtifact = fixture.session.recoveryArtifact();
 			double initialSerializationMs = (System.nanoTime() - initialStarted) / 1_000_000.0;

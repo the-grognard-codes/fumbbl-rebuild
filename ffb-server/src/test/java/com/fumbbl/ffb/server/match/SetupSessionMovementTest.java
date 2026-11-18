@@ -1346,10 +1346,6 @@ class SetupSessionMovementTest {
         }
 
         Fixture(int rerolls, boolean captureNative) {
-            this(rerolls, captureNative, true);
-        }
-
-        Fixture(int rerolls, boolean captureNative, boolean staged) {
             RosterCatalog catalog = new RosterCatalog();
             List<TeamDraft.Player> players = new ArrayList<>();
             for (int slot = 1; slot <= 11; slot++)
@@ -1372,7 +1368,7 @@ class SetupSessionMovementTest {
             when(server.getDebugLog()).thenReturn(mock(DebugLog.class));
             ServerCommunication communication = captureNative ? new ServerCommunication(server) : mock(ServerCommunication.class);
             when(server.getCommunication()).thenReturn(communication);
-            session = new SetupSession(server, document, -2, true, true, true, true, true, true, staged);
+            session = SetupSession.startRecoverable(server, document, -2, true, true);
         }
 
         JsonObject request(String operation, String id, JsonObject state) {

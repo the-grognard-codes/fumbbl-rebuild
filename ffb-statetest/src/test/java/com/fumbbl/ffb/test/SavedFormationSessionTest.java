@@ -125,10 +125,8 @@ class SavedFormationSessionTest {
 			}
 			choose(session);
 			if ("home".equals(view(session).getString("actor", null))) {
-				for (int number : List.of(20, 21)) {
-					JsonObject player = player(view(session), "home", number);
-					session.apply("home", request(session, "place").add("playerId", player.get("id")).add("to", new JsonObject().add("x", 12).add("y", number - 14)));
-				}
+				for (int number : List.of(20, 21))
+					assertEquals(12, player(view(session), "home", number).getInt("x", -1));
 				assertEquals("ACCEPTED", session.apply("home", request(session, "confirm")).getString("code", null));
 			}
 			assertEquals("away", view(session).getString("actor", null));

@@ -133,29 +133,23 @@ public final class SetupSession {
 		this(server, document, engineId, recoverable, defaultSetup, false);
 	}
 
-	/** A new r4.1 lifetime persists save/resume metadata in a distinct checkpoint version. */
+	/** Opens a current recovery lifetime with the requested setup and save/resume options. */
 	public SetupSession(FantasyFootballServer server, MatchDocument document, long engineId, boolean recoverable, boolean defaultSetup, boolean saveResume) {
 		this(server, document, engineId, recoverable, defaultSetup, saveResume, false);
 	}
 
-	/** New recoverable matches keep native reports with their accepted input in the same checkpoint. */
+	/** Compatibility overload. Every recoverable lifetime uses the current checkpoint features. */
 	public SetupSession(FantasyFootballServer server, MatchDocument document, long engineId, boolean recoverable, boolean defaultSetup, boolean saveResume, boolean transcriptV2) {
 		this(server, document, engineId, recoverable, defaultSetup, saveResume, transcriptV2, false);
 	}
 
-	/** New r5.2 matches retain a committed route across native decision prompts. */
+	/** Compatibility overload for callers that selected route support explicitly. */
 	public SetupSession(FantasyFootballServer server, MatchDocument document, long engineId, boolean recoverable, boolean defaultSetup, boolean saveResume, boolean transcriptV2, boolean routeV2) {
 		this(server, document, engineId, recoverable, defaultSetup, saveResume, transcriptV2, routeV2, false);
 	}
 
-	/** New r5.3 matches retain public conversation alongside the native checkpoint. */
+	/** Compatibility overload for callers that selected chat support explicitly. */
 	public SetupSession(FantasyFootballServer server, MatchDocument document, long engineId, boolean recoverable, boolean defaultSetup, boolean saveResume, boolean transcriptV2, boolean routeV2, boolean chatV1) {
-		this(server, document, engineId, recoverable, defaultSetup, saveResume, transcriptV2, routeV2, chatV1, false);
-	}
-
-	SetupSession(FantasyFootballServer server, MatchDocument document, long engineId, boolean recoverable,
-		boolean defaultSetup, boolean saveResume, boolean transcriptV2, boolean routeV2, boolean chatV1, boolean staged) {
-		if (staged && !chatV1) throw new IllegalArgumentException("Staging requires the current checkpoint runtime");
 		if (defaultSetup && !recoverable) throw new IllegalArgumentException("Default setup requires a versioned recovery lifetime");
 		if (saveResume && !recoverable) throw new IllegalArgumentException("Save/resume requires a versioned recovery lifetime");
 		if (transcriptV2 && !recoverable) throw new IllegalArgumentException("Transcript requires a versioned recovery lifetime");
@@ -163,11 +157,13 @@ public final class SetupSession {
 		if (chatV1 && !routeV2) throw new IllegalArgumentException("Chat requires the route checkpoint runtime");
 		this.defaultSetup = defaultSetup;
 		this.saveResume = saveResume;
-		this.transcriptV2 = transcriptV2;
-		this.routeV2 = routeV2;
-		this.chatV1 = chatV1;
-		if (transcriptV2) transcript = new MatchTranscript();
-		if (chatV1) chat = new MatchChat();
+		this.transcriptV2 = recoverable;
+		this.routeV2 = recoverable;
+		this.chatV1 = recoverable;
+		if (recoverable) {
+			transcript = new MatchTranscript();
+			chat = new MatchChat();
+		}
 		if (saveResume) saveResumeState = new SaveResumeState(0L);
 		this.document = document;
 		matchId = document.matchId;
@@ -180,7 +176,7 @@ public final class SetupSession {
 			@Override public void observeTurnEnd(Player<?> scorer, boolean halfEnded) { announcements.end(getGame(), scorer, halfEnded); announcements.flush(this); }
 			@Override public void observePlayableTurn() { announcements.playable(getGame()); announcements.flush(this); }
 		};
-		staging = staged ? new SetupStaging(state, document, this::mechanic) : null;
+		staging = recoverable ? new SetupStaging(state, document, this::mechanic) : null;
 		if (recoverable) {
 			recoveryDice = new RecoveryDice();
 			state.getDiceRoller().setRecoveryRoll(recoveryDice::roll);
@@ -217,7 +213,7 @@ public final class SetupSession {
 
 	public static SetupSession startRecoverable(FantasyFootballServer server, MatchDocument document, long engineId,
 		boolean defaultSetup, boolean saveResume) {
-		return new SetupSession(server, document, engineId, true, defaultSetup, saveResume, true, true, true, true);
+		return new SetupSession(server, document, engineId, true, defaultSetup, saveResume);
 	}
 
 	/** Recovery uses native deserialization only: never start a sequence or execute a command. */
@@ -422,9 +418,8 @@ public final class SetupSession {
 		state.getDiceRoller().getTestRolls().entrySet().stream().sorted(Map.Entry.comparingByKey()).forEach(entry -> {
 			JsonArray queue = new JsonArray(); entry.getValue().forEach(roll -> queue.add(roll.testRoll())); rolls.add(entry.getKey(), queue);
 		});
-		JsonObject payload = new JsonObject().add("recoveryVersion", staging != null ? STAGED_RECOVERY_VERSION : chatV1 ? 6 : routeV2 ? 5 : transcriptV2 ? 4 : saveResume ? 3 : 2)
-			.add("runtimeVersion", staging != null ? STAGED_RUNTIME : chatV1 ? CHAT_RUNTIME : routeV2 ? ROUTE_RUNTIME : transcriptV2 ? TRANSCRIPT_RUNTIME : saveResume ? SAVE_RESUME_RUNTIME : defaultSetup ? DEFAULT_SETUP_RUNTIME : LEGACY_RUNTIME)
-			.add("engineVersion", "ffb-3.4.0-bb2025-m3d.1").add("replayVersion", transcriptV2 ? 2 : 1).add("matchId", matchId)
+		JsonObject payload = new JsonObject().add("recoveryVersion", STAGED_RECOVERY_VERSION)
+			.add("runtimeVersion", STAGED_RUNTIME).add("engineVersion", "ffb-3.4.0-bb2025-m3d.1").add("replayVersion", 2).add("matchId", matchId)
 			.add("frozen", frozen()).add("revision", revision).add("drive", drive).add("failed", failed)
 			.add("native", recoveryNative(from == null ? -1 : from[2])).add("dice", recoveryDice.snapshot()).add("testRolls", rolls)
 			.add("turnTimeStarted", state.getTurnTimeStarted()).add("lastCommandNr", state.getLastCommandNr()).add("history", requests).add("kickoffSelection", selections)

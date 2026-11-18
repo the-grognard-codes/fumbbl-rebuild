@@ -119,7 +119,7 @@ class SetupApplicationReadOnlyLoadTest {
 		return (SetupSession) ((java.util.Map<?, ?>) field.get(application)).get(id);
 	}
 	private static final class Fixture {
-		final SetupSessionMovementTest.Fixture engine = new SetupSessionMovementTest.Fixture(0, true, true);
+		final SetupSessionMovementTest.Fixture engine = new SetupSessionMovementTest.Fixture(0, true);
 		final String id = engine.document.matchId;
 		final AtomicLong now = new AtomicLong(System.currentTimeMillis());
 		final SkillUsePreferenceService preferences = mock(SkillUsePreferenceService.class);

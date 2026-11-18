@@ -312,7 +312,7 @@ class SetupSessionPlacementTest {
 
 
     @Test void stagedSetupKeepsOnlyOneDurableConfirmationAfterOneHundredAdjustments() {
-        Fixture fixture = new Fixture("human", "human", true, 11);
+        Fixture fixture = new Fixture();
         JsonObject base = fixture.setup();
         String actor = base.getString("actor", null);
         String opponent = "home".equals(actor) ? "away" : "home";
@@ -362,7 +362,7 @@ class SetupSessionPlacementTest {
 
     @Test void forcedSetupRecoversLegalDeploymentForOneThroughTenPlayers() {
         for (int players = 1; players <= 10; players++) {
-            Fixture fixture = new Fixture("human", "human", true, players);
+            Fixture fixture = new Fixture("human", "human", players);
             JsonObject base = fixture.setup();
             String actor = base.getString("actor", null);
             JsonObject first = fixture.pitchPlayer(base, actor, 0);
@@ -388,7 +388,7 @@ class SetupSessionPlacementTest {
 
 
     @Test void stagedKickoffSelectionDoesNotSpendTheDurableDecisionBudget() throws Exception {
-        Fixture fixture = new Fixture("human", "human", true, 11);
+        Fixture fixture = new Fixture();
         JsonObject selection = fixture.kick(2, 2);
         assertEquals("SOLID_DEFENCE", selection.get("kickoff").asObject().getString("event", null));
 
@@ -405,7 +405,7 @@ class SetupSessionPlacementTest {
     }
 
     @Test void solidDefenceStagesSelectionsAndRevertsAnIllegalFiftiethPlacement() throws Exception {
-        Fixture fixture = new Fixture("human", "human", true, 11);
+        Fixture fixture = new Fixture();
         JsonObject selection = fixture.kick(2, 2);
         assertEquals("SOLID_DEFENCE", selection.get("kickoff").asObject().getString("event", null));
         String actor = selection.getString("actor", null);
@@ -470,7 +470,7 @@ class SetupSessionPlacementTest {
 
     @Test void quickSnapAndHighKickStayOpenUntilFinish() throws Exception {
         for (String event : List.of("QUICK_SNAP", "HIGH_KICK")) {
-            Fixture fixture = new Fixture("human", "human", true, 11);
+            Fixture fixture = new Fixture();
             boolean quick = "QUICK_SNAP".equals(event);
             JsonObject base = fixture.kick(quick ? 4 : 2, quick ? 5 : 3);
             assertEquals(event, base.get("kickoff").asObject().getString("event", null));
@@ -497,10 +497,14 @@ class SetupSessionPlacementTest {
     }
 
     @Test void currentRuntimeRejectsRetiredPlacementCheckpoints() {
-        Fixture fixture = new Fixture("human", "human", false, 11);
+        Fixture fixture = new Fixture();
         fixture.setup();
+        JsonObject envelope = JsonObject.readFrom(fixture.session.recoveryArtifact());
+        JsonObject payload = envelope.get("payload").asObject();
+        payload.set("recoveryVersion", 6).set("runtimeVersion", SetupSession.CHAT_RUNTIME);
+        envelope.set("sha256", new JsonDigest().sha256(payload));
         MatchService.Failure failure = org.junit.jupiter.api.Assertions.assertThrows(MatchService.Failure.class,
-            () -> new SetupSession(fixture.server, fixture.document, fixture.session.recoveryArtifact()));
+            () -> new SetupSession(fixture.server, fixture.document, envelope.toString()));
         assertEquals("RECOVERY_UNSUPPORTED", failure.code);
     }
 
@@ -515,10 +519,10 @@ class SetupSessionPlacementTest {
         }
 
         Fixture(String homeRoster, String awayRoster) {
-            this(homeRoster, awayRoster, true, 11);
+            this(homeRoster, awayRoster, 11);
         }
 
-        Fixture(String homeRoster, String awayRoster, boolean staged, int players) {
+        Fixture(String homeRoster, String awayRoster, int players) {
             FrozenTeam home = frozen("00000000-0000-0000-0000-000000000011", "home", homeRoster, players);
             FrozenTeam away = frozen("00000000-0000-0000-0000-000000000012", "away", awayRoster, players);
             document = new MatchDocument("00000000-0000-0000-0000-000000000021", 3, "away", MatchDocument.Lifecycle.ACTIVATED,
@@ -531,7 +535,7 @@ class SetupSessionPlacementTest {
             when(server.getFactory(any())).thenAnswer(invocation -> factories.get(invocation.getArgument(0)));
             when(server.getDebugLog()).thenReturn(mock(DebugLog.class));
             when(server.getCommunication()).thenReturn(mock(ServerCommunication.class));
-            session = new SetupSession(server, document, -2, true, true, true, true, true, true, staged);
+            session = SetupSession.startRecoverable(server, document, -2, true, true);
         }
 
         private FrozenTeam frozen(String id, String role, String roster, int playerCount) {

@@ -43,7 +43,7 @@ class SetupApplicationRecoveryFailureTest {
 	}
 
 	@Test void replacementGenerationIsRetriedAndCanRestoreARealNativeCheckpoint() throws Exception {
-		SetupSessionMovementTest.Fixture engine = new SetupSessionMovementTest.Fixture(0, true, true);
+		SetupSessionMovementTest.Fixture engine = new SetupSessionMovementTest.Fixture(0, true);
 		engine.advanceToTurn();
 		engine.session.startSaveResumeRetention(System.currentTimeMillis());
 		String id = engine.document.matchId;

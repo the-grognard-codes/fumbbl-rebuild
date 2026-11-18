@@ -38,7 +38,11 @@ final class ActiveMatchPublisher {
 
 	JsonObject watch(BrowserConnection connection, AuthenticatedPrincipal principal,
 		String matchId, String requestId) throws SQLException {
-		access.spectatorSnapshot(principal, matchId);
+		try { access.spectatorSnapshot(principal, matchId); }
+		catch (MatchService.Failure denied) {
+			authorizationDenied(connection, matchId, V2PublicationAuthorization.Audience.SPECTATOR, denied.code);
+			throw denied;
+		}
 		JsonObject view = setup.spectatorView(matchId);
 		enroll(connection, new Viewer(principal, matchId, true));
 		return state(requestId, view);
@@ -60,6 +64,15 @@ final class ActiveMatchPublisher {
 	}
 
 	void remove(BrowserConnection connection) { viewers.remove(connection); }
+
+	void authorizationDenied(BrowserConnection connection, String matchId, V2PublicationAuthorization.Audience audience, String code) {
+		Viewer viewer = viewers.get(connection);
+		if (viewer == null || !viewer.matchId.equals(matchId)) return;
+		if ("AUTHENTICATION_REQUIRED".equals(code)
+			|| (viewer.audience() == audience && ("AUTHORIZATION".equals(code) || "NOT_FOUND".equals(code)))) {
+			viewers.remove(connection);
+		}
+	}
 
 	void liveTranscript(BrowserConnection connection, boolean enabled) {
 		if (enabled) liveTranscriptConnections.add(connection);
@@ -103,7 +116,7 @@ final class ActiveMatchPublisher {
 
 	/**
 	 * Best-effort broadcast using the current worker-local enrollment. Successful watch and match requests
-	 * authorize enrollment. Durable authorization denials and observed provider revocations remove it.
+	 * authorize enrollment. Observed authorization denials and provider revocations remove it.
 	 */
 	void publishPlacement(String matchId, BrowserConnection source, JsonObject placement) {
 		if (placement == null) return;
@@ -203,9 +216,7 @@ final class ActiveMatchPublisher {
 		for (Map.Entry<BrowserConnection, Viewer> entry : viewers.entrySet()) {
 			Viewer viewer = entry.getValue();
 			if (entry.getKey() == source || !matchId.equals(viewer.matchId) || chat && viewer.principal == null) continue;
-			V2PublicationAuthorization.Audience audience = viewer.spectator ? V2PublicationAuthorization.Audience.SPECTATOR
-				: viewer.principal == null ? V2PublicationAuthorization.Audience.COMPUTER : V2PublicationAuthorization.Audience.PLAYER;
-			recipients.add(new Recipient(entry.getKey(), viewer, new V2PublicationAuthorization.Target(viewer.principal, audience)));
+			recipients.add(new Recipient(entry.getKey(), viewer, new V2PublicationAuthorization.Target(viewer.principal, viewer.audience())));
 		}
 		return recipients;
 	}
@@ -243,6 +254,11 @@ final class ActiveMatchPublisher {
 			this.principal = principal;
 			this.matchId = matchId;
 			this.spectator = spectator;
+		}
+
+		V2PublicationAuthorization.Audience audience() {
+			if (spectator) return V2PublicationAuthorization.Audience.SPECTATOR;
+			return principal == null ? V2PublicationAuthorization.Audience.COMPUTER : V2PublicationAuthorization.Audience.PLAYER;
 		}
 	}
 }

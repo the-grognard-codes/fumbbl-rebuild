@@ -112,7 +112,7 @@ class DefaultSetupSessionTest {
 
 	@Test void currentCheckpointRetainsManualSetupAndItsExactFormat() throws Exception {
 		MatchDocument document = document(11); TestServer server = new TestServer();
-		SetupSession original = SetupSession.startRecoverable(server.getServer(), document, -3, false, false);
+		SetupSession original = new SetupSession(server.getServer(), document, -3, true);
 		String before = original.recoveryArtifact();
 		SetupSession restored = new SetupSession(server.getServer(), document, before);
 		assertEquals(before, restored.recoveryArtifact());

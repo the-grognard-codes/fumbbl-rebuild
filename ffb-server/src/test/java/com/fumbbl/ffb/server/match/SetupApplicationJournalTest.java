@@ -220,7 +220,7 @@ class SetupApplicationJournalTest {
 	}
 
 	private static final class Fixture {
-		final SetupSessionMovementTest.Fixture engine = new SetupSessionMovementTest.Fixture(0, true, true);
+		final SetupSessionMovementTest.Fixture engine = new SetupSessionMovementTest.Fixture(0, true);
 		final String id = engine.document.matchId;
 		final MatchService matches = mock(MatchService.class);
 		final Memory recovery;
