@@ -212,3 +212,8 @@ export function StadiumMockup() {
       <h2 id="candidate-heading">Painted candidates</h2>
       {candidates.map(({ url, label }) => <figure key={url}>
         <a href={url}><img src={url} alt={label} width={STILL_LAYOUT.width} height={STILL_LAYOUT.height} loading="lazy"/></a>
+        <figcaption>{label}</figcaption>
+      </figure>)}
+    </section>}
+  </main>;
+}

@@ -73,6 +73,29 @@ try {
       });
     }
 
+    await page.getByRole('heading', { name: 'Painted candidates' }).waitFor();
+    const candidateCount = await page.locator('.mockup-candidates img').count();
+    assert.ok(candidateCount >= 3 && candidateCount <= 5);
+    const stillPicker = page.getByLabel('Painted still', { exact: true });
+    const candidateFrame = page.locator('.mockup-concept-frame');
+    const candidateStill = page.locator('.mockup-compared-still');
+    const concept = page.locator('.mockup-concept');
+    assert.equal(await comparison.inputValue(), 'side-by-side');
+    assert.match(await stillPicker.inputValue(), /candidate-02\.png/);
+    assert.match(await candidateStill.getAttribute('src'), /candidate-02\.png/);
+    assert.match(await concept.getAttribute('src'), /01-old-world-classic-human-home\.webp/);
+    await Promise.all([candidateStill.evaluate(image => image.decode()), concept.evaluate(image => image.decode())]);
+    assert.deepEqual(await candidateStill.evaluate(image => [image.naturalWidth, image.naturalHeight]), [1024, 1536]);
+    const stillLink = page.getByRole('link', { name: 'Candidate 02', exact: true });
+    assert.equal(await stillLink.getAttribute('href'), await candidateStill.getAttribute('src'));
+    const compareBounds = await candidateFrame.boundingBox();
+    const conceptBounds = await concept.boundingBox();
+    assert.ok(Math.abs(compareBounds.width - conceptBounds.width) < 1);
+    assert.ok(Math.abs(compareBounds.height - conceptBounds.height) < 1);
+    assert.equal(await stage.count(), 0);
+    await page.locator('.mockup-comparison').screenshot({ path: resolve(output, 'candidate-02-vs-concept.png') });
+
+    await comparison.selectOption('render');
     await settlePlayers();
     const homeSprite = page.locator('[data-player-id="home-0"]');
     const awaySprite = page.locator('[data-player-id="away-0"]');
@@ -125,34 +148,23 @@ try {
     }
 
     await comparison.selectOption('side-by-side');
-    const reference = page.locator('.mockup-reference img');
-    await reference.waitFor();
-    await reference.evaluate(image => image.decode());
-    const frame = page.locator('.mockup-viewport');
-    const compareBounds = await frame.boundingBox();
-    const referenceBounds = await reference.boundingBox();
-    assert.ok(Math.abs(compareBounds.width - referenceBounds.width) < 1);
-    assert.ok(Math.abs(compareBounds.height - referenceBounds.height) < 1);
-    assert.equal(await camera.isDisabled(), true);
-    assert.equal(await stage.getAttribute('data-angle'), '90');
-    assert.equal(await stage.getAttribute('data-zoom'), '1');
+    await concept.waitFor();
+    assert.equal(await camera.count(), 0);
     await comparison.selectOption('crossfade');
     const overlay = page.locator('.mockup-overlay');
-    const opacity = page.getByLabel('Reference opacity', { exact: true });
+    assert.match(await candidateStill.getAttribute('src'), /candidate-02\.png/);
+    assert.match(await overlay.getAttribute('src'), /01-old-world-classic-human-home\.webp/);
+    const opacity = page.getByLabel('Concept opacity', { exact: true });
     for (const blend of ['0', '50', '100']) {
       await opacity.fill(blend);
       assert.equal(await overlay.evaluate(image => getComputedStyle(image).opacity), String(Number(blend) / 100));
     }
-    assert.deepEqual(await overlay.boundingBox(), await frame.boundingBox());
-
-    const candidateCount = await page.locator('.mockup-candidates img').count();
-    if (candidateCount > 0) {
-      const referencePicker = page.getByLabel('Reference', { exact: true });
-      await referencePicker.selectOption({ index: 1 });
-      await overlay.evaluate(image => image.decode());
-      assert.equal(await overlay.evaluate(image => image.naturalWidth / image.naturalHeight), 2 / 3);
-      assert.deepEqual(await overlay.boundingBox(), await frame.boundingBox());
-    }
+    assert.deepEqual(await overlay.boundingBox(), await candidateFrame.boundingBox());
+    await stillPicker.selectOption({ label: 'Candidate 01' });
+    await candidateStill.evaluate(image => image.decode());
+    assert.match(await candidateStill.getAttribute('src'), /candidate-01\.png/);
+    assert.deepEqual(await candidateStill.boundingBox(), await overlay.boundingBox());
+    await stillPicker.selectOption({ label: 'Candidate 02' });
 
     await comparison.selectOption('render');
     assert.equal(await camera.isEnabled(), true);
@@ -175,6 +187,7 @@ try {
     const fallback = await browser.newPage();
     await fallback.route('**/pitch/stadium-v1.png', route => route.fulfill({ status: 404, body: '' }));
     await fallback.goto(page.url());
+    await fallback.getByLabel('Comparison', { exact: true }).selectOption('render');
     await fallback.getByRole('status').filter({ hasText: 'Turf failed to load' }).waitFor();
     await fallback.close();
 
