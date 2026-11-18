@@ -2,7 +2,7 @@ import { readFileSync } from 'node:fs';
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { V2Client, v2PendingKey } from '../src/v2-client.ts';
-import { canPlaceReserve, decodeSetupStateValue } from '../src/setup-protocol.ts';
+import { applyStagedPlacement, canPlaceReserve, decodeSetupStateValue } from '../src/setup-protocol.ts';
 import { skillUseCases } from '../src/skill-use-preferences.ts';
 import { solidDefenceState } from './fixtures/solid-defence-state.ts';
 
@@ -784,7 +784,7 @@ test('opponent and spectator receive live positions without advancing the confir
       code: 'ACCEPTED', duplicate: false, state: value });
     load(initial, base);
     const staged = { type: 'stagedPlacement', requestId: null, code: 'ACCEPTED', matchId: match, baseRevision: 2,
-      stageSeq: 2, players: [{ playerId: player.id, x: 8, y: 7 }] };
+      stageSeq: 2, players: [{ playerId: player.id, x: 8, y: 7 }], selectedPlayerIds: [] };
     initial.reply(staged);
     assert.equal(client.state?.revision, 2);
     assert.equal(client.state?.players.find(item => item.id === player.id)?.x, 8);
@@ -807,5 +807,62 @@ test('opponent and spectator receive live positions without advancing the confir
     load(await connect(true), base);
     assert.equal(client.state?.revision, 2, 'A restored server opens at the last checkpoint');
     assert.equal(client.state?.players.find(item => item.id === player.id)?.x, player.x);
+  }
+});
+
+test('every staged kick-off selection updates passive viewers and respects sequence and recovery', async () => {
+  for (const watch of [false, true]) for (const event of ['CHARGE', 'QUICK_SNAP', 'SOLID_DEFENCE'] as const) {
+    const { client, connect } = fixture(new Map(), { matchId: match, watch }, false, 'play');
+    const initial = await connect(true);
+    const frame = JSON.parse(readFileSync(new URL('./fixtures/m5a-blitz-projections.json', import.meta.url), 'utf8'))[0].actor;
+    const base = { ...frame, matchId: match, revision: 4, actor: 'home', callerRole: watch ? 'spectator' : 'away',
+      actions: [], phase: 'PLAY', turnMode: 'KICKOFF', activePlayerId: null, prompt: null,
+      kickoff: { version: 1, event, actor: 'home', stage: 'selection', allowed: 2, selected: 0, completed: 0 } };
+    const player = base.players.find((item: any) => item.role === 'home');
+    const load = (socket: Socket, value: unknown) => socket.reply({ type: 'setupState', requestId: socket.sent.at(-1).requestId,
+      code: 'ACCEPTED', duplicate: false, state: value });
+    load(initial, base);
+    const staged = { type: 'stagedPlacement', requestId: null, code: 'ACCEPTED', matchId: match, baseRevision: 4,
+      stageSeq: 1, players: [], selectedPlayerIds: [player.id] };
+    initial.reply(staged);
+    assert.equal(client.state?.revision, 4);
+    assert.equal(client.state?.kickoff?.selected, 1);
+    assert.deepEqual(client.state?.kickoff?.participantIds, [player.id]);
+    const live = client.state;
+    client.disconnect();
+    const reconnect = await connect(true);
+    load(reconnect, live);
+    assert.deepEqual(client.state?.kickoff?.participantIds, [player.id]);
+    reconnect.reply({ ...staged, stageSeq: 2, selectedPlayerIds: [] });
+    reconnect.reply(staged);
+    assert.equal(client.state?.kickoff?.selected, 0);
+    assert.deepEqual(client.state?.kickoff?.participantIds, []);
+    reconnect.reply({ type: 'setupState', requestId: null, code: 'ACCEPTED', duplicate: false,
+      state: { ...base, revision: 5, kickoff: { ...base.kickoff, stage: 'movement', selected: 1, participantIds: [player.id] } } });
+    reconnect.reply({ ...staged, stageSeq: 3, selectedPlayerIds: [] });
+    assert.equal(client.state?.revision, 5);
+    assert.deepEqual(client.state?.kickoff?.participantIds, [player.id]);
+    client.disconnect();
+    load(await connect(true), base);
+    assert.equal(client.state?.kickoff?.selected, 0);
+    assert.equal(client.state?.kickoff?.participantIds, undefined);
+  }
+});
+
+test('staged selection requires unique players of the selecting team within its allowance', () => {
+  const frame = JSON.parse(readFileSync(new URL('./fixtures/m5a-blitz-projections.json', import.meta.url), 'utf8'))[0].actor;
+  const base = decodeSetupStateValue({ ...frame, matchId: match, revision: 4, actor: 'home', actions: [], turnMode: 'KICKOFF',
+    activePlayerId: null, kickoff: { version: 1, event: 'QUICK_SNAP', actor: 'home', stage: 'selection', allowed: 1,
+      selected: 0, completed: 0 } }, true);
+  const stage = { matchId: match, baseRevision: 4, stageSeq: 1, players: [] };
+  const home = base.players.find(player => player.role === 'home')!.id;
+  const away = base.players.find(player => player.role === 'away')!.id;
+  assert.throws(() => applyStagedPlacement(base, { ...stage, selectedPlayerIds: [away] }), /Invalid staged selection/);
+  assert.throws(() => applyStagedPlacement(base, { ...stage, selectedPlayerIds: [home, home] }), /Invalid staged placement/);
+  assert.throws(() => applyStagedPlacement({ ...base, kickoff: { ...base.kickoff!, stage: 'movement' } },
+    { ...stage, selectedPlayerIds: [home] }), /Invalid staged selection/);
+  if (base.players.filter(player => player.role === 'home').length > 1) {
+    const another = base.players.find(player => player.role === 'home' && player.id !== home)!.id;
+    assert.throws(() => applyStagedPlacement(base, { ...stage, selectedPlayerIds: [home, another] }), /Invalid staged selection/);
   }
 });

@@ -56,16 +56,18 @@ Staged actions at `33d95b7c6`:
   - `matchId`
   - `baseRevision`, the durable revision the stage belongs to
   - `stageSeq`, a counter that rises within that base revision
-  - only the changed players, each as a player ID and square (or reserve)
+  - the players touched during the stage, each as a player ID and square (or reserve)
+  - `selectedPlayerIds`, the full current set of staged participants. During kick-off selection an empty list clears the highlight.
 - **Revision.** It never increments `revision`.
 - **Ordering.** Clients apply a message only if its `baseRevision` equals their current revision and its `stageSeq` is higher than the last one applied. Anything else is dropped.
-- **No catch-up machinery.** There are no acknowledgements, retries or gap detection. A missed message is corrected by a later staged message (which carries the full staged positions of the moved players), by the confirm, or by a reconnect.
-- **Reconnect.** A reconnecting or newly joining viewer receives the current durable state plus the current staged positions in its normal state response. No missed messages are replayed.
+- **No catch-up machinery.** There are no acknowledgements, retries or gap detection. A missed message is corrected by a later staged message (which carries all touched positions and the current selection), by the confirm, or by a reconnect.
+- **Reconnect.** A reconnecting or newly joining viewer receives the current durable state plus the current staged positions and selected participants in its normal state response. No missed messages are replayed.
 - **Publication rules.** Publication follows [ADR 0006](0006-single-engine-worker.md): it runs on the engine worker, makes no per-recipient provider or service calls, and needs no JDBC.
 
 ### Durability
 
 - **Confirm.** The confirming action is the only durable step in a stage. It produces exactly one revision, one state snapshot, one transcript record and one checkpoint, all holding the final positions.
+- **Ending a stage.** Confirming a selection passes its participants to the native command. Declining it clears the selection. Concession ends the match from the confirmed board. Other gameplay commands are rejected while adjustments are pending, preserving the visible stage and its request history.
 - **No interim records.** Staged actions write no checkpoint, journal entry, event, transcript record or durable request history.
 - **Crash, release or reload before confirm.** Recovery restores the last checkpoint, which holds the stage's base positions. That is as if no staged action ever happened, and the coach starts the stage afresh.
 - **Request idempotence.** Each staged request ID is deduplicated in a small in-memory set held by the resident session. It is cleared at confirm and lost on restore, where a retried staged request simply applies to the restored board. The confirming request keeps its existing durable request-history entry.

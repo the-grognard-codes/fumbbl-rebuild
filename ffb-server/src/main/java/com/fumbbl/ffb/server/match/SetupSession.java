@@ -699,6 +699,7 @@ public final class SetupSession {
 			staging.stage(role, request, key, fingerprint, () -> offeredAction(role, request));
 			return reply(id, "ACCEPTED", false, role);
 		}
+		SetupStaging.StageEnd stageEnd = staging == null ? SetupStaging.StageEnd.NONE : staging.stageEnd(request);
 		// Reserve 1 MiB for one bounded projection, chat growth, canonical JSON, and the terminal envelope.
 		if (artifactBytes() > MAX_MATCH_ARTIFACT_BYTES - MATCH_ARTIFACT_RESERVE_BYTES)
 			throw new MatchService.Failure("REPLAY_LIMIT");
@@ -813,9 +814,7 @@ public final class SetupSession {
 		StepId oldStep = step();
 		String oldActor = actor();
 		try {
-			// Commit a verified overlay only for its confirming native command.
-			if (staging != null) staging.finish("confirm".equals(operation) || (reactionAction != null
-				&& ("confirm-solid-defence".equals(reactionAction.id) || "end-event".equals(reactionAction.id))));
+			if (staging != null) staging.finish(stageEnd);
 			// No legacy socket is registered for these private engine IDs. Authorization above is persisted-role based.
 			blockPresentation.prepare(state, command);
 			announcements.prepare(game, command);
@@ -1384,6 +1383,8 @@ public final class SetupSession {
             .add("half", Math.max(1, Math.min(2, game.getHalf()))).add("drive", drive)
             .add("homeTurn", game.getTurnDataHome().getTurnNr()).add("awayTurn", game.getTurnDataAway().getTurnNr());
 		JsonObject kickoff = new KickoffPresentation().project(state, live && staging != null ? staging.selection() : kickoffSelection, budget);
+		if (live && staging != null && kickoff != null && "selection".equals(kickoff.getString("stage", null)))
+			kickoff.add("participantIds", new StagedPlacementMessage().selectedPlayers(staging.selection()));
         if (live && staging != null && kickoff != null && "movement".equals(kickoff.getString("stage", null))
             && game.getTurnMode() != TurnMode.BLITZ) kickoff.set("completed", staging.movedCount());
         if (kickoff == null && confirmedKickoff != null && "CHARGE".equals(confirmedKickoff.getString("event", null))) {

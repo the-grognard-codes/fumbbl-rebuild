@@ -490,7 +490,11 @@ function GameViewContent({ view, connected, pending: requestPending, mutate, acc
     }
     if (routeMode && !movementFlow) { setRouteMode(false); updateWaypoints([]); }
     if (kickoff) {
-      if (canChoose && kickoff.players.some(player => player.id === id)) {
+      if (!canChoose) return;
+      const choice = kickoff.players.find(player => player.id === id);
+      if (choice && kickoff.batch) {
+        mutate('action', { actionId: choice.action.id });
+      } else if (choice) {
         const selected = toggleKickoffPlayer(kickoffIds, id, kickoff.maximum);
         setKickoffIds(selected);
         setPlayerId(selected.includes(id) ? id : ''); setTargetFocus(selected.includes(id) ? 'player' : null);
@@ -769,7 +773,7 @@ function GameViewContent({ view, connected, pending: requestPending, mutate, acc
     confirmationGesture.consume();
     if (kickoff?.confirm) {
       setPlayerId(''); setActionId(''); setTargetFocus(null); setSmartIntent(null);
-      mutate('action', { actionId: kickoff.confirm.id, ...(kickoff.batch ? { playerIds: kickoff.selected } : {}) });
+      mutate('action', { actionId: kickoff.confirm.id });
       return;
     }
     if (menuChoices.length || jumpMode) return;

@@ -4,13 +4,14 @@ import com.fumbbl.ffb.FieldCoordinate;
 import com.fumbbl.ffb.FieldCoordinateBounds;
 
 import java.util.Map;
+import java.util.Set;
 
 import com.eclipsesource.json.JsonArray;
 import com.eclipsesource.json.JsonObject;
 import com.eclipsesource.json.JsonValue;
 
 final class StagedPlacementMessage {
-	JsonObject encode(String matchId, int revision, int sequence, Map<String, FieldCoordinate> squares) {
+	JsonObject encode(String matchId, int revision, int sequence, Map<String, FieldCoordinate> squares, Set<String> selection) {
 		JsonArray players = new JsonArray();
 		squares.forEach((playerId, square) -> {
 			boolean pitch = FieldCoordinateBounds.FIELD.isInBounds(square);
@@ -20,6 +21,12 @@ final class StagedPlacementMessage {
 		});
 		return new JsonObject().add("version", 2).add("type", "stagedPlacement").add("requestId", JsonValue.NULL)
 			.add("code", "ACCEPTED").add("matchId", matchId).add("baseRevision", revision)
-			.add("stageSeq", sequence).add("players", players);
+			.add("stageSeq", sequence).add("players", players).add("selectedPlayerIds", selectedPlayers(selection));
+	}
+
+	JsonArray selectedPlayers(Set<String> selection) {
+		JsonArray players = new JsonArray();
+		selection.forEach(players::add);
+		return players;
 	}
 }

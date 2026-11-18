@@ -311,6 +311,37 @@ class SetupSessionPlacementTest {
     }
 
 
+    @Test void unrelatedCommandPreservesStagedBoardAndConcessionRestoresBasePositionsForAllViewers() {
+        Fixture fixture = new Fixture();
+        JsonObject base = fixture.setup();
+        String actor = base.getString("actor", null);
+        String opponent = "home".equals(actor) ? "away" : "home";
+        JsonObject first = fixture.pitchPlayer(base, actor, 0);
+        JsonObject second = fixture.pitchPlayer(base, actor, 1);
+        String player = first.getString("id", null);
+        JsonObject swap = fixture.place("swap", base, player, second.getInt("x", -1), second.getInt("y", -1));
+        String checkpoint = fixture.session.recoveryArtifact();
+        fixture.session.apply(actor, swap);
+
+        JsonObject choice = fixture.request("choice", "unrelated", base).add("promptId", "prematch").add("optionId", "heads");
+        assertEquals("INVALID_OPTION", fixture.failure(actor, choice));
+        assertEquals(checkpoint, fixture.session.recoveryArtifact());
+        assertTrue(fixture.session.apply(actor, swap).getBoolean("duplicate", false));
+        JsonObject live = fixture.session.spectatorView();
+        assertEquals(1, live.getInt("stageSeq", 0));
+        assertEquals(second.get("x"), fixture.player(live, player).get("x"));
+        assertEquals(second.get("y"), fixture.player(live, player).get("y"));
+
+        fixture.session.apply(opponent, fixture.request("concede", "concession", base));
+        for (String viewer : new String[] {actor, opponent, "spectator"}) {
+            JsonObject terminal = fixture.session.reply("load", "ACCEPTED", false, viewer).get("state").asObject();
+            assertEquals("FULL_TIME", terminal.getString("phase", null));
+            assertEquals(0, terminal.getInt("stageSeq", 0));
+            assertEquals(first.get("x"), fixture.player(terminal, player).get("x"));
+            assertEquals(first.get("y"), fixture.player(terminal, player).get("y"));
+        }
+    }
+
     @Test void stagedSetupKeepsOnlyOneDurableConfirmationAfterOneHundredAdjustments() {
         Fixture fixture = new Fixture();
         JsonObject base = fixture.setup();
@@ -402,6 +433,40 @@ class SetupSessionPlacementTest {
         assertEquals(selection.get("revision"), staged.get("revision"));
         JsonObject confirmed = fixture.submit(staged, "confirm-selection", fixture.action(staged, "event-confirm"));
         assertEquals("movement", confirmed.get("kickoff").asObject().getString("stage", null));
+    }
+
+    @Test void allKickoffSelectionStagesPublishTheCompleteSelectionAndRestoreOnlyTheBase() throws Exception {
+        List<String> events = List.of("SOLID_DEFENCE", "QUICK_SNAP", "CHARGE");
+        int[][] dice = {{2, 2}, {4, 5}, {5, 5}};
+        for (int index = 0; index < events.size(); index++) {
+            Fixture fixture = new Fixture();
+            JsonObject base = fixture.kick(dice[index][0], dice[index][1]);
+            assertEquals(events.get(index), base.get("kickoff").asObject().getString("event", null));
+            String actor = base.getString("actor", null);
+            String other = "home".equals(actor) ? "away" : "home";
+            JsonObject choice = fixture.action(base, "event-pick:");
+            String player = choice.get("target").asObject().getString("playerId", null);
+            JsonArray selectedIds = new JsonArray().add(player);
+            String checkpoint = fixture.session.recoveryArtifact();
+
+            JsonObject selected = fixture.submit(base, "select", choice);
+            JsonObject frame = fixture.session.stagedPlacement();
+            assertEquals(base.get("revision"), frame.get("baseRevision"));
+            assertEquals(1, frame.getInt("stageSeq", -1));
+            assertEquals(new JsonArray(), frame.get("players"));
+            assertEquals(selectedIds, frame.get("selectedPlayerIds"));
+            assertEquals(selectedIds, selected.get("kickoff").asObject().get("participantIds"));
+            assertEquals(selectedIds, fixture.session.spectatorView().get("kickoff").asObject().get("participantIds"));
+            JsonObject reconnect = fixture.session.reply("reconnect", "ACCEPTED", false, other).get("state").asObject();
+            assertEquals(selectedIds, reconnect.get("kickoff").asObject().get("participantIds"));
+
+            fixture.submit(selected, "deselect", fixture.action(selected, "event-pick:" + player));
+            assertEquals(2, fixture.session.stagedPlacement().getInt("stageSeq", -1));
+            assertEquals(new JsonArray(), fixture.session.stagedPlacement().get("selectedPlayerIds"));
+            assertEquals(checkpoint, fixture.session.recoveryArtifact());
+            SetupSession restored = new SetupSession(fixture.server, fixture.document, checkpoint);
+            assertEquals(base.get("kickoff"), restored.spectatorView().get("kickoff"));
+        }
     }
 
     @Test void solidDefenceStagesSelectionsAndRevertsAnIllegalFiftiethPlacement() throws Exception {

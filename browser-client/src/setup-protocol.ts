@@ -245,6 +245,7 @@ export function decodeSetupStateValue(value: unknown, spectator = false): SetupS
 		const value = object(result.kickoff, ['version','event','actor','stage','allowed','completed','selected', ...(hasParticipants ? ['participantIds'] : [])]);
 		if (hasParticipants && (!Array.isArray(value.participantIds) || value.participantIds.length > 16
 			|| new Set(value.participantIds).size !== value.participantIds.length
+			|| value.stage === 'selection' && value.participantIds.length !== value.selected
 			|| value.participantIds.some(id => !players.some(player => player.id === id && player.role === value.actor)))) throw Error('Invalid kickoff participants');
 		role(value.actor); integer(value.allowed, 32); integer(value.completed, 32); integer(value.selected, 32);
 		if (value.version !== 1 || !['QUICK_SNAP','CHARGE','HIGH_KICK','SOLID_DEFENCE'].includes(value.event as string)
@@ -360,12 +361,19 @@ function decodePlayerSkillMarkers(value: unknown): void {
   for (const detail of data.details) text(detail, 300);
 }
 
-/** These positions are live-only and never enter the playback queue. */
+/** Live positions and selections stay outside the playback queue. */
 export function applyStagedPlacement(state: SetupState, value: Record<string, unknown>): SetupState {
     integer(value.baseRevision);
     integer(value.stageSeq, 100);
-    if (value.stageSeq === 0 || !Array.isArray(value.players) || value.players.length > 32) throw Error('Invalid staged placement');
+    const selected = value.selectedPlayerIds;
+    if (value.stageSeq === 0 || !Array.isArray(value.players) || value.players.length > 32
+        || !Array.isArray(selected) || selected.length > 16 || new Set(selected).size !== selected.length)
+        throw Error('Invalid staged placement');
     if (value.matchId !== state.matchId || value.baseRevision !== state.revision || value.stageSeq <= (state.stageSeq ?? 0)) return state;
+    const selecting = state.kickoff?.stage === 'selection' ? state.kickoff : undefined;
+    if (selected.length && (!selecting || selected.length > selecting.allowed
+        || selected.some(id => !state.players.some(player => player.id === id && player.role === selecting.actor))))
+        throw Error('Invalid staged selection');
     const changed = new Map<string, { x: number | null; y: number | null }>();
     for (const item of value.players) {
         const { playerId, x, y } = object(item, ['playerId', 'x', 'y']);
@@ -387,5 +395,6 @@ export function applyStagedPlacement(state: SetupState, value: Record<string, un
             : {};
         return { ...player, ...setupState, ...square };
     });
-    return { ...state, stageSeq: value.stageSeq, players };
+    const kickoff = selecting ? { ...selecting, selected: selected.length, participantIds: selected } : state.kickoff;
+    return { ...state, stageSeq: value.stageSeq, players, kickoff };
 }

@@ -31,6 +31,8 @@ import com.eclipsesource.json.JsonObject;
 final class SetupStaging {
 	static final int SETUP_ADJUSTMENT_LIMIT = 100;
 
+	enum StageEnd { NONE, CONFIRM_POSITIONS, CONFIRM_SELECTION, DISCARD }
+
 	private enum StageKind {
 		SETUP(SETUP_ADJUSTMENT_LIMIT), KICKOFF(KickoffAdjustmentBudget.KICKOFF_ADJUSTMENT_LIMIT);
 
@@ -57,8 +59,7 @@ final class SetupStaging {
 		String operation = request.getString("operation", "");
 		if ("place".equals(operation) || "formation".equals(operation)) return true;
 		if (!"action".equals(operation) || step() != StepId.APPLY_KICKOFF_RESULT) return false;
-		String id = request.getString("actionId", "");
-		String action = id.substring(id.indexOf(':') + 1);
+		String action = localActionId(request);
 		Game game = state.getGame();
 		TurnMode mode = game.getTurnMode();
 		if (mode == TurnMode.SOLID_DEFENCE) return action.startsWith("solid-place:") || action.startsWith("event-pick:");
@@ -172,15 +173,41 @@ final class SetupStaging {
 		return overlay.project(state.getGame().getFieldModel(), projection);
 	}
 
-	void finish(boolean confirmed) {
-		if (confirmed) overlay.commit(state.getGame().getFieldModel());
+	/** Classify before preparing a durable command, which can itself change session state. */
+	StageEnd stageEnd(JsonObject request) {
+		StageEnd end = switch (request.getString("operation", "")) {
+			case "confirm" -> StageEnd.CONFIRM_POSITIONS;
+			case "concede" -> StageEnd.DISCARD;
+			case "action" -> switch (localActionId(request)) {
+				case "confirm-solid-defence", "end-event" -> StageEnd.CONFIRM_POSITIONS;
+				case "event-confirm" -> StageEnd.CONFIRM_SELECTION;
+				case "decline-event" -> StageEnd.DISCARD;
+				default -> StageEnd.NONE;
+			};
+			default -> StageEnd.NONE;
+		};
+		if (end == StageEnd.NONE && !requests.isEmpty()) throw new MatchService.Failure("INVALID_OPTION");
+		return end;
+	}
+
+	private String localActionId(JsonObject request) {
+		String id = request.getString("actionId", "");
+		return id.substring(id.indexOf(':') + 1);
+	}
+
+	void finish(StageEnd end) {
+		if (end == StageEnd.NONE) return;
+		// event-confirm already carries the validated participant list in its native command.
+		if (end == StageEnd.CONFIRM_POSITIONS) overlay.commit(state.getGame().getFieldModel());
 		overlay.clear();
 		requests.clear();
 		selection.clear();
 	}
 
 	JsonObject message(String matchId, int revision) {
-		return new StagedPlacementMessage().encode(matchId, revision, sequence(), overlay.squares());
+		// The legacy Solid Defence placement prompt uses the set to choose which player to move.
+		Set<String> participants = state.getGame().getTurnMode() == TurnMode.SOLID_DEFENCE ? Set.of() : selection;
+		return new StagedPlacementMessage().encode(matchId, revision, sequence(), overlay.squares(), participants);
 	}
 
 	int sequence() { return requests.size(); }
