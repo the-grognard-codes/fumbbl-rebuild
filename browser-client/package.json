@@ -34,7 +34,11 @@
     "test:adjustments": "node test/match-adjustments-ui.mjs",
     "test:ui-comments": "node test/hud-comments-ui.mjs && node test/dugout-ui.mjs && node test/chat-ui.mjs && node test/chat-speaker-ui.mjs && node test/game-menu-events-ui.mjs",
     "test:reconnect-ui": "node test/reconnect-ui.mjs",
-    "test:renderer": "node test/renderer-diagnostics-ui.mjs"
+    "test:renderer": "node test/renderer-diagnostics-ui.mjs",
+    "pretest:stadium-mockup": "npm run assets:sync",
+    "test:stadium-mockup": "node test/stadium-mockup-ui.mjs",
+    "precapture:stadium-layout": "npm run assets:sync",
+    "capture:stadium-layout": "node test/stadium-mockup-ui.mjs --capture-layout"
   },
   "dependencies": {
     "pixi.js": "8.20.1",
