@@ -1,6 +1,6 @@
 # Old World Classic stadium, round four
 
-**Owner decision pending. Recommended still: 02, Gatehouse.** Choose one numbered still for the overhead stadium, or identify the visual change needed for another painting. Record the choice on [issue #572](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/572) or its draft PR before extracting any layers.
+**Approved still: 02, Gatehouse.** On November 18, 2026, the owner selected the open near gate because it helps orient the viewer. The source for extraction is the approved 1024 × 1536 PNG, SHA-256 `c83343713f5f15296828a76ebba35ac801735437f414a4638f0d75e3bb7e0bb5`. [Approval record](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/572#issuecomment-6988171353)
 
 | 01 · Drummers | 02 · Gatehouse | 03 · Lion wall |
 | --- | --- | --- |
@@ -26,6 +26,12 @@ From `browser-client`, run `npm run dev:stadium` and open `/stadium-mockup`. Ful
 The pre-approval checks passed all 555 browser tests and 31 asset checks, TypeScript, the production build, and the gallery, projected-pitch, playback and playback-motion drivers. The gallery driver verified 22 loaded player images and the complete 390-square grid. The native layout reproduced byte for byte. The final layered render, outside-pitch pixel difference, cloth-mask coverage, away-end stand ownership and readability on both painted turf presets require an approved still.
 
 ### After approval
+
+#### First cut
+
+The approved still, first home reconstruction and away visiting-section detail appear below, left to right. A native Chromium screenshot changed 3,622 of 1,173,504 outside-pitch pixels (0.309%). All 399,360 pitch pixels matched. The largest differences were alpha rounding at the home visiting-section edge, a second torch in the relocated section and a banner crossing the near wall. This prompted an opaque home cut and a tighter away supporter silhouette.
+
+![Approved crop, first home render and first away detail](../../assets/game/references/stadiums/round-four/first-cut-review.jpg)
 
 The game-service build passed all 29 tests on the pinned JDK and Maven. The game server packaged successfully in quick mode. All 15 validation-inventory tests passed after the gallery driver was registered as a standalone development check.
 
