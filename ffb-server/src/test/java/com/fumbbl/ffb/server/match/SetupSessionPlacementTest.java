@@ -332,6 +332,12 @@ class SetupSessionPlacementTest {
         assertEquals(second.get("x"), fixture.player(live, player).get("x"));
         assertEquals(second.get("y"), fixture.player(live, player).get("y"));
 
+        assertEquals("WRONG_ACTOR", fixture.failure(opponent, choice));
+        JsonObject proposal = fixture.session.saveResume(opponent, fixture.request("saveRequest", "opponent-save", base), 1000);
+        assertEquals("ACCEPTED", proposal.getString("code", null));
+        assertEquals(1, proposal.get("state").asObject().getInt("stageSeq", 0));
+        assertEquals(second.get("x"), fixture.player(fixture.session.spectatorView(), player).get("x"));
+
         fixture.session.apply(opponent, fixture.request("concede", "concession", base));
         for (String viewer : new String[] {actor, opponent, "spectator"}) {
             JsonObject terminal = fixture.session.reply("load", "ACCEPTED", false, viewer).get("state").asObject();

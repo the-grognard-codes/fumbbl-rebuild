@@ -67,7 +67,7 @@ Staged actions at `33d95b7c6`:
 ### Durability
 
 - **Confirm.** The confirming action is the only durable step in a stage. It produces exactly one revision, one state snapshot, one transcript record and one checkpoint, all holding the final positions.
-- **Ending a stage.** Confirming a selection passes its participants to the native command. Declining it clears the selection. Concession ends the match from the confirmed board. Other gameplay commands are rejected while adjustments are pending, preserving the visible stage and its request history.
+- **Ending a stage.** Confirming a selection passes its participants to the native command. Declining it clears the selection. Concession ends the match from the confirmed board. While adjustments are pending, the acting coach's unrelated gameplay commands are rejected. The other coach's commands use normal role and action checks. Either coach can use the separate save/resume protocol without clearing the stage.
 - **No interim records.** Staged actions write no checkpoint, journal entry, event, transcript record or durable request history.
 - **Crash, release or reload before confirm.** Recovery restores the last checkpoint, which holds the stage's base positions. That is as if no staged action ever happened, and the coach starts the stage afresh.
 - **Request idempotence.** Each staged request ID is deduplicated in a small in-memory set held by the resident session. It is cleared at confirm and lost on restore, where a retried staged request simply applies to the restored board. The confirming request keeps its existing durable request-history entry.
@@ -159,7 +159,7 @@ Replays and the match transcript record only confirmed states. A replay shows a 
 - **Storage and checkpoint cost:** setup and kick-off events cost one checkpoint and one event per stage, whatever the number of placements. A placement loop can no longer grow history.
 - **Live view unchanged:** opponents and spectators still watch every placement.
 - **Lost work on restore:** a crash or release mid-stage loses unconfirmed placements. This is accepted.
-- **New client contract:** clients handle `stagedPlacement` separately from revisions. Stale checks, playback and the announcement queue key on `revision` only.
+- **New client contract:** clients handle `stagedPlacement` separately from revisions. A well-formed frame that no longer fits the local stage is ignored in full. Stale checks, playback and the announcement queue key on `revision` only.
 - **Clock expiry is specified ahead of its toggle.** When enforcement is introduced, staged stages need a deadline on the worker like `expireReactiveDecision`, and coach-facing presentation of a forced confirmation or revert. Until then, #556 implements the expiry sequence as the forced-confirmation routine and tests it directly, with no clock trigger.
 - **Gaps to close in #556:**
   - `deployDefaultSetup`'s hard-coded fallback (3 + 8 players) is replaced by the Chevron and 5-4-2 templates completed by `SavedFormationDeployment.complete`.

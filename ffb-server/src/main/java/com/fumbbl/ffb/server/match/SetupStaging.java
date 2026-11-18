@@ -174,7 +174,7 @@ final class SetupStaging {
 	}
 
 	/** Classify before preparing a durable command, which can itself change session state. */
-	StageEnd stageEnd(JsonObject request) {
+	StageEnd stageEnd(JsonObject request, boolean fromActor) {
 		StageEnd end = switch (request.getString("operation", "")) {
 			case "confirm" -> StageEnd.CONFIRM_POSITIONS;
 			case "concede" -> StageEnd.DISCARD;
@@ -186,7 +186,7 @@ final class SetupStaging {
 			};
 			default -> StageEnd.NONE;
 		};
-		if (end == StageEnd.NONE && !requests.isEmpty()) throw new MatchService.Failure("INVALID_OPTION");
+		if (end == StageEnd.NONE && fromActor && !requests.isEmpty()) throw new MatchService.Failure("INVALID_OPTION");
 		return end;
 	}
 

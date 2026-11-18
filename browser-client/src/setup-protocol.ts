@@ -369,22 +369,26 @@ export function applyStagedPlacement(state: SetupState, value: Record<string, un
     if (value.stageSeq === 0 || !Array.isArray(value.players) || value.players.length > 32
         || !Array.isArray(selected) || selected.length > 16 || new Set(selected).size !== selected.length)
         throw Error('Invalid staged placement');
-    if (value.matchId !== state.matchId || value.baseRevision !== state.revision || value.stageSeq <= (state.stageSeq ?? 0)) return state;
-    const selecting = state.kickoff?.stage === 'selection' ? state.kickoff : undefined;
-    if (selected.length && (!selecting || selected.length > selecting.allowed
-        || selected.some(id => !state.players.some(player => player.id === id && player.role === selecting.actor))))
-        throw Error('Invalid staged selection');
+    for (const id of selected) text(id, 200);
     const changed = new Map<string, { x: number | null; y: number | null }>();
     for (const item of value.players) {
         const { playerId, x, y } = object(item, ['playerId', 'x', 'y']);
         text(playerId, 200);
-        if (changed.has(playerId) || !state.players.some(player => player.id === playerId && player.role === state.actor))
+        if (changed.has(playerId))
             throw Error('Invalid staged player');
         if (x === null && y === null) changed.set(playerId, { x, y });
         else {
             integer(x, 25); integer(y, 14);
             changed.set(playerId, { x, y });
         }
+    }
+    if (value.matchId !== state.matchId || value.baseRevision !== state.revision || value.stageSeq <= (state.stageSeq ?? 0)) return state;
+    const selecting = state.kickoff?.stage === 'selection' ? state.kickoff : undefined;
+    if (selected.length && (!selecting || selected.length > selecting.allowed
+        || selected.some(id => !state.players.some(player => player.id === id && player.role === selecting.actor))))
+        return state;
+    for (const id of changed.keys()) {
+        if (!state.players.some(player => player.id === id && player.role === state.actor)) return state;
     }
     const players = state.players.map(player => {
         const square = changed.get(player.id);

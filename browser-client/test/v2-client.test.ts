@@ -840,6 +840,9 @@ test('every staged kick-off selection updates passive viewers and respects seque
     reconnect.reply({ type: 'setupState', requestId: null, code: 'ACCEPTED', duplicate: false,
       state: { ...base, revision: 5, kickoff: { ...base.kickoff, stage: 'movement', selected: 1, participantIds: [player.id] } } });
     reconnect.reply({ ...staged, stageSeq: 3, selectedPlayerIds: [] });
+    const confirmed = client.state;
+    reconnect.reply({ ...staged, baseRevision: 5, stageSeq: 4 });
+    assert.equal(client.state, confirmed);
     assert.equal(client.state?.revision, 5);
     assert.deepEqual(client.state?.kickoff?.participantIds, [player.id]);
     client.disconnect();
@@ -849,7 +852,7 @@ test('every staged kick-off selection updates passive viewers and respects seque
   }
 });
 
-test('staged selection requires unique players of the selecting team within its allowance', () => {
+test('staged selection ignores local stage mismatches and rejects malformed frames', () => {
   const frame = JSON.parse(readFileSync(new URL('./fixtures/m5a-blitz-projections.json', import.meta.url), 'utf8'))[0].actor;
   const base = decodeSetupStateValue({ ...frame, matchId: match, revision: 4, actor: 'home', actions: [], turnMode: 'KICKOFF',
     activePlayerId: null, kickoff: { version: 1, event: 'QUICK_SNAP', actor: 'home', stage: 'selection', allowed: 1,
@@ -857,12 +860,14 @@ test('staged selection requires unique players of the selecting team within its 
   const stage = { matchId: match, baseRevision: 4, stageSeq: 1, players: [] };
   const home = base.players.find(player => player.role === 'home')!.id;
   const away = base.players.find(player => player.role === 'away')!.id;
-  assert.throws(() => applyStagedPlacement(base, { ...stage, selectedPlayerIds: [away] }), /Invalid staged selection/);
+  assert.equal(applyStagedPlacement(base, { ...stage, selectedPlayerIds: [away] }), base);
+  const second = { ...base.players.find(player => player.id === home)!, id: 'second-home-player' };
+  const team = { ...base, players: [...base.players, second] };
+  assert.equal(applyStagedPlacement(team, { ...stage, selectedPlayerIds: [home, second.id] }), team);
+  const movement = { ...base, kickoff: { ...base.kickoff!, stage: 'movement' as const } };
+  assert.equal(applyStagedPlacement(movement, { ...stage, selectedPlayerIds: [home] }), movement);
   assert.throws(() => applyStagedPlacement(base, { ...stage, selectedPlayerIds: [home, home] }), /Invalid staged placement/);
-  assert.throws(() => applyStagedPlacement({ ...base, kickoff: { ...base.kickoff!, stage: 'movement' } },
-    { ...stage, selectedPlayerIds: [home] }), /Invalid staged selection/);
-  if (base.players.filter(player => player.role === 'home').length > 1) {
-    const another = base.players.find(player => player.role === 'home' && player.id !== home)!.id;
-    assert.throws(() => applyStagedPlacement(base, { ...stage, selectedPlayerIds: [home, another] }), /Invalid staged selection/);
-  }
+  assert.throws(() => applyStagedPlacement(movement, { ...stage, selectedPlayerIds: [42] }), /Invalid text/);
+  assert.throws(() => applyStagedPlacement(movement, { ...stage, selectedPlayerIds: [home],
+    players: [{ playerId: home, x: 100, y: 2 }] }));
 });

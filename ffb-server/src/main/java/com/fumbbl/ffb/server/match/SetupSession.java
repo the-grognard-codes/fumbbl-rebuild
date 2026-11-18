@@ -699,7 +699,7 @@ public final class SetupSession {
 			staging.stage(role, request, key, fingerprint, () -> offeredAction(role, request));
 			return reply(id, "ACCEPTED", false, role);
 		}
-		SetupStaging.StageEnd stageEnd = staging == null ? SetupStaging.StageEnd.NONE : staging.stageEnd(request);
+		SetupStaging.StageEnd stageEnd = staging == null ? SetupStaging.StageEnd.NONE : staging.stageEnd(request, role.equals(actor()));
 		// Reserve 1 MiB for one bounded projection, chat growth, canonical JSON, and the terminal envelope.
 		if (artifactBytes() > MAX_MATCH_ARTIFACT_BYTES - MATCH_ARTIFACT_RESERVE_BYTES)
 			throw new MatchService.Failure("REPLAY_LIMIT");
