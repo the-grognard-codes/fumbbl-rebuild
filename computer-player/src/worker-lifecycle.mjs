@@ -1,3 +1,3 @@
-// An idle worker is queued again, never classified as completed or failed.
+// The dispatcher parks idle matches separately from failed and completed matches.
 export const idleWorkerExitCode = 75;
 export const persistenceUnavailableExitCode = 76;

@@ -64,6 +64,7 @@ function yieldIdleWorker() {
   }
   log(`Match ${matchId} is waiting for the human coach; yielding worker capacity.`);
   process.exitCode = idleWorkerExitCode;
+  if (process.connected) process.send({ type: 'idle', revision: state.revision });
   stop();
 }
 function requestLoad() {

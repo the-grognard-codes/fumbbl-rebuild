@@ -246,21 +246,24 @@ public final class SetupApplication {
 
 	private SetupSession restore(String id, MatchDocument document) throws SQLException {
 		try (BrowserRequestTiming.Scope ignored = timing.span(BrowserRequestTiming.Phase.RECOVERY_RESTORE)) {
-			RecoveryRepository.Record record = recoveryRecord(id, true);
-			if (record == null) return null; // Never initialize an already active pre-R2 match.
-			if (sessions.size() >= 32) { capacityRejections++; throw new MatchService.Failure("ACTIVATION_LIMIT"); }
-			SetupSession session = reconstruct(document, record);
-			if (session.isFailed()) return session;
-			byte[] fingerprint = fingerprints.of(record.json);
-			sessions.put(id, session);
-			generations.put(id, record.generation);
-			committedFingerprints.put(id, fingerprint);
-			if (recovery.supportsJournal()) journalCursors.put(id, journal.cursor(record, session));
-			if (!session.isComplete()) pendingRestoreCheckpoints.add(id);
-			lastAccess.put(id, clock.millis());
-			restoredSessions++;
-			return session;
+			return restoreFromRecord(id, document, recoveryRecord(id, true), null);
 		}
+	}
+
+	private SetupSession restoreFromRecord(String id, MatchDocument document, RecoveryRepository.Record record, JsonObject validatedPayload) {
+		if (record == null) return null; // Never initialize an already active pre-R2 match.
+		if (sessions.size() >= 32) { capacityRejections++; throw new MatchService.Failure("ACTIVATION_LIMIT"); }
+		SetupSession session = reconstruct(document, record, validatedPayload);
+		if (session.isFailed()) return session;
+		byte[] fingerprint = fingerprints.of(record.json);
+		sessions.put(id, session);
+		generations.put(id, record.generation);
+		committedFingerprints.put(id, fingerprint);
+		if (recovery.supportsJournal()) journalCursors.put(id, journal.cursor(record, session));
+		if (!session.isComplete()) pendingRestoreCheckpoints.add(id);
+		lastAccess.put(id, clock.millis());
+		restoredSessions++;
+		return session;
 	}
 
 	private RecoveryRepository.Record recoveryRecord(String id, boolean resident) throws SQLException {
@@ -285,8 +288,12 @@ public final class SetupApplication {
 	}
 
 	private SetupSession reconstruct(MatchDocument document, RecoveryRepository.Record record) {
+		return reconstruct(document, record, null);
+	}
+
+	private SetupSession reconstruct(MatchDocument document, RecoveryRepository.Record record, JsonObject validatedPayload) {
 		try {
-			SetupSession session = new SetupSession(server, document, record.json);
+			SetupSession session = new SetupSession(server, document, record.json, validatedPayload);
 			rejectedRecoveryGenerations.remove(document.matchId);
 			return session;
 		} catch (MatchService.Failure failure) {
@@ -425,6 +432,7 @@ public final class SetupApplication {
 				release(id);
 			}
 		}
+		releaseIdle();
 		return changed;
 	}
 
@@ -493,6 +501,7 @@ public final class SetupApplication {
 				: document.away != null && owner.equals(document.away.owner) ? "away" : null;
 			if (role == null) throw new MatchService.Failure("NOT_FOUND");
 			String operation = request.getString("operation", null);
+			boolean computerLoad = computerChannel && "load".equals(operation);
 			phase = "retained-concession";
 			boolean completed = document.lifecycle == MatchDocument.Lifecycle.COMPLETED;
 			RecoveryRepository.Record retainedRecord = null;
@@ -509,10 +518,28 @@ public final class SetupApplication {
 			boolean cold = recovery != null && !sessions.containsKey(id) && document.lifecycle == MatchDocument.Lifecycle.ACTIVATED;
 			MatchPreferences preferences = null;
 			if (cold) {
+				RecoveryRepository.Record record = null;
+				JsonObject validatedPayload = null;
+				if (computerLoad) {
+					phase = "computer-waiting-load";
+					record = recoveryRecord(id, true);
+					if (record != null) {
+						try { validatedPayload = SetupSession.validatedRecoveryPayload(record.json); }
+						catch (RuntimeException invalid) { /* Restore reports and caches the rejection. */ }
+					}
+					JsonObject waiting = validatedPayload == null ? null
+						: SetupSession.checkpointComputerWaitingView(validatedPayload, id, clock.millis());
+					if (waiting != null) return outcome(new JsonObject().add("version", 1).add("type", "setupState")
+						.add("requestId", requestId).add("code", "ACCEPTED").add("duplicate", false).add("state", waiting), false);
+				}
 				phase = "skill-use-preferences";
 				preferences = readSkillUsePreferences(id);
 				phase = "restore";
-				recovered = restore(id, document);
+				if (computerLoad) {
+					try (BrowserRequestTiming.Scope ignored = timing.span(BrowserRequestTiming.Phase.RECOVERY_RESTORE)) {
+						recovered = restoreFromRecord(id, document, record, validatedPayload);
+					}
+				} else recovered = restore(id, document);
 			}
 			if (document.lifecycle == MatchDocument.Lifecycle.COMPLETED && !sessions.containsKey(id)) {
                 if (!"load".equals(operation) && !"concessionStatus".equals(operation)) throw new MatchService.Failure("MATCH_COMPLETED");
@@ -530,7 +557,7 @@ public final class SetupApplication {
 			if (cold) applySkillUsePreferences(session, preferences);
 			else refreshSkillUsePreferences(id, session);
 			phase = "checkpoint";
-			if (recovery != null) lastAccess.put(id, clock.millis());
+			if (recovery != null && !computerLoad) lastAccess.put(id, clock.millis());
 			if (session.isComplete() && recovery != null && "load".equals(operation)) {
 				phase = "completion";
 				boolean recorded = complete(owner, document, session, requestId);

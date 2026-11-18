@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Park computer coaches while they wait for a human turn, wake them on match changes, and let idle matches release their engine from memory.
+
 - Clear consumed reroll dialogs for native callers and engine harnesses without configured skill preferences, including the stale Bone Head choice reproduced by the seeded harness. Configured browser sessions already received this cleanup.
 
 - Limit each kick-off selection or placement stage to 50 adjustments for every coach; reject extra edits without ending the event, preserve confirmation after reverting an illegal final formation, and let the computer coach finish Solid Defence and Charge without retained plans. Offer Solid Defence placements and swaps only for selected players, including during interrupted stages. End runaway turns with match-specific diagnostics.

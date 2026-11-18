@@ -12,6 +12,7 @@ const fields: Record<string, string[]> = {
   currentMatches: ['code', 'matches', 'next'],
   skillUsePreferences: ['code', 'preferences'],
   computer: ['code'], computerAuthentication: ['code'], computerJobs: ['code', 'matches'],
+  computerJobChanged: ['matchId', 'revision', 'saveResumeChanged'],
   publicationDelayed: ['code', 'matchId', 'family'],
   preparationChanged: ['code', 'matchId'], setupState: ['code', 'duplicate', 'state'],
   matchResult: ['code', 'result', 'event'],
@@ -64,4 +65,9 @@ export function assertV2Projection(message: Record<string, unknown>) {
   if (message.type === 'computerJobs' && (!Array.isArray(message.matches) || message.matches.length > 1024
     || message.matches.some(id => typeof id !== 'string' || !/^[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}$/.test(id))))
     throw Error('Invalid computer jobs');
+  if (message.type === 'computerJobChanged' && (message.requestId !== null || typeof message.matchId !== 'string'
+    || !/^[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}$/.test(message.matchId)
+    || typeof message.revision !== 'number' || !Number.isSafeInteger(message.revision) || message.revision < 0
+    || typeof message.saveResumeChanged !== 'boolean'))
+    throw Error('Invalid computer job change');
 }

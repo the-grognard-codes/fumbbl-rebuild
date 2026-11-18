@@ -418,18 +418,31 @@ class BrowserV2AdapterTest {
 		when(preparation.hasComputerMembership(MATCH)).thenReturn(true);
 		SetupApplication setup = mock(SetupApplication.class);
 		when(setup.activate(eq("home"), any(String.class))).thenAnswer(call -> preparedResponse());
+		when(setup.handleWithOutcome(eq("home"), any(JsonObject.class))).thenAnswer(call -> {
+			JsonObject request = call.getArgument(1);
+			return outcome(new JsonObject().add("type", "setupState").add("requestId", request.getString("requestId", null))
+				.add("code", "ACCEPTED").add("duplicate", false).add("state", new JsonObject().add("matchId", MATCH)
+					.add("callerRole", "home").add("revision", 7)), !"load".equals(request.getString("operation", null)));
+		});
 		BrowserV2Adapter adapter = new BrowserV2Adapter(bearer -> home, access, setup,
 			mock(MatchService.class), preparation, mock(BrowserSavedTeamJson.class),
 			new com.fumbbl.ffb.server.match.ComputerOpponentService(SERVICE_HASH));
 		Connection player = new Connection(), dispatcher = new Connection();
 		adapter.receive(player, authenticate("player-auth", "human").toString());
 		adapter.receive(dispatcher, request("authenticateComputer", "service-auth").add("serviceToken", SERVICE_TOKEN).toString());
-		adapter.receive(dispatcher, request("computer", "register").add("operation", "register").toString());
+		adapter.receive(dispatcher, request("computer", "register").add("operation", "register").add("watchChanges", true).toString());
+		assertEquals("READY", code(dispatcher, 1));
 		adapter.receive(player, request("preparedMatch", "activate").add("operation", "activate")
 			.add("matchId", MATCH).toString());
 		assertEquals("ACCEPTED", code(player, 1));
 		assertEquals("computerJobs", JsonObject.readFrom(dispatcher.messages.get(2)).getString("type", null));
 		assertEquals(MATCH, JsonObject.readFrom(dispatcher.messages.get(2)).get("matches").asArray().get(0).asString());
+		adapter.receive(player, setup("load").toString());
+		assertEquals(3, dispatcher.messages.size(), "A human load does not wake the dispatcher by itself");
+		adapter.receive(player, setup("choice").set("operation", "choice").add("expectedRevision", 6)
+			.add("promptId", "coin").add("optionId", "heads").toString());
+		assertEquals(new JsonObject().add("type", "computerJobChanged").add("requestId", JsonValue.NULL)
+			.add("matchId", MATCH).add("revision", 7).add("saveResumeChanged", false).add("version", 2), JsonObject.readFrom(dispatcher.messages.get(3)));
 	}
 	@Test void completedParticipantResultUsesV2EnvelopeAndSpectatorScopeCannotRead() throws Exception {
 		AuthenticatedPrincipal player = principal(FIRST, ApplicationScope.PLAYER);

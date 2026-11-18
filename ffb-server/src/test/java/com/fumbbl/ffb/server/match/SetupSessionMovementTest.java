@@ -1374,6 +1374,10 @@ class SetupSessionMovementTest {
         }
 
         Fixture(int rerolls, boolean captureNative) {
+            this(rerolls, captureNative, false);
+        }
+
+        Fixture(int rerolls, boolean captureNative, boolean computer) {
             RosterCatalog catalog = new RosterCatalog();
             List<TeamDraft.Player> players = new ArrayList<>();
             for (int slot = 1; slot <= 11; slot++)
@@ -1385,7 +1389,10 @@ class SetupSessionMovementTest {
                 "player1", players, resources);
             FrozenTeam home = new FrozenTeam("00000000-0000-0000-0000-000000000011", 1, "home", draft, 550000 + 50000 * rerolls, 0, catalog);
             FrozenTeam away = new FrozenTeam("00000000-0000-0000-0000-000000000012", 1, "away", draft, 550000 + 50000 * rerolls, 0, catalog);
-            document = new MatchDocument("00000000-0000-0000-0000-000000000021", 3, "away", MatchDocument.Lifecycle.ACTIVATED,
+            String matchId = "00000000-0000-0000-0000-000000000021";
+            ComputerOpponentService opponents = new ComputerOpponentService(null);
+            if (computer) away = away.copyForMatch(opponents.cloneTeamId(matchId), "away", opponents.teamName(ComputerOpponentService.BUGMAN_ID));
+            document = new MatchDocument(matchId, 3, "away", MatchDocument.Lifecycle.ACTIVATED,
                 new MatchDocument.Member("home", "home", home), new MatchDocument.Member("away", "away", away));
             FactoryManager manager = new FactoryManager();
             when(server.getFactoryManager()).thenReturn(manager);

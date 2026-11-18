@@ -207,6 +207,10 @@ public final class SetupSession {
 
 	/** Recovery uses native deserialization only: never start a sequence or execute a command. */
 	public SetupSession(FantasyFootballServer server, MatchDocument document, String artifact) {
+		this(server, document, artifact, null);
+	}
+
+	SetupSession(FantasyFootballServer server, MatchDocument document, String artifact, JsonObject validatedPayload) {
 		this.document = document;
 		matchId = document.matchId;
 		state = new GameState(server) {
@@ -218,10 +222,7 @@ public final class SetupSession {
 			@Override public void observePlayableTurn() { announcements.playable(getGame()); announcements.flush(this); }
 		};
 		try {
-			JsonObject envelope = new MatchJson().parse(artifact, RecoveryArtifactJson.MAX_CHECKPOINT_BYTES, 128);
-			JsonObject payload = envelope.get("payload").asObject();
-			if (envelope.size() != 2 || !new JsonDigest().sha256(payload).equals(envelope.getString("sha256", null)))
-				throw new IllegalArgumentException("Recovery checksum mismatch");
+			JsonObject payload = validatedPayload == null ? validatedRecoveryPayload(artifact) : validatedPayload;
 			JsonValue savedAnnouncements = payload.get("matchAnnouncements");
 			if (savedAnnouncements != null) payload.remove("matchAnnouncements");
 			JsonValue savedBlockPresentation = payload.get("blockPresentation");
@@ -540,6 +541,39 @@ public final class SetupSession {
 
 	public boolean isFailed() { return failed; }
 	String checkpointOwner() { return document.home.owner; }
+
+	/** The stored away projection can answer a passive load without reconstructing an engine. */
+	static JsonObject validatedRecoveryPayload(String artifact) {
+		JsonObject envelope = new MatchJson().parse(artifact, RecoveryArtifactJson.MAX_CHECKPOINT_BYTES, 128);
+		JsonObject payload = envelope.get("payload").asObject();
+		if (envelope.size() != 2 || !new JsonDigest().sha256(payload).equals(envelope.getString("sha256", null)))
+			throw new IllegalArgumentException("Recovery checksum mismatch");
+		return payload;
+	}
+
+	static JsonObject checkpointComputerWaitingView(JsonObject payload, String matchId, long now) {
+		try {
+			if (!matchId.equals(payload.getString("matchId", null)) || payload.getBoolean("failed", true)
+				|| payload.getBoolean("pendingTerminal", true) || payload.get("reactiveDecision") != null) return null;
+			JsonObject view = payload.get("awayView").asObject();
+			if (!matchId.equals(view.getString("matchId", null)) || !"away".equals(view.getString("callerRole", null))
+				|| !"home".equals(view.getString("actor", null)) || "FULL_TIME".equals(view.getString("phase", null))
+				|| view.getInt("revision", -1) != payload.get("revision").asInt()) return null;
+			JsonValue prompt = view.get("prompt");
+			if (!prompt.isNull() && !"home".equals(prompt.asObject().getString("actor", null))) return null;
+			JsonValue save = payload.get("saveResume");
+			if (save != null && !save.isNull()) {
+				SaveResumeState retained = new SaveResumeState(save.asObject());
+				if (retained.suspended() || retained.proposal != null || retained.abandoned
+					|| now - retained.lastPlayerActivityAt >= SaveResumeState.RETENTION_MILLIS) return null;
+				view.add("saveResume", retained.publicJson());
+			}
+			return view;
+		} catch (RuntimeException unsupported) {
+			// The ordinary restore path validates the checkpoint and reports any corruption.
+			return null;
+		}
+	}
 
 	/** Called while staging a new r4.1 checkpoint, before activation is acknowledged. */
 	public void startSaveResumeRetention(long now) {

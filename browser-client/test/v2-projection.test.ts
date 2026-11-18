@@ -36,3 +36,11 @@ test('browse rejects nested identities; unknown future response families require
   for (const type of ['profile', 'admin', 'replay', 'result', 'chat', '__proto__'])
     assert.throws(() => assertV2Projection({ version: 2, type, requestId: 'future', code: 'ACCEPTED' }));
 });
+
+test('computer job changes are unsolicited notices with a match revision and no state payload', () => {
+  const notice = { version: 2, type: 'computerJobChanged', requestId: null, matchId: '12345678-1234-1234-1234-123456789abc',
+    revision: 7, saveResumeChanged: false };
+  assert.doesNotThrow(() => assertV2Projection(notice));
+  for (const invalid of [{ requestId: 'reply' }, { matchId: 'invalid' }, { revision: -1 }, { revision: 1.5 },
+    { saveResumeChanged: 'false' }, { state: {} }]) assert.throws(() => assertV2Projection({ ...notice, ...invalid }));
+});

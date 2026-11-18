@@ -5,6 +5,7 @@ import com.fumbbl.ffb.server.skilluse.SkillUsePreferenceService;
 import com.fumbbl.ffb.server.skilluse.SkillUsePreferences;
 
 import com.eclipsesource.json.JsonObject;
+import com.eclipsesource.json.JsonValue;
 
 import org.junit.jupiter.api.Test;
 import org.mockito.MockedConstruction;
@@ -28,6 +29,40 @@ import static org.mockito.Mockito.when;
 import static org.mockito.Mockito.withSettings;
 
 class SetupApplicationReadOnlyLoadTest {
+	@Test void waitingComputerLoadsDoNotExtendResidencyOrRestoreAnIdleMatch() throws Exception {
+		Fixture fixture = new Fixture(true);
+		SetupApplication application = fixture.application();
+		JsonObject initial = application.handle("home", fixture.load()).get("state").asObject();
+		assertEquals("home", initial.getString("actor", null));
+		long idleMillis = application.lifecycleMetrics().getLong("idleMillis", -1);
+		fixture.now.addAndGet(idleMillis - 1000);
+		assertEquals("ACCEPTED", application.handleComputerWithOutcome(fixture.load()).response().getString("code", null));
+		fixture.now.addAndGet(1000);
+		application.expireReactiveDecisions();
+		assertEquals(1, application.lifecycleMetrics().getInt("idleReleases", 0));
+		for (int index = 0; index < 3; index++) {
+			SetupApplication.HandleOutcome load = application.handleComputerWithOutcome(fixture.load());
+			assertEquals("ACCEPTED", load.response().getString("code", null));
+			JsonObject waiting = load.response().get("state").asObject();
+			assertEquals("away", waiting.getString("callerRole", null));
+			assertEquals(initial.getInt("revision", -1), waiting.getInt("revision", -2));
+			assertEquals(0, application.lifecycleMetrics().getInt("residentSessions", -1));
+			assertEquals(1, application.lifecycleMetrics().getInt("restoredSessions", -1));
+		}
+		SetupApplication.HandleOutcome resumed = application.handleWithOutcome("home", endTurn(fixture.engine, initial, "returning-coach"));
+		assertEquals("ACCEPTED", resumed.response().getString("code", null));
+		assertTrue(resumed.publish());
+		assertEquals(2, application.lifecycleMetrics().getInt("restoredSessions", -1));
+	}
+
+	private static JsonObject endTurn(SetupSessionMovementTest.Fixture engine, JsonObject view, String requestId) {
+		for (JsonValue value : view.get("actions").asArray()) {
+			JsonObject action = value.asObject();
+			if ("endTurn".equals(action.getString("kind", null))) return engine.request("action", requestId, view).add("actionId", action.get("id"));
+		}
+		throw new AssertionError("Expected a normal turn");
+	}
+
 	@Test void residentNativeLoadsDoNotEncodeHistoryAndPreferencesRefreshAfterRestore() throws Exception {
 		Fixture fixture = new Fixture();
 		SkillUsePreferences home = SkillUsePreferences.defaults().with(SkillUsePreferences.UseCase.FEND, SkillUsePreferences.Mode.ALWAYS_USE);
@@ -119,8 +154,8 @@ class SetupApplicationReadOnlyLoadTest {
 		return (SetupSession) ((java.util.Map<?, ?>) field.get(application)).get(id);
 	}
 	private static final class Fixture {
-		final SetupSessionMovementTest.Fixture engine = new SetupSessionMovementTest.Fixture(0, true);
-		final String id = engine.document.matchId;
+		final SetupSessionMovementTest.Fixture engine;
+		final String id;
 		final AtomicLong now = new AtomicLong(System.currentTimeMillis());
 		final SkillUsePreferenceService preferences = mock(SkillUsePreferenceService.class);
 		final MatchService matches = mock(MatchService.class);
@@ -130,12 +165,20 @@ class SetupApplicationReadOnlyLoadTest {
 			@Override public Clock withZone(ZoneId zone) { return this; }
 			@Override public Instant instant() { return Instant.ofEpochMilli(now.get()); }
 		};
-		Fixture() throws Exception {
-			engine.advanceToTurn();
+		Fixture() throws Exception { this(false); }
+		Fixture(boolean computer) throws Exception {
+			engine = new SetupSessionMovementTest.Fixture(0, true, computer);
+			id = engine.document.matchId;
+			JsonObject active = engine.advanceToTurn();
+			if (computer && "away".equals(active.getString("actor", null))) {
+				JsonObject accepted = engine.session.apply("away", endTurn(engine, active, "pass-to-home"));
+				assertEquals("ACCEPTED", accepted.getString("code", null));
+			}
 			engine.session.startSaveResumeRetention(now.get());
 			recovery = new MemoryRecovery(id, engine.session.recoveryArtifact());
 			when(matches.load("home", id)).thenReturn(new MatchService.Result(engine.document, false));
 			when(matches.loadForSetup("home", id)).thenReturn(new MatchService.Result(engine.document, false));
+			when(matches.loadForSetup("away", id)).thenReturn(new MatchService.Result(engine.document, false));
 			when(preferences.loadForMatch(eq(id), anyString())).thenReturn(SkillUsePreferences.defaults());
 		}
 		SetupApplication application() {

@@ -311,9 +311,9 @@ test('default daemon leaves browser slots and starts queued matches when a worke
   }
 });
 
-test('idle human-turn matches yield capacity and are resumed after queued computer work', { timeout: 12000 }, async () => {
+test('idle human-turn matches yield capacity, ignore refreshes and wake on a new revision', { timeout: 12000 }, async () => {
   const sockets = new Set(), actions = [], loads = [];
-  let secondFinished = false;
+  let dispatcher, registrations = 0, homeActed = false;
   const server = createServer();
   server.on('upgrade', (request, socket) => {
     sockets.add(socket); socket.on('close', () => sockets.delete(socket)); socket.on('error', () => {});
@@ -322,33 +322,39 @@ test('idle human-turn matches yield capacity and are resumed after queued comput
     readFrames(socket, body => {
       if (body.type === 'authenticateComputer') send(socket, { version: 2, type: 'computerAuthentication', requestId: body.requestId, code: 'ACCEPTED' });
       else if (body.operation === 'register') {
+        dispatcher = socket;
+        registrations++;
         send(socket, { version: 2, type: 'computer', requestId: body.requestId, code: 'READY' });
         send(socket, { version: 2, type: 'computerJobs', requestId: null, code: 'AVAILABLE', matches: [matchId, secondMatchId] });
       } else if (body.operation === 'load') {
         loads.push(body.matchId);
-        const waiting = body.matchId === matchId && !secondFinished;
+        const waiting = body.matchId === matchId && !homeActed;
         send(socket, response(body.requestId, { ...state, matchId: body.matchId, callerRole: 'away',
-          revision: secondFinished ? 1 : 0, actor: waiting ? 'home' : 'away',
+          revision: homeActed ? 1 : 0, actor: waiting ? 'home' : 'away',
           prompt: { ...state.prompt, actor: waiting ? 'home' : 'away' } }));
       } else if (body.operation === 'choice') {
         actions.push(body);
-        if (body.matchId === secondMatchId) secondFinished = true;
         send(socket, response(body.requestId, { ...state, matchId: body.matchId, callerRole: 'away', phase: 'FULL_TIME', prompt: null }));
       }
     });
   });
   server.listen(0, '127.0.0.1'); await once(server, 'listening');
   const child = spawn(process.execPath, ['src/daemon.mjs', '--url', `ws://127.0.0.1:${server.address().port}/browser/v2`,
-    '--origin', origin, '--max-matches', '1', '--idle-timeout-ms', '150'], {
+    '--origin', origin, '--max-matches', '1', '--idle-timeout-ms', '150', '--refresh-ms', '1000'], {
     cwd: new URL('..', import.meta.url), windowsHide: true,
     env: { ...process.env, FFB_COMPUTER_SERVICE_TOKEN: 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa' }
   });
   let output = ''; child.stdout.on('data', chunk => { output += chunk; }); child.stderr.on('data', chunk => { output += chunk; });
   try {
     const deadline = Date.now() + 6000;
+    while ((!actions.length || registrations < 2) && Date.now() < deadline) await new Promise(done => setTimeout(done, 25));
+    assert.ok(registrations >= 2, output);
+    assert.deepEqual(loads, [matchId, secondMatchId], 'yielding and refreshing must not reload the waiting match');
+    homeActed = true;
+    send(dispatcher, { version: 2, type: 'computerJobChanged', requestId: null, matchId, revision: 1, saveResumeChanged: false });
     while (actions.length < 2 && Date.now() < deadline) await new Promise(done => setTimeout(done, 25));
     assert.deepEqual(actions.map(action => action.matchId), [secondMatchId, matchId], output);
-    assert.deepEqual(loads, [matchId, secondMatchId, matchId], 'waiting match returns to the queue rather than being completed or lost');
+    assert.deepEqual(loads, [matchId, secondMatchId, matchId]);
     assert.equal(actions[1].expectedRevision, 1, 'resumed worker loads fresh authoritative state');
   } finally {
     await stopChild(child);

@@ -31,9 +31,11 @@ let authId;
 let registerId;
 let sentAt = 0;
 let ready = false;
+let watchChanges = true;
 const queued = new Set();
 const children = new Map();
 const failures = new Map();
+const waiting = new Map();
 const completed = new Set();
 
 function option(flag, required = true) {
@@ -47,13 +49,24 @@ function send(request) { socket.send(JSON.stringify(request)); sentAt = Date.now
 function register() {
   if (stopped || !authenticated || !socket || socket.readyState !== WebSocket.OPEN || registerId) return;
   registerId = randomUUID();
-  send({ version: 2, type: 'computer', operation: 'register', requestId: registerId });
+  send({ version: 2, type: 'computer', operation: 'register', requestId: registerId,
+    ...(watchChanges ? { watchChanges: true } : {}) });
+}
+function retryBackoff(attempts, initialMs) {
+  return Math.min(initialMs * 2 ** Math.min(attempts - 1, 9), 300000);
 }
 function markFailure(matchId, reason) {
   const attempts = (failures.get(matchId)?.attempts ?? 0) + 1;
-  const delay = Math.min(1000 * 2 ** Math.min(attempts - 1, 9), 300000);
+  const delay = retryBackoff(attempts, 1000);
   failures.set(matchId, { attempts, retryAt: Date.now() + delay });
   log(`${reason}; retrying active match ${matchId} after ${delay} ms.`);
+}
+function parkWorker(matchId, revision) {
+  const previous = waiting.get(matchId);
+  const attempts = previous?.revision === revision ? previous.attempts + 1 : 1;
+  const delay = Math.round(retryBackoff(attempts, 60000) * (0.8 + Math.random() * 0.2));
+  waiting.set(matchId, { revision, attempts, retryAt: Date.now() + delay });
+  log(`Match ${matchId} yielded its idle worker; waiting for a change or retry after ${delay} ms.`);
 }
 function startQueued() {
   while (!stopped && children.size < maxMatches && queued.size) {
@@ -64,8 +77,12 @@ function startQueued() {
     const args = [fileURLToPath(new URL('./main.mjs', import.meta.url)), '--match', matchId,
       '--url', url, '--origin', origin, '--idle-timeout-ms', String(idleTimeoutMs)];
     if (tokenFile) args.push('--service-token-file', tokenFile);
-    const child = spawn(process.execPath, args, { stdio: 'inherit', env: process.env, windowsHide: true });
-    children.set(matchId, child);
+    const child = spawn(process.execPath, args, { stdio: ['inherit', 'inherit', 'inherit', 'ipc'], env: process.env, windowsHide: true });
+    const worker = { child, idleRevision: -1, changedRevision: -1, saveResumeRevision: -1 };
+    children.set(matchId, worker);
+    child.on('message', message => {
+      if (message?.type === 'idle' && Number.isSafeInteger(message.revision)) worker.idleRevision = message.revision;
+    });
     log(`Started match ${matchId}; ${children.size} active computer clients.`);
     child.once('error', error => {
       children.delete(matchId);
@@ -73,16 +90,23 @@ function startQueued() {
       startQueued();
     });
     child.once('exit', code => {
-      if (children.get(matchId) !== child) return;
+      if (children.get(matchId) !== worker) return;
       children.delete(matchId);
       if (code === idleWorkerExitCode && !stopped) {
         failures.delete(matchId);
-        queued.add(matchId);
-        log(`Match ${matchId} yielded its idle worker; queued for a fresh state load.`);
+        // A publication can race the worker's final message as its socket closes.
+        if (worker.changedRevision > worker.idleRevision
+          || worker.saveResumeRevision >= 0 && worker.saveResumeRevision === worker.idleRevision) {
+          waiting.delete(matchId);
+          queued.add(matchId);
+        } else parkWorker(matchId, worker.idleRevision);
       } else if (code === persistenceUnavailableExitCode && !stopped) {
         markFailure(matchId, `Match ${matchId} persistence unavailable`);
       } else if (code !== 0 && !stopped) markFailure(matchId, `Match ${matchId} stopped with status ${code}`);
-      else if (code === 0) { completed.add(matchId); failures.delete(matchId); log(`Match ${matchId} completed.`); }
+      else if (code === 0) {
+        completed.add(matchId); failures.delete(matchId); waiting.delete(matchId);
+        log(`Match ${matchId} completed.`);
+      }
       startQueued();
     });
   }
@@ -92,7 +116,16 @@ function receive(raw) {
   const message = parseUniqueJson(raw);
   assertV2Projection(message);
   if (message.version !== 2) throw Error('Wrong protocol version');
-  if (message.type === 'error') throw Error(`Server error: ${message.code}`);
+  if (message.type === 'error') {
+    if (watchChanges && registerId && message.requestId === registerId && message.code === 'MALFORMED_MESSAGE') {
+      // A daemon can be upgraded before its server. Registration still supplies the fallback jobs.
+      watchChanges = false;
+      registerId = null;
+      register();
+      return;
+    }
+    throw Error(`Server error: ${message.code}`);
+  }
   if (message.type === 'computerAuthentication' && message.requestId === authId) {
     sentAt = 0;
     if (message.code !== 'ACCEPTED') throw Error('Computer service authentication failed');
@@ -111,7 +144,21 @@ function receive(raw) {
   if (message.type === 'computerJobs' && message.requestId === null) {
     if (message.code !== 'AVAILABLE') throw Error('Invalid computer jobs');
     for (const matchId of message.matches) if (!children.has(matchId) && !completed.has(matchId)
-      && (failures.get(matchId)?.retryAt ?? 0) <= Date.now()) queued.add(matchId);
+      && (waiting.get(matchId)?.retryAt ?? 0) <= Date.now()) queued.add(matchId);
+    startQueued();
+  }
+  if (message.type === 'computerJobChanged') {
+    const { matchId, revision, saveResumeChanged } = message;
+    const worker = children.get(matchId);
+    if (worker) {
+      worker.changedRevision = Math.max(worker.changedRevision, revision);
+      if (saveResumeChanged) worker.saveResumeRevision = Math.max(worker.saveResumeRevision, revision);
+      return;
+    }
+    const idleRevision = waiting.get(matchId)?.revision ?? -1;
+    if (revision < idleRevision || revision === idleRevision && !saveResumeChanged) return;
+    waiting.delete(matchId);
+    queued.add(matchId);
     startQueued();
   }
 }
@@ -144,7 +191,7 @@ function stop() {
   stopped = true;
   try { socket?.close(); } catch { /* The socket may still be connecting. */ }
   socket = null;
-  for (const child of children.values()) child.kill();
+  for (const { child } of children.values()) child.kill();
 }
 process.on('SIGINT', stop);
 process.on('SIGTERM', stop);
