@@ -40,6 +40,7 @@ import java.util.HexFormat;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Function;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -1405,6 +1406,10 @@ class SetupSessionMovementTest {
         }
 
         JsonObject advanceToTurn() {
+            return advanceToTurn("receive", view -> view.get("actions").asArray().get(0).asObject());
+        }
+
+        JsonObject advanceToTurn(String receiveOption, Function<JsonObject, JsonObject> selectAction) {
             JsonObject view = session.reply("load", "ACCEPTED", false, "home").get("state").asObject();
             for (int index = 0; index < 100; index++) {
                 JsonObject endTurn = null;
@@ -1417,10 +1422,10 @@ class SetupSessionMovementTest {
                 else if (!view.get("prompt").isNull()) {
                     JsonObject prompt = view.get("prompt").asObject();
                     request.set("operation", "choice").add("promptId", prompt.get("id"))
-                        .add("optionId", "coin".equals(prompt.getString("kind", null)) ? "heads" : "receive");
+                        .add("optionId", "coin".equals(prompt.getString("kind", null)) ? "heads" : receiveOption);
                 } else {
                     assertTrue(view.get("actions").asArray().size() > 0, view.toString());
-                    JsonObject action = endTurn == null ? view.get("actions").asArray().get(0).asObject() : endTurn;
+                    JsonObject action = endTurn == null ? selectAction.apply(view) : endTurn;
                     request.add("actionId", action.get("id"));
                 }
                 view = session.apply(view.getString("actor", null), request).get("state").asObject();

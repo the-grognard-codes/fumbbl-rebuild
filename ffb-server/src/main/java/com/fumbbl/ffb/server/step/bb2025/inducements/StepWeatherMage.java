@@ -55,7 +55,7 @@ public class StepWeatherMage extends AbstractStep {
 
 					Weather weather = Weather.valueOf(clientCommandSelectWeather.getWeatherName());
 					getResult().addReport(new ReportWeatherMageResult(clientCommandSelectWeather.getModifier(), weather, ReportWeatherMageResult.Effect.CHANGED, getGameState().getGame().getFieldModel().getWeather()));
-					getGameState().getGame().getFieldModel().setWeather(weather);
+					getGameState().setWeather(weather);
 					getResult().setNextAction(StepAction.NEXT_STEP);
 					commandStatus = StepCommandStatus.SKIP_STEP;
 					break;
@@ -95,7 +95,7 @@ public class StepWeatherMage extends AbstractStep {
 				Weather oldWeather = getGameState().getGame().getFieldModel().getWeather();
 
 				if (newWeather != oldWeather) {
-					getGameState().getGame().getFieldModel().setWeather(weather);
+					getGameState().setWeather(weather);
 					getResult().addReport(new ReportWeatherMageResult(weatherOptions.get(newWeatherString.get()), weather, ReportWeatherMageResult.Effect.NO_CHOICE, oldWeather));
 					UtilServerDialog.showDialog(getGameState(), new DialogInformationOkayParameter(DIALOG_TITLE,
 						"Weather changed to " + newWeather.getName() + ".", true), false);
