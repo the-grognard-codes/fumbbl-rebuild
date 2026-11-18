@@ -10,6 +10,7 @@ export const ANGLED_HEIGHT = 576;
 export const CONCEPT_HEIGHT = STILL_LAYOUT.width * 971 / 1619;
 export type MockupAngle = PerspectiveElevation | 90;
 export type Visitor = 'orc' | 'human';
+export type PitchPreset = 'calm' | 'balanced';
 export type MockupPlayer = SetupPlayer & { role: PitchEnd; x: number; y: number; art: NonNullable<SetupPlayer['art']> };
 
 /** A fixed art viewport gives integer 16/32/64px squares at 50/100/200%. */
@@ -19,6 +20,19 @@ export function mockupCamera(end: PitchEnd, zoom = 1, focus = PITCH_LENGTH / 2, 
     perspectiveElevation: angle === 90 ? 40 as const : angle };
   const base = new PitchProjection(options);
   return new PitchProjection({ ...options, zoom: angle === 90 ? STILL_LAYOUT.pixelsPerSquare / base.scale * zoom : zoom });
+}
+
+/** The upright painting tracks the centre of the world grid from either end. */
+export function mockupPaintingFrame(camera: PitchProjection) {
+  if (camera.mode !== 'top-down') return null;
+  const center = camera.project({ x: PITCH_LENGTH / 2, y: PITCH_WIDTH / 2 });
+  if (!center) return null;
+  const scale = center.pixelsPerSquare / STILL_LAYOUT.pixelsPerSquare;
+  return {
+    left: center.x - STILL_LAYOUT.width / 2 * scale,
+    top: center.y - STILL_LAYOUT.height / 2 * scale,
+    scale,
+  };
 }
 
 /** Synthetic eleven-a-side kickoff using positions from the production catalogue. */
@@ -33,15 +47,16 @@ export function mockupPlayers(visitor: Visitor): MockupPlayer[] {
       }));
 }
 
-/** Presets retained from #571 for player and future approved cloth checks. */
+/** Shared kit presets for player and stadium cloth. */
 export const MOCKUP_COLOR_PRESETS = ['defaults', 'identical', 'white / black', 'yellow / purple', 'similar blues'] as const;
-export function mockupColorPair(preset: typeof MOCKUP_COLOR_PRESETS[number]): Record<PitchEnd, TeamColors> {
+export type MockupColorPreset = typeof MOCKUP_COLOR_PRESETS[number];
+export function mockupColorPair(preset: MockupColorPreset, visitor: Visitor = 'orc'): Record<PitchEnd, TeamColors> {
   const kit = (primary: string, secondary: string): TeamColors => ({ version: 1, primary, secondary });
   switch (preset) {
     case 'identical': return { home: kit('navy', 'navy'), away: kit('navy', 'navy') };
     case 'white / black': return { home: kit('white', 'black'), away: kit('black', 'white') };
     case 'yellow / purple': return { home: kit('lemon', 'violet'), away: kit('violet', 'lemon') };
     case 'similar blues': return { home: kit('navy', 'sky'), away: kit('sky', 'navy') };
-    default: return { home: kit('navy', 'gold'), away: kit('red', 'gold') };
+    default: return { home: kit('navy', 'gold'), away: kit(visitor === 'orc' ? 'red' : 'sky', 'gold') };
   }
 }

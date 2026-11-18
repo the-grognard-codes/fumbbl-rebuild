@@ -23,9 +23,9 @@ The native frame is 1024 × 1536 at 32 pixels per square. The playable rectangle
 
 From `browser-client`, run `npm run dev:stadium` and open `/stadium-mockup`. Full-resolution stills are also linked above. The gallery exercises both coach ends, pan and zoom, Human and Orc teams and colour pairs. Delivery excludes review assets. The UI drivers write evidence under the ignored `.tools/` directory.
 
-The pre-approval checks passed all 555 browser tests and 31 asset checks, TypeScript, the production build, and the gallery, projected-pitch, playback and playback-motion drivers. The gallery driver verified 22 loaded player images and the complete 390-square grid. The native layout reproduced byte for byte. The final layered render, outside-pitch pixel difference, cloth-mask coverage, away-end stand ownership and readability on both painted turf presets require an approved still.
+The pre-approval checks passed all 555 browser tests and 31 asset checks, TypeScript, the production build, and the gallery, projected-pitch, playback and playback-motion drivers. The gallery driver verified 22 loaded player images and the complete 390-square grid. The native layout reproduced byte for byte. The driver also exercises the approved layered stadium with both teams, both turf presets, five colour pairs, all visibility toggles, both ends, 50%, 100% and 200% zoom, and pan.
 
-### After approval
+### Reconstruction review
 
 #### First cut
 
@@ -35,4 +35,14 @@ The approved still, first home reconstruction and away visiting-section detail a
 
 The game-service build passed all 29 tests on the pinned JDK and Maven. The game server packaged successfully in quick mode. All 15 validation-inventory tests passed after the gallery driver was registered as a standalone development check.
 
-Cut the selected still at native scale and compare the home-end reconstruction against it. Record the outside-pitch pixel difference, before/after captures, the cross-fade and the three largest remaining differences. After two rounds without convergence, revisit the method with the owner. Keep angled cameras on turf while the overhead result is assessed.
+#### Final cut
+
+The home screenshot now matches the approved still in **all 1,572,864 pixels** at 100% zoom with the balanced turf, original colours, grid off and players off. An independent RGB comparison of the Chromium screenshot counted zero changes inside the pitch and zero in the 1,173,504 outside pixels. The cut script also checks a fresh reconstruction against the approved PNG. [Layer recipe and manifest](../../assets/game/references/stadiums/round-four/layers/manifest.json)
+
+The intended differences in the other views are visible below. First, the relocated away supporters use the destination's torch, wall and barrel. The visiting section moves from upper right to lower left, the gate stays at the bottom and the heraldry reads upright. Second, the calm preset reduces turf contrast across the 399,360 playable pixels with zero changes elsewhere. Third, changing the visitor or kits changes the crest, the selected cloth and the player uniforms. The Human visiting standard uses a lion taken from the same painting. The native balanced view retains the original visiting standard.
+
+![First and final away corner, then balanced and calm turf with players](../../assets/game/references/stadiums/round-four/final-gallery-review.jpg)
+
+The gallery can cross-fade the live render against either the approved full still or the cropped concept. The automated check compares both endpoints and the midpoint. The archived thumbnail shows the midpoint against the approved still. Run `npm run test:stadium-mockup` in `browser-client` to reproduce the full-size browser captures and pixel counts under `.tools/stadium-mockup/`. [Home cross-fade](../../assets/game/references/stadiums/round-four/home-crossfade.jpg)
+
+**Angled cameras.** Keep the gallery's 30, 40 and 50 degree views on turf. The approved painting uses upright faces and banners on both sidelines. A perspective stadium needs its own visual target before work starts on angled architecture or crowds. Live match rendering continues to use its existing assets.
