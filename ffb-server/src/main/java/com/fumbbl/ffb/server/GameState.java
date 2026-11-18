@@ -8,8 +8,8 @@ import com.fumbbl.ffb.Weather;
 import com.fumbbl.ffb.factory.IFactorySource;
 import com.fumbbl.ffb.json.IJsonSerializable;
 import com.fumbbl.ffb.json.UtilJson;
-import com.fumbbl.ffb.model.BlitzTurnState;
 import com.fumbbl.ffb.kickoff.KickoffResult;
+import com.fumbbl.ffb.model.BlitzTurnState;
 import com.fumbbl.ffb.model.Game;
 import com.fumbbl.ffb.model.ISkillBehaviour;
 import com.fumbbl.ffb.model.Player;
@@ -63,8 +63,13 @@ public class GameState implements IModelChangeObserver, IJsonSerializable {
 	public void observeTurnEnd(Player<?> scorer, boolean halfEnded) { }
 	public void observePlayableTurn() { }
 	public void observeKickoffResult(KickoffResult result) { }
-	public void observeWeather() { }
+	protected void observeWeather() { }
 	public void observeMatchFinished() { }
+
+	public void setWeather(Weather weather) {
+		getGame().getFieldModel().setWeather(weather);
+		observeWeather();
+	}
 
 	private Game fGame;
 	private final GameLog fGameLog;
@@ -280,24 +285,21 @@ public class GameState implements IModelChangeObserver, IJsonSerializable {
 			activeEffects.setOldWeather(getGame().getFieldModel().getWeather());
 		}
 		activeEffects.setSkipRestoreWeather(true);
-		getGame().getFieldModel().setWeather(weather);
-		observeWeather();
+		setWeather(weather);
 		return activeEffects.getOldWeather();
 	}
 
 	public void restoreWeather(boolean endOfDrive) {
 		if (endOfDrive) {
 			if (activeEffects.getOldWeather() != null) {
-				getGame().getFieldModel().setWeather(activeEffects.getOldWeather());
-				observeWeather();
+				setWeather(activeEffects.getOldWeather());
 			}
 			activeEffects.setSkipRestoreWeather(false);
 			activeEffects.setOldWeather(null);
 		} else if (activeEffects.isSkipRestoreWeather()) {
 			activeEffects.setSkipRestoreWeather(false);
 		} else if (activeEffects.getOldWeather() != null) {
-			getGame().getFieldModel().setWeather(activeEffects.getOldWeather());
-			observeWeather();
+			setWeather(activeEffects.getOldWeather());
 			activeEffects.setOldWeather(null);
 		}
 	}

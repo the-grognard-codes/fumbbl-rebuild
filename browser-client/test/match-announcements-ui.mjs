@@ -32,6 +32,13 @@ const finishTimed = async (duration, transition = 550) => {
   await active(false);
 };
 const splash = kind => page.locator(`.match-splash-${kind}`);
+const shade = page.locator('.match-splash-shade');
+const verifyHeldShade = async () => {
+  assert.deepEqual(await shade.evaluate(node => {
+    const box = node.getBoundingClientRect();
+    return [node === window.chainedShade, getComputedStyle(node).opacity, document.elementFromPoint(box.left + 4, box.top + 4) === node];
+  }), [true, '1', true], 'The same fully dimmed shade still intercepts pitch input');
+};
 const setHold = async hold => {
   await page.getByRole('button', { name: 'Game Menu', exact: true }).click();
   const menu = page.getByRole('dialog', { name: 'Game Menu', exact: true });
@@ -67,29 +74,33 @@ try {
   assert.match(await page.locator('[role=status]').last().textContent(), /TURNOVER.*Pippin/);
   assert.equal(await splash('turnover').getByRole('button').count(), 1, 'Timed announcements have an explicit dismiss button');
   assert.equal(await splash('turnover').getByRole('checkbox').count(), 0);
-  await page.clock.runFor(350);
-  assert.equal(await page.locator('.match-splash-shade').getAttribute('data-phase'), 'impact');
-  await page.clock.runFor(350);
-  assert.equal(await page.locator('.match-splash-shade').getAttribute('data-phase'), 'hold');
-  await page.clock.runFor(300);
+  assert.equal(await splash('turnover').locator('h2').evaluate(node => node.getAnimations()[0]?.animationName), 'splash-impact');
+  await shade.evaluate(node => { window.chainedShade = node; });
   await page.keyboard.press('Escape');
   await page.locator('.match-splash-shade[data-exiting=true]').waitFor({ state: 'attached' });
   await page.clock.runFor(100);
-  const fadingOpacity = await page.locator('.match-splash-shade').evaluate(node => {
-    // CSS uses the document timeline rather than Playwright's mocked JS clock.
-    for (const animation of node.getAnimations()) { animation.pause(); animation.currentTime = 100; }
-    return Number(getComputedStyle(node).opacity);
-  });
-  assert.ok(fadingOpacity > 0 && fadingOpacity < 1, 'Pitch dimming fades out smoothly');
+  await verifyHeldShade();
   await page.clock.runFor(100);
-  assert.equal(await page.locator('.match-splash').count(), 0, 'Banner clears after the fade');
+  await page.locator('.match-splash').waitFor({ state: 'detached' });
   await active(true);
-  await page.clock.runFor(349);
+  await verifyHeldShade();
+  await shade.click({ position: { x: 4, y: 4 } });
+  await page.clock.runFor(124);
   assert.equal(await page.locator('.match-splash').count(), 0, 'Queued banner waits for the clear interval');
   await page.clock.runFor(1);
   await splash('turnStart').waitFor();
+  await verifyHeldShade();
   assert.match(await splash('turnStart').textContent(), /Blackwater Green Giants.*START OF TURN 3/s);
-  await page.keyboard.press('Escape'); await page.clock.runFor(550); await active(false);
+  await page.keyboard.press('Escape');
+  const fadingOpacity = await shade.evaluate(node => {
+    // CSS uses the document timeline independently of the mocked JS clock.
+    const fade = node.getAnimations().find(animation => animation.animationName === 'match-splash-dim-out');
+    fade.pause(); fade.currentTime = 100;
+    return Number(getComputedStyle(node).opacity);
+  });
+  assert.ok(fadingOpacity > 0 && fadingOpacity < 1, 'The last announcement fades the shade with the card');
+  await page.clock.runFor(549); await active(true);
+  await page.clock.runFor(1); await active(false);
   assert.equal(await page.evaluate(() => window.pitchClicks), 0, 'Dismissal never clicks through');
   await advance([event('turnover'), event('turnStart', 'away')]);
   assert.equal(await page.locator('.match-splash').count(), 0, 'Duplicate delivery is not replayed');
@@ -99,10 +110,31 @@ try {
   await reset(); await advance([event('turnStart')]); await splash('turnStart').waitFor();
   await finishTimed(1500);
 
+  const longTurnover = { ...event('turnover'), reason: 'Pippin was knocked down by a thrown teammate while carrying the ball, and the ball bounced out of bounds.' };
+  for (const speed of [1, 4]) {
+    await reset(); await advance([longTurnover], { mode: 'replay', speed });
+    await splash('turnover').waitFor();
+    const reason = splash('turnover').locator('.match-splash-reason');
+    assert.equal(await reason.textContent(), longTurnover.reason);
+    assert.deepEqual(await reason.evaluate((node, rate) => {
+      const fade = node.getAnimations().find(animation => animation.animationName === 'match-splash-dim-in');
+      fade.pause(); fade.currentTime = 700 / rate;
+      return [getComputedStyle(node).opacity, node.scrollWidth <= node.clientWidth];
+    }, speed), ['1', true]);
+    await page.clock.runFor(150);
+    await advance([longTurnover], { mode: 'replay', speed: speed === 4 ? 1 : 4 });
+    assert.equal(await shade.evaluate(node => node.style.getPropertyValue('--splash-rate')), String(speed));
+    await page.clock.runFor(1800 / speed - 151);
+    assert.equal(await shade.getAttribute('data-exiting'), 'false', 'Changing speed does not restart the current card timer');
+    await page.clock.runFor(1);
+    await page.locator('.match-splash-shade[data-exiting=true]').waitFor({ state: 'attached' });
+    await page.clock.runFor(550 / speed); await active(false);
+  }
+
   // Holding never prevents a mandatory response from becoming available.
   await setHold(true);
   await reset();
-  const scored = record(1, [{ ...event('touchdown'), reason: 'Lineman2 #8 — Skill-Test Humans 1 1 – 0 Bogruk\'s Almost Best' }]);
+  const scored = record(1, [{ ...event('touchdown'), scorer: { name: 'Lineman2', number: 8 }, reason: 'Skill-Test Humans 1 1 – 0 Bogruk\'s Almost Best' }]);
   scored.state.homeScore = start.state.homeScore + 1;
   scored.state.homeTeamName = 'Skill-Test Humans 1';
   scored.state.awayTeamName = "Bogruk's Almost Best";
@@ -123,6 +155,7 @@ try {
   await publish({ view: choice, records: [start, record(1, [event('turnover')]), record(2)] });
   await page.locator('#required-choice').waitFor(); await active(false);
   assert.equal(await page.locator('.match-splash').count(), 0);
+  assert.deepEqual(await shade.evaluate(node => [node.dataset.interrupted, getComputedStyle(node).pointerEvents]), ['true', 'none']);
 
   await reset(); await advance([event('turnover')]); await splash('turnover').waitFor();
   assert.equal(await page.getByRole('button', { name: 'Dismiss announcement' }).isVisible(), true, 'Preference survives queue recovery');
@@ -160,12 +193,36 @@ try {
   await active(false);
   assert.equal(await page.evaluate(() => window.pitchClicks), 0, 'Close buttons never click through');
 
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  await setHold(false);
+  await reset();
+  const adjacent = [start, record(1, [event('turnover')]), record(2, [event('turnStart', 'away')])];
+  await publish({ view: state(2), records: adjacent });
+  await splash('turnover').waitFor();
+  await shade.evaluate(node => { window.chainedShade = node; });
+  await page.clock.runFor(1800);
+  assert.deepEqual(await splash('turnover').evaluate(node => node.getAnimations()
+    .map(animation => animation.animationName)), ['match-splash-dim-out']);
+  await verifyHeldShade();
+  await page.clock.runFor(200);
+  await page.locator('.match-splash').waitFor({ state: 'detached' });
+  await verifyHeldShade();
+  await page.clock.runFor(125);
+  await splash('turnStart').waitFor();
+  assert.deepEqual(await splash('turnStart').evaluate(node => node.getAnimations()
+    .map(animation => animation.animationName)), ['match-splash-dim-in']);
+  await verifyHeldShade();
+  await page.keyboard.press('Escape'); await page.clock.runFor(550); await active(false);
+  await page.emulateMedia({ reducedMotion: 'no-preference' });
+  await setHold(true);
+
   // A choice or reconnect arriving in either transition phase cancels its timers.
   for (const elapsed of [100, 300]) {
     await reset(); await advance([event('turnover'), event('turnStart')]); await splash('turnover').waitFor();
     await page.keyboard.press('Escape'); await page.clock.runFor(elapsed);
     await publish({ view: choice, records: [start, record(1), record(2)] });
     await active(false); await page.locator('#required-choice').waitFor();
+    assert.deepEqual(await shade.evaluate(node => [node.dataset.interrupted, getComputedStyle(node).pointerEvents]), ['true', 'none']);
     await page.clock.runFor(1000);
     assert.equal(await page.locator('.match-splash').count(), 0, 'Choice cancels fade and gap callbacks');
     await reset(); await advance([event('turnover'), event('turnStart')]); await splash('turnover').waitFor();
@@ -176,15 +233,19 @@ try {
   }
 
   await reset();
-  const baseline = await page.locator('*').count();
+  await shade.waitFor({ state: 'detached' });
+  const pitchNodes = page.locator('.live-pitch-viewport *');
+  const baseline = await pitchNodes.count();
   for (let index = 0; index < 50; index++) {
     await reset(); await advance([event('touchdown')]); await splash('touchdown').waitFor();
     await page.keyboard.press('Escape'); await page.clock.runFor(550); await active(false);
   }
   await reset();
-  assert.equal(await page.locator('*').count(), baseline, '50 splashes retain no DOM');
+  await shade.waitFor({ state: 'detached' });
+  assert.equal(await pitchNodes.count(), baseline, '50 splashes retain no pitch DOM');
   await reset(); await advance([event('touchdown')]); await splash('touchdown').waitFor();
   await page.keyboard.press('Escape');
+  assert.equal(await shade.evaluate(node => node.getAnimations().some(animation => animation.animationName === 'match-splash-dim-out')), true);
   await page.locator('.match-splash-shade').evaluate(node => node.dispatchEvent(new AnimationEvent('animationend', { bubbles: true, animationName: 'match-splash-dim-out' })));
   await page.locator('.match-splash').waitFor({ state: 'detached' });
   await page.clock.runFor(350); await active(false);
@@ -223,7 +284,7 @@ try {
   await page.keyboard.press('Escape');
 
   for (const fact of [...facts, { ...event('halfTime'), reason: 'Badgers 1 – 1 Giants' },
-    { ...event('fullTime'), headline: 'FULL TIME', code: 'WIN', reason: 'Badgers 1 – 0 Giants — Badgers wins' },
+    { ...event('fullTime'), headline: 'END OF MATCH', code: 'WIN', reason: 'Badgers 1 – 0 Giants — Badgers wins' },
     { ...event('fullTime'), headline: 'MATCH CONCEDED', code: 'CONCEDED', reason: 'Badgers 1 – 0 Giants — Giants wins' }]) {
     await reset();
     const next = record(1, [fact]);
@@ -232,7 +293,7 @@ try {
     await publish({ view: next.state, records: [start, next] });
     await splash(fact.kind).waitFor();
     const title = fact.code === 'WEATHER_CHANGE' ? 'CHANGING WEATHER'
-      : fact.code === 'WIN' ? 'END OF MATCH' : (fact.headline ?? 'HALF-TIME').toUpperCase();
+      : (fact.headline ?? 'HALF-TIME').toUpperCase();
     assert.equal(await splash(fact.kind).getByRole('heading').textContent(), title);
     if (fact.kind === 'halfTime' || fact.kind === 'fullTime') {
       assert.deepEqual(await splash(fact.kind).locator('.match-splash-score dt').allTextContents(), ['Altdorf Blue Badgers', 'Blackwater Green Giants']);

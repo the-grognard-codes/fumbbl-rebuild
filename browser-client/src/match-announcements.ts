@@ -1,18 +1,19 @@
 import type { SetupState } from './setup-protocol.ts';
 import type { TranscriptRecord } from './transcript-protocol.ts';
 import { matchTeamName } from './match-team-name.ts';
-import { weatherPresentation } from './weather-presentation.ts';
 
 export type MatchAnnouncementEvent = {
   kind: 'turnover' | 'touchdown' | 'turnStart' | 'kickoff' | 'weather' | 'halfTime' | 'fullTime'; team: 'home' | 'away'; turn: number; half: number; reason: string | null;
   headline?: string; code?: string;
+  scorer?: { name: string; number: number };
+  teamSpecific?: boolean;
+  weather?: { code: string; headline: string; reason: string };
 };
 export const kickoffCodes = ['GET_THE_REF', 'TIME_OUT', 'SOLID_DEFENCE', 'HIGH_KICK', 'CHEERING_FANS', 'WEATHER_CHANGE', 'BRILLIANT_COACHING', 'QUICK_SNAP', 'CHARGE', 'DODGY_SNACK', 'PITCH_INVASION'];
 export const weatherCodes = ['SWELTERING_HEAT', 'VERY_SUNNY', 'NICE', 'POURING_RAIN', 'BLIZZARD'];
 export type MatchAnnouncement = MatchAnnouncementEvent & {
   id: string; teamName: string; helmet: 'human' | 'orc';
   score?: Record<'home' | 'away', { name: string; points: number }>;
-  scorer?: string | null;
   kickoffWeather?: { code: string; label: string; detail: string | null; pairedEventId?: string };
 };
 
@@ -25,7 +26,7 @@ export function decodeMatchAnnouncements(value: unknown): MatchAnnouncementEvent
   return envelope.events.map(value => {
     if (!value || typeof value !== 'object' || Array.isArray(value)) throw Error('Invalid match announcement');
     const event = value as Record<string, unknown>;
-    if (Object.keys(event).some(key => !['kind', 'team', 'turn', 'half', 'reason', 'headline', 'code'].includes(key)) || typeof event.kind !== 'string' || !['turnover', 'touchdown', 'turnStart', 'kickoff', 'weather', 'halfTime', 'fullTime'].includes(event.kind)
+    if (Object.keys(event).some(key => !['kind', 'team', 'turn', 'half', 'reason', 'headline', 'code', 'scorer', 'teamSpecific', 'weather'].includes(key)) || typeof event.kind !== 'string' || !['turnover', 'touchdown', 'turnStart', 'kickoff', 'weather', 'halfTime', 'fullTime'].includes(event.kind)
       || typeof event.team !== 'string' || !['home', 'away'].includes(event.team) || !Number.isSafeInteger(event.turn) || Number(event.turn) < 0
       || Number(event.turn) > 1000 || !Number.isSafeInteger(event.half) || Number(event.half) < 1 || Number(event.half) > 1000
       || !(event.reason === null || typeof event.reason === 'string' && event.reason.length > 0 && event.reason.length <= 1000))
@@ -34,8 +35,29 @@ export function decodeMatchAnnouncements(value: unknown): MatchAnnouncementEvent
     const codes = event.kind === 'kickoff' ? kickoffCodes : event.kind === 'weather' ? weatherCodes : event.kind === 'fullTime' ? ['CONCEDED', 'DRAW', 'WIN'] : null;
     if (codes ? typeof event.code !== 'string' || !codes.includes(event.code) || typeof event.headline !== 'string' : event.code !== undefined || event.headline !== undefined)
       throw Error('Invalid announcement details');
+    if (event.kind === 'kickoff' ? typeof event.teamSpecific !== 'boolean' : event.teamSpecific !== undefined)
+      throw Error('Invalid kickoff attribution');
+    if (event.scorer !== undefined) {
+      const scorer = announcementObject(event.scorer);
+      if (event.kind !== 'touchdown' || Object.keys(scorer).length !== 2 || typeof scorer.name !== 'string'
+        || scorer.name.length === 0 || scorer.name.length > 100 || !Number.isSafeInteger(scorer.number)
+        || Number(scorer.number) < 0 || Number(scorer.number) > 1000) throw Error('Invalid announcement scorer');
+    }
+    if (event.weather !== undefined) {
+      const weather = announcementObject(event.weather);
+      if (event.kind !== 'kickoff' || event.code !== 'WEATHER_CHANGE' || Object.keys(weather).length !== 3
+        || typeof weather.code !== 'string' || !weatherCodes.includes(weather.code)
+        || typeof weather.headline !== 'string' || !weather.headline.trim() || weather.headline.length > 100
+        || typeof weather.reason !== 'string' || !weather.reason.trim() || weather.reason.length > 1000)
+        throw Error('Invalid kickoff weather');
+    }
     return event as MatchAnnouncementEvent;
   });
+}
+
+function announcementObject(value: unknown): Record<string, unknown> {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) throw Error('Invalid announcement details');
+  return value as Record<string, unknown>;
 }
 
 export function syncAnnouncements(record: TranscriptRecord, sync: Record<string, unknown>): MatchAnnouncement[] {
@@ -52,18 +74,12 @@ export function syncAnnouncements(record: TranscriptRecord, sync: Record<string,
         away: { name: matchTeamName(state, 'away'), points: state.awayScore },
       };
     }
-    if (event.kind === 'touchdown') announcement.scorer = event.reason?.match(/^(.* #\d+) — (.+)$/s)?.[1] ?? event.reason;
-    if (event.kind === 'kickoff' && event.code === 'WEATHER_CHANGE') {
+    if (event.weather) {
       const weather = events[index + 1];
-      if (weather?.kind === 'weather' && weather.code && weather.headline) {
-        announcement.kickoffWeather = {
-          code: weather.code, label: weather.headline, detail: weather.reason, pairedEventId: id(index + 1),
-        };
-      } else if (weatherCodes.includes(state.weather)) {
-        announcement.kickoffWeather = {
-          code: state.weather, label: weatherPresentation(state.weather).label, detail: null,
-        };
-      }
+      announcement.kickoffWeather = {
+        code: event.weather.code, label: event.weather.headline, detail: event.weather.reason,
+        pairedEventId: weather?.kind === 'weather' && weather.code === event.weather.code ? id(index + 1) : undefined,
+      };
     }
     return announcement;
   });
@@ -77,7 +93,6 @@ function announcementHelmet(view: SetupState, team: 'home' | 'away'): 'human' | 
 
 export function announcementHeadline(event: MatchAnnouncementEvent): string {
   if (event.kind === 'kickoff' && event.code === 'WEATHER_CHANGE') return 'CHANGING WEATHER';
-  if (event.kind === 'fullTime') return event.code === 'CONCEDED' ? 'MATCH CONCEDED' : 'END OF MATCH';
   if (event.headline) return event.headline.toUpperCase();
   return event.kind === 'turnStart' ? `START OF TURN ${event.turn}` : event.kind === 'touchdown' ? 'TOUCHDOWN!' : event.kind === 'halfTime' ? 'HALF-TIME' : 'TURNOVER';
 }
@@ -87,15 +102,20 @@ export function announcementOutcome(event: MatchAnnouncement): string | null {
   return event.code === 'DRAW' ? 'Draw' : `${event.teamName} wins`;
 }
 
+export function announcementScorer(event: MatchAnnouncementEvent): string | null {
+  return event.scorer ? `${event.scorer.name} #${event.scorer.number}` : null;
+}
+
 export function announcementText(event: MatchAnnouncement, surface: 'log' | 'splash' = 'log'): string {
-  const shared = ['weather', 'halfTime', 'fullTime'].includes(event.kind) || event.kind === 'kickoff' && !['SOLID_DEFENCE', 'QUICK_SNAP', 'CHARGE', 'HIGH_KICK'].includes(event.code ?? '');
+  const shared = ['weather', 'halfTime', 'fullTime'].includes(event.kind) || event.kind === 'kickoff' && !event.teamSpecific;
   const team = shared ? '' : `${event.teamName} — `;
   const headline = surface === 'log' && event.headline ? event.headline.toUpperCase() : announcementHeadline(event);
-  let detail = event.reason;
+  const scorer = announcementScorer(event);
+  let detail = [scorer, event.reason].filter(Boolean).join(' — ');
   if (surface === 'splash') {
     if (event.score) {
       const { home, away } = event.score;
-      detail = [event.scorer, `${home.name}: ${home.points}. ${away.name}: ${away.points}`, announcementOutcome(event)]
+      detail = [scorer, `${home.name}: ${home.points}. ${away.name}: ${away.points}`, announcementOutcome(event)]
         .filter(Boolean).join('. ');
     } else if (event.kickoffWeather) detail = event.kickoffWeather.label;
   }
@@ -103,5 +123,8 @@ export function announcementText(event: MatchAnnouncement, surface: 'log' | 'spl
 }
 
 export function announcementDuration(event: MatchAnnouncementEvent, rate: number): number {
-  return (event.kind === 'turnStart' ? 1500 : event.kind === 'kickoff' || event.kind === 'weather' ? 2500 : event.kind === 'fullTime' ? 4000 : 3000) / rate;
+  const milliseconds: Record<MatchAnnouncementEvent['kind'], number> = {
+    turnStart: 1500, turnover: 2000, kickoff: 2500, weather: 2500, touchdown: 3000, halfTime: 3000, fullTime: 4000,
+  };
+  return milliseconds[event.kind] / rate;
 }

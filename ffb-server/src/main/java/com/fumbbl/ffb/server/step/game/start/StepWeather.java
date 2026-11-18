@@ -53,8 +53,7 @@ public final class StepWeather extends AbstractStep {
 	private ReportWeather rollWeather() {
 		int[] roll = getGameState().getDiceRoller().rollWeather();
 		Weather weather = DiceInterpreter.getInstance().interpretRollWeather(roll);
-		getGameState().getGame().getFieldModel().setWeather(weather);
-		getGameState().observeWeather();
+		getGameState().setWeather(weather);
 		return new ReportWeather(weather, roll);
 	}
 

@@ -94,12 +94,12 @@ easing.
 | Kind | Headline | Secondary line | Colour | Signature motion | Total |
 | --- | --- | --- | --- | --- | --- |
 | Touchdown | `TOUCHDOWN!` | Scorer's name and number, team name, new score | Scoring team | Ribbon sweeps from the scoring team's end; headline drops in large with a 2-frame overshoot; pixel confetti burst in team colours; scoreboard plate ticks the score | 3000 ms |
-| Turnover | `TURNOVER` | The existing authoritative reason | Affected team, desaturated | Headline slams and the card shakes for 3 stepped frames; ribbon cracks or tears | 3000 ms |
+| Turnover | `TURNOVER` | The existing authoritative reason | Affected team, desaturated | Headline slams and the card shakes for 3 stepped frames; ribbon cracks or tears | 2000 ms |
 | Start of turn | `START OF TURN n` | Team name | Active team | Quick ribbon slide and headline fade-scale; no burst | 1500 ms |
-| Kick-off event | Engine display name (for example `QUICK SNAP`) | One-line effect summary from the engine or a fixed client table keyed by the enum | Kicking or affected team when relevant, otherwise neutral | Emblem spins/flips into place (stepped), then headline | 2500 ms |
+| Kick-off event | Engine display name (for example `QUICK SNAP`), or `CHANGING WEATHER` | Engine effect summary, or the resulting condition and its rules reminder for Changing Weather | Kicking or affected team when relevant, otherwise neutral | Emblem spins/flips into place (stepped), then headline. Changing Weather uses the resulting condition's artwork and motion. | 2500 ms |
 | Weather | Condition name | Short rules reminder (for example "Pouring rain: −1 to catch, pick up and hand-off") | Neutral, tinted per condition (heat orange, sun gold, rain blue-grey, blizzard white) | Weather emblem with a looping 4–6 frame pixel effect (heat shimmer, sun rays, rain streaks, snow) behind the card | 2500 ms |
-| Half-time | `HALF-TIME` | Both team names and score | Both teams split | Whistle emblem, two ribbons meeting in the centre | 3000 ms |
-| Final whistle | `FULL TIME` (or `MATCH CONCEDED`) | Score and winner, or `DRAW` | Winner's colours, or split for a draw | Whistle, then score plate drops; winner's side gets the confetti burst | 4000 ms |
+| Half-time | `HALF-TIME` | Team columns with the score beneath each name | Both teams split | Sports whistle and starburst | 3000 ms |
+| Final whistle | `END OF MATCH` (or `MATCH CONCEDED`), from the same server headline as the log | Team columns with the score beneath each name, and the outcome | Winner's colours, or split for a draw | Sports whistle, with a starburst for a win | 4000 ms |
 
 Common phase timings: backdrop wipe in ≈150 ms; ribbon sweep ≈200 ms; headline
 impact ≈200 ms; secondary text fade ≈150 ms; hold for the remainder; exit wipe
@@ -110,10 +110,17 @@ behaviour; prefer the engine's own description text when it exists.
 
 ## Functional Requirements
 
-1. **Phase model.** Each splash runs enter → impact → hold → exit via CSS
-   classes or data attributes. Exit completes on `animationend` (with a timer
-   fallback for hidden tabs). The existing `hold` (until-dismissed) preference
-   pauses at the end of the hold phase. Dismissal at any phase jumps to exit.
+1. **Phase model.** CSS drives the entrance and impact. The card's playback
+   rate stays fixed from the start of the entrance through exit. Exit completes
+   on `animationend` with a timer fallback. The until-dismissed preference
+   keeps the card visible until dismissed. If the next splash is already
+   queued when exit starts, only the card exits and the same shade keeps the
+   pitch dimmed and blocks input during the 125 ms gap, scaled by playback
+   rate. The final or only card fades the shade and uses the normal 350 ms
+   gap, also scaled by playback rate. Natural exit, Escape and the close
+   button follow the same rules. A required choice cancels the run and fades
+   the shade while the choice is available. Reduced motion uses opacity-only
+   transitions between chained cards.
 2. **Authoritative sources only.** Kick-off results, weather (initial and every
    change, including `WEATHER_CHANGE` kick-offs), half boundaries and match end
    come from authoritative events or projection fields. If any is missing from
@@ -123,10 +130,13 @@ behaviour; prefer the engine's own description text when it exists.
 3. **Ordering.** New kinds join the existing queue: initial weather before the
    first kick-off; kick-off result after the kick and its event resolve (after
    any staged placements are confirmed for Solid Defence / Quick Snap / Charge)
-   and before the receiving team's first turn start; a weather change from a
-   kick-off shows Kick-off then Weather; touchdown that ends a half shows
-   Touchdown, then Half-time or Full time; Full time is always last, including
-   after a concession.
+   and before the receiving team's first turn start. Changing Weather is one
+   2500 ms card with the authoritative resulting condition, even when the roll
+   leaves the condition unchanged. If kick-off splashes are hidden, a changed
+   condition still shows as its own weather card when weather splashes are
+   enabled. A touchdown that ends a half shows Touchdown then Half-time or
+   End of Match. The final whistle is always last, including after a concession.
+   Overtime and its announcements are a separate feature.
 4. **Existing guarantees kept.** Dim the pitch and block pitch input; prevent
    click-through; preserve keyboard focus; Escape and the close button dismiss;
    required choices dismiss active splashes and suppress queued ones (events
@@ -272,6 +282,8 @@ main PC.
 ## Validation
 
 - Add or update unit tests and the announcement UI driver as above.
+- Run `npm run review:splashes` in `browser-client` to capture the interactive
+  review page at desktop, tablet and phone sizes.
 - Run the browser unit suite, affected UI drivers, TypeScript and the
   production build every tier; `mvn clean install` if Java changed.
 - Inspect real matches in the dev server (dev-local quick start), including a

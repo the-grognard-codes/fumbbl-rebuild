@@ -170,7 +170,7 @@ try {
       { index: 1, revision: 1, kind: 'ACTION', actor: 'away', at: 1, decision: null, state: playing,
         native: [{ commandNr: 1, matchAnnouncements: { version: 1, events: [
           { kind: 'kickoff', team: 'away', turn: 4, half: 2, reason: 'The kicking team may setup D3+3 of its players again.',
-            headline: 'Solid Defence', code: 'SOLID_DEFENCE' }
+            headline: 'Solid Defence', code: 'SOLID_DEFENCE', teamSpecific: true }
         ] } }] }
     ];
     window.publishHud(playing);

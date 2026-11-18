@@ -27,7 +27,7 @@ function Review() {
   const detail = facts.find(fact => fact.kind === kind && fact.code === variant) ?? facts.find(fact => fact.kind === kind);
   const isChangingWeather = detail?.code === 'WEATHER_CHANGE';
   const resultingWeather = isChangingWeather ? facts.find(fact => fact.kind === 'weather' && fact.code === weatherResult) : undefined;
-  const scorer = kind === 'touchdown' ? (team === 'home' ? 'Catcher #4' : 'Throwie #6') : null;
+  const scorer = kind === 'touchdown' ? (team === 'home' ? { name: 'Catcher', number: 4 } : { name: 'Throwie', number: 6 }) : undefined;
   const homePoints = kind === 'touchdown' && team === 'away' ? 0 : 1;
   const winningPoint = kind === 'fullTime' && outcome !== 'DRAW';
   const score = kind === 'touchdown' || kind === 'halfTime' || kind === 'fullTime' ? {
@@ -61,7 +61,8 @@ function Review() {
       helmet: team === 'home' ? 'human' : 'orc', score, scorer,
       kickoffWeather: resultingWeather ? { code: resultingWeather.code, label: resultingWeather.headline, detail: resultingWeather.reason } : undefined,
       reason: kind === 'turnover' ? 'Pippin failed to dodge.' : null,
-      ...(detail ? { headline: detail.headline, code: detail.code, reason: detail.reason } : kind === 'fullTime' ? { code: outcome } : {}) }} hold exiting={exiting} rate={rate} cameraEnd={cameraEnd} onDismiss={() => setExiting(true)}/></div></TeamColorArtProvider>
+      ...(detail ? { headline: detail.headline, code: detail.code, reason: detail.reason, teamSpecific: detail.teamSpecific }
+        : kind === 'fullTime' ? { code: outcome, headline: outcome === 'CONCEDED' ? 'MATCH CONCEDED' : 'END OF MATCH' } : {}) }} hold exiting={exiting} rate={rate} cameraEnd={cameraEnd} onDismiss={() => setExiting(true)}/></div></TeamColorArtProvider>
   </main>;
 }
 createRoot(document.getElementById('app')!).render(<Review/>);

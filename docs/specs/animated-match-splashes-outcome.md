@@ -11,17 +11,17 @@ Tiers 1 and 2 are complete. Tier 3 adds optional decoration and per-kind prefere
 | Requirement | Result and evidence |
 | --- | --- |
 | Animated core events | Shared enter → impact → hold → exit phases; stepped ribbons, headline impacts, restrained turn start and torn turnover treatment. |
-| Event timing | Total durations include exit: turn 1.5s; touchdown/turnover/half 3s; kickoff/weather 2.5s; final 4s. Animation-end completion has a timer fallback. |
+| Event timing | Total durations include exit: turn 1.5s, turnover 2s, touchdown/half 3s, kickoff/weather 2.5s, final 4s. The card keeps its starting playback rate and animation-end completion has a timer fallback. |
 | Authoritative kickoff | All 11 engine enum results; pending events survive staged placement/bonus actions and checkpoints, then precede the first playable turn. |
-| Weather | Five engine weather kinds, initial and changed conditions; no INTRO or unchanged-weather announcement. Deferred kickoff weather follows its kickoff fact. |
+| Weather | Five engine weather kinds cover initial and changed conditions. Changing Weather includes the server's resulting condition, even when the roll leaves it unchanged. A separate weather card can play when kickoff cards are hidden and the condition changed. |
 | Half and final | Native half/match completion, scorer name/number and authoritative score; winner, draw and concession treatment. |
-| Queue and recovery | Required-choice priority, dedupe, reconnect/hidden-tab recovery, replay seek/speed and spectator coverage remain tested. Old five-field checkpoints remain readable. |
+| Queue and recovery | Required choices take priority. The shade stays up between queued cards, including across transcript revisions. Announcement checkpoint recovery requires all eight fields. |
 | Accessibility | Persistent live region, explicit dismiss/Escape, no focus transfer or click-through, reduced-motion fades with decorative movement disabled. |
 | Team identity | Saved ramps, camera-aware ribbon direction, split-team ribbons and independent black/white contrast edges. All 256 primary/secondary combinations tested. |
 | Optional polish | Short team-colour bursts, five-step weather effects, score pulse and final plate entrance. Seven local visibility preferences preserve gameplay/log facts. |
 | Review tooling | `browser-client/splash-review.html`: every engine variant, winner/draw/concession, saved colours, speed, camera direction and manual paused frame inspector. |
 
-CSS keyframes use transform and opacity. React updates only at phase boundaries; there is no product per-frame animation loop. Headline, reminder and score remain DOM text on a stable dark plate. Original geometric SVG emblems/masks live in `assets/game/ui/match-events`; weather reuses existing approved sprites. No BB3 artwork or new runtime dependency was copied or introduced.
+CSS keyframes drive the card's entrance and impact using transform and opacity. React commits the active card, its exit and its removal. Headline, reminder and score remain DOM text on a stable dark plate. Original emblems and weather masks live in `assets/game/ui/match-events`.
 
 Kickoff names/descriptions come directly from the engine. Weather reminders were checked against the repository's BB2025 reference index, [its linked weather table](https://bloodbowlbase.ru/bb2025/core_rules/the_game_of_blood_bowl/#weather-table), engine modifier collections and heat handling.
 
@@ -73,3 +73,13 @@ The art review includes all 11 kickoff results, all five resulting conditions fo
 Half-time and End of Regulation share a conventional silver sports whistle and a short stepped tilt and settle. Weather and Changing Weather cards feather the existing condition sprites into the effects with an elliptical mask. The mask stays in reduced motion and the whistle entrance and moving weather effects are removed. Captures at four viewport sizes are in `.tools/animated-splashes/whistle-weather/`.
 
 The current finish title is End of Match. Half-time and the finish cards use the touchdown score columns, with the score read from the event's transcript revision. The final result appears below the columns. Half-time uses the shared starburst in both team colours and its card has no pitch markings. Four-viewport captures and reduced-motion checks are in `.tools/animated-splashes/match-score-cards/`.
+
+## Independent review follow-up — 2026-11-18
+
+The match log and splash share the engine's final headline. A single BB2025 service owns kickoff team attribution and weather reminders. The server observes weather from its setter and sends structured scorer and resulting-weather data. The engine test compares its generated kickoff and weather facts against the committed browser fixture.
+
+The browser driver checked that the same shade stays opaque and intercepts input across the 125 ms gap at 1×, including across revisions, with Escape, a close-button click and a natural exit. A required choice immediately has input while the shade fades. Reduced motion uses opacity only for the chained cards. The last or only card still fades the shade and uses the normal 350 ms gap at 1×.
+
+A long turnover reason fits the card and reaches full opacity at 1× and 4×. It has about 1.1 seconds at full opacity at 1× and 275 milliseconds at 4×. The latter is too short to reliably read a long reason at speed. The reason remains available in the log and the existing until-dismissed setting keeps the card visible.
+
+The production browser build, all 545 browser unit tests, announcement, menu, playback, team-colour, reconnect and DOM-growth drivers passed. `npm run review:splashes` captured 488 frames at four viewport sizes under `.tools/animated-splashes/independent-review/`.

@@ -7,6 +7,8 @@ import com.fumbbl.ffb.FieldCoordinate;
 import com.fumbbl.ffb.PlayerAction;
 import com.fumbbl.ffb.PlayerState;
 import com.fumbbl.ffb.TurnMode;
+import com.fumbbl.ffb.Weather;
+import com.fumbbl.ffb.kickoff.bb2025.KickoffResult;
 import com.fumbbl.ffb.mechanics.PassResult;
 import com.fumbbl.ffb.model.Game;
 import com.fumbbl.ffb.model.Player;
@@ -33,6 +35,7 @@ import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class MatchAnnouncementPresentationTest {
@@ -265,12 +268,12 @@ class MatchAnnouncementPresentationTest {
         fixture.advanceToTurn();
         Game game = state(fixture.session).getGame();
         JsonArray contracts = new JsonArray();
-        for (com.fumbbl.ffb.kickoff.bb2025.KickoffResult result : com.fumbbl.ffb.kickoff.bb2025.KickoffResult.values()) {
+        for (KickoffResult result : KickoffResult.values()) {
             MatchAnnouncementPresentation presentation = new MatchAnnouncementPresentation();
             game.setTurnMode(TurnMode.KICKOFF);
             presentation.kickoff(game, result);
-            game.getFieldModel().setWeather(com.fumbbl.ffb.Weather.POURING_RAIN);
-            if (result == com.fumbbl.ffb.kickoff.bb2025.KickoffResult.WEATHER_CHANGE) presentation.weather(game);
+            game.getFieldModel().setWeather(Weather.POURING_RAIN);
+            if (result == KickoffResult.WEATHER_CHANGE) presentation.weather(game);
             for (TurnMode mode : new TurnMode[] {TurnMode.SETUP, TurnMode.KICKOFF, TurnMode.QUICK_SNAP, TurnMode.BLITZ}) {
                 game.setTurnMode(mode);
                 presentation.playable(game);
@@ -286,7 +289,7 @@ class MatchAnnouncementPresentationTest {
             JsonObject sync = new JsonObject().add("commandNr", 2);
             recovered.decorate(List.of(sync));
             List<JsonObject> actual = events(new JsonArray().add(sync));
-            assertEquals(result == com.fumbbl.ffb.kickoff.bb2025.KickoffResult.WEATHER_CHANGE
+            assertEquals(result == KickoffResult.WEATHER_CHANGE
                 ? List.of("kickoff", "weather", "turnStart") : List.of("kickoff", "turnStart"),
                 actual.stream().map(e -> e.getString("kind", null)).toList());
             assertEquals(result.getName(), actual.getFirst().getString("headline", null));
@@ -294,14 +297,14 @@ class MatchAnnouncementPresentationTest {
             contracts.add(actual.getFirst());
         }
         MatchAnnouncementPresentation presentation = new MatchAnnouncementPresentation();
-        for (com.fumbbl.ffb.Weather weather : com.fumbbl.ffb.Weather.values()) {
+        for (Weather weather : Weather.values()) {
             game.getFieldModel().setWeather(weather);
             presentation.weather(game);
             presentation.weather(game);
             JsonObject sync = new JsonObject().add("commandNr", 3);
             presentation.decorate(List.of(sync));
             List<JsonObject> actual = events(new JsonArray().add(sync));
-            if (weather == com.fumbbl.ffb.Weather.INTRO) assertTrue(actual.isEmpty());
+            if (weather == Weather.INTRO) assertTrue(actual.isEmpty());
             else {
                 assertEquals(1, actual.size());
                 assertEquals(weather.getName(), actual.getFirst().getString("headline", null));
@@ -309,6 +312,60 @@ class MatchAnnouncementPresentationTest {
             }
         }
         Files.writeString(Path.of("target/match-splash-events.json"), contracts.toString());
+        Path browserFixture = Path.of("../browser-client/test/fixtures/match-splash-events.json");
+        assertEquals(contracts, JsonArray.readFrom(Files.readString(browserFixture)),
+            "Refresh the committed browser fixture from ffb-server/target/match-splash-events.json");
+    }
+
+    @Test void kickoffAttributionUsesTheKickingAndReceivingSides() throws Exception {
+        SetupSessionMovementTest.Fixture fixture = fixture();
+        fixture.advanceToTurn();
+        Game game = state(fixture.session).getGame();
+        for (boolean homeKicking : new boolean[]{true, false}) {
+            for (KickoffResult result : List.of(KickoffResult.QUICK_SNAP, KickoffResult.HIGH_KICK, KickoffResult.CHARGE)) {
+                MatchAnnouncementPresentation presentation = new MatchAnnouncementPresentation();
+                game.setHomePlaying(homeKicking);
+                game.setTurnMode(TurnMode.KICKOFF);
+                presentation.kickoff(game, result);
+                game.setHomePlaying(!homeKicking);
+                game.setTurnMode(TurnMode.REGULAR);
+                presentation.playable(game);
+                JsonObject sync = new JsonObject().add("commandNr", 1);
+                presentation.decorate(List.of(sync));
+                JsonObject kickoff = events(new JsonArray().add(sync)).getFirst();
+                boolean homeAffected = result == KickoffResult.CHARGE ? homeKicking : !homeKicking;
+                assertEquals(homeAffected ? "home" : "away", kickoff.getString("team", null), result.name());
+                assertTrue(kickoff.getBoolean("teamSpecific", false));
+            }
+        }
+    }
+
+    @Test void unchangedKickoffWeatherStillCarriesTheEngineLabel() throws Exception {
+        SetupSessionMovementTest.Fixture fixture = fixture();
+        fixture.advanceToTurn();
+        Game game = state(fixture.session).getGame();
+        MatchAnnouncementPresentation presentation = new MatchAnnouncementPresentation();
+        game.getFieldModel().setWeather(Weather.NICE);
+        presentation.weather(game);
+        presentation.recorded();
+        game.setTurnMode(TurnMode.KICKOFF);
+        presentation.kickoff(game, KickoffResult.WEATHER_CHANGE);
+        presentation.weather(game);
+        game.setTurnMode(TurnMode.REGULAR);
+        presentation.playable(game);
+        JsonObject sync = new JsonObject().add("commandNr", 1);
+        presentation.decorate(List.of(sync));
+        List<JsonObject> facts = events(new JsonArray().add(sync));
+        assertEquals(List.of("kickoff", "turnStart"), facts.stream().map(e -> e.getString("kind", null)).toList());
+        assertEquals(Weather.NICE.getName(), facts.getFirst().get("weather").asObject().getString("headline", null));
+    }
+
+    @Test void rejectsCheckpointsMissingRequiredFields() {
+        MatchAnnouncementPresentation presentation = new MatchAnnouncementPresentation();
+        JsonObject old = presentation.checkpoint().remove("lastWeather").remove("pendingKickoff").remove("deferredWeather");
+        assertThrows(IllegalArgumentException.class, () -> presentation.restore(old));
+        JsonObject malformed = presentation.checkpoint().remove("lastWeather").add("wrongField", JsonValue.NULL);
+        assertThrows(IllegalArgumentException.class, () -> presentation.restore(malformed));
     }
 
     @Test void halfEndingTouchdownPrecedesHalfTimeAndConcessionIsLast() throws Exception {
@@ -331,7 +388,14 @@ class MatchAnnouncementPresentationTest {
         assertEquals(List.of("touchdown", "fullTime"), actual.stream().map(e -> e.getString("kind", null)).toList());
         assertEquals("MATCH CONCEDED", actual.getLast().getString("headline", null));
         assertEquals("away", actual.getLast().getString("team", null));
-        assertTrue(actual.getFirst().getString("reason", "").contains("#"));
+        Player<?> scorer = game.getTeamAway().getPlayers()[0];
+        assertEquals(new JsonObject().add("name", scorer.getName()).add("number", scorer.getNr()), actual.getFirst().get("scorer"));
+
+        game.getGameResult().getTeamResultHome().setConceded(false);
+        presentation.finished(game);
+        JsonObject finish = new JsonObject().add("commandNr", 6);
+        presentation.decorate(List.of(finish));
+        assertEquals("END OF MATCH", events(new JsonArray().add(finish)).getFirst().getString("headline", null));
     }
     private void forceGeneral(GameState state, int... values) {
         List<DiceCategory> dice = new ArrayList<>();

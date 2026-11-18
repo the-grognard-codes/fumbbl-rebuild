@@ -78,7 +78,7 @@ test('announcements retain readable causes in the log and deduplicate stable ide
   const lines = matchLogLines([input]).filter(line => line.key.includes(state.matchId));
   assert.equal(lines.length, 1);
   assert.equal(lines[0].text, 'Blue Badgers — TURNOVER. Runner failed to pick up the ball.');
-  assert.equal(announcementDuration(turnover, 1), 3000);
+  assert.equal(announcementDuration(turnover, 1), 2000);
   assert.equal(announcementDuration({ ...turnover, kind: 'turnStart' }, 2), 750);
 });
 
@@ -116,7 +116,8 @@ test('native friendly throw collision resolves both players before the turnover 
 test('extended authoritative kinds retain ordering and rate-scaled durations', () => {
   const facts: MatchAnnouncementEvent[] = [
     { ...turnover, kind: 'weather', code: 'NICE', headline: 'Nice Weather', reason: 'No additional weather effects.' },
-    { ...turnover, kind: 'kickoff', code: 'WEATHER_CHANGE', headline: 'Weather Change' },
+    { ...turnover, kind: 'kickoff', code: 'WEATHER_CHANGE', headline: 'Weather Change', teamSpecific: false,
+      weather: { code: 'BLIZZARD', headline: 'Blizzard', reason: 'No rush beyond the first square without a penalty.' } },
     { ...turnover, kind: 'weather', code: 'BLIZZARD', headline: 'Blizzard' },
     { ...turnover, kind: 'turnStart', team: 'away' },
     { ...turnover, kind: 'touchdown' },
@@ -132,10 +133,26 @@ test('extended authoritative kinds retain ordering and rate-scaled durations', (
 });
 
 test('completed match replays use the new title and concessions keep their own title', () => {
-  for (const code of ['WIN', 'DRAW']) {
-    assert.equal(announcementHeadline({ ...turnover, kind: 'fullTime', code, headline: 'FULL TIME' }), 'END OF MATCH');
+  for (const code of ['WIN', 'DRAW', 'CONCEDED']) {
+    const headline = code === 'CONCEDED' ? 'MATCH CONCEDED' : 'END OF MATCH';
+    const event: MatchAnnouncementEvent = { ...turnover, kind: 'fullTime', code, headline };
+    assert.equal(announcementHeadline(event), headline);
+    assert.ok(matchLogLines([record([sync([event])])]).some(line => line.text.includes(headline)));
   }
-  assert.equal(announcementHeadline({ ...turnover, kind: 'fullTime', code: 'CONCEDED', headline: 'MATCH CONCEDED' }), 'MATCH CONCEDED');
+});
+
+test('structured scorer and kickoff metadata reject invalid payloads', () => {
+  const touchdown = { ...turnover, kind: 'touchdown', scorer: { name: 'A player — Jr.', number: 8 }, reason: 'Badgers 1 – 0 Giants' };
+  const native = sync([touchdown as MatchAnnouncementEvent]);
+  assert.ok(matchLogLines([record([native])]).some(line => line.text.includes('A player — Jr. #8 — Badgers 1 – 0 Giants')));
+  for (const event of [
+    { ...touchdown, scorer: null },
+    { ...touchdown, scorer: { name: 'Player', number: '8' } },
+    { ...touchdown, teamSpecific: true },
+    { ...turnover, kind: 'kickoff', code: 'WEATHER_CHANGE', headline: 'Weather Change' },
+    { ...turnover, kind: 'kickoff', code: 'WEATHER_CHANGE', headline: 'Weather Change', teamSpecific: false,
+      weather: { code: 'INTRO', headline: 'Intro', reason: 'Invalid weather' } },
+  ]) assert.throws(() => decodeMatchAnnouncements({ version: 1, events: [event] }));
 });
 
 test('browser consumes all engine-generated kickoff and weather facts', () => {

@@ -4,13 +4,17 @@ import com.fumbbl.ffb.TurnMode;
 import com.fumbbl.ffb.Weather;
 import com.fumbbl.ffb.kickoff.KickoffResult;
 import com.fumbbl.ffb.model.Game;
+import com.fumbbl.ffb.model.GameResult;
 import com.fumbbl.ffb.model.Player;
+import com.fumbbl.ffb.model.TeamResult;
 import com.fumbbl.ffb.model.change.ModelChangeList;
 import com.fumbbl.ffb.net.commands.ClientCommand;
 import com.fumbbl.ffb.net.commands.ClientCommandEndTurn;
 import com.fumbbl.ffb.net.commands.ServerCommandModelSync;
 import com.fumbbl.ffb.report.ReportList;
 import com.fumbbl.ffb.server.GameState;
+import com.fumbbl.ffb.server.match.bb2025.MatchSplashRules;
+import com.fumbbl.ffb.server.match.bb2025.MatchSplashRules.KickoffSide;
 import com.fumbbl.ffb.server.step.StepId;
 import com.fumbbl.ffb.server.util.UtilServerGame;
 
@@ -21,9 +25,13 @@ import com.eclipsesource.json.JsonValue;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Function;
 
 /** Resident presentation sidecar. Only native committed boundaries produce events. */
 final class MatchAnnouncementPresentation {
+    private static final List<String> CHECKPOINT_FIELDS = List.of("voluntary", "confirmed", "reason", "lastTurn",
+        "pending", "lastWeather", "pendingKickoff", "deferredWeather");
+    private final MatchSplashRules rules = new MatchSplashRules();
     private final Map<Integer, JsonArray> syncs = new LinkedHashMap<>();
     private JsonArray pending = new JsonArray();
     private boolean voluntary;
@@ -35,45 +43,45 @@ final class MatchAnnouncementPresentation {
     private JsonObject deferredWeather;
 
     void kickoff(Game game, KickoffResult result) {
-        boolean receiving = result == com.fumbbl.ffb.kickoff.bb2025.KickoffResult.QUICK_SNAP
-            || result == com.fumbbl.ffb.kickoff.bb2025.KickoffResult.HIGH_KICK;
-        pendingKickoff = event("kickoff", game, receiving != game.isHomePlaying(), result.getDescription())
-            .add("headline", result.getName()).add("code", ((Enum<?>) result).name());
+        KickoffSide side = rules.kickoffSide(result);
+        pendingKickoff = event("kickoff", game, (side == KickoffSide.RECEIVING) != game.isHomePlaying(), result.getDescription())
+            .add("headline", result.getName()).add("code", ((Enum<?>) result).name())
+            .add("teamSpecific", side != KickoffSide.NEUTRAL);
     }
 
     void weather(Game game) {
         Weather weather = game.getFieldModel().getWeather();
         if (weather == null || weather == Weather.INTRO || weather.name().equals(lastWeather)) return;
         lastWeather = weather.name();
-        String reminder = switch (weather) {
-            case SWELTERING_HEAT -> "D3 players from each team miss the next drive after this drive ends.";
-            case VERY_SUNNY -> "−1 to Passing Ability tests.";
-            case POURING_RAIN -> "−1 to pick up, catch and intercept.";
-            case BLIZZARD -> "−1 to rush; only Quick and Short Passes.";
-            default -> "No additional weather effects.";
-        };
-        JsonObject announcement = event("weather", game, game.isHomePlaying(), reminder)
+        JsonObject announcement = event("weather", game, game.isHomePlaying(), rules.weatherReminder(weather))
             .add("headline", weather.getName()).add("code", weather.name());
         if (pendingKickoff == null) pending.add(announcement);
         else deferredWeather = announcement;
     }
 
     void finished(Game game) {
-        boolean homeConceded = game.getGameResult().getTeamResultHome().hasConceded();
-        boolean awayConceded = game.getGameResult().getTeamResultAway().hasConceded();
-        int home = game.getGameResult().getTeamResultHome().getScore();
-        int away = game.getGameResult().getTeamResultAway().getScore();
+        GameResult result = game.getGameResult();
+        TeamResult homeResult = result.getTeamResultHome();
+        TeamResult awayResult = result.getTeamResultAway();
+        boolean homeConceded = homeResult.hasConceded();
+        boolean awayConceded = awayResult.hasConceded();
+        int home = homeResult.getScore();
+        int away = awayResult.getScore();
         boolean homeWins = awayConceded || !homeConceded && home > away;
         String winner = !homeConceded && !awayConceded && home == away ? "DRAW"
             : (homeWins ? game.getTeamHome() : game.getTeamAway()).getName() + " wins";
-        pending.add(event("fullTime", game, homeWins, score(game) + " — " + winner)
-            .add("headline", homeConceded || awayConceded ? "MATCH CONCEDED" : "FULL TIME")
+        pending.add(event("fullTime", game, homeWins, score(game, home, away) + " — " + winner)
+            .add("headline", homeConceded || awayConceded ? "MATCH CONCEDED" : "END OF MATCH")
             .add("code", homeConceded || awayConceded ? "CONCEDED" : home == away ? "DRAW" : "WIN"));
     }
 
     private String score(Game game) {
-        return game.getTeamHome().getName() + " " + game.getGameResult().getTeamResultHome().getScore()
-            + " – " + game.getGameResult().getTeamResultAway().getScore() + " " + game.getTeamAway().getName();
+        GameResult result = game.getGameResult();
+        return score(game, result.getTeamResultHome().getScore(), result.getTeamResultAway().getScore());
+    }
+
+    private String score(Game game, int home, int away) {
+        return game.getTeamHome().getName() + " " + home + " – " + away + " " + game.getTeamAway().getName();
     }
 
     void prepare(Game game, ClientCommand command) {
@@ -104,7 +112,8 @@ final class MatchAnnouncementPresentation {
         // Kickoff bonus actions and setup are not normal numbered team turns.
         if (scorer != null) {
             boolean home = game.getTeamHome().hasPlayer(scorer);
-            pending.add(event("touchdown", game, home, scorer.getName() + " #" + scorer.getNr() + " — " + score(game)));
+            pending.add(event("touchdown", game, home, score(game))
+                .add("scorer", new JsonObject().add("name", scorer.getName()).add("number", scorer.getNr())));
         } else if (game.getTurnMode() == TurnMode.REGULAR && confirmed && !voluntary && !game.isTimeoutEnforced()) {
             pending.add(event("turnover", game, game.isHomePlaying(),
                 reason == null ? "A rules-triggered turnover ended the turn." : reason));
@@ -120,7 +129,15 @@ final class MatchAnnouncementPresentation {
         String identity = game.getHalf() + ":" + game.isHomePlaying() + ":" + game.getTurnData().getTurnNr();
         if (identity.equals(lastTurn)) return;
         lastTurn = identity;
-        if (pendingKickoff != null) { pending.add(pendingKickoff); pendingKickoff = null; }
+        if (pendingKickoff != null) {
+            Weather weather = game.getFieldModel().getWeather();
+            if (rules.isChangingWeather(pendingKickoff.getString("code", "")) && weather != null && weather != Weather.INTRO) {
+                pendingKickoff.add("weather", new JsonObject().add("code", weather.name())
+                    .add("headline", weather.getName()).add("reason", rules.weatherReminder(weather)));
+            }
+            pending.add(pendingKickoff);
+            pendingKickoff = null;
+        }
         if (deferredWeather != null) { pending.add(deferredWeather); deferredWeather = null; }
         pending.add(event("turnStart", game, game.isHomePlaying(), null));
     }
@@ -168,15 +185,25 @@ final class MatchAnnouncementPresentation {
     }
 
     void restore(JsonObject saved) {
-        if (saved.size() != 5 && saved.size() != 8) throw new IllegalArgumentException("Invalid match announcement checkpoint");
-        voluntary = saved.get("voluntary").asBoolean();
-        confirmed = saved.get("confirmed").asBoolean();
-        reason = saved.get("reason").isNull() ? null : saved.get("reason").asString();
-        lastTurn = saved.get("lastTurn").isNull() ? null : saved.get("lastTurn").asString();
-        pending = JsonArray.readFrom(saved.get("pending").toString());
-        lastWeather = saved.get("lastWeather") == null || saved.get("lastWeather").isNull() ? null : saved.get("lastWeather").asString();
-        pendingKickoff = saved.get("pendingKickoff") == null || saved.get("pendingKickoff").isNull() ? null : saved.get("pendingKickoff").asObject();
-        deferredWeather = saved.get("deferredWeather") == null || saved.get("deferredWeather").isNull() ? null : saved.get("deferredWeather").asObject();
+        if (saved.size() != CHECKPOINT_FIELDS.size() || !saved.names().containsAll(CHECKPOINT_FIELDS))
+            throw new IllegalArgumentException("Invalid match announcement checkpoint: expected all eight fields");
+        try {
+            voluntary = saved.get("voluntary").asBoolean();
+            confirmed = saved.get("confirmed").asBoolean();
+            reason = readNullable(saved, "reason", JsonValue::asString);
+            lastTurn = readNullable(saved, "lastTurn", JsonValue::asString);
+            pending = JsonArray.readFrom(saved.get("pending").toString());
+            lastWeather = readNullable(saved, "lastWeather", JsonValue::asString);
+            pendingKickoff = readNullable(saved, "pendingKickoff", JsonValue::asObject);
+            deferredWeather = readNullable(saved, "deferredWeather", JsonValue::asObject);
+        } catch (UnsupportedOperationException invalid) {
+            throw new IllegalArgumentException("Invalid match announcement checkpoint field type", invalid);
+        }
+    }
+
+    private <T> T readNullable(JsonObject saved, String field, Function<JsonValue, T> read) {
+        JsonValue value = saved.get(field);
+        return value.isNull() ? null : read.apply(value);
     }
 
     private JsonObject event(String kind, Game game, boolean home, String cause) {
