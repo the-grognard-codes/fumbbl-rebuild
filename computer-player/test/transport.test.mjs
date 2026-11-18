@@ -347,8 +347,12 @@ test('idle human-turn matches yield capacity, ignore refreshes and wake on a new
   let output = ''; child.stdout.on('data', chunk => { output += chunk; }); child.stderr.on('data', chunk => { output += chunk; });
   try {
     const deadline = Date.now() + 6000;
-    while ((!actions.length || registrations < 2) && Date.now() < deadline) await new Promise(done => setTimeout(done, 25));
-    assert.ok(registrations >= 2, output);
+    const otherWorkerFinished = () => output.includes(`Match ${secondMatchId} completed.`);
+    while ((!otherWorkerFinished() || registrations < 2) && Date.now() < deadline) await new Promise(done => setTimeout(done, 25));
+    assert.ok(otherWorkerFinished() && registrations >= 2, output);
+    // Give an incorrectly restarted child time to connect and send its load.
+    await new Promise(done => setTimeout(done, 750));
+    assert.equal(output.split(`Started match ${matchId};`).length - 1, 1, `The idle worker restarted before a change.\n${output}`);
     assert.deepEqual(loads, [matchId, secondMatchId], 'yielding and refreshing must not reload the waiting match');
     homeActed = true;
     send(dispatcher, { version: 2, type: 'computerJobChanged', requestId: null, matchId, revision: 1, saveResumeChanged: false });

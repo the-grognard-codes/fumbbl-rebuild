@@ -518,25 +518,22 @@ public final class SetupApplication {
 			boolean cold = recovery != null && !sessions.containsKey(id) && document.lifecycle == MatchDocument.Lifecycle.ACTIVATED;
 			MatchPreferences preferences = null;
 			if (cold) {
-				RecoveryRepository.Record record = null;
-				JsonObject validatedPayload = null;
-				if (computerLoad) {
-					phase = "computer-waiting-load";
-					record = recoveryRecord(id, true);
-					if (record != null) {
-						try { validatedPayload = SetupSession.validatedRecoveryPayload(record.json); }
-						catch (RuntimeException invalid) { /* Restore reports and caches the rejection. */ }
-					}
-					JsonObject waiting = validatedPayload == null ? null
-						: SetupSession.checkpointComputerWaitingView(validatedPayload, id, clock.millis());
-					if (waiting != null) return outcome(new JsonObject().add("version", 1).add("type", "setupState")
-						.add("requestId", requestId).add("code", "ACCEPTED").add("duplicate", false).add("state", waiting), false);
-				}
 				phase = "skill-use-preferences";
+				// Read preferences before decoding a potentially large checkpoint while JDBC time remains.
 				preferences = readSkillUsePreferences(id);
 				phase = "restore";
 				if (computerLoad) {
 					try (BrowserRequestTiming.Scope ignored = timing.span(BrowserRequestTiming.Phase.RECOVERY_RESTORE)) {
+						RecoveryRepository.Record record = recoveryRecord(id, true);
+						JsonObject validatedPayload = null;
+						if (record != null) {
+							try { validatedPayload = SetupSession.validatedRecoveryPayload(record.json); }
+							catch (RuntimeException invalid) { /* Restore reports and caches the rejection. */ }
+						}
+						JsonObject waiting = validatedPayload == null ? null
+							: SetupSession.checkpointComputerWaitingView(validatedPayload, id, clock.millis());
+						if (waiting != null) return outcome(new JsonObject().add("version", 1).add("type", "setupState")
+							.add("requestId", requestId).add("code", "ACCEPTED").add("duplicate", false).add("state", waiting), false);
 						recovered = restoreFromRecord(id, document, record, validatedPayload);
 					}
 				} else recovered = restore(id, document);

@@ -29,6 +29,23 @@ import static org.mockito.Mockito.when;
 import static org.mockito.Mockito.withSettings;
 
 class SetupApplicationReadOnlyLoadTest {
+	@Test void runnableComputerColdLoadReadsPreferencesBeforeTheCheckpoint() throws Exception {
+		Fixture fixture = new Fixture(true);
+		SetupApplication application = fixture.application();
+		JsonObject initial = application.handle("home", fixture.load()).get("state").asObject();
+		JsonObject handover = application.handle("home", endTurn(fixture.engine, initial, "pass-to-computer"));
+		assertEquals("away", handover.get("state").asObject().getString("actor", null));
+
+		int readsBeforeLoad = fixture.recovery.reads;
+		SetupApplication restarted = fixture.application();
+		restarted.configureStorageAdmission(() -> assertEquals(readsBeforeLoad, fixture.recovery.reads,
+			"The checkpoint read can exhaust the next JDBC operation's allowance"));
+		JsonObject loaded = restarted.handleComputerWithOutcome(fixture.load()).response();
+		assertEquals("ACCEPTED", loaded.getString("code", null));
+		assertEquals("away", loaded.get("state").asObject().getString("actor", null));
+		assertEquals(1, restarted.lifecycleMetrics().getInt("restoredSessions", -1));
+	}
+
 	@Test void waitingComputerLoadsDoNotExtendResidencyOrRestoreAnIdleMatch() throws Exception {
 		Fixture fixture = new Fixture(true);
 		SetupApplication application = fixture.application();
@@ -189,10 +206,10 @@ class SetupApplicationReadOnlyLoadTest {
 			.add("requestId", "load").add("matchId", id); }
 	}
 	private static final class MemoryRecovery implements RecoveryRepository {
-		Record record; int saves;
+		Record record; int saves, reads;
 		boolean failBeforeCommit;
 		MemoryRecovery(String id, String artifact) { record = new Record(id, 1, artifact); }
-		@Override public Record find(String id) { return record; }
+		@Override public Record find(String id) { reads++; return record; }
 		@Override public boolean save(Record next, long expected) {
 			if (failBeforeCommit) throw new AssertionError("injected fatal checkpoint failure");
 			assertEquals(record.generation, expected); record = next; saves++; return true;
