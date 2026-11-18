@@ -56,14 +56,13 @@ import static org.mockito.Mockito.when;
 
 /** Cross-runtime regression: server offers -> shipped Node policy -> accepted native action. Requires Node 26. */
 class ComputerCoachNativeDecisionTest {
-    @Test void fiftySelectionTogglesStopWithoutEndingTheEventAndSurviveRestore() throws Exception {
+    @Test void fiftySelectionTogglesStopWithoutEndingTheEventAndRestoreStartsAFreshStage() throws Exception {
         for (KickoffResult event : new KickoffResult[] { KickoffResult.CHARGE, KickoffResult.QUICK_SNAP, KickoffResult.SOLID_DEFENCE }) {
             BogrukEngineFixture fixture = kickoffFixture(event);
             JsonObject view = fixture.reply("away").get("state").asObject();
             String toggle = view.get("actions").asArray().values().stream().map(JsonValue::asObject)
                 .map(action -> action.getString("id", "")).filter(id -> id.contains("event-pick:")).findFirst().orElseThrow().split(":", 2)[1];
             for (int i = 0; i < 50; i++) {
-                if (i == 49) { fixture.restore(); view = fixture.reply("away").get("state").asObject(); }
                 view = rawAction(fixture, view, toggle, "toggle-" + i).get("state").asObject();
             }
             assertEquals("selection", view.get("kickoff").asObject().getString("stage", null));
@@ -72,7 +71,8 @@ class ComputerCoachNativeDecisionTest {
             assertRejectedWithoutMutation(fixture, view, toggle);
             fixture.restore();
             view = fixture.reply("away").get("state").asObject();
-            assertRejectedWithoutMutation(fixture, view, toggle);
+            assertEquals(0, view.getInt("stageSeq", 0));
+            view = rawAction(fixture, view, toggle, "first-after-restore").get("state").asObject();
             if (event == KickoffResult.SOLID_DEFENCE) {
                 String player = toggle.substring("event-pick:".length());
                 JsonObject request = actionRequest(fixture, view, "event-confirm", "confirm-selection")
@@ -160,7 +160,6 @@ class ComputerCoachNativeDecisionTest {
             String player = chosen.get(0).asString();
             String placement = null;
             for (int i = 0; i < 50; i++) {
-                if (i == 49) { fixture.restore(); view = fixture.reply("away").get("state").asObject(); }
                 placement = "solid-place:" + player + ":" + 17 + ":" + (illegalLast && i == 49 ? 13 : i % 2 == 0 ? 1 : 2);
                 view = rawAction(fixture, view, placement, "placement-" + i).get("state").asObject();
             }
@@ -170,7 +169,8 @@ class ComputerCoachNativeDecisionTest {
             if (illegalLast) assertEquals(base, view.get("players"), "An illegal last edit restores the stage's base positions");
             fixture.restore();
             view = fixture.reply("away").get("state").asObject();
-            assertRejectedWithoutMutation(fixture, view, placement);
+            assertEquals(base, view.get("players"));
+            assertEquals(0, view.getInt("stageSeq", 0));
             assertEquals("ACCEPTED", rawAction(fixture, view, "confirm-solid-defence", "confirm").getString("code", null));
         }
     }
@@ -209,7 +209,7 @@ class ComputerCoachNativeDecisionTest {
         assertTrue(response.get("state").asObject().get("kickoff") == null);
     }
 
-    @Test void genericLimitEndsRepeatedKickoffSelectionsAndLogsThePublicMatchId() throws Exception {
+    @Test void genericLimitIgnoresStagedSelectionAcrossAllThreeKickoffEvents() throws Exception {
         for (KickoffResult event : new KickoffResult[] { KickoffResult.CHARGE, KickoffResult.QUICK_SNAP, KickoffResult.SOLID_DEFENCE }) {
             BogrukEngineFixture fixture = kickoffFixture(event);
             JsonObject view = fixture.reply("away").get("state").asObject();
@@ -224,8 +224,9 @@ class ComputerCoachNativeDecisionTest {
                 response = fixture.apply("away", request);
             } finally { System.setErr(previous); }
             assertEquals("ACCEPTED", response.getString("code", null));
-            assertTrue(response.get("state").asObject().get("kickoff") == null, event + " cannot loop on selection");
-            assertTrue(warnings.toString(StandardCharsets.UTF_8).contains("DECISION_LIMIT matchId=" + fixture.document.matchId));
+            assertEquals("selection", response.get("state").asObject().get("kickoff").asObject().getString("stage", null));
+            assertEquals(view.get("revision"), response.get("state").asObject().get("revision"));
+            assertFalse(warnings.toString(StandardCharsets.UTF_8).contains("DECISION_LIMIT"));
         }
     }
 

@@ -13,6 +13,7 @@ const fields: Record<string, string[]> = {
   skillUsePreferences: ['code', 'preferences'],
   computer: ['code'], computerAuthentication: ['code'], computerJobs: ['code', 'matches'],
   publicationDelayed: ['code', 'matchId', 'family'],
+  stagedPlacement: ['code', 'matchId', 'baseRevision', 'stageSeq', 'players', 'selectedPlayerIds'],
   preparationChanged: ['code', 'matchId'], setupState: ['code', 'duplicate', 'state'],
   matchResult: ['code', 'result', 'event'],
   matchTranscript: ['code', 'matchId', 'page'],

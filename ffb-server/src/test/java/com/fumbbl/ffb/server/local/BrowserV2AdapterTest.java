@@ -967,6 +967,115 @@ class BrowserV2AdapterTest {
 		assertEquals(4, other.messages.size());
 	}
 
+	@Test void deniedWatchRemovesSpectatorBeforeTheNextStagedUpdate() throws Exception {
+		AuthenticatedPrincipal actor = principal(FIRST, ApplicationScope.PLAYER);
+		AuthenticatedPrincipal spectator = principal(SECOND, ApplicationScope.SPECTATOR);
+		MatchMembershipRepository memberships = mock(MatchMembershipRepository.class);
+		when(memberships.find(MATCH, FIRST)).thenReturn(new MatchMembership(MATCH, FIRST, "home"));
+		when(memberships.isActive(MATCH)).thenReturn(true);
+		V2PrincipalDirectory directory = mock(V2PrincipalDirectory.class);
+		when(directory.reauthorize(any())).thenAnswer(call -> call.getArgument(0));
+		V2MatchAccess access = new V2MatchAccess(memberships, directory, Clock.systemUTC());
+		SetupApplication setup = stagedSetup();
+		when(setup.spectatorView(MATCH)).thenReturn(new JsonObject().add("matchId", MATCH));
+		BrowserV2Adapter adapter = adapter(bearer -> "actor".equals(bearer) ? actor : spectator, access, setup);
+		Connection source = new Connection(), viewer = new Connection();
+		adapter.receive(source, authenticate("actor-auth", "actor").toString());
+		adapter.receive(viewer, authenticate("viewer-auth", "spectator").toString());
+		adapter.receive(viewer, request("watch", "subscribe").add("matchId", MATCH).toString());
+		assertEquals("ACCEPTED", code(viewer, 1));
+
+		adapter.receive(viewer, setup("player-only").toString());
+		assertEquals("AUTHORIZATION", code(viewer, 2));
+		sendPlacement(adapter, source, "placement-before-denial");
+		assertEquals("stagedPlacement", JsonObject.readFrom(viewer.messages.get(3)).getString("type", null));
+
+		when(directory.reauthorize(spectator)).thenReturn(principal(SECOND, ApplicationScope.PLAYER));
+		adapter.receive(viewer, request("watch", "denied-watch").add("matchId", MATCH).toString());
+		assertEquals("AUTHORIZATION", code(viewer, 4));
+		sendPlacement(adapter, source, "placement-after-denial");
+		assertEquals(5, viewer.messages.size());
+		assertEquals("ACCEPTED", code(source, 2));
+	}
+
+	@Test void missingPlayerMembershipRemovesOnlyTheMatchingEnrollment() throws Exception {
+		AuthenticatedPrincipal actor = principal(FIRST, ApplicationScope.PLAYER);
+		AuthenticatedPrincipal player = principal(SECOND, ApplicationScope.PLAYER);
+		MatchMembershipRepository memberships = mock(MatchMembershipRepository.class);
+		when(memberships.find(MATCH, FIRST)).thenReturn(new MatchMembership(MATCH, FIRST, "home"));
+		when(memberships.find(MATCH, SECOND)).thenReturn(new MatchMembership(MATCH, SECOND, "away"));
+		V2PrincipalDirectory directory = mock(V2PrincipalDirectory.class);
+		when(directory.reauthorize(any())).thenAnswer(call -> call.getArgument(0));
+		V2MatchAccess access = new V2MatchAccess(memberships, directory, Clock.systemUTC());
+		BrowserV2Adapter adapter = adapter(bearer -> "actor".equals(bearer) ? actor : player, access, stagedSetup());
+		Connection source = new Connection(), viewer = new Connection();
+		adapter.receive(source, authenticate("actor-auth", "actor").toString());
+		adapter.receive(viewer, authenticate("viewer-auth", "player").toString());
+		adapter.receive(viewer, setup("subscribe").toString());
+		assertEquals("ACCEPTED", code(viewer, 1));
+
+		adapter.receive(viewer, setup("unrelated-match").set("matchId", FIRST).toString());
+		assertEquals("NOT_FOUND", code(viewer, 2));
+		doThrow(new SQLException("Unavailable")).when(memberships).find(MATCH, SECOND);
+		adapter.receive(viewer, setup("transient").toString());
+		assertEquals("PERSISTENCE_FAILED", code(viewer, 3));
+		sendPlacement(adapter, source, "placement-before-removal");
+		assertEquals("stagedPlacement", JsonObject.readFrom(viewer.messages.get(4)).getString("type", null));
+
+		doReturn(null).when(memberships).find(MATCH, SECOND);
+		adapter.receive(viewer, setup("removed-membership").toString());
+		assertEquals("NOT_FOUND", code(viewer, 5));
+		sendPlacement(adapter, source, "placement-after-removal");
+		assertEquals(6, viewer.messages.size());
+		assertEquals("ACCEPTED", code(source, 2));
+	}
+
+	@Test void deniedPlayerScopeRemovesEnrollmentBeforeTheNextStagedUpdate() throws Exception {
+		AuthenticatedPrincipal actor = principal(FIRST, ApplicationScope.PLAYER);
+		AuthenticatedPrincipal player = principal(SECOND, ApplicationScope.PLAYER);
+		MatchMembershipRepository memberships = mock(MatchMembershipRepository.class);
+		when(memberships.find(MATCH, FIRST)).thenReturn(new MatchMembership(MATCH, FIRST, "home"));
+		when(memberships.find(MATCH, SECOND)).thenReturn(new MatchMembership(MATCH, SECOND, "away"));
+		V2PrincipalDirectory directory = mock(V2PrincipalDirectory.class);
+		when(directory.reauthorize(any())).thenAnswer(call -> call.getArgument(0));
+		V2MatchAccess access = new V2MatchAccess(memberships, directory, Clock.systemUTC());
+		BrowserV2Adapter adapter = adapter(bearer -> "actor".equals(bearer) ? actor : player, access, stagedSetup());
+		Connection source = new Connection(), viewer = new Connection();
+		adapter.receive(source, authenticate("actor-auth", "actor").toString());
+		adapter.receive(viewer, authenticate("viewer-auth", "player").toString());
+		adapter.receive(viewer, setup("subscribe").toString());
+		assertEquals("ACCEPTED", code(viewer, 1));
+
+		when(directory.reauthorize(player)).thenReturn(principal(SECOND, ApplicationScope.SPECTATOR));
+		adapter.receive(viewer, setup("denied-scope").toString());
+		assertEquals("AUTHORIZATION", code(viewer, 2));
+		sendPlacement(adapter, source, "placement-after-denial");
+		assertEquals(3, viewer.messages.size());
+		assertEquals("ACCEPTED", code(source, 1));
+	}
+
+	private SetupApplication stagedSetup() throws SQLException {
+		SetupApplication setup = mock(SetupApplication.class);
+		when(setup.handleWithOutcome(any(String.class), any(JsonObject.class))).thenAnswer(call -> {
+			JsonObject request = call.getArgument(1);
+			SetupApplication.HandleOutcome change = outcome(new JsonObject().add("type", "setupState")
+				.add("code", "ACCEPTED").add("duplicate", false).add("state", new JsonObject().add("matchId", MATCH)), false);
+			if ("place".equals(request.getString("operation", ""))) {
+				when(change.staged()).thenReturn(true);
+				when(change.placement()).thenReturn(new JsonObject().add("version", 2).add("type", "stagedPlacement")
+					.add("code", "ACCEPTED").add("requestId", JsonValue.NULL).add("matchId", MATCH)
+					.add("baseRevision", 3).add("stageSeq", 1).add("players", new JsonArray()));
+			}
+			return change;
+		});
+		return setup;
+	}
+
+	private void sendPlacement(BrowserV2Adapter adapter, Connection source, String requestId) {
+		adapter.receive(source, setup(requestId).set("operation", "place").add("expectedRevision", 3)
+			.add("playerId", "p1").add("to", new JsonObject().add("x", 8).add("y", 7)).toString());
+	}
+
 	private JsonObject preparedResponse() { return new JsonObject().add("type", "preparedMatch").add("code", "ACCEPTED").add("document", new JsonObject().add("matchId", MATCH)); }
 	private BrowserV2Adapter adapter(V2PrincipalAuthenticator authenticator, V2MatchAccess access, SetupApplication setup, V2PreparationService preparation) {
 		return new BrowserV2Adapter(authenticator, access, setup, mock(MatchService.class), preparation, mock(BrowserSavedTeamJson.class));

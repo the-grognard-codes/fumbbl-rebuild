@@ -1,4 +1,4 @@
-import { decodeSetupStateValue } from './setup-protocol.ts';
+import { applyStagedPlacement, decodeSetupStateValue } from './setup-protocol.ts';
 import type { SetupState } from './setup-protocol.ts';
 import { decodeSavedTeam } from './saved-team-protocol.ts';
 import { parseV2Response } from './v2-response.ts';
@@ -365,6 +365,18 @@ export class V2Client {
       this.disconnect(); this.options.onChange(message); return;
     }
     const request = message.requestId === null ? null : this.requests.get(message.requestId);
+    if (message.type === 'stagedPlacement') {
+      if (!this.accountId || message.requestId !== null || message.code !== 'ACCEPTED' || !uuid.test(message.matchId))
+        throw Error('Invalid placement notification');
+      if (this.state && this.selection?.matchId === message.matchId) {
+        const staged = applyStagedPlacement(this.state, message);
+        if (staged !== this.state) {
+          this.state = staged;
+          this.options.onChange(message);
+        }
+      }
+      return;
+    }
     if (message.type === 'publicationDelayed') {
       if (!this.accountId || message.requestId !== null || message.code !== 'PUBLICATION_DELAYED'
         || !uuid.test(message.matchId) || !['STATE', 'CHAT', 'PREPARATION'].includes(message.family)) throw Error('Invalid publication notification');
@@ -530,11 +542,13 @@ export class V2Client {
       const state = this.observe('validate', () => decodeSetupStateValue(message.state, true));
       if (!this.selection || state.matchId !== this.selection.matchId || (request?.matchId && request.matchId !== state.matchId)) throw Error('Foreign match');
       if (this.selection.watch !== (state.callerRole === 'spectator')) throw Error('Wrong recipient role');
-      if (!this.state || state.revision >= this.state.revision) this.state = state;
+      if (!this.state || state.revision > this.state.revision
+        || state.revision === this.state.revision && (state.stageSeq ?? 0) >= (this.state.stageSeq ?? 0)) this.state = state;
     }
     if (message.code === 'NOT_FOUND' || message.code === 'VIEW_UNAVAILABLE') { this.state = null; this.preparationMatchId = null; }
     if (request?.type === 'setup' && request.operation === 'action' && message.code === 'ACCEPTED'
-      && typeof request.actionId === 'string' && message.state?.revision > request.expectedRevision)
+      && typeof request.actionId === 'string' && (message.state?.revision > request.expectedRevision
+        || message.state?.stageSeq > 0))
       this.lastAcceptedActionId = request.actionId;
     if (request && this.pending?.request.requestId === message.requestId && !uncertain.has(message.code)) {
       this.pending = null; this.options.storage?.removeItem(v2PendingKey);

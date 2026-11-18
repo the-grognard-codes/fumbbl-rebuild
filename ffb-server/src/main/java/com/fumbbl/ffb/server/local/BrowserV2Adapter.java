@@ -301,10 +301,10 @@ public final class BrowserV2Adapter implements BrowserProtocol {
 				if (!id.matches("[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}")) throw new IllegalArgumentException();
 				int from = request.get("from").asInt(), limit = request.get("limit").asInt();
 				if (from < 0 || from > 8193 || limit < 1 || limit > 8) throw new IllegalArgumentException();
-				try { if (access.playerRole(principal, id) == null) throw new MatchService.Failure("NOT_FOUND"); }
+				try { if (playerRole(connection, principal, id) == null) throw new MatchService.Failure("NOT_FOUND"); }
 				catch (MatchService.Failure membership) {
 					if (!"NOT_FOUND".equals(membership.code) && !"AUTHORIZATION".equals(membership.code)) throw membership;
-					access.spectatorTranscript(principal, id);
+					spectatorTranscript(connection, principal, id);
 				}
 				JsonObject page = setup.transcriptPage(id, from, limit);
 				send(connection, new JsonObject().add("type", "matchTranscript").add("requestId", requestId)
@@ -313,13 +313,13 @@ public final class BrowserV2Adapter implements BrowserProtocol {
 			}
 			if (type == BrowserV2RequestType.ROUTE_PREVIEW) {
 				fields(request, "version", "type", "requestId", "matchId", "expectedRevision", "waypoints");
-				principal = access.require(principal, ApplicationScope.PLAYER);
 				String id = request.get("matchId").asString();
+				principal = requirePlayerScope(connection, principal, id);
 				if (!id.matches("[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}")) throw new IllegalArgumentException();
 				if (request.get("expectedRevision").asInt() < 0) throw new IllegalArgumentException();
 				JsonArray waypoints = request.get("waypoints").asArray();
 				if (waypoints.size() < 1 || waypoints.size() > 20) throw new IllegalArgumentException();
-				String role = access.playerRole(principal, id);
+				String role = playerRole(connection, principal, id);
 				JsonObject route = setup.routePreview(role, id, request.get("expectedRevision").asInt(), waypoints);
 				send(connection, new JsonObject().add("type", "routePreview").add("requestId", requestId)
 					.add("code", "ACCEPTED").add("matchId", id).add("route", route));
@@ -332,12 +332,12 @@ public final class BrowserV2Adapter implements BrowserProtocol {
 				else if (preview) fields(request, "version", "type", "requestId", "matchId", "expectedRevision",
 					"playerId", "kind", "targetPlayerId", "waypoints");
 				else fields(request, "version", "type", "requestId", "matchId", "expectedRevision", "playerId");
-				principal = access.require(principal, ApplicationScope.PLAYER);
 				String id = request.get("matchId").asString();
+				principal = requirePlayerScope(connection, principal, id);
 				if (!id.matches("[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}")
 					|| request.get("expectedRevision").asInt() < 0
 					|| request.get("playerId").asString().length() > 200) throw new IllegalArgumentException();
-				String role = access.playerRole(principal, id);
+				String role = playerRole(connection, principal, id);
 				JsonObject result;
 				if (preview) {
 					String kind = request.get("kind").asString();
@@ -371,10 +371,10 @@ public final class BrowserV2Adapter implements BrowserProtocol {
 				String id = request.get("matchId").asString();
 				if (!id.matches("[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}")) throw new IllegalArgumentException();
 				String role;
-				try { role = access.playerRole(principal, id); }
+				try { role = playerRole(connection, principal, id); }
 				catch (MatchService.Failure notPlayer) {
 					if (!"NOT_FOUND".equals(notPlayer.code) && !"AUTHORIZATION".equals(notPlayer.code)) throw notPlayer;
-					access.spectatorTranscript(principal, id);
+					spectatorTranscript(connection, principal, id);
 					role = "spectator";
 				}
 				JsonObject page;
@@ -394,7 +394,16 @@ public final class BrowserV2Adapter implements BrowserProtocol {
 				if ("send".equals(operation) && !duplicate) publisher.publishChat(id, connection, page);
 				return;
 			}
-			principal = access.require(principal, ApplicationScope.PLAYER);
+			String authorizationMatchId = switch (type) {
+				case SETUP -> setupMatchId;
+				case MATCH_RESULT -> request.getString("matchId", null);
+				case PREPARED_MATCH -> switch (request.getString("operation", "")) {
+					case "activate", "load", "release" -> request.getString("matchId", null);
+					default -> null;
+				};
+				default -> null;
+			};
+			principal = requirePlayerScope(connection, principal, authorizationMatchId);
 			request.set("version", 1); // Internal R2 contract remains version 1.
 			JsonObject response;
 			if (type == BrowserV2RequestType.COMPUTER) {
@@ -402,13 +411,18 @@ public final class BrowserV2Adapter implements BrowserProtocol {
 				return;
 			} else if (type == BrowserV2RequestType.SETUP) {
 				String id = request.get("matchId").asString();
-				String role = access.playerRole(principal, id);
+				String role = playerRole(connection, principal, id);
 				SetupApplication.HandleOutcome outcome = setup.handleWithOutcome(role, request);
 				response = outcome.response();
 				if ("ACCEPTED".equals(response.getString("code", ""))) {
 					// Retain the socket's original credential identity; publication refreshes scopes locally.
 					publisher.enrollPlayer(connection, principals.get(connection), id);
 					preparationSubscriptions.remove(connection);
+				}
+				if (outcome.staged()) {
+					send(connection, response);
+					publisher.publishPlacement(id, connection, outcome.placement());
+					return;
 				}
 				JsonValue state = response.get("state");
 				LiveMatchTranscript transcript = publisher.transcript(id,
@@ -417,7 +431,7 @@ public final class BrowserV2Adapter implements BrowserProtocol {
 				if (outcome.publish()) publisher.publish(id, connection, state.asObject(), transcript);
 				return;
 			} else if (type == BrowserV2RequestType.MATCH_RESULT) {
-				String role = access.playerRole(principal, request.get("matchId").asString());
+				String role = playerRole(connection, principal, request.get("matchId").asString());
 				response = new MatchResultJson().handle(matches, role, request);
 			}
 			else if (type == BrowserV2RequestType.PREPARED_MATCH) {
@@ -425,13 +439,13 @@ public final class BrowserV2Adapter implements BrowserProtocol {
 				if ("release".equals(operation)) {
 					fields(request, "version", "type", "operation", "requestId", "matchId");
 					String id = request.get("matchId").asString();
-					access.playerRole(principal, id);
+					playerRole(connection, principal, id);
 					if (preparation.isComputerMatch(id)) throw new MatchService.Failure("RELEASE_NOT_PERMITTED");
 					String opponent = access.opponentAccount(principal, id);
 					boolean disconnected = opponent != null && principals.values().stream().noneMatch(p -> p.accountId().equals(opponent));
 					response = preparation.releaseAbandoned(principal.accountId(), id, requestId, disconnected);
 				} else if ("activate".equals(operation) || "load".equals(operation)) {
-					String role = access.playerRole(principal, request.get("matchId").asString());
+					String role = playerRole(connection, principal, request.get("matchId").asString());
 					response = "activate".equals(operation) ? setup.activate(role, request.toString())
 						: new MatchJson().handle(matches, role, request.toString());
 				} else response = preparation.handle(principal.accountId(), request);
@@ -464,6 +478,31 @@ public final class BrowserV2Adapter implements BrowserProtocol {
 		catch (RuntimeException malformed) { fail(connection, requestId, "MALFORMED_MESSAGE"); }
 	}
 
+	private AuthenticatedPrincipal requirePlayerScope(BrowserConnection connection, AuthenticatedPrincipal principal,
+		String matchId) throws SQLException {
+		try { return access.require(principal, ApplicationScope.PLAYER); }
+		catch (MatchService.Failure denied) {
+			publisher.authorizationDenied(connection, matchId, V2PublicationAuthorization.Audience.PLAYER, denied.code);
+			throw denied;
+		}
+	}
+
+	private String playerRole(BrowserConnection connection, AuthenticatedPrincipal principal, String matchId) throws SQLException {
+		try { return access.playerRole(principal, matchId); }
+		catch (MatchService.Failure denied) {
+			publisher.authorizationDenied(connection, matchId, V2PublicationAuthorization.Audience.PLAYER, denied.code);
+			throw denied;
+		}
+	}
+
+	private void spectatorTranscript(BrowserConnection connection, AuthenticatedPrincipal principal, String matchId) throws SQLException {
+		try { access.spectatorTranscript(principal, matchId); }
+		catch (MatchService.Failure denied) {
+			publisher.authorizationDenied(connection, matchId, V2PublicationAuthorization.Audience.SPECTATOR, denied.code);
+			throw denied;
+		}
+	}
+
 	private void handleComputer(BrowserConnection connection, JsonObject request) {
 		String operation = request.getString("operation", "");
 		String id = request.getString("requestId", null);
@@ -483,12 +522,16 @@ public final class BrowserV2Adapter implements BrowserProtocol {
 			sendComputerJobs(activeMatches);
 		} else if (type == BrowserV2RequestType.SETUP) {
 			String matchId = request.get("matchId").asString();
-			if (!preparation.hasComputerMembership(matchId)) throw new MatchService.Failure("NOT_FOUND");
+			if (!preparation.hasComputerMembership(matchId)) {
+				publisher.authorizationDenied(connection, matchId, V2PublicationAuthorization.Audience.COMPUTER, "NOT_FOUND");
+				throw new MatchService.Failure("NOT_FOUND");
+			}
 			request.set("version", 1);
 			SetupApplication.HandleOutcome outcome = setup.handleComputerWithOutcome(request);
 			JsonObject response = outcome.response();
 			if ("ACCEPTED".equals(response.getString("code", ""))) publisher.enrollComputer(connection, matchId);
 			send(connection, response);
+			if (outcome.staged()) publisher.publishPlacement(matchId, connection, outcome.placement());
 			if (outcome.publish()) publisher.publish(matchId, connection, response.get("state").asObject());
 		} else { fail(connection, id, "UNSUPPORTED_MESSAGE"); }
 	}

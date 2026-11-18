@@ -74,11 +74,11 @@ class SavedFormationSessionTest {
 		String edited = session.recoveryArtifact();
 		SetupSession restored = new SetupSession(new TestServer().getServer(), document(session), edited);
 		assertEquals(edited, restored.recoveryArtifact());
-		assertTrue(player(view(restored), actor, 20).get("x").isNull());
-		assertEquals("ILLEGAL_SETUP", restored.apply(actor, request(restored, "confirm")).getString("code", null));
+		assertFalse(player(view(restored), actor, 20).get("x").isNull());
+		assertEquals("ACCEPTED", restored.apply(actor, request(restored, "confirm")).getString("code", null));
 	}
 
-	@Test void unavailableNumbersLeaveHolesAndNeverRecruitTheTwelfthPlayerForHumans() throws Exception {
+	@Test void unavailableNumbersAreReplacedByAvailableReserves() throws Exception {
 		SetupSession session = session(null, false);
 		choose(session);
 		for (com.fumbbl.ffb.model.Team team : List.of(engine(session).getGame().getTeamHome(), engine(session).getGame().getTeamAway())) {
@@ -89,17 +89,17 @@ class SavedFormationSessionTest {
 		choose(session);
 		String actor = view(session).getString("actor", null);
 		assertTrue(player(view(session), actor, 27).get("x").isNull());
-		assertTrue(player(view(session), actor, 31).get("x").isNull());
+		assertFalse(player(view(session), actor, 31).get("x").isNull());
 		assertEquals("ACCEPTED", session.apply(actor, request(session, "formation").add("formationIndex", 0)).getString("code", null));
 		assertTrue(player(view(session), actor, 27).get("x").isNull());
-		assertEquals("ILLEGAL_SETUP", session.apply(actor, request(session, "confirm")).getString("code", null));
+		assertEquals("ACCEPTED", session.apply(actor, request(session, "confirm")).getString("code", null));
 	}
 
-	@Test void explicitEmptyGroupsStayInReservesAndDoNotOfferControls() throws Exception {
+	@Test void explicitEmptyGroupsUseFallbackAndDoNotOfferSavedControls() throws Exception {
 		SetupSession session = session(new TeamFormations.FormationSet(List.of(), List.of()), false); choices(session);
 		String actor = view(session).getString("actor", null);
 		assertTrue(view(session).get("savedFormations") == null);
-		for (JsonValue value : view(session).get("players").asArray()) assertTrue(value.asObject().get("x").isNull());
+		assertFalse(player(view(session), actor, 20).get("x").isNull());
 		assertThrows(MatchService.Failure.class, () -> session.apply(actor, request(session, "formation").add("formationIndex", 0)));
 	}
 
@@ -125,10 +125,8 @@ class SavedFormationSessionTest {
 			}
 			choose(session);
 			if ("home".equals(view(session).getString("actor", null))) {
-				for (int number : List.of(20, 21)) {
-					JsonObject player = player(view(session), "home", number);
-					session.apply("home", request(session, "place").add("playerId", player.get("id")).add("to", new JsonObject().add("x", 12).add("y", number - 14)));
-				}
+				for (int number : List.of(20, 21))
+					assertEquals(12, player(view(session), "home", number).getInt("x", -1));
 				assertEquals("ACCEPTED", session.apply("home", request(session, "confirm")).getString("code", null));
 			}
 			assertEquals("away", view(session).getString("actor", null));
@@ -182,7 +180,7 @@ class SavedFormationSessionTest {
 		MatchDocument document = new MatchDocument(matchId, 3, "away", MatchDocument.Lifecycle.ACTIVATED,
 			new MatchDocument.Member("home", "home", home), new MatchDocument.Member("away", "away", away), history);
 		if (computer) document = document.withComputer(new ComputerCoach(ComputerOpponentService.BUGMAN_ID, "random-v1", 17));
-		SetupSession session = new SetupSession(new TestServer().getServer(), document, -7, true, true);
+		SetupSession session = SetupSession.startRecoverable(new TestServer().getServer(), document, -7, true, false);
 		engine(session).getGame().getFieldModel().setWeather(Weather.NICE);
 		return session;
 	}

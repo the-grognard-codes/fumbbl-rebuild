@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Broadcast setup and kick-off adjustments live and save the final formation at confirmation. Coaches and spectators see participants highlighted as they are selected or deselected for Solid Defence, Quick Snap and Charge. After reconnect, clients ignore delayed adjustments that no longer fit the current stage. Both coaches can still propose a save while adjustments are pending. Setup allows 100 adjustments per stage and kick-off events allow 50. Live recovery now requires checkpoint version 7 (r5.4). Older checkpoints return `RECOVERY_UNSUPPORTED`.
+
 - Animate touchdowns, turnovers, turn starts, all 11 kickoff results, weather, half-time, and the end of a match, including concessions. Touchdown splashes name the scorer. Touchdown, half-time, and final splashes show both teams' scores side by side.
 
 - Keep the pitch dimmed between consecutive splashes. Turnovers last two seconds at normal speed, and splash timings scale with replay speed. Game Settings lets you choose which splashes to show or keep them visible until dismissed. Reduced motion replaces the larger movements with fades.

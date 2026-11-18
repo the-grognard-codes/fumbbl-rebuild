@@ -762,7 +762,7 @@ class SetupSessionTest {
 		FrozenTeam away = new FrozenTeam(UUID.randomUUID().toString(), 1, "home", draft, evaluation.total, evaluation.skillPoints, catalog);
 		MatchDocument document = new MatchDocument(UUID.randomUUID().toString(), 3, "home", MatchDocument.Lifecycle.ACTIVATED,
 			new MatchDocument.Member("home", "away", home), new MatchDocument.Member("away", "home", away));
-		return route ? new SetupSession(new TestServer().getServer(), document, -2, true, false, false, true, true, true)
+		return route ? SetupSession.startRecoverable(new TestServer().getServer(), document, -2, false, false)
 			: new SetupSession(new TestServer().getServer(), document, -2);
 	}
 }

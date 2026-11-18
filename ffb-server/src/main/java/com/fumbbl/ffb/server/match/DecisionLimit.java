@@ -34,8 +34,7 @@ final class DecisionLimit {
 
     /** Includes the accepted decision about to be recorded: fire on decision 1,024, never 1,023. */
     boolean reached(JsonObject current) {
-        Period period = period(current);
-        return period != null && period.equals(recordedPeriod) && decisions + 1 >= MAX_DECISIONS;
+        return recordedPeriod != null && recordedPeriod.equals(period(current)) && decisions + 1 >= MAX_DECISIONS;
     }
 
     private Period period(JsonObject view) {
