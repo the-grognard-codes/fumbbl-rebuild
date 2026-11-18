@@ -4,6 +4,10 @@
 
 - Broadcast setup and kick-off adjustments live and save the final formation at confirmation. Coaches and spectators see participants highlighted as they are selected or deselected for Solid Defence, Quick Snap and Charge. After reconnect, clients ignore delayed adjustments that no longer fit the current stage. Both coaches can still propose a save while adjustments are pending. Setup allows 100 adjustments per stage and kick-off events allow 50. Live recovery now requires checkpoint version 7 (r5.4). Older checkpoints return `RECOVERY_UNSUPPORTED`.
 
+- Animate touchdowns, turnovers, turn starts, all 11 kickoff results, weather, half-time, and the end of a match, including concessions. Touchdown splashes name the scorer. Touchdown, half-time, and final splashes show both teams' scores side by side.
+
+- Keep the pitch dimmed between consecutive splashes. Turnovers last two seconds at normal speed, and splash timings scale with replay speed. Game Settings lets you choose which splashes to show or keep them visible until dismissed. Reduced motion replaces the larger movements with fades.
+
 - Clear consumed reroll dialogs for native callers and engine harnesses without configured skill preferences, including the stale Bone Head choice reproduced by the seeded harness. Configured browser sessions already received this cleanup.
 
 - Limit each kick-off selection or placement stage to 50 adjustments for every coach; reject extra edits without ending the event, preserve confirmation after reverting an illegal final formation, and let the computer coach finish Solid Defence and Charge without retained plans. Offer Solid Defence placements and swaps only for selected players, including during interrupted stages. End runaway turns with match-specific diagnostics.

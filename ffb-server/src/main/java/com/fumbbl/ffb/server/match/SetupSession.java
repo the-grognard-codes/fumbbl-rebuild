@@ -18,6 +18,7 @@ import com.fumbbl.ffb.factory.MechanicsFactory;
 import com.fumbbl.ffb.factory.SkillFactory;
 import com.fumbbl.ffb.inducement.Inducement;
 import com.fumbbl.ffb.inducement.Usage;
+import com.fumbbl.ffb.kickoff.KickoffResult;
 import com.fumbbl.ffb.mechanics.GameMechanic;
 import com.fumbbl.ffb.mechanics.Mechanic;
 import com.fumbbl.ffb.model.Game;
@@ -168,14 +169,7 @@ public final class SetupSession {
 		this.document = document;
 		matchId = document.matchId;
 		if (document.computer != null) computerPolicy = new ComputerPolicyState();
-		state = new GameState(server) {
-			@Override public boolean consumesDeclaredActions() { return SetupSession.this.routeV2; }
-			@Override public void observeModelSync(ServerCommandModelSync sync) { blockPresentation.observe(this, sync); announcements.observe(sync); }
-			@Override public void observeEndTurnParameter(StepId source, boolean endTurn) { announcements.cause(getGame(), source, endTurn); }
-			@Override public void observeTurnoverReason(String reason) { announcements.reason(getGame(), reason); }
-			@Override public void observeTurnEnd(Player<?> scorer, boolean halfEnded) { announcements.end(getGame(), scorer, halfEnded); announcements.flush(this); }
-			@Override public void observePlayableTurn() { announcements.playable(getGame()); announcements.flush(this); }
-		};
+		state = newGameState(server);
 		staging = recoverable ? new SetupStaging(state, document, this::mechanic) : null;
 		if (recoverable) {
 			recoveryDice = new RecoveryDice();
@@ -216,18 +210,25 @@ public final class SetupSession {
 		return new SetupSession(server, document, engineId, true, defaultSetup, saveResume);
 	}
 
-	/** Recovery uses native deserialization only: never start a sequence or execute a command. */
-	public SetupSession(FantasyFootballServer server, MatchDocument document, String artifact) {
-		this.document = document;
-		matchId = document.matchId;
-		state = new GameState(server) {
+	private GameState newGameState(FantasyFootballServer server) {
+		return new GameState(server) {
 			@Override public boolean consumesDeclaredActions() { return SetupSession.this.routeV2; }
 			@Override public void observeModelSync(ServerCommandModelSync sync) { blockPresentation.observe(this, sync); announcements.observe(sync); }
 			@Override public void observeEndTurnParameter(StepId source, boolean endTurn) { announcements.cause(getGame(), source, endTurn); }
 			@Override public void observeTurnoverReason(String reason) { announcements.reason(getGame(), reason); }
 			@Override public void observeTurnEnd(Player<?> scorer, boolean halfEnded) { announcements.end(getGame(), scorer, halfEnded); announcements.flush(this); }
 			@Override public void observePlayableTurn() { announcements.playable(getGame()); announcements.flush(this); }
+			@Override public void observeKickoffResult(KickoffResult result) { announcements.kickoff(getGame(), result); }
+			@Override protected void observeWeather() { announcements.weather(getGame()); }
+			@Override public void observeMatchFinished() { announcements.finished(getGame()); announcements.flush(this); }
 		};
+	}
+
+	/** Recovery uses native deserialization only: never start a sequence or execute a command. */
+	public SetupSession(FantasyFootballServer server, MatchDocument document, String artifact) {
+		this.document = document;
+		matchId = document.matchId;
+		state = newGameState(server);
 		try {
 			JsonObject envelope = new MatchJson().parse(artifact, RecoveryArtifactJson.MAX_CHECKPOINT_BYTES, 128);
 			JsonObject payload = envelope.get("payload").asObject();

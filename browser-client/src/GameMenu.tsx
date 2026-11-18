@@ -12,7 +12,7 @@ import { useLimitedActionTags } from './use-limited-action-tags.ts';
 import { useNegativeConditionMarkers } from './use-negative-condition-markers.ts';
 import { AutomaticSkillUse } from './AutomaticSkillUse.tsx';
 import type { SkillUseControls } from './skill-use-preferences.ts';
-import { useAnnouncementPreferences } from './use-announcement-preferences.ts';
+import { useAnnouncementPreferences, announcementOptions } from './use-announcement-preferences.ts';
 import { useDicePreferences } from './use-dice-preferences.ts';
 
 type Tab = 'Game Options' | 'Game Settings' | 'Skills & Traits' | 'Interface' | 'Key Bindings' | 'Game Log';
@@ -30,7 +30,7 @@ export function GameMenu({ view, connected, pending, mutate, records, logLoading
   const { preferences: skillMarkers, change: changeSkillMarkers } = useSkillMarkerPreferences();
   const { visible: showLimitedActions, change: changeLimitedActions } = useLimitedActionTags();
   const { visible: showConditions, change: changeConditions } = useNegativeConditionMarkers();
-  const { holdAnnouncements, changeHoldAnnouncements } = useAnnouncementPreferences();
+  const { holdAnnouncements, changeHoldAnnouncements, hiddenAnnouncements, changeAnnouncementVisible } = useAnnouncementPreferences();
   const { preferences: dicePreferences, change: changeDicePreferences } = useDicePreferences();
   const neutral = replay || view.callerRole === 'spectator';
   const skillControl = (name: 'showOwn' | 'showOpponent' | 'showBase' | 'showAcquired' | 'showTraits' | 'showBigGuyNegatraits', label: string) =>
@@ -94,6 +94,7 @@ export function GameMenu({ view, connected, pending, mutate, records, logLoading
           {tab === 'Game Settings' && <><section><h3>Match announcements</h3>
             <label className="announcement-preference"><input type="checkbox" checked={holdAnnouncements}
               onChange={event => changeHoldAnnouncements(event.target.checked)}/><span>Keep announcements until dismissed</span></label>
+            <fieldset><legend>Show match announcements</legend>{announcementOptions.map(option => <label key={option.kind} className="announcement-preference"><input type="checkbox" checked={!hiddenAnnouncements.includes(option.kind)} onChange={event => changeAnnouncementVisible(option.kind, event.target.checked)}/><span>{option.label}</span></label>)}</fieldset>
           </section><section className="threat-settings"><h3>Opposing player threats</h3>
             <p>Show threats when selecting an unfinished friendly player during your turn or Charge!.</p>
             <div role="group" aria-label="Threat markings">
