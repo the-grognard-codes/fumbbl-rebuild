@@ -104,11 +104,14 @@ try {
   await reset();
   const scored = record(1, [{ ...event('touchdown'), reason: 'Lineman2 #8 — Skill-Test Humans 1 1 – 0 Bogruk\'s Almost Best' }]);
   scored.state.homeScore = start.state.homeScore + 1;
+  scored.state.homeTeamName = 'Skill-Test Humans 1';
+  scored.state.awayTeamName = "Bogruk's Almost Best";
   scored.state.prompt = { kind: 'setup', message: 'Prepare the next drive' };
   await publish({ view: scored.state, records: [start, scored] });
   await splash('touchdown').waitFor();
   assert.equal(await splash('touchdown').locator('.match-splash-scorer').textContent(), 'Lineman2 #8');
-  assert.equal(await splash('touchdown').locator('.match-splash-score').textContent(), "Skill-Test Humans 1 1 – 0 Bogruk's Almost Best");
+  assert.deepEqual(await splash('touchdown').locator('.match-splash-score dt').allTextContents(), ['Skill-Test Humans 1', "Bogruk's Almost Best"]);
+  assert.deepEqual(await splash('touchdown').locator('.match-splash-score dd').allTextContents(), ['1', '0']);
   await publish({ view: { ...scored.state }, records: [start, scored] });
   await page.clock.runFor(10000);
   assert.equal(await splash('touchdown').count(), 1, 'Held scoring announcement survives same-revision next-drive prompt refresh');

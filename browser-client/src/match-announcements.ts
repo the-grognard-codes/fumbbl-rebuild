@@ -8,7 +8,13 @@ export type MatchAnnouncementEvent = {
 };
 export const kickoffCodes = ['GET_THE_REF', 'TIME_OUT', 'SOLID_DEFENCE', 'HIGH_KICK', 'CHEERING_FANS', 'WEATHER_CHANGE', 'BRILLIANT_COACHING', 'QUICK_SNAP', 'CHARGE', 'DODGY_SNACK', 'PITCH_INVASION'];
 export const weatherCodes = ['SWELTERING_HEAT', 'VERY_SUNNY', 'NICE', 'POURING_RAIN', 'BLIZZARD'];
-export type MatchAnnouncement = MatchAnnouncementEvent & { id: string; teamName: string; helmet: 'human' | 'orc' };
+type TouchdownDetails = {
+  scorer: string | null;
+  score: Record<'home' | 'away', { name: string; points: number }>;
+};
+export type MatchAnnouncement = MatchAnnouncementEvent & {
+  id: string; teamName: string; helmet: 'human' | 'orc'; touchdown?: TouchdownDetails;
+};
 
 /** Presentation facts are emitted by the server after rules resolution, never inferred from dice. */
 export function decodeMatchAnnouncements(value: unknown): MatchAnnouncementEvent[] {
@@ -34,9 +40,18 @@ export function decodeMatchAnnouncements(value: unknown): MatchAnnouncementEvent
 
 export function syncAnnouncements(record: TranscriptRecord, sync: Record<string, unknown>): MatchAnnouncement[] {
   if (sync.matchAnnouncements === undefined) return [];
+  const { state } = record;
   return decodeMatchAnnouncements(sync.matchAnnouncements).map((event, index) => ({ ...event,
-    id: `${record.state.matchId}:${record.revision}:${sync.commandNr}:${index}`,
-    teamName: matchTeamName(record.state, event.team), helmet: announcementHelmet(record.state, event.team) }));
+    id: `${state.matchId}:${record.revision}:${sync.commandNr}:${index}`,
+    teamName: matchTeamName(state, event.team), helmet: announcementHelmet(state, event.team),
+    ...(event.kind === 'touchdown' ? { touchdown: {
+      scorer: event.reason?.match(/^(.* #\d+) — (.+)$/s)?.[1] ?? event.reason,
+      score: {
+        home: { name: matchTeamName(state, 'home'), points: state.homeScore },
+        away: { name: matchTeamName(state, 'away'), points: state.awayScore },
+      },
+    } } : {}),
+  }));
 }
 
 function announcementHelmet(view: SetupState, team: 'home' | 'away'): 'human' | 'orc' {

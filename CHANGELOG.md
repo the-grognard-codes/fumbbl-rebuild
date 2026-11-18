@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Show touchdown scores in two columns so each number is clearly paired with its team.
+
 - Keep the current step notice clear of match splashes and their exit transitions.
 
 - Keep held scoring announcements visible when the same deferred next-drive prompt refreshes; show the touchdown scorer and current score on separate lines. Center the single-line halftime heading over a short dotted scrimmage line with faint wide-zone markings.

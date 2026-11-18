@@ -12,7 +12,10 @@ function Review() {
   const stage = useRef<HTMLDivElement>(null);
   const [frame, setFrame] = useState<number | null>(null);
   const [cameraEnd, setCameraEnd] = useState<'home' | 'away'>('home');
-  const [kind, setKind] = useState<MatchAnnouncement['kind']>('touchdown');
+  const [kind, setKind] = useState(() => {
+    const event = new URLSearchParams(window.location.search).get('event');
+    return kinds.find(kind => kind === event) ?? 'touchdown';
+  });
   const [variant, setVariant] = useState('');
   const [outcome, setOutcome] = useState('WIN');
   const [serial, setSerial] = useState(0);
@@ -21,6 +24,13 @@ function Review() {
   const [pair, setPair] = useState('gold');
   const [rate, setRate] = useState(1);
   const detail = facts.find(fact => fact.kind === kind && fact.code === variant) ?? facts.find(fact => fact.kind === kind);
+  const touchdown = kind === 'touchdown' ? {
+    scorer: team === 'home' ? 'Catcher #4' : 'Throwie #6',
+    score: {
+      home: { name: 'Skill-Test Humans 1', points: team === 'home' ? 1 : 0 },
+      away: { name: "Bogruk's Almost Best", points: 1 },
+    },
+  } : undefined;
   const savedColors = { version: 1 as const, primary: pair === 'black' ? 'black' : pair === 'white' ? 'white' : 'gold', secondary: pair === 'black' ? 'black' : pair === 'white' ? 'ivory' : 'navy' };
   useEffect(() => {
     if (frame === null) return;
@@ -40,8 +50,9 @@ function Review() {
       <button onClick={restart}>Replay animation</button><button onClick={() => setExiting(true)}>Exit</button>
     </nav>
     <TeamColorArtProvider home={{ rosterId: 'human', league: null, colors: savedColors }} away={{ rosterId: 'orc', league: null, colors: savedColors }}><div className="review-stage" ref={stage}><MatchSplash key={serial} announcement={{ id: String(serial), kind, team, turn: 3, half: 1,
-      teamName: team === 'home' ? 'Altdorf Blue Badgers' : 'Blackwater Green Giants', helmet: team === 'home' ? 'human' : 'orc',
-      reason: kind === 'touchdown' ? 'Lineman2 #8 — Skill-Test Humans 1 1 – 0 Bogruk’s Almost Best' : kind === 'turnover' ? 'Pippin failed to dodge.' : kind === 'kickoff' ? 'The offence may reposition D3+3 open players one square each.' : kind === 'weather' ? '−1 to pick up, catch and intercept.' : kind === 'halfTime' || kind === 'fullTime' ? 'Altdorf Blue Badgers 2 – 1 Blackwater Green Giants' : null,
+      teamName: touchdown?.score[team].name ?? (team === 'home' ? 'Altdorf Blue Badgers' : 'Blackwater Green Giants'),
+      helmet: team === 'home' ? 'human' : 'orc', touchdown,
+      reason: kind === 'turnover' ? 'Pippin failed to dodge.' : kind === 'kickoff' ? 'The offence may reposition D3+3 open players one square each.' : kind === 'weather' ? '−1 to pick up, catch and intercept.' : kind === 'halfTime' || kind === 'fullTime' ? 'Altdorf Blue Badgers 2 – 1 Blackwater Green Giants' : null,
       ...(detail ? { headline: detail.headline, code: detail.code, reason: detail.reason } : kind === 'kickoff' ? { headline: 'Quick Snap', code: 'QUICK_SNAP' } : kind === 'weather' ? { headline: 'Pouring Rain', code: 'POURING_RAIN' } : kind === 'fullTime' ? { headline: outcome === 'CONCEDED' ? 'MATCH CONCEDED' : 'FULL TIME', code: outcome, reason: outcome === 'DRAW' ? 'Altdorf Blue Badgers 1 – 1 Blackwater Green Giants — DRAW' : 'Altdorf Blue Badgers 2 – 1 Blackwater Green Giants — Altdorf Blue Badgers wins' } : {}) }} hold exiting={exiting} rate={rate} cameraEnd={cameraEnd} onDismiss={() => setExiting(true)}/></div></TeamColorArtProvider>
   </main>;
 }

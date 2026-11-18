@@ -48,7 +48,7 @@ export function MatchSplash({ announcement, onDismiss, hold, exiting, rate, icon
   const style = { '--splash-accent': accent, '--splash-secondary': secondary, '--splash-outline': splashOutline(accent),
     '--splash-left': left, '--splash-right': right, '--splash-left-outline': splashOutline(left), '--splash-right-outline': splashOutline(right) } as CSSProperties;
   const screenTeam = cameraEnd === 'away' ? announcement.team === 'home' ? 'away' : 'home' : announcement.team;
-  const touchdownDetails = announcement.kind === 'touchdown' ? announcement.reason?.match(/^(.* #\d+) — (.+)$/s) : null;
+  const { touchdown } = announcement;
   return <div className="match-splash-shade" data-announcement-id={announcement.id} data-exiting={exiting} data-phase={exiting ? 'exit' : phase} data-team={screenTeam}
     style={{ '--splash-rate': rate } as CSSProperties}
     onAnimationEnd={event => { if (event.target === event.currentTarget && event.animationName === 'match-splash-dim-out' && exiting) onExited?.(); }}
@@ -67,9 +67,15 @@ export function MatchSplash({ announcement, onDismiss, hold, exiting, rate, icon
       <div className="match-splash-icon" aria-hidden="true">{icon ?? (emblem ? <img className="match-art" src={`${import.meta.env.BASE_URL}assets/game/ui/${emblem}`} alt=""/> : <MatchArt name={announcement.helmet} colors={teamColors[announcement.team]}/>)}</div>
       {!neutral && announcement.kind !== 'fullTime' && <p className="match-splash-team">{announcement.teamName}</p>}
       <h2>{announcementHeadline(announcement)}</h2>
-      {announcement.reason && <p className="match-splash-reason">{touchdownDetails
-        ? <><span className="match-splash-scorer">{touchdownDetails[1]}</span><span className="match-splash-score">{touchdownDetails[2]}</span></>
-        : announcement.reason}</p>}
+      {touchdown ? <div className="match-splash-reason">
+        {touchdown.scorer && <div className="match-splash-scorer">{touchdown.scorer}</div>}
+        <dl className="match-splash-score" aria-label="Current score">
+          {(['home', 'away'] as const).map(team => <div key={team} data-scoring={announcement.team === team}>
+            <dt>{touchdown.score[team].name}</dt>
+            <dd>{touchdown.score[team].points}</dd>
+          </div>)}
+        </dl>
+      </div> : announcement.reason && <p className="match-splash-reason">{announcement.reason}</p>}
     </section>
   </div>;
 }
