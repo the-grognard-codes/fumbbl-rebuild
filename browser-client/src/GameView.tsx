@@ -219,7 +219,8 @@ function GameViewContent({ view, connected, pending: requestPending, mutate, acc
   const originalRange = rangePlayerId && matchesMovementRange(movementRange, view, rangePlayerId) ? movementRange : null;
   const showConfirmation = view.phase === 'SETUP' ? view.actor === view.callerRole
     : (!!kickoff || !kickoffMovement && !hitAndRun && (!view.reaction || onTheBallMovement && !decision) && availableActions.length > 0);
-  const gameStep = currentGameStep(pitchView);
+  // Keep the old pitch step off-screen through the splash and its exit gap.
+  const gameStep = announcement || announcementExiting ? null : currentGameStep(pitchView);
   if (gameStep && kickoff && !playbackActive) gameStep.progress = `Selected ${kickoff.selected.length} of ${kickoff.maximum}${kickoff.decline ? ' (up to)' : ''}`;
   const pitchActions = (view.reaction ? availableActions : kickoffMovement ? view.actions.filter(action => action.actor === view.callerRole
     && (action.kind !== 'kickoffMove' || action.sourcePlayerId === playerId)) : view.actions)

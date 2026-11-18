@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Keep the current step notice clear of match splashes and their exit transitions.
+
 - Keep held scoring announcements visible when the same deferred next-drive prompt refreshes; show the touchdown scorer and current score on separate lines. Center the single-line halftime heading over a short dotted scrimmage line with faint wide-zone markings.
 
 - Show authoritative kick-off, initial/changed weather, half-time, full-time and concession announcements with scorer/score details and staged-event ordering. Animate match announcements with stepped ribbons and headline impacts, saved team colours, reduced-motion fades, and exits included in playback timing. Add per-kind visibility preferences, brief celebration bursts, weather effects, camera-aware ribbons and contrasting team-colour edges.
