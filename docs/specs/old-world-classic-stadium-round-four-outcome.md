@@ -27,4 +27,6 @@ The pre-approval checks passed all 555 browser tests and 31 asset checks, TypeSc
 
 ### After approval
 
+The game-service build passed all 29 tests on the pinned JDK and Maven. The game server packaged successfully in quick mode. All 15 validation-inventory tests passed after the gallery driver was registered as a standalone development check.
+
 Cut the selected still at native scale and compare the home-end reconstruction against it. Record the outside-pitch pixel difference, before/after captures, the cross-fade and the three largest remaining differences. After two rounds without convergence, revisit the method with the owner. Keep angled cameras on turf while the overhead result is assessed.

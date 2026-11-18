@@ -102,6 +102,7 @@
     { "path": "browser-client/test/sprite-proof-ui.mjs", "reason": "Development-only sprite art review; run through review:sprites to generate local palette and UI evidence, separate from production interaction shards." },
     { "path": "browser-client/test/sprite-proof-full-ui.mjs", "reason": "Development-only art/performance capture that writes canonical QA images and video; run explicitly for sprite-proof review on a named environment." },
     { "path": "browser-client/test/splash-review-ui.mjs", "reason": "Development-only splash art and animation capture. Run with review:splashes. Match announcement behavior is covered by the interaction suite." },
+    { "path": "browser-client/test/stadium-mockup-ui.mjs", "reason": "Development-only stadium approval gallery. Run npm run test:stadium-mockup for native layout, candidate comparison and roster checks." },
     { "path": "browser-client/test/chat-ui.mjs", "reason": "Existing local test:ui-comments suite; previously outside CI." },
     { "path": "browser-client/test/dugout-ui.mjs", "reason": "Existing local test:ui-comments suite; previously outside CI." },
     { "path": "browser-client/test/hud-comments-ui.mjs", "reason": "Existing local test:ui-comments suite; previously outside CI." },
