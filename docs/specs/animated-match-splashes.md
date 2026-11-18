@@ -120,7 +120,9 @@ behaviour; prefer the engine's own description text when it exists.
    gap, also scaled by playback rate. Natural exit, Escape and the close
    button follow the same rules. Escape during the short gap opens the next
    card immediately. If that card is suppressed during the gap, the shade
-   fades out. A required choice cancels the run and lets the current card
+   fades out. The board keeps the outgoing revision's score and turn through
+   the exit and gap, including when the next card is in another revision.
+   A required choice cancels the run and lets the current card
    exit while the choice is available. If a new card arrives during the fade,
    the same shade darkens from its current opacity. Reduced motion uses
    opacity-only transitions between cards.

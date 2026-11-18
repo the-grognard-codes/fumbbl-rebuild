@@ -40,23 +40,22 @@ export function usePitchPlayback(view: SetupState, records: TranscriptRecord[], 
   const [synchronizing, setSynchronizing] = useState(false);
   const [announcement, setAnnouncement] = useState<MatchAnnouncement | null>(null);
   const [announcementExiting, setAnnouncementExiting] = useState(false);
-  const [announcementRate, setAnnouncementRate] = useState(1);
-  const shadeRate = useRef(1);
+  const announcementRate = useRef(1);
   const [announcementShadeHeld, setAnnouncementShadeHeld] = useState(false);
   const shadeHeld = useRef(false);
   const holdShade = (held: boolean) => {
     shadeHeld.current = held;
     setAnnouncementShadeHeld(held);
   };
-  const [announcementInterrupted, setAnnouncementInterrupted] = useState(false);
+  const [announcementFading, setAnnouncementFading] = useState(false);
   const announcementPreferences = useAnnouncementPreferences();
   const hiddenAnnouncements = useRef(announcementPreferences.hiddenAnnouncements);
   hiddenAnnouncements.current = announcementPreferences.hiddenAnnouncements;
-  const pendingAnnouncement = useRef<{ closing: boolean; chained: boolean; rate: number; deferredResponseRevision: number | null;
-    advance: () => void; resume?: () => void; skipGap?: () => void } | null>(null);
+  const pendingAnnouncement = useRef<{ closing: boolean; chained: boolean; deferredResponseRevision: number | null;
+    advance: () => void; resume?: () => void; skipGap?: () => void; settledView?: SetupState } | null>(null);
   const announcementTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const announcementTransitionTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const announcementInterruptTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const announcementFadeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const announcementExitComplete = useRef<(() => void) | null>(null);
   const announced = useRef(new Set<string>());
   const presented = useRef(view), received = useRef(view), latest = useRef(view);
@@ -80,19 +79,19 @@ export function usePitchPlayback(view: SetupState, records: TranscriptRecord[], 
   const currentSpeed = useRef(speed); currentSpeed.current = speed;
   latest.current = view;
   const clearDice = () => { pinnedDice.current = false; diceStream.current!.clear(); };
-  const fadeShade = (card: MatchAnnouncement | null, rate: number) => {
+  const fadeShade = (card: MatchAnnouncement | null) => {
     holdShade(false);
     setAnnouncement(card);
-    setAnnouncementInterrupted(true);
-    if (announcementInterruptTimer.current) clearTimeout(announcementInterruptTimer.current);
-    announcementInterruptTimer.current = setTimeout(() => {
-      announcementInterruptTimer.current = null;
+    setAnnouncementFading(true);
+    if (announcementFadeTimer.current) clearTimeout(announcementFadeTimer.current);
+    announcementFadeTimer.current = setTimeout(() => {
+      announcementFadeTimer.current = null;
       setAnnouncement(null);
-      setAnnouncementInterrupted(false);
-    }, DICE_EXIT_MS / rate);
+      setAnnouncementFading(false);
+    }, DICE_EXIT_MS / announcementRate.current);
   };
   const releaseHeldShade = () => {
-    if (shadeHeld.current) fadeShade(null, shadeRate.current);
+    if (shadeHeld.current) fadeShade(null);
   };
   // Only the actual playback queue can decide whether its next visible beat is a splash.
   const waitForAnnouncementExit = (chained: boolean, resume: () => void) => {
@@ -112,13 +111,13 @@ export function usePitchPlayback(view: SetupState, records: TranscriptRecord[], 
     announcementExitComplete.current = null;
     setAnnouncementExiting(false);
     holdShade(false);
-    setAnnouncementInterrupted(false);
+    setAnnouncementFading(false);
     if (announcementTimer.current) clearTimeout(announcementTimer.current);
     announcementTimer.current = null;
     if (announcementTransitionTimer.current) clearTimeout(announcementTransitionTimer.current);
     announcementTransitionTimer.current = null;
-    if (announcementInterruptTimer.current) clearTimeout(announcementInterruptTimer.current);
-    announcementInterruptTimer.current = null;
+    if (announcementFadeTimer.current) clearTimeout(announcementFadeTimer.current);
+    announcementFadeTimer.current = null;
     provisional.current = null;
     clearDice();
     timer.current = null; running.current = false; waiting.current = false;
@@ -136,8 +135,9 @@ export function usePitchPlayback(view: SetupState, records: TranscriptRecord[], 
     if (seeking) receivedSnapshotKey.current = snapshotKey;
     const rate = playbackRate(speed, mode);
     const requiresResponse = !!view.prompt || !!view.reaction || view.actions.some(action => responseKinds.has(action.kind));
-    const deferScoringResponse = view.drive > presented.current.drive
-      || view.homeScore > presented.current.homeScore || view.awayScore > presented.current.awayScore;
+    const playbackView = pendingAnnouncement.current?.settledView ?? presented.current;
+    const deferScoringResponse = view.drive > playbackView.drive
+      || view.homeScore > playbackView.homeScore || view.awayScore > playbackView.awayScore;
     const responseKey = `${view.matchId}:${view.revision}`;
     const responseDice = () => {
       const finalRecord = records[view.revision];
@@ -181,7 +181,7 @@ export function usePitchPlayback(view: SetupState, records: TranscriptRecord[], 
       && pendingAnnouncement.current.deferredResponseRevision !== view.revision) {
       const wasShaded = !!announcement || shadeHeld.current;
       snapshot();
-      if (wasShaded) fadeShade(announcement, announcementRate);
+      if (wasShaded) fadeShade(announcement);
       return;
     }
     const prediction = provisional.current;
@@ -234,7 +234,7 @@ export function usePitchPlayback(view: SetupState, records: TranscriptRecord[], 
       if (!deferScoringResponse && (view.prompt || view.actions.some(action => responseKinds.has(action.kind)) || view.phase === 'FULL_TIME')) {
         const wasShaded = shadeHeld.current;
         snapshot();
-        if (wasShaded) fadeShade(null, announcementRate);
+        if (wasShaded) fadeShade(null);
         return;
       }
       releaseHeldShade();
@@ -260,7 +260,7 @@ export function usePitchPlayback(view: SetupState, records: TranscriptRecord[], 
     setSynchronizing(false);
     multipleReveals.current.update(record.state);
     const inheritedGate = failedRerollGate({ ...record, native: [] }, records);
-    let beats = playbackBeats(record, presented.current.ball, inheritedGate);
+    let beats = playbackBeats(record, playbackView.ball, inheritedGate);
     if (prediction) {
       const remaining = remainingConfirmedBeats(beats, prediction.shown);
       provisional.current = null;
@@ -294,9 +294,14 @@ export function usePitchPlayback(view: SetupState, records: TranscriptRecord[], 
       const final = record.revision === latest.current.revision ? latest.current : {
         ...record.state, callerRole: latest.current.callerRole, actions: [], prompt: null
       } as SetupState;
-      presented.current = final; setPitchView(final); completed.current = record.revision;
+      const pending = pendingAnnouncement.current;
+      // Advance the queue cursor to find a chained card. Publish the settled
+      // board only when the outgoing card and its gap have finished.
+      if (pending?.closing) pending.settledView = final;
+      else { presented.current = final; setPitchView(final); }
+      completed.current = record.revision;
       running.current = false; timer.current = null;
-      setActive(!!pendingAnnouncement.current?.closing || completed.current < latest.current.revision);
+      setActive(!!pending?.closing || completed.current < latest.current.revision);
       setTick(value => value + 1);
     };
     const presentDice = (dice: DiceMoment, index: number, rate: number) => {
@@ -346,15 +351,14 @@ export function usePitchPlayback(view: SetupState, records: TranscriptRecord[], 
           const nextIndex = index + (pairedWeather ? 2 : 1);
           // Revealing the score changes presented.current. Remember the already
           // deferred prompt so a refresh cannot mistake it for a new choice.
-          if (announcementInterruptTimer.current) clearTimeout(announcementInterruptTimer.current);
-          announcementInterruptTimer.current = null;
-          pendingAnnouncement.current = { closing: false, chained: false, rate,
+          if (announcementFadeTimer.current) clearTimeout(announcementFadeTimer.current);
+          announcementFadeTimer.current = null;
+          pendingAnnouncement.current = { closing: false, chained: false,
             deferredResponseRevision: deferScoringResponse ? view.revision : null,
             advance: () => advance(nextIndex) };
           presentationRevision.current = record.revision;
-          setAnnouncementInterrupted(false);
-          shadeRate.current = rate;
-          setAnnouncementRate(rate);
+          setAnnouncementFading(false);
+          announcementRate.current = rate;
           setAnnouncement(beat.announcement);
           return;
         }
@@ -372,7 +376,7 @@ export function usePitchPlayback(view: SetupState, records: TranscriptRecord[], 
             advance: () => advance(nextIndex) };
           return;
         }
-        const current = presented.current;
+        const current = pendingAnnouncement.current?.settledView ?? presented.current;
         const next = viewAfterBeat(current, beat);
         if (next === current) continue;
         if (waitForAnnouncementExit(false, resume)) return;
@@ -416,6 +420,7 @@ export function usePitchPlayback(view: SetupState, records: TranscriptRecord[], 
   useLayoutEffect(() => {
     const pending = pendingAnnouncement.current;
     if (!announcementExiting || !pending) return;
+    const rate = announcementRate.current;
     const complete = () => {
       if (pendingAnnouncement.current !== pending) return;
       announcementExitComplete.current = null;
@@ -427,13 +432,17 @@ export function usePitchPlayback(view: SetupState, records: TranscriptRecord[], 
         announcementTransitionTimer.current = null;
         pendingAnnouncement.current = null;
         setAnnouncementExiting(false);
+        if (pending.settledView) {
+          presented.current = pending.settledView;
+          setPitchView(pending.settledView);
+        }
         pending.resume?.();
       };
       if (pending.chained) pending.skipGap = resume;
-      announcementTransitionTimer.current = setTimeout(resume, (pending.chained ? ANNOUNCEMENT_CHAIN_GAP_MS : ANNOUNCEMENT_GAP_MS) / pending.rate);
+      announcementTransitionTimer.current = setTimeout(resume, (pending.chained ? ANNOUNCEMENT_CHAIN_GAP_MS : ANNOUNCEMENT_GAP_MS) / rate);
     };
     announcementExitComplete.current = complete;
-    announcementTransitionTimer.current = setTimeout(complete, DICE_EXIT_MS / pending.rate);
+    announcementTransitionTimer.current = setTimeout(complete, DICE_EXIT_MS / rate);
     return () => {
       announcementExitComplete.current = null;
       if (announcementTransitionTimer.current) clearTimeout(announcementTransitionTimer.current);
@@ -442,10 +451,11 @@ export function usePitchPlayback(view: SetupState, records: TranscriptRecord[], 
   }, [announcementExiting]);
   useLayoutEffect(() => {
     if (!announcement || announcementExiting || announcementPreferences.holdAnnouncements) return;
-    const timeout = setTimeout(dismissAnnouncement, announcementDuration(announcement, announcementRate) - DICE_EXIT_MS / announcementRate);
+    const rate = announcementRate.current;
+    const timeout = setTimeout(dismissAnnouncement, announcementDuration(announcement, rate) - DICE_EXIT_MS / rate);
     announcementTimer.current = timeout;
     return () => { clearTimeout(timeout); };
-  }, [announcement, announcementExiting, announcementPreferences.holdAnnouncements, announcementRate]);
+  }, [announcement, announcementExiting, announcementPreferences.holdAnnouncements]);
   const beginProvisional = (route: RoutePreview) => {
     if (!enabled || mode !== 'live' || running.current || waiting.current || provisional.current) return;
     const moves = provisionalMoves(latest.current, route);
@@ -453,13 +463,13 @@ export function usePitchPlayback(view: SetupState, records: TranscriptRecord[], 
     provisional.current = { base: latest.current, moves, shown: [] };
     setTick(value => value + 1);
   };
-  const splash: MatchSplashProps | undefined = announcement || announcementShadeHeld || announcementInterrupted ? {
-    announcement, exiting: announcementExiting || announcementInterrupted, rate: announcementRate, shadeHeld: announcementShadeHeld,
-    interrupted: announcementInterrupted, hold: announcementPreferences.holdAnnouncements,
+  const splash: MatchSplashProps | undefined = announcement || announcementShadeHeld || announcementFading ? {
+    announcement, exiting: announcementExiting || announcementFading, rate: announcementRate.current, shadeHeld: announcementShadeHeld,
+    fading: announcementFading, hold: announcementPreferences.holdAnnouncements,
     onDismiss: dismissAnnouncement, onExited: () => announcementExitComplete.current?.(),
     onSkipGap: !announcement && announcementShadeHeld ? pendingAnnouncement.current?.skipGap : undefined,
   } : undefined;
   return { pitchView, presentationRevision: active ? Math.max(pitchView.revision, presentationRevision.current, diceMoment?.revision ?? -1) : pitchView.revision, provisionalActive: !!provisional.current, playbackActive: active, diceMoment, synchronizing, movementDuration: moveMillis, beginProvisional,
-    splash, announcement: announcementInterrupted ? null : announcement, announcementExiting,
+    splash, announcement: announcementFading ? null : announcement, announcementExiting,
     diceSnapshot: pitchView.revision === snapshotRevision.current };
 }

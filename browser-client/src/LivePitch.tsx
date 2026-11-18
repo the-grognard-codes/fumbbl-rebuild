@@ -560,7 +560,7 @@ export function LivePitch({ view, selectedId, selectedIds = [], actions, pinnedA
       </div>
       {splash && <MatchSplash {...splash} cameraEnd={camera.end}/>}
     </div>
-    <MatchAnnouncementStatus announcement={splash?.interrupted ? null : splash?.announcement ?? null}/>
+    <MatchAnnouncementStatus announcement={splash?.fading ? null : splash?.announcement ?? null}/>
     {routePreview && <ol className="sr-only" aria-label="Planned route">{routePreview.steps.map((step, index) => <li key={index}>Square {step.x}, {step.y}</li>)}</ol>}
     {rangeMarkings && movementRange && <p className="sr-only" aria-live="polite">Movement range: {movementRange.normalRemaining} normal movement points remaining,
       {' '}{movementRange.remaining} including rushes.</p>}

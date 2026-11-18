@@ -78,6 +78,10 @@ try {
   assert.equal(await splash('turnover').getByRole('button').count(), 1, 'Timed announcements have an explicit dismiss button');
   assert.equal(await splash('turnover').getByRole('checkbox').count(), 0);
   assert.equal(await splash('turnover').locator('h2').evaluate(node => node.getAnimations()[0]?.animationName), 'splash-impact');
+  assert.deepEqual(await shade.evaluate(node => {
+    const entrance = node.getAnimations().find(transition => transition.transitionProperty === 'opacity');
+    return entrance?.effect.getKeyframes().map(frame => frame.opacity);
+  }), ['0', '1'], 'The initial shade fades in from transparent');
   await finishShadeEntrance();
   await shade.evaluate(node => { window.chainedShade = node; });
   await page.keyboard.press('Escape');
@@ -165,7 +169,7 @@ try {
   await page.locator('#required-choice').waitFor(); await active(false);
   assert.equal(await splash('turnover').evaluate(node => node.getAnimations().some(animation => animation.animationName === 'match-splash-exit')), true,
     'A required choice keeps the card mounted for its exit');
-  assert.deepEqual(await shade.evaluate(node => [node.dataset.interrupted, getComputedStyle(node).pointerEvents]), ['true', 'none']);
+  assert.deepEqual(await shade.evaluate(node => [node.dataset.fading, getComputedStyle(node).pointerEvents]), ['true', 'none']);
   await page.locator('#required-choice').click();
   const interruptedOpacity = await shade.evaluate(node => {
     window.interruptedShade = node;
@@ -222,19 +226,31 @@ try {
   await setHold(false);
   await reset();
   const adjacent = [start, record(1, [event('turnover')]), record(2, [event('turnStart', 'away')])];
-  await publish({ view: state(2), records: adjacent });
+  for (const revision of adjacent.slice(1)) {
+    revision.state.homeScore += 1;
+    revision.state.turn += 1;
+  }
+  const board = () => page.locator('#announcement-state').evaluate(node =>
+    [node.dataset.revision, node.dataset.homeScore, node.dataset.turn].map(Number));
+  const beforeTurnover = [0, start.state.homeScore, start.state.turn];
+  await publish({ view: adjacent[2].state, records: adjacent });
   await splash('turnover').waitFor();
+  assert.deepEqual(await board(), beforeTurnover);
   await finishShadeEntrance();
   await shade.evaluate(node => { window.chainedShade = node; });
   await page.clock.runFor(1800);
   assert.deepEqual(await splash('turnover').evaluate(node => node.getAnimations()
     .map(animation => animation.animationName)), ['match-splash-dim-out']);
+  assert.deepEqual(await board(), beforeTurnover, 'The completed revision stays queued while its card exits');
   await verifyHeldShade();
   await page.clock.runFor(200);
   await page.locator('.match-splash').waitFor({ state: 'detached' });
+  assert.deepEqual(await board(), beforeTurnover, 'The exit gap still shows the outgoing board');
   await verifyHeldShade();
   await page.clock.runFor(125);
   await splash('turnStart').waitFor();
+  assert.deepEqual(await board(), [1, adjacent[1].state.homeScore, adjacent[1].state.turn],
+    'The scoreboard and turn advance when the next card starts');
   assert.deepEqual(await splash('turnStart').evaluate(node => node.getAnimations()
     .map(animation => animation.animationName)), ['match-splash-dim-in']);
   await verifyHeldShade();
@@ -281,7 +297,7 @@ try {
   await turnStartSetting.uncheck();
   await page.keyboard.press('Escape');
   await page.clock.runFor(125);
-  const emptyFade = page.locator('.match-splash-shade[data-interrupted=true]');
+  const emptyFade = page.locator('.match-splash-shade[data-fading=true]');
   assert.ok(await emptyFade.evaluate(node => node === window.chainedShade
     && node.getAnimations().some(transition => transition.transitionProperty === 'opacity')),
     'A card hidden during the gap releases the held shade with a fade');
@@ -298,7 +314,7 @@ try {
     await page.keyboard.press('Escape'); await page.clock.runFor(elapsed);
     await publish({ view: choice, records: [start, record(1), record(2)] });
     await active(false); await page.locator('#required-choice').waitFor();
-    assert.deepEqual(await shade.evaluate(node => [node.dataset.interrupted, getComputedStyle(node).pointerEvents]), ['true', 'none']);
+    assert.deepEqual(await shade.evaluate(node => [node.dataset.fading, getComputedStyle(node).pointerEvents]), ['true', 'none']);
     await page.clock.runFor(1000);
     assert.equal(await page.locator('.match-splash').count(), 0, 'Choice cancels fade and gap callbacks');
     await reset(); await advance([event('turnover'), event('turnStart')]); await splash('turnover').waitFor();

@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Keep the scoreboard and turn counter on the outgoing revision until its splash and gap finish. Fade in the pitch shade with a standard opacity transition.
+
 - Keep the pitch shade continuous when an announcement is skipped or a required choice interrupts it. Escape during the gap opens the next queued card immediately.
 
 - Keep the pitch dimmed and block input between queued match announcements. Show turnovers for two seconds at normal speed and apply replay speed changes to the next announcement.
