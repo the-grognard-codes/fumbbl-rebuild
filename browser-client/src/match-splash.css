@@ -3,8 +3,10 @@
   position: absolute; inset: 0; z-index: 160; display: grid; justify-items: center; align-items: safe center;
   padding: clamp(12px, 3vw, 40px); background: #050a12aa; overflow: auto; overscroll-behavior: contain;
   cursor: default; box-sizing: border-box;
-  animation: match-splash-dim-in calc(150ms / var(--splash-rate, 1)) linear both;
+  opacity: 1;
+  transition: opacity calc(150ms / var(--splash-rate, 1)) linear;
 }
+@starting-style { .match-splash-shade:not([data-shade-held=true]) { opacity: 0; } }
 .play-runtime .match-splash-shade .match-splash {
   --splash-accent: #edb644; --splash-secondary: #426c9b;
   position: relative; isolation: isolate; width: min(620px, 100%); box-sizing: border-box;
@@ -25,9 +27,8 @@
 .match-splash-turnover .match-splash-ribbon { border-block-style: dashed; }
 .play-runtime .match-splash-shade .match-splash-turnStart h2 { font-size: clamp(24px, 3.3vw, 42px); color: #d9e9f7; animation-name: splash-turn; }
 .play-runtime .match-splash-shade .match-splash .match-splash-reason { font-family: inherit; margin: 16px auto 0; max-width: 48ch; font-size: clamp(16px, 1.8vw, 21px); line-height: 1.4; animation: match-splash-dim-in calc(150ms / var(--splash-rate, 1)) calc(550ms / var(--splash-rate, 1)) linear both; }
-.match-splash-shade[data-shade-held=true] { animation: none; }
 .match-splash-shade[data-exiting=true][data-shade-held=false],
-.match-splash-shade[data-interrupted=true] { animation: match-splash-dim-out calc(200ms / var(--splash-rate, 1)) linear both; }
+.match-splash-shade[data-interrupted=true] { opacity: 0; transition-duration: calc(200ms / var(--splash-rate, 1)); }
 .match-splash-shade[data-interrupted=true] { pointer-events: none; }
 .play-runtime .match-splash-shade[data-exiting=true] .match-splash { animation: match-splash-exit calc(200ms / var(--splash-rate, 1)) steps(4) both; }
 @keyframes match-splash-dim-in { from { opacity: 0; } to { opacity: 1; } }
@@ -40,9 +41,8 @@
 @keyframes match-splash-exit { from { transform: scaleX(1); opacity: 1; } to { transform: scaleX(.92); opacity: 0; } }
 @media(prefers-reduced-motion: reduce) {
   .play-runtime .match-splash-shade .match-splash, .play-runtime .match-splash-shade .match-splash :is(.match-splash-icon, .match-splash-team, .match-splash-reason, h2, div) { animation: none; }
-  .play-runtime .match-splash-shade[data-exiting=true] .match-splash { animation: none; }
+  .play-runtime .match-splash-shade[data-exiting=true] .match-splash { animation: match-splash-dim-out calc(200ms / var(--splash-rate, 1)) linear both; }
   .play-runtime .match-splash-shade[data-exiting=false][data-shade-held=true] .match-splash { animation: match-splash-dim-in calc(150ms / var(--splash-rate, 1)) linear both; }
-  .play-runtime .match-splash-shade[data-exiting=true][data-shade-held=true] .match-splash { animation: match-splash-dim-out calc(200ms / var(--splash-rate, 1)) linear both; }
 }
 @media(max-height: 500px) {
   .play-runtime .match-splash-shade .match-splash-icon { width: 42px; height: 42px; margin-bottom: 4px; }

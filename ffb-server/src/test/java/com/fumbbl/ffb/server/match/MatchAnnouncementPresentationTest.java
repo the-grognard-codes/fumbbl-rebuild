@@ -318,25 +318,44 @@ class MatchAnnouncementPresentationTest {
     }
 
     @Test void kickoffAttributionUsesTheKickingAndReceivingSides() throws Exception {
-        SetupSessionMovementTest.Fixture fixture = fixture();
-        fixture.advanceToTurn();
-        Game game = state(fixture.session).getGame();
-        for (boolean homeKicking : new boolean[]{true, false}) {
-            for (KickoffResult result : List.of(KickoffResult.QUICK_SNAP, KickoffResult.HIGH_KICK, KickoffResult.CHARGE)) {
-                MatchAnnouncementPresentation presentation = new MatchAnnouncementPresentation();
-                game.setHomePlaying(homeKicking);
-                game.setTurnMode(TurnMode.KICKOFF);
-                presentation.kickoff(game, result);
-                game.setHomePlaying(!homeKicking);
-                game.setTurnMode(TurnMode.REGULAR);
-                presentation.playable(game);
-                JsonObject sync = new JsonObject().add("commandNr", 1);
-                presentation.decorate(List.of(sync));
-                JsonObject kickoff = events(new JsonArray().add(sync)).getFirst();
-                boolean homeAffected = result == KickoffResult.CHARGE ? homeKicking : !homeKicking;
-                assertEquals(homeAffected ? "home" : "away", kickoff.getString("team", null), result.name());
+        for (KickoffResult result : List.of(KickoffResult.QUICK_SNAP, KickoffResult.HIGH_KICK, KickoffResult.CHARGE)) {
+            List<String> kickers = new ArrayList<>();
+            for (String receiveOption : List.of("receive", "kick")) {
+                SetupSessionMovementTest.Fixture fixture = fixture();
+                GameState engine = state(fixture.session);
+                int firstDie = result == KickoffResult.HIGH_KICK ? 2 : 4;
+                int secondDie = result == KickoffResult.CHARGE ? 6 : result == KickoffResult.QUICK_SNAP ? 5 : 3;
+                JsonObject turn = fixture.advanceToTurn(receiveOption, view -> {
+                    JsonArray actions = view.get("actions").asArray();
+                    JsonObject first = actions.get(0).asObject();
+                    if ("kickoff".equals(first.getString("kind", null))) {
+                        String kicker = first.getString("actor", null);
+                        kickers.add(kicker);
+                        String target = "home".equals(kicker) ? ":kick-19-7" : ":kick-6-7";
+                        forceGeneral(engine, 1, 1, firstDie, secondDie, 1);
+                        for (JsonValue offered : actions) {
+                            JsonObject candidate = offered.asObject();
+                            if (candidate.getString("id", "").endsWith(target)) return candidate;
+                        }
+                        throw new AssertionError("Missing kickoff target " + target);
+                    }
+                    for (JsonValue offered : actions) {
+                        JsonObject candidate = offered.asObject();
+                        String id = candidate.getString("id", "");
+                        if (id.endsWith(":decline-event") || id.endsWith(":end-event")) return candidate;
+                    }
+                    return first;
+                });
+                JsonObject kickoff = allEvents(fixture.session).stream().filter(event -> "kickoff".equals(event.getString("kind", null)))
+                    .findFirst().orElseThrow();
+                assertEquals(result.name(), kickoff.getString("code", null));
+                String kicking = kickers.getLast();
+                String receiving = "home".equals(kicking) ? "away" : "home";
+                assertEquals(receiving, turn.getString("actor", null));
+                assertEquals(result == KickoffResult.CHARGE ? kicking : receiving, kickoff.getString("team", null), result.name());
                 assertTrue(kickoff.getBoolean("teamSpecific", false));
             }
+            assertEquals(List.of("away", "home"), kickers.stream().sorted().toList());
         }
     }
 

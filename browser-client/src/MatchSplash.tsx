@@ -26,48 +26,47 @@ const rampsById: ReadonlyMap<string, readonly string[]> = new Map(teamColorRamps
 
 export type MatchSplashProps = {
   announcement: MatchAnnouncement | null; onDismiss: () => void; hold: boolean;
-  exiting: boolean; rate: number; onExited?: () => void; cameraEnd?: 'home' | 'away';
+  exiting: boolean; rate: number; onExited?: () => void; onSkipGap?: () => void; cameraEnd?: 'home' | 'away';
   shadeHeld?: boolean; interrupted?: boolean;
   icon?: ReactNode; colors?: { accent?: string; secondary?: string };
 };
 
 /** No focus transfer: Escape and the explicit button dismiss without reaching pitch shortcuts. */
 export function MatchSplash({ announcement, onDismiss, hold, exiting, rate, shadeHeld = false, interrupted = false,
-  icon, colors, onExited, cameraEnd = 'home' }: MatchSplashProps) {
-  const blocksInput = !!announcement || shadeHeld;
+  icon, colors, onExited, onSkipGap, cameraEnd = 'home' }: MatchSplashProps) {
+  const escapeAction = interrupted ? undefined : announcement ? onDismiss : onSkipGap;
   useEffect(() => {
-    if (!blocksInput) return;
+    if (!escapeAction) return;
     const escape = (event: KeyboardEvent) => {
       if (event.key !== 'Escape') return;
       if (event.target instanceof Element && event.target.closest('[role="dialog"]')) return;
-      event.preventDefault(); event.stopImmediatePropagation(); onDismiss();
+      event.preventDefault(); event.stopImmediatePropagation(); escapeAction();
     };
     window.addEventListener('keydown', escape, true);
     return () => window.removeEventListener('keydown', escape, true);
-  }, [blocksInput, onDismiss]);
+  }, [escapeAction]);
   const otherEnd = cameraEnd === 'home' ? 'away' : 'home';
   const screenTeam = cameraEnd === 'away' ? announcement?.team === 'home' ? 'away' : 'home' : announcement?.team;
   return <div className="match-splash-shade" data-announcement-id={announcement?.id} data-exiting={exiting}
     data-shade-held={shadeHeld} data-interrupted={interrupted} data-team={screenTeam}
     style={{ '--splash-rate': rate } as CSSProperties}
     onAnimationEnd={event => {
-      if (!exiting) return;
-      const shadeExit = !shadeHeld && event.target === event.currentTarget && event.animationName === 'match-splash-dim-out';
-      const cardExit = shadeHeld && event.target instanceof Element && event.target.parentElement === event.currentTarget
+      if (!exiting || interrupted) return;
+      const cardExit = event.target instanceof Element && event.target.parentElement === event.currentTarget
         && ['match-splash-exit', 'match-splash-dim-out'].includes(event.animationName);
-      if (shadeExit || cardExit) onExited?.();
+      if (cardExit) onExited?.();
     }}
     onPointerDown={event => event.stopPropagation()} onPointerUp={event => event.stopPropagation()}
     onClick={event => event.stopPropagation()} onDoubleClick={event => event.stopPropagation()}
     onContextMenu={event => { event.preventDefault(); event.stopPropagation(); }}
     onKeyDown={event => event.stopPropagation()}>
-    {announcement && <MatchSplashCard key={announcement.id} {...{ announcement, onDismiss, hold, icon, colors, cameraEnd, otherEnd }}/>}
+    {announcement && <MatchSplashCard key={announcement.id} {...{ announcement, onDismiss, hold, icon, colors, cameraEnd, otherEnd, interrupted }}/>}
   </div>;
 }
 
-function MatchSplashCard({ announcement, onDismiss, hold, icon, colors, cameraEnd, otherEnd }:
+function MatchSplashCard({ announcement, onDismiss, hold, icon, colors, cameraEnd, otherEnd, interrupted }:
   Pick<MatchSplashProps, 'onDismiss' | 'hold' | 'icon' | 'colors'> & {
-    announcement: MatchAnnouncement; cameraEnd: 'home' | 'away'; otherEnd: 'home' | 'away';
+    announcement: MatchAnnouncement; cameraEnd: 'home' | 'away'; otherEnd: 'home' | 'away'; interrupted: boolean;
   }) {
   const teamColors = useTeamColorContext();
   const kit = teamColors[announcement.team];
@@ -89,7 +88,7 @@ function MatchSplashCard({ announcement, onDismiss, hold, icon, colors, cameraEn
   const right = rampsById.get(teamColors[otherEnd]?.primary ?? '')?.[9] ?? (otherEnd === 'home' ? '#426c9b' : '#edb644');
   const style = { '--splash-accent': accent, '--splash-secondary': secondary, '--splash-outline': splashOutline(accent),
     '--splash-left': left, '--splash-right': right, '--splash-left-outline': splashOutline(left), '--splash-right-outline': splashOutline(right) } as CSSProperties;
-  return <section className={`match-splash match-splash-${announcement.kind}`} data-code={announcement.code} data-weather={weatherCode} data-held={hold} style={style} aria-label="Match announcement">
+  return <section className={`match-splash match-splash-${announcement.kind}`} data-code={announcement.code} data-weather={weatherCode} data-held={hold} style={style} aria-label="Match announcement" inert={interrupted}>
       <button type="button" className="match-splash-close" aria-label="Dismiss announcement" aria-keyshortcuts="Escape"
         onClick={event => { event.stopPropagation(); onDismiss(); }}><span aria-hidden="true">×</span></button>
       <div className="match-splash-backdrop" aria-hidden="true"/>

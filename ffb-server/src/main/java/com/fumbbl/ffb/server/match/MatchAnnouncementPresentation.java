@@ -14,6 +14,7 @@ import com.fumbbl.ffb.net.commands.ServerCommandModelSync;
 import com.fumbbl.ffb.report.ReportList;
 import com.fumbbl.ffb.server.GameState;
 import com.fumbbl.ffb.server.match.bb2025.MatchSplashRules;
+import com.fumbbl.ffb.server.match.bb2025.MatchSplashRules.KickoffPresentation;
 import com.fumbbl.ffb.server.match.bb2025.MatchSplashRules.KickoffSide;
 import com.fumbbl.ffb.server.step.StepId;
 import com.fumbbl.ffb.server.util.UtilServerGame;
@@ -43,9 +44,10 @@ final class MatchAnnouncementPresentation {
     private JsonObject deferredWeather;
 
     void kickoff(Game game, KickoffResult result) {
-        KickoffSide side = rules.kickoffSide(result);
+        KickoffPresentation kickoff = rules.kickoffPresentation(result);
+        KickoffSide side = kickoff.side();
         pendingKickoff = event("kickoff", game, (side == KickoffSide.RECEIVING) != game.isHomePlaying(), result.getDescription())
-            .add("headline", result.getName()).add("code", ((Enum<?>) result).name())
+            .add("headline", result.getName()).add("code", kickoff.code())
             .add("teamSpecific", side != KickoffSide.NEUTRAL);
     }
 

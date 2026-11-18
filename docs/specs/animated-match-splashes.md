@@ -118,9 +118,12 @@ behaviour; prefer the engine's own description text when it exists.
    pitch dimmed and blocks input during the 125 ms gap, scaled by playback
    rate. The final or only card fades the shade and uses the normal 350 ms
    gap, also scaled by playback rate. Natural exit, Escape and the close
-   button follow the same rules. A required choice cancels the run and fades
-   the shade while the choice is available. Reduced motion uses opacity-only
-   transitions between chained cards.
+   button follow the same rules. Escape during the short gap opens the next
+   card immediately. If that card is suppressed during the gap, the shade
+   fades out. A required choice cancels the run and lets the current card
+   exit while the choice is available. If a new card arrives during the fade,
+   the same shade darkens from its current opacity. Reduced motion uses
+   opacity-only transitions between cards.
 2. **Authoritative sources only.** Kick-off results, weather (initial and every
    change, including `WEATHER_CHANGE` kick-offs), half boundaries and match end
    come from authoritative events or projection fields. If any is missing from

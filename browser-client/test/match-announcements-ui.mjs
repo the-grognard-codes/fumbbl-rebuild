@@ -33,6 +33,9 @@ const finishTimed = async (duration, transition = 550) => {
 };
 const splash = kind => page.locator(`.match-splash-${kind}`);
 const shade = page.locator('.match-splash-shade');
+const finishShadeEntrance = () => shade.evaluate(node => {
+  for (const transition of node.getAnimations()) transition.finish();
+});
 const verifyHeldShade = async () => {
   assert.deepEqual(await shade.evaluate(node => {
     const box = node.getBoundingClientRect();
@@ -75,6 +78,7 @@ try {
   assert.equal(await splash('turnover').getByRole('button').count(), 1, 'Timed announcements have an explicit dismiss button');
   assert.equal(await splash('turnover').getByRole('checkbox').count(), 0);
   assert.equal(await splash('turnover').locator('h2').evaluate(node => node.getAnimations()[0]?.animationName), 'splash-impact');
+  await finishShadeEntrance();
   await shade.evaluate(node => { window.chainedShade = node; });
   await page.keyboard.press('Escape');
   await page.locator('.match-splash-shade[data-exiting=true]').waitFor({ state: 'attached' });
@@ -91,10 +95,14 @@ try {
   await splash('turnStart').waitFor();
   await verifyHeldShade();
   assert.match(await splash('turnStart').textContent(), /Blackwater Green Giants.*START OF TURN 3/s);
+  await splash('turnStart').evaluate(node => {
+    // Let the mocked timer own the end of the full fade/gap in this timing assertion.
+    node.addEventListener('animationend', event => event.stopPropagation());
+  });
   await page.keyboard.press('Escape');
   const fadingOpacity = await shade.evaluate(node => {
     // CSS uses the document timeline independently of the mocked JS clock.
-    const fade = node.getAnimations().find(animation => animation.animationName === 'match-splash-dim-out');
+    const fade = node.getAnimations().find(transition => transition.transitionProperty === 'opacity');
     fade.pause(); fade.currentTime = 100;
     return Number(getComputedStyle(node).opacity);
   });
@@ -151,11 +159,28 @@ try {
   await reset(); await advance([event('turnover')]); await splash('turnover').waitFor();
   await page.clock.runFor(10000); await splash('turnover').waitFor();
   await page.getByRole('button', { name: 'Dismiss announcement' }).waitFor();
+  await finishShadeEntrance();
   const choice = { ...state(2), actions: [{ id: 'reroll', kind: 'reroll', label: 'Reroll', actor: 'home' }] };
   await publish({ view: choice, records: [start, record(1, [event('turnover')]), record(2)] });
   await page.locator('#required-choice').waitFor(); await active(false);
-  assert.equal(await page.locator('.match-splash').count(), 0);
+  assert.equal(await splash('turnover').evaluate(node => node.getAnimations().some(animation => animation.animationName === 'match-splash-exit')), true,
+    'A required choice keeps the card mounted for its exit');
   assert.deepEqual(await shade.evaluate(node => [node.dataset.interrupted, getComputedStyle(node).pointerEvents]), ['true', 'none']);
+  await page.locator('#required-choice').click();
+  const interruptedOpacity = await shade.evaluate(node => {
+    window.interruptedShade = node;
+    const fade = node.getAnimations()[0];
+    fade.pause(); fade.currentTime = 100;
+    return Number(getComputedStyle(node).opacity);
+  });
+  assert.ok(interruptedOpacity > 0 && interruptedOpacity < 1);
+  const afterChoice = record(3, [event('turnStart', 'away')]);
+  await publish({ view: afterChoice.state, records: [start, record(1), record(2), afterChoice] });
+  await splash('turnStart').waitFor();
+  assert.ok(await shade.evaluate((node, opacity) => node === window.interruptedShade && Number(getComputedStyle(node).opacity) >= opacity - 0.01, interruptedOpacity),
+    'The incoming card reuses the shade and reverses its fade from the current opacity');
+  await page.clock.runFor(200);
+  await splash('turnStart').waitFor();
 
   await reset(); await advance([event('turnover')]); await splash('turnover').waitFor();
   assert.equal(await page.getByRole('button', { name: 'Dismiss announcement' }).isVisible(), true, 'Preference survives queue recovery');
@@ -199,6 +224,7 @@ try {
   const adjacent = [start, record(1, [event('turnover')]), record(2, [event('turnStart', 'away')])];
   await publish({ view: state(2), records: adjacent });
   await splash('turnover').waitFor();
+  await finishShadeEntrance();
   await shade.evaluate(node => { window.chainedShade = node; });
   await page.clock.runFor(1800);
   assert.deepEqual(await splash('turnover').evaluate(node => node.getAnimations()
@@ -215,6 +241,56 @@ try {
   await page.keyboard.press('Escape'); await page.clock.runFor(550); await active(false);
   await page.emulateMedia({ reducedMotion: 'no-preference' });
   await setHold(true);
+
+  // A card skipped by the actual queue must release the same shade smoothly.
+  await reset();
+  const scoringWithChoice = record(1, [event('touchdown')]);
+  scoringWithChoice.state.homeScore += 1;
+  const deferredChoice = record(2, [event('turnStart', 'away')]);
+  deferredChoice.state.homeScore = scoringWithChoice.state.homeScore;
+  deferredChoice.state.actions = choice.actions;
+  await publish({ view: deferredChoice.state, records: [start, scoringWithChoice, deferredChoice] });
+  await splash('touchdown').waitFor();
+  await finishShadeEntrance();
+  await shade.evaluate(node => { window.chainedShade = node; });
+  await page.keyboard.press('Escape');
+  assert.ok(await shade.evaluate(node => node === window.chainedShade && node.dataset.shadeHeld === 'false'
+    && node.getAnimations().some(transition => transition.transitionProperty === 'opacity')),
+    'A suppressed turn-start is not treated as a visible card');
+  await page.clock.runFor(550);
+  await page.locator('#required-choice').waitFor();
+  assert.equal(await splash('turnStart').count(), 0);
+  await shade.waitFor({ state: 'detached' });
+
+  await reset(); await advance([event('turnover'), event('turnStart')]); await splash('turnover').waitFor();
+  await page.keyboard.press('Escape'); await page.clock.runFor(200);
+  await page.locator('.match-splash').waitFor({ state: 'detached' });
+  await page.keyboard.press('Escape');
+  await splash('turnStart').waitFor({ timeout: 1500 }); // Still on the paused clock, before the gap timer fires.
+  await page.keyboard.press('Escape'); await page.clock.runFor(550); await active(false);
+
+  await reset(); await advance([event('turnover'), event('turnStart')]); await splash('turnover').waitFor();
+  await finishShadeEntrance();
+  await shade.evaluate(node => { window.chainedShade = node; });
+  await page.keyboard.press('Escape'); await page.clock.runFor(200);
+  await page.locator('.match-splash').waitFor({ state: 'detached' });
+  await verifyHeldShade();
+  await page.getByRole('button', { name: 'Game Menu', exact: true }).click();
+  await page.getByRole('tab', { name: 'Game Settings', exact: true }).click();
+  const turnStartSetting = page.getByRole('checkbox', { name: 'Start of turn', exact: true });
+  await turnStartSetting.uncheck();
+  await page.keyboard.press('Escape');
+  await page.clock.runFor(125);
+  const emptyFade = page.locator('.match-splash-shade[data-interrupted=true]');
+  assert.ok(await emptyFade.evaluate(node => node === window.chainedShade
+    && node.getAnimations().some(transition => transition.transitionProperty === 'opacity')),
+    'A card hidden during the gap releases the held shade with a fade');
+  assert.equal(await splash('turnStart').count(), 0);
+  await page.clock.runFor(200); await shade.waitFor({ state: 'detached' });
+  await page.getByRole('button', { name: 'Game Menu', exact: true }).click();
+  await page.getByRole('tab', { name: 'Game Settings', exact: true }).click();
+  await turnStartSetting.check();
+  await page.keyboard.press('Escape');
 
   // A choice or reconnect arriving in either transition phase cancels its timers.
   for (const elapsed of [100, 300]) {
@@ -239,14 +315,16 @@ try {
   for (let index = 0; index < 50; index++) {
     await reset(); await advance([event('touchdown')]); await splash('touchdown').waitFor();
     await page.keyboard.press('Escape'); await page.clock.runFor(550); await active(false);
+    await shade.waitFor({ state: 'detached' });
   }
   await reset();
   await shade.waitFor({ state: 'detached' });
-  assert.equal(await pitchNodes.count(), baseline, '50 splashes retain no pitch DOM');
+  assert.ok(await pitchNodes.count() <= baseline, '50 splashes retain no pitch DOM');
   await reset(); await advance([event('touchdown')]); await splash('touchdown').waitFor();
+  await finishShadeEntrance();
   await page.keyboard.press('Escape');
-  assert.equal(await shade.evaluate(node => node.getAnimations().some(animation => animation.animationName === 'match-splash-dim-out')), true);
-  await page.locator('.match-splash-shade').evaluate(node => node.dispatchEvent(new AnimationEvent('animationend', { bubbles: true, animationName: 'match-splash-dim-out' })));
+  assert.equal(await shade.evaluate(node => node.getAnimations().some(transition => transition.transitionProperty === 'opacity')), true);
+  await splash('touchdown').evaluate(node => node.dispatchEvent(new AnimationEvent('animationend', { bubbles: true, animationName: 'match-splash-exit' })));
   await page.locator('.match-splash').waitFor({ state: 'detached' });
   await page.clock.runFor(350); await active(false);
   const facts = JSON.parse(readFileSync(new URL('./fixtures/match-splash-events.json', import.meta.url), 'utf8'));

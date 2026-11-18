@@ -6,15 +6,17 @@ import com.fumbbl.ffb.kickoff.KickoffResult;
 /** BB2025 rule labels and team attribution for committed splash events. */
 public final class MatchSplashRules {
     public enum KickoffSide { KICKING, RECEIVING, NEUTRAL }
+    public record KickoffPresentation(String code, KickoffSide side) { }
 
-    public KickoffSide kickoffSide(KickoffResult result) {
+    public KickoffPresentation kickoffPresentation(KickoffResult result) {
         if (!(result instanceof com.fumbbl.ffb.kickoff.bb2025.KickoffResult kickoff))
             throw new IllegalArgumentException("Unsupported kickoff ruleset");
-        return switch (kickoff) {
+        KickoffSide side = switch (kickoff) {
             case HIGH_KICK, QUICK_SNAP -> KickoffSide.RECEIVING;
             case SOLID_DEFENCE, CHARGE -> KickoffSide.KICKING;
             default -> KickoffSide.NEUTRAL;
         };
+        return new KickoffPresentation(kickoff.name(), side);
     }
 
     public String weatherReminder(Weather weather) {

@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Keep the pitch shade continuous when an announcement is skipped or a required choice interrupts it. Escape during the gap opens the next queued card immediately.
+
 - Keep the pitch dimmed and block input between queued match announcements. Show turnovers for two seconds at normal speed and apply replay speed changes to the next announcement.
 
 - Share the sports whistle and starburst animations between half-time and End of Match, and blend weather artwork into its animated background.

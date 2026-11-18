@@ -83,3 +83,9 @@ The browser driver checked that the same shade stays opaque and intercepts input
 A long turnover reason fits the card and reaches full opacity at 1× and 4×. It has about 1.1 seconds at full opacity at 1× and 275 milliseconds at 4×. The latter is too short to reliably read a long reason at speed. The reason remains available in the log and the existing until-dismissed setting keeps the card visible.
 
 The production browser build, all 545 browser unit tests, announcement, menu, playback, team-colour, reconnect and DOM-growth drivers passed. `npm run review:splashes` captured 488 frames at four viewport sizes under `.tools/animated-splashes/independent-review/`.
+
+## Shade handoff review — 2026-11-18
+
+The playback queue decides the handoff when it reaches the next visible beat, including across transcript revisions. The browser regression covers a suppressed next card, a card hidden during the gap, a required choice that leaves the old card in its exit animation, and a new card that reverses an in-progress shade fade. Escape during an empty gap opens the queued card immediately.
+
+The server test rolls Quick Snap, High Kick and Charge through native kickoff steps with each team kicking and checks the emitted splash team in the transcript. The eight-field announcement checkpoint requirement still applies. Finish or reset any in-flight DEV matches before deploying these changes, since pre-deploy saves with the old five-field format cannot resume on the new runtime.
