@@ -75,27 +75,44 @@ public final class V2PreparationService {
 	public boolean isComputerMatch(String matchId) throws SQLException {
 		if (matchId == null || !matchId.matches("[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}")) return false;
 		try (Connection connection = connections.open()) {
-			if (!member(connection, matchId, computers.memberId(), "away")) return false;
+			String role = computerMembershipRole(connection, matchId);
+			if (role == null) return false;
 			MatchDocument document = document(connection, matchId, false);
-			return document != null && computers.coach(document) != null;
+			return document != null && verifiedComputerRole(document, role);
 		}
 	}
 
 	/** Setup validates the frozen computer coach after the registered service membership check. */
-	public boolean hasComputerMembership(String matchId) throws SQLException {
-		if (matchId == null || !matchId.matches("[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}")) return false;
+	public String computerMembershipRole(String matchId) throws SQLException {
+		if (matchId == null || !matchId.matches("[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}")) return null;
 		try (Connection connection = connections.open()) {
-			return member(connection, matchId, computers.memberId(), "away");
+			return computerMembershipRole(connection, matchId);
 		}
+	}
+
+	private String computerMembershipRole(Connection connection, String matchId) throws SQLException {
+		try (PreparedStatement query = connection.prepareStatement(
+			"SELECT role FROM ffb_v2_match_members WHERE matchid=? AND account_id=?")) {
+			query.setString(1, matchId);
+			query.setString(2, computers.memberId());
+			try (ResultSet rows = query.executeQuery()) {
+				return rows.next() ? rows.getString(1) : null;
+			}
+		}
+	}
+
+	private boolean verifiedComputerRole(MatchDocument document, String role) {
+		MatchDocument.Member computer = computers.member(document);
+		return computer != null && computer.role.equals(role);
 	}
 
 	/** Active jobs are replayed when the independent computer process reconnects. */
 	public List<String> activeComputerMatches() throws SQLException {
 		List<String> result = new ArrayList<>();
 		try (Connection connection = connections.open(); PreparedStatement query = connection.prepareStatement(
-			"SELECT p.match_id FROM ffb_prepared_matches p "
-				+ "JOIN ffb_v2_match_members away ON away.matchid=p.match_id AND away.account_id=? AND away.role='away' "
-				+ "JOIN ffb_v2_match_members home ON home.matchid=p.match_id AND home.role='home' "
+			"SELECT p.match_id,computer.role FROM ffb_prepared_matches p "
+				+ "JOIN ffb_v2_match_members computer ON computer.matchid=p.match_id AND computer.account_id=? "
+				+ "JOIN ffb_v2_match_members opponent ON opponent.matchid=p.match_id AND opponent.role<>computer.role "
 				+ "WHERE p.document_version=3 ORDER BY p.match_id")) {
 			query.setString(1, computers.memberId());
 			try (ResultSet rows = query.executeQuery()) {
@@ -103,7 +120,7 @@ public final class V2PreparationService {
 					String id = rows.getString(1);
 					MatchDocument document = document(connection, id, false);
 					if (document != null && document.lifecycle == MatchDocument.Lifecycle.ACTIVATED
-						&& computers.coach(document) != null) result.add(id);
+						&& verifiedComputerRole(document, rows.getString(2))) result.add(id);
 				}
 			}
 		}

@@ -4,7 +4,7 @@ import { readFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import { assertV2Projection } from '../../browser-client/src/v2-projection.ts';
 import { parseUniqueJson } from '../../browser-client/src/saved-team-protocol.ts';
-import { idleWorkerExitCode, persistenceUnavailableExitCode } from './worker-lifecycle.mjs';
+import { abandonedWorkerExitCode, idleWorkerExitCode, persistenceUnavailableExitCode } from './worker-lifecycle.mjs';
 
 const url = option('--url');
 const origin = option('--origin');
@@ -13,6 +13,7 @@ const tokenFile = option('--service-token-file', false);
 const maxMatches = Number(option('--max-matches', false) ?? 4);
 const refreshMs = Number(option('--refresh-ms', false) ?? 30000);
 const idleTimeoutMs = Number(option('--idle-timeout-ms', false) ?? 15000);
+const maxRememberedEndedMatches = 8192;
 if (!url || !origin || !['ws:', 'wss:'].includes(new URL(url).protocol)
   || new URL(url).pathname !== '/browser/v2' || new URL(url).search || new URL(url).hash
   || !/^https?:\/\/[^/]+$/.test(origin) || (!tokenFile && !process.env.FFB_COMPUTER_SERVICE_TOKEN)
@@ -31,7 +32,12 @@ let authId;
 let registerId;
 let sentAt = 0;
 let ready = false;
-let watchChanges = true;
+let connectionGeneration = 0;
+let watchChangesAttempts = 0;
+let watchChangesRetryAt = 0;
+let registerWatchesChanges = false;
+let registeredMatches;
+let activeMatches;
 const queued = new Set();
 const children = new Map();
 const failures = new Map();
@@ -49,8 +55,10 @@ function send(request) { socket.send(JSON.stringify(request)); sentAt = Date.now
 function register() {
   if (stopped || !authenticated || !socket || socket.readyState !== WebSocket.OPEN || registerId) return;
   registerId = randomUUID();
+  registerWatchesChanges = Date.now() >= watchChangesRetryAt;
+  registeredMatches = undefined;
   send({ version: 2, type: 'computer', operation: 'register', requestId: registerId,
-    ...(watchChanges ? { watchChanges: true } : {}) });
+    ...(registerWatchesChanges ? { watchChanges: true } : {}) });
 }
 function retryBackoff(attempts, initialMs) {
   return Math.min(initialMs * 2 ** Math.min(attempts - 1, 9), 300000);
@@ -65,11 +73,22 @@ function parkWorker(matchId, revision) {
   const previous = waiting.get(matchId);
   const attempts = previous?.revision === revision ? previous.attempts + 1 : 1;
   const delay = Math.round(retryBackoff(attempts, 60000) * (0.8 + Math.random() * 0.2));
+  // The next inventory refresh checks this deadline, so fallback retries have refreshMs granularity.
   waiting.set(matchId, { revision, attempts, retryAt: Date.now() + delay });
   log(`Match ${matchId} yielded its idle worker; waiting for a change or retry after ${delay} ms.`);
 }
+function rememberEndedMatch(matchId) {
+  waiting.delete(matchId);
+  failures.delete(matchId);
+  queued.delete(matchId);
+  completed.add(matchId);
+  if (ready && !activeMatches) trimLegacyEndedMatches();
+}
+function trimLegacyEndedMatches() {
+  while (completed.size > maxRememberedEndedMatches) completed.delete(completed.values().next().value);
+}
 function startQueued() {
-  while (!stopped && children.size < maxMatches && queued.size) {
+  while (!stopped && ready && children.size < maxMatches && queued.size) {
     const matchId = queued.values().next().value;
     queued.delete(matchId);
     if (children.has(matchId) || completed.has(matchId)
@@ -78,7 +97,7 @@ function startQueued() {
       '--url', url, '--origin', origin, '--idle-timeout-ms', String(idleTimeoutMs)];
     if (tokenFile) args.push('--service-token-file', tokenFile);
     const child = spawn(process.execPath, args, { stdio: ['inherit', 'inherit', 'inherit', 'ipc'], env: process.env, windowsHide: true });
-    const worker = { child, idleRevision: -1, changedRevision: -1, saveResumeRevision: -1 };
+    const worker = { child, connectionGeneration, idleRevision: -1, changedRevision: -1, saveResumeRevision: -1 };
     children.set(matchId, worker);
     child.on('message', message => {
       if (message?.type === 'idle' && Number.isSafeInteger(message.revision)) worker.idleRevision = message.revision;
@@ -94,22 +113,38 @@ function startQueued() {
       children.delete(matchId);
       if (code === idleWorkerExitCode && !stopped) {
         failures.delete(matchId);
-        // A publication can race the worker's final message as its socket closes.
-        if (worker.changedRevision > worker.idleRevision
-          || worker.saveResumeRevision >= 0 && worker.saveResumeRevision === worker.idleRevision) {
-          waiting.delete(matchId);
-          queued.add(matchId);
-        } else parkWorker(matchId, worker.idleRevision);
+        if (ready && !completed.has(matchId) && (!activeMatches || activeMatches.has(matchId))) {
+          // A reconnect can miss publications even if the child exits after registration.
+          if (worker.connectionGeneration !== connectionGeneration || worker.changedRevision > worker.idleRevision
+            || worker.saveResumeRevision >= 0 && worker.saveResumeRevision === worker.idleRevision) {
+            waiting.delete(matchId);
+            queued.add(matchId);
+          } else parkWorker(matchId, worker.idleRevision);
+        }
       } else if (code === persistenceUnavailableExitCode && !stopped) {
         markFailure(matchId, `Match ${matchId} persistence unavailable`);
-      } else if (code !== 0 && !stopped) markFailure(matchId, `Match ${matchId} stopped with status ${code}`);
+      } else if (code === abandonedWorkerExitCode) rememberEndedMatch(matchId);
       else if (code === 0) {
-        completed.add(matchId); failures.delete(matchId); waiting.delete(matchId);
+        rememberEndedMatch(matchId);
         log(`Match ${matchId} completed.`);
-      }
+      } else if (!stopped) markFailure(matchId, `Match ${matchId} stopped with status ${code}`);
       startQueued();
     });
   }
+}
+function queueAvailableMatches(matches) {
+  const now = Date.now();
+  for (const matchId of matches) {
+    if (!children.has(matchId) && !completed.has(matchId) && (waiting.get(matchId)?.retryAt ?? 0) <= now) queued.add(matchId);
+  }
+  startQueued();
+}
+function reconcileRegisteredMatches(matches) {
+  for (const matchId of waiting.keys()) if (!matches.has(matchId)) waiting.delete(matchId);
+  for (const matchId of failures.keys()) if (!matches.has(matchId)) failures.delete(matchId);
+  for (const matchId of completed) if (!matches.has(matchId)) completed.delete(matchId);
+  for (const matchId of queued) if (!matches.has(matchId)) queued.delete(matchId);
+  queueAvailableMatches(matches);
 }
 function receive(raw) {
   if (Buffer.byteLength(raw, 'utf8') > 262144) throw Error('Oversized response');
@@ -117,9 +152,9 @@ function receive(raw) {
   assertV2Projection(message);
   if (message.version !== 2) throw Error('Wrong protocol version');
   if (message.type === 'error') {
-    if (watchChanges && registerId && message.requestId === registerId && message.code === 'MALFORMED_MESSAGE') {
+    if (registerWatchesChanges && registerId && message.requestId === registerId && message.code === 'MALFORMED_MESSAGE') {
       // A daemon can be upgraded before its server. Registration still supplies the fallback jobs.
-      watchChanges = false;
+      watchChangesRetryAt = Date.now() + retryBackoff(++watchChangesAttempts, refreshMs);
       registerId = null;
       register();
       return;
@@ -139,13 +174,22 @@ function receive(raw) {
     if (message.code !== 'READY') throw Error(`Computer registration rejected: ${message.code}`);
     if (!ready) log(`Ready for computer matches; capacity ${maxMatches}.`);
     ready = true;
+    if (registerWatchesChanges) { watchChangesAttempts = 0; watchChangesRetryAt = 0; }
+    activeMatches = registeredMatches;
+    if (activeMatches) reconcileRegisteredMatches(activeMatches);
+    else { trimLegacyEndedMatches(); startQueued(); }
     return;
   }
-  if (message.type === 'computerJobs' && message.requestId === null) {
+  if (message.type === 'computerJobs') {
     if (message.code !== 'AVAILABLE') throw Error('Invalid computer jobs');
-    for (const matchId of message.matches) if (!children.has(matchId) && !completed.has(matchId)
-      && (waiting.get(matchId)?.retryAt ?? 0) <= Date.now()) queued.add(matchId);
-    startQueued();
+    if (message.requestId === null) {
+      if (activeMatches) for (const matchId of message.matches) activeMatches.add(matchId);
+      queueAvailableMatches(message.matches);
+    } else if (registerId && message.requestId === registerId) {
+      registeredMatches ??= new Set();
+      for (const matchId of message.matches) registeredMatches.add(matchId);
+    }
+    return;
   }
   if (message.type === 'computerJobChanged') {
     const { matchId, revision, saveResumeChanged } = message;
@@ -161,6 +205,7 @@ function receive(raw) {
     queued.add(matchId);
     startQueued();
   }
+  if (message.type === 'computerJobEnded') rememberEndedMatch(message.matchId);
 }
 async function connect() {
   if (stopped) return;
@@ -180,6 +225,11 @@ async function connect() {
   current.addEventListener('close', () => {
     if (socket !== current || stopped) return;
     socket = null; sentAt = 0; registerId = null; ready = false; authenticated = false;
+    connectionGeneration++;
+    waiting.clear();
+    queued.clear();
+    activeMatches = undefined;
+    watchChangesAttempts = 0; watchChangesRetryAt = 0;
     const delay = retryDelay;
     retryDelay = Math.min(retryDelay * 2, 30000);
     log(`Disconnected; reconnecting in ${delay} ms.`);

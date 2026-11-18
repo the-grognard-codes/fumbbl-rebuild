@@ -18,6 +18,7 @@ import java.time.ZoneOffset;
 import java.util.concurrent.atomic.AtomicLong;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -29,47 +30,139 @@ import static org.mockito.Mockito.when;
 import static org.mockito.Mockito.withSettings;
 
 class SetupApplicationReadOnlyLoadTest {
-	@Test void runnableComputerColdLoadReadsPreferencesBeforeTheCheckpoint() throws Exception {
-		Fixture fixture = new Fixture(true);
+	@Test void evictedComputerMatchIsDurablyAbandonedOnFirstTouchAfterOneHour() throws Exception {
+		Fixture fixture = new Fixture("away");
 		SetupApplication application = fixture.application();
-		JsonObject initial = application.handle("home", fixture.load()).get("state").asObject();
-		JsonObject handover = application.handle("home", endTurn(fixture.engine, initial, "pass-to-computer"));
-		assertEquals("away", handover.get("state").asObject().getString("actor", null));
+		application.handle("home", fixture.load());
+		fixture.now.addAndGet(30 * 60_000L);
+		application.expireReactiveDecisions();
+		assertEquals(0, application.lifecycleMetrics().getInt("residentSessions", -1));
+		fixture.now.addAndGet(30 * 60_000L - 1);
+		assertEquals("ACCEPTED", application.handleComputerWithOutcome("away", fixture.load()).response().getString("code", null));
+		fixture.now.incrementAndGet();
+		assertEquals("MATCH_ABANDONED", application.handleComputerWithOutcome("away", fixture.load()).response().getString("code", null));
+		assertEquals(1, fixture.recovery.saves);
+		assertEquals("MATCH_ABANDONED", fixture.application().handle("home", fixture.load()).getString("code", null));
+		assertEquals(1, fixture.recovery.saves);
+	}
+
+	@Test void onlyHumanPlayerActivityExtendsTheComputerMatchDeadline() throws Exception {
+		Fixture fixture = new Fixture("away");
+		SetupSession session = fixture.engine.session;
+		long start = fixture.now.get();
+		session.recordPlayerActivity("home", start + 10_000);
+		session.recordPlayerActivity("away", start + 3_600_000);
+		assertFalse(session.abandonmentDue(start + 3_609_999));
+		assertTrue(session.abandonIfInactive(start + 3_610_000));
+	}
+
+	@Test void humanMatchKeepsItsThirtyDayDeadline() throws Exception {
+		Fixture fixture = new Fixture();
+		long start = fixture.now.get();
+		assertFalse(fixture.engine.session.abandonmentDue(start + 3_600_000));
+		assertFalse(fixture.engine.session.abandonmentDue(start + 30L * 24 * 3_600_000 - 1));
+		assertTrue(fixture.engine.session.abandonIfInactive(start + 30L * 24 * 3_600_000));
+	}
+
+	@Test void runnableComputerColdLoadReadsPreferencesBeforeTheCheckpoint() throws Exception {
+		runnableComputerColdLoadReadsPreferencesBeforeTheCheckpoint("home");
+		runnableComputerColdLoadReadsPreferencesBeforeTheCheckpoint("away");
+	}
+
+	private void runnableComputerColdLoadReadsPreferencesBeforeTheCheckpoint(String computerRole) throws Exception {
+		Fixture fixture = new Fixture(computerRole);
+		String humanRole = otherRole(computerRole);
+		moveToActor(fixture, humanRole);
+		SetupApplication application = fixture.application();
+		JsonObject initial = application.handle(humanRole, fixture.load()).get("state").asObject();
+		JsonObject handover = application.handle(humanRole, endTurn(fixture.engine, initial, "pass-to-computer"));
+		assertEquals(computerRole, handover.get("state").asObject().getString("actor", null));
 
 		int readsBeforeLoad = fixture.recovery.reads;
 		SetupApplication restarted = fixture.application();
 		restarted.configureStorageAdmission(() -> assertEquals(readsBeforeLoad, fixture.recovery.reads,
 			"The checkpoint read can exhaust the next JDBC operation's allowance"));
-		JsonObject loaded = restarted.handleComputerWithOutcome(fixture.load()).response();
+		JsonObject loaded = restarted.handleComputerWithOutcome(computerRole, fixture.load()).response();
 		assertEquals("ACCEPTED", loaded.getString("code", null));
-		assertEquals("away", loaded.get("state").asObject().getString("actor", null));
+		JsonObject state = loaded.get("state").asObject();
+		assertEquals(computerRole, state.getString("actor", null));
+		assertEquals(computerRole, state.getString("callerRole", null));
+		assertEquals("home".equals(computerRole) ? 1 : -1, state.get("computer").asObject().getInt("attackDirection", 0));
 		assertEquals(1, restarted.lifecycleMetrics().getInt("restoredSessions", -1));
 	}
 
 	@Test void waitingComputerLoadsDoNotExtendResidencyOrRestoreAnIdleMatch() throws Exception {
-		Fixture fixture = new Fixture(true);
+		waitingComputerLoadsDoNotExtendResidencyOrRestoreAnIdleMatch("home");
+		waitingComputerLoadsDoNotExtendResidencyOrRestoreAnIdleMatch("away");
+	}
+
+	private void waitingComputerLoadsDoNotExtendResidencyOrRestoreAnIdleMatch(String computerRole) throws Exception {
+		Fixture fixture = new Fixture(computerRole);
+		String humanRole = otherRole(computerRole);
+		moveToActor(fixture, humanRole);
 		SetupApplication application = fixture.application();
-		JsonObject initial = application.handle("home", fixture.load()).get("state").asObject();
-		assertEquals("home", initial.getString("actor", null));
+		JsonObject initial = application.handle(humanRole, fixture.load()).get("state").asObject();
+		assertEquals(humanRole, initial.getString("actor", null));
 		long idleMillis = application.lifecycleMetrics().getLong("idleMillis", -1);
 		fixture.now.addAndGet(idleMillis - 1000);
-		assertEquals("ACCEPTED", application.handleComputerWithOutcome(fixture.load()).response().getString("code", null));
+		assertEquals("ACCEPTED", application.handleComputerWithOutcome(computerRole, fixture.load()).response().getString("code", null));
 		fixture.now.addAndGet(1000);
 		application.expireReactiveDecisions();
 		assertEquals(1, application.lifecycleMetrics().getInt("idleReleases", 0));
+		JsonObject storedView = JsonObject.readFrom(fixture.recovery.record.json).get("payload").asObject()
+			.get(computerRole + "View").asObject();
 		for (int index = 0; index < 3; index++) {
-			SetupApplication.HandleOutcome load = application.handleComputerWithOutcome(fixture.load());
+			SetupApplication.HandleOutcome load = application.handleComputerWithOutcome(computerRole, fixture.load());
 			assertEquals("ACCEPTED", load.response().getString("code", null));
 			JsonObject waiting = load.response().get("state").asObject();
-			assertEquals("away", waiting.getString("callerRole", null));
+			assertEquals(computerRole, waiting.getString("callerRole", null));
+			assertEquals(humanRole, waiting.getString("actor", null));
+			assertEquals(storedView.get("actions"), waiting.get("actions"));
 			assertEquals(initial.getInt("revision", -1), waiting.getInt("revision", -2));
 			assertEquals(0, application.lifecycleMetrics().getInt("residentSessions", -1));
 			assertEquals(1, application.lifecycleMetrics().getInt("restoredSessions", -1));
 		}
-		SetupApplication.HandleOutcome resumed = application.handleWithOutcome("home", endTurn(fixture.engine, initial, "returning-coach"));
+		SetupApplication.HandleOutcome resumed = application.handleWithOutcome(humanRole, endTurn(fixture.engine, initial, "returning-coach"));
 		assertEquals("ACCEPTED", resumed.response().getString("code", null));
 		assertTrue(resumed.publish());
 		assertEquals(2, application.lifecycleMetrics().getInt("restoredSessions", -1));
+	}
+
+	@Test void completedMatchDocumentTakesPrecedenceOverWaitingCheckpoint() throws Exception {
+		completedMatchDocumentTakesPrecedenceOverWaitingCheckpoint("home");
+		completedMatchDocumentTakesPrecedenceOverWaitingCheckpoint("away");
+	}
+
+	private void completedMatchDocumentTakesPrecedenceOverWaitingCheckpoint(String computerRole) throws Exception {
+		Fixture fixture = new Fixture(computerRole);
+		String humanRole = otherRole(computerRole);
+		moveToActor(fixture, humanRole);
+		JsonObject current = fixture.engine.session.reply("load", "ACCEPTED", false, humanRole).get("state").asObject();
+		assertEquals("ACCEPTED", fixture.engine.session.apply(humanRole, fixture.engine.request("concede", "end-match", current))
+			.getString("code", null));
+		MatchDocument completed = fixture.engine.document.completed(fixture.engine.session.completedMatch());
+		when(fixture.matches.loadForSetup(computerRole, fixture.id)).thenReturn(new MatchService.Result(completed, false));
+
+		SetupApplication.HandleOutcome outcome = fixture.application().handleComputerWithOutcome(computerRole, fixture.load());
+		assertEquals("ACCEPTED", outcome.response().getString("code", null));
+		JsonObject state = outcome.response().get("state").asObject();
+		assertEquals("FULL_TIME", state.getString("phase", null));
+		assertEquals(computerRole, state.getString("callerRole", null));
+		assertEquals(0, fixture.recovery.reads);
+	}
+
+	private String otherRole(String role) { return "home".equals(role) ? "away" : "home"; }
+
+	private void moveToActor(Fixture fixture, String actor) {
+		JsonObject view = fixture.initial;
+		String currentActor = view.getString("actor", null);
+		if (!actor.equals(currentActor)) {
+			JsonObject response = fixture.engine.session.apply(currentActor, endTurn(fixture.engine, view, "fixture-pass-turn"));
+			assertEquals("ACCEPTED", response.getString("code", null));
+			view = response.get("state").asObject();
+			fixture.recovery.record = new RecoveryRepository.Record(fixture.id, 1, fixture.engine.session.recoveryArtifact());
+		}
+		assertEquals(actor, view.getString("actor", null));
 	}
 
 	private static JsonObject endTurn(SetupSessionMovementTest.Fixture engine, JsonObject view, String requestId) {
@@ -173,6 +266,7 @@ class SetupApplicationReadOnlyLoadTest {
 	private static final class Fixture {
 		final SetupSessionMovementTest.Fixture engine;
 		final String id;
+		final JsonObject initial;
 		final AtomicLong now = new AtomicLong(System.currentTimeMillis());
 		final SkillUsePreferenceService preferences = mock(SkillUsePreferenceService.class);
 		final MatchService matches = mock(MatchService.class);
@@ -182,18 +276,16 @@ class SetupApplicationReadOnlyLoadTest {
 			@Override public Clock withZone(ZoneId zone) { return this; }
 			@Override public Instant instant() { return Instant.ofEpochMilli(now.get()); }
 		};
-		Fixture() throws Exception { this(false); }
-		Fixture(boolean computer) throws Exception {
-			engine = new SetupSessionMovementTest.Fixture(0, true, computer);
+		Fixture() throws Exception { this(null); }
+		Fixture(boolean computer) throws Exception { this(computer ? "away" : null); }
+		Fixture(String computerRole) throws Exception {
+			engine = new SetupSessionMovementTest.Fixture(0, true, computerRole);
 			id = engine.document.matchId;
-			JsonObject active = engine.advanceToTurn();
-			if (computer && "away".equals(active.getString("actor", null))) {
-				JsonObject accepted = engine.session.apply("away", endTurn(engine, active, "pass-to-home"));
-				assertEquals("ACCEPTED", accepted.getString("code", null));
-			}
+			initial = engine.advanceToTurn();
 			engine.session.startSaveResumeRetention(now.get());
 			recovery = new MemoryRecovery(id, engine.session.recoveryArtifact());
 			when(matches.load("home", id)).thenReturn(new MatchService.Result(engine.document, false));
+			when(matches.load("away", id)).thenReturn(new MatchService.Result(engine.document, false));
 			when(matches.loadForSetup("home", id)).thenReturn(new MatchService.Result(engine.document, false));
 			when(matches.loadForSetup("away", id)).thenReturn(new MatchService.Result(engine.document, false));
 			when(preferences.loadForMatch(eq(id), anyString())).thenReturn(SkillUsePreferences.defaults());

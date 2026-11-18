@@ -60,9 +60,21 @@ public final class ComputerOpponentService {
 	}
 	/** Legacy Bugman documents predate explicit policy identity. Never infer Bogruk from a display name. */
 	public ComputerCoach coach(MatchDocument document) {
+		return member(document) == null ? null : identityFor(document);
+	}
+
+	/** The frozen computer clone identifies the member independently of seat assignment. */
+	public MatchDocument.Member member(MatchDocument document) {
 		if (document.away == null) return null;
-		ComputerCoach coach = document.computer == null ? identity(document.matchId, BUGMAN_ID) : document.computer;
-		return teamName(coach.opponentId).equals(document.away.team.teamName)
-			&& cloneTeamId(document.matchId, coach.opponentId).equals(document.away.team.sourceTeamId) ? coach : null;
+		ComputerCoach coach = identityFor(document);
+		String name = teamName(coach.opponentId);
+		String teamId = cloneTeamId(document.matchId, coach.opponentId);
+		boolean home = name.equals(document.home.team.teamName) && teamId.equals(document.home.team.sourceTeamId);
+		boolean away = name.equals(document.away.team.teamName) && teamId.equals(document.away.team.sourceTeamId);
+		return home == away ? null : home ? document.home : document.away;
+	}
+
+	private ComputerCoach identityFor(MatchDocument document) {
+		return document.computer == null ? identity(document.matchId, BUGMAN_ID) : document.computer;
 	}
 }

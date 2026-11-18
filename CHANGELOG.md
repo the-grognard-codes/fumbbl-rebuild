@@ -2,7 +2,7 @@
 
 ## Unreleased
 
-- Park computer coaches while they wait for a human turn, wake them on match changes, and let idle matches release their engine from memory.
+- Park computer coaches while they wait for a human turn, wake them on match changes, and release their engine after 30 idle minutes, and abandon computer matches after one hour without human player activity.
 
 - Clear consumed reroll dialogs for native callers and engine harnesses without configured skill preferences, including the stale Bone Head choice reproduced by the seeded harness. Configured browser sessions already received this cleanup.
 

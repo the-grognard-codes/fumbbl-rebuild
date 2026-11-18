@@ -13,6 +13,7 @@ const fields: Record<string, string[]> = {
   skillUsePreferences: ['code', 'preferences'],
   computer: ['code'], computerAuthentication: ['code'], computerJobs: ['code', 'matches'],
   computerJobChanged: ['matchId', 'revision', 'saveResumeChanged'],
+  computerJobEnded: ['matchId'],
   publicationDelayed: ['code', 'matchId', 'family'],
   preparationChanged: ['code', 'matchId'], setupState: ['code', 'duplicate', 'state'],
   matchResult: ['code', 'result', 'event'],
@@ -70,4 +71,7 @@ export function assertV2Projection(message: Record<string, unknown>) {
     || typeof message.revision !== 'number' || !Number.isSafeInteger(message.revision) || message.revision < 0
     || typeof message.saveResumeChanged !== 'boolean'))
     throw Error('Invalid computer job change');
+  if (message.type === 'computerJobEnded' && (message.requestId !== null || typeof message.matchId !== 'string'
+    || !/^[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}$/.test(message.matchId)))
+    throw Error('Invalid ended computer job');
 }

@@ -98,6 +98,6 @@ class ActiveMatchPublisherTest {
 		ArgumentCaptor<String> frame = ArgumentCaptor.forClass(String.class);
 		verify(computer).send(frame.capture());
 		assertEquals("setupState", JsonObject.readFrom(frame.getValue()).getString("type", null));
-		verify(setup, never()).handleComputerWithOutcome(any(JsonObject.class));
+		verify(setup, never()).handleComputerWithOutcome(any(), any(JsonObject.class));
 	}
 }

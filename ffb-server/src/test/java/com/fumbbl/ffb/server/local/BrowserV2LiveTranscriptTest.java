@@ -216,7 +216,7 @@ class BrowserV2LiveTranscriptTest {
 		Connection peer = fixture.connect("away", true), viewer = fixture.connect("spectator", true);
 		fixture.load(peer); fixture.watch(viewer);
 		peer.messages.clear(); viewer.messages.clear();
-		when(fixture.setup.expireReactiveDecisions()).thenReturn(Collections.singletonMap(MATCH, state(10)));
+		when(fixture.setup.expireReactiveDecisions(any())).thenReturn(Collections.singletonMap(MATCH, state(10)));
 
 		fixture.adapter.expireDecisions();
 
@@ -247,11 +247,11 @@ class BrowserV2LiveTranscriptTest {
 		SetupApplication setup = mock(SetupApplication.class);
 		V2PreparationService preparation = mock(V2PreparationService.class);
 		when(preparation.isComputerMatch(MATCH)).thenReturn(true);
-		when(preparation.hasComputerMembership(MATCH)).thenReturn(true);
+		when(preparation.computerMembershipRole(MATCH)).thenReturn("away");
 		when(setup.spectatorView(MATCH)).thenReturn(state(9));
 		when(setup.liveTranscriptPage(MATCH, 9)).thenReturn(page(9));
 		when(setup.liveTranscriptPage(MATCH, 10)).thenReturn(page(10));
-		when(setup.handleComputerWithOutcome(any(JsonObject.class))).thenAnswer(call -> outcome("computer-move", 10, true));
+		when(setup.handleComputerWithOutcome(eq("away"), any(JsonObject.class))).thenAnswer(call -> outcome("computer-move", 10, true));
 		BrowserV2Adapter adapter = new BrowserV2Adapter(bearer -> principal("viewer", ApplicationScope.SPECTATOR),
 			access, setup, mock(MatchService.class), preparation, mock(BrowserSavedTeamJson.class),
 			new ComputerOpponentService("66d34fba71f8f450f7e45598853e53bfc23bbd129027cbb131a2f4ffd7878cd0"));

@@ -192,8 +192,9 @@ class V2PreparationServiceTest {
 			String sql = call.getArgument(0);
 			PreparedStatement query = mock(PreparedStatement.class);
 			ResultSet rows = mock(ResultSet.class);
-			if (sql.startsWith("SELECT 1 FROM ffb_v2_match_members")) {
+			if (sql.startsWith("SELECT role FROM ffb_v2_match_members")) {
 				when(rows.next()).thenReturn(true);
+				when(rows.getString(1)).thenReturn("away");
 			} else if (sql.startsWith("SELECT document_version,document_json FROM ffb_prepared_matches")) {
 				documentReads.incrementAndGet();
 				when(rows.next()).thenReturn(true); when(rows.getInt(1)).thenReturn(4); when(rows.getString(2)).thenReturn(storedDocument);
@@ -205,9 +206,9 @@ class V2PreparationServiceTest {
 		assertTrue(service.isComputerMatch(matchId));
 		assertTrue(service.activeComputerMatches().isEmpty(), "a completed match is no longer an active computer job");
 		assertEquals(1, documentReads.get(), "historical completed rows must be filtered before document decode");
-		verify(connection).prepareStatement(eq("SELECT p.match_id FROM ffb_prepared_matches p "
-			+ "JOIN ffb_v2_match_members away ON away.matchid=p.match_id AND away.account_id=? AND away.role='away' "
-			+ "JOIN ffb_v2_match_members home ON home.matchid=p.match_id AND home.role='home' "
+		verify(connection).prepareStatement(eq("SELECT p.match_id,computer.role FROM ffb_prepared_matches p "
+			+ "JOIN ffb_v2_match_members computer ON computer.matchid=p.match_id AND computer.account_id=? "
+			+ "JOIN ffb_v2_match_members opponent ON opponent.matchid=p.match_id AND opponent.role<>computer.role "
 			+ "WHERE p.document_version=3 ORDER BY p.match_id"));
 	}
 

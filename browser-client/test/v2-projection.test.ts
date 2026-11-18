@@ -44,3 +44,10 @@ test('computer job changes are unsolicited notices with a match revision and no 
   for (const invalid of [{ requestId: 'reply' }, { matchId: 'invalid' }, { revision: -1 }, { revision: 1.5 },
     { saveResumeChanged: 'false' }, { state: {} }]) assert.throws(() => assertV2Projection({ ...notice, ...invalid }));
 });
+
+test('an ended computer job only exposes the match ID in an unsolicited notice', () => {
+  const notice = { version: 2, type: 'computerJobEnded', requestId: null, matchId: '12345678-1234-1234-1234-123456789abc' };
+  assert.doesNotThrow(() => assertV2Projection(notice));
+  for (const invalid of [{ requestId: 'reply' }, { matchId: 'invalid' }, { state: {} }])
+    assert.throws(() => assertV2Projection({ ...notice, ...invalid }));
+});

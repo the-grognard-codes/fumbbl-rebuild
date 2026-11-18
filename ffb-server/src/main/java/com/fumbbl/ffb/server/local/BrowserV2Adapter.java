@@ -100,9 +100,9 @@ public final class BrowserV2Adapter implements BrowserProtocol {
 	@Override public synchronized void retryPublications() { delivery.retry(); }
 
 	@Override public synchronized void expireDecisions() {
-		setup.expireReactiveDecisions().forEach((id, state) -> {
-			publisher.publish(id, null, state);
+		setup.expireReactiveDecisions(this::computerJobEnded).forEach((id, state) -> {
 			computerJobChanged(id, state, false);
+			publisher.publish(id, null, state);
 		});
 	}
 
@@ -419,13 +419,13 @@ public final class BrowserV2Adapter implements BrowserProtocol {
 				LiveMatchTranscript transcript = publisher.transcript(id,
 					state != null && state.isObject() ? state.asObject() : new JsonObject());
 				publisher.sendState(connection, response, transcript);
+				notifyComputerOfSetupOutcome(id, request, outcome);
 				if (outcome.publish()) {
 					publisher.publish(id, connection, state.asObject(), transcript);
-					String operation = request.getString("operation", "");
-					computerJobChanged(id, state.asObject(), operation.startsWith("save") || operation.startsWith("resume"));
 				}
 				return;
 			} else if (type == BrowserV2RequestType.MATCH_RESULT) {
+				// This endpoint only reads results and replays. Concessions commit through setup.
 				String role = access.playerRole(principal, request.get("matchId").asString());
 				response = new MatchResultJson().handle(matches, role, request);
 			}
@@ -463,7 +463,7 @@ public final class BrowserV2Adapter implements BrowserProtocol {
 				if (!"load".equals(request.getString("operation", ""))) preparationChanged(id, connection);
 				if ("activate".equals(request.getString("operation", "")) && preparation.isComputerMatch(id)) {
 					if (watchComputerChanges) watchedComputerMatches.add(id);
-					sendComputerJobs(Collections.singletonList(id));
+					sendComputerJobs(Collections.singletonList(id), null);
 				}
 			}
 		} catch (V2PrincipalAuthenticator.Rejected rejected) { fail(connection, requestId, "AUTHENTICATION_FAILED"); }
@@ -497,18 +497,33 @@ public final class BrowserV2Adapter implements BrowserProtocol {
 			watchComputerChanges = watch;
 			watchedComputerMatches.clear();
 			if (watch) watchedComputerMatches.addAll(activeMatches);
+			// Only correlated chunks before READY form an authoritative snapshot, including an empty list.
+			if (watch) sendComputerJobs(activeMatches, id);
 			computerResponse(connection, id, "READY");
-			sendComputerJobs(activeMatches);
+			if (!watch) sendComputerJobs(activeMatches, null);
 		} else if (type == BrowserV2RequestType.SETUP) {
 			String matchId = request.get("matchId").asString();
-			if (!preparation.hasComputerMembership(matchId)) throw new MatchService.Failure("NOT_FOUND");
+			String role = preparation.computerMembershipRole(matchId);
+			if (role == null) throw new MatchService.Failure("NOT_FOUND");
 			request.set("version", 1);
-			SetupApplication.HandleOutcome outcome = setup.handleComputerWithOutcome(request);
+			SetupApplication.HandleOutcome outcome = setup.handleComputerWithOutcome(role, request);
 			JsonObject response = outcome.response();
 			if ("ACCEPTED".equals(response.getString("code", ""))) publisher.enrollComputer(connection, matchId);
 			send(connection, response);
+			notifyComputerOfSetupOutcome(matchId, request, outcome);
 			if (outcome.publish()) publisher.publish(matchId, connection, response.get("state").asObject());
 		} else { fail(connection, id, "UNSUPPORTED_MESSAGE"); }
+	}
+
+	private void notifyComputerOfSetupOutcome(String matchId, JsonObject request, SetupApplication.HandleOutcome outcome) {
+		JsonObject response = outcome.response();
+		String code = response.getString("code", "");
+		if ("MATCH_ABANDONED".equals(code)) computerJobEnded(matchId);
+		else if (outcome.publish()) {
+			boolean saveResumeChanged = "ACCEPTED".equals(code) && !response.getBoolean("duplicate", false)
+				&& SetupApplication.SAVE_RESUME_OPERATIONS.contains(request.getString("operation", ""));
+			computerJobChanged(matchId, response.get("state").asObject(), saveResumeChanged);
+		}
 	}
 
 	private void computerJobChanged(String matchId, JsonObject state, boolean saveResumeChanged) {
@@ -520,12 +535,19 @@ public final class BrowserV2Adapter implements BrowserProtocol {
 		if ("FULL_TIME".equals(state.getString("phase", null))) watchedComputerMatches.remove(matchId);
 	}
 
-	private void sendComputerJobs(List<String> matches) {
-		if (computerDispatcher == null || matches.isEmpty()) return;
-		for (int first = 0; first < matches.size(); first += 1024) {
+	private void computerJobEnded(String matchId) {
+		if (computerDispatcher == null || !watchedComputerMatches.remove(matchId)) return;
+		send(computerDispatcher, new JsonObject().add("type", "computerJobEnded").add("requestId", JsonValue.NULL)
+			.add("matchId", matchId));
+	}
+
+	private void sendComputerJobs(List<String> matches, String requestId) {
+		if (computerDispatcher == null || (requestId == null && matches.isEmpty())) return;
+		JsonValue correlation = requestId == null ? JsonValue.NULL : JsonValue.valueOf(requestId);
+		for (int first = 0; first < Math.max(1, matches.size()); first += 1024) {
 			JsonArray jobs = new JsonArray();
 			for (int index = first; index < Math.min(first + 1024, matches.size()); index++) jobs.add(matches.get(index));
-			send(computerDispatcher, new JsonObject().add("type", "computerJobs").add("requestId", JsonValue.NULL)
+			send(computerDispatcher, new JsonObject().add("type", "computerJobs").add("requestId", correlation)
 				.add("code", "AVAILABLE").add("matches", jobs));
 		}
 	}
@@ -541,8 +563,10 @@ public final class BrowserV2Adapter implements BrowserProtocol {
 	}
 
 	private JsonObject browseDetails(MatchDocument document, JsonObject state, int spectators) {
-		JsonObject details = new JsonObject().add("home", browseTeam(document.home.team, "Home", null))
-			.add("away", browseTeam(document.away.team, "Away", computerCoach(document)))
+		MatchDocument.Member computer = computers.member(document);
+		String coach = computer == null ? null : computerCoach(document, computer);
+		JsonObject details = new JsonObject().add("home", browseTeam(document.home.team, "Home", computer == document.home ? coach : null))
+			.add("away", browseTeam(document.away.team, "Away", computer == document.away ? coach : null))
 			.add("ruleset", document.home.team.ruleset).add("competition", JsonValue.NULL)
 			.add("spectators", spectators);
 		for (String field : Arrays.asList("phase", "half", "turn", "homeScore", "awayScore"))
@@ -559,10 +583,9 @@ public final class BrowserV2Adapter implements BrowserProtocol {
 			.add("coach", coach == null ? JsonValue.NULL : JsonValue.valueOf(coach));
 	}
 
-	private String computerCoach(MatchDocument document) {
+	private String computerCoach(MatchDocument document, MatchDocument.Member computer) {
 		com.fumbbl.ffb.server.match.ComputerCoach coach = computers.coach(document);
-		if (coach == null) return null;
-		if (document.away.team.coachName != null) return document.away.team.coachName;
+		if (computer.team.coachName != null) return computer.team.coachName;
 		return ComputerOpponentService.BUGMAN_ID.equals(coach.opponentId)
 			? ComputerOpponentService.LEGACY_BUGMAN_NAME : computers.coachName(coach.opponentId);
 	}

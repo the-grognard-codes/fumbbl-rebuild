@@ -81,7 +81,7 @@ function accepted(response) {
   assertV2Projection(response);
   assert.equal(response.version, 2);
   assert.equal(response.code, 'ACCEPTED', JSON.stringify(response));
-  return decodeSetupStateValue(response.state);
+  return decodeSetupStateValue(response.state, 'computer');
 }
 
 let homeRandomState = seed || 0x12345678;
@@ -139,7 +139,7 @@ try {
     summary.decisions++;
     if (response.code === 'ILLEGAL_SETUP' && request.operation === 'confirm') {
       setupVariant++;
-      if (response.state) state = decodeSetupStateValue(response.state);
+      if (response.state) state = decodeSetupStateValue(response.state, 'computer');
       continue;
     }
     if (response.code !== 'ACCEPTED') { summary.invalid++; throw Error(`Rejected ${kind}: ${JSON.stringify(response)}`); }

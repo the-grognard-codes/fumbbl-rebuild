@@ -44,6 +44,12 @@ function send(socket, object) {
 function response(requestId, next) {
   return { version: 2, type: 'setupState', requestId, code: 'ACCEPTED', duplicate: false, state: next };
 }
+function registeredJobs(socket, requestId, batches) {
+  for (const matches of batches) {
+    send(socket, { version: 2, type: 'computerJobs', requestId, code: 'AVAILABLE', matches });
+  }
+  send(socket, { version: 2, type: 'computer', requestId, code: 'READY' });
+}
 function readFrames(socket, onMessage) {
   let bytes = Buffer.alloc(0);
   socket.on('data', chunk => {
@@ -324,8 +330,7 @@ test('idle human-turn matches yield capacity, ignore refreshes and wake on a new
       else if (body.operation === 'register') {
         dispatcher = socket;
         registrations++;
-        send(socket, { version: 2, type: 'computer', requestId: body.requestId, code: 'READY' });
-        send(socket, { version: 2, type: 'computerJobs', requestId: null, code: 'AVAILABLE', matches: [matchId, secondMatchId] });
+        registeredJobs(socket, body.requestId, [[matchId], [secondMatchId]]);
       } else if (body.operation === 'load') {
         loads.push(body.matchId);
         const waiting = body.matchId === matchId && !homeActed;
@@ -365,6 +370,157 @@ test('idle human-turn matches yield capacity, ignore refreshes and wake on a new
     for (const socket of sockets) socket.destroy();
     server.close();
   }
+});
+
+async function dispatcherHarness(t, handle) {
+  const sockets = new Set();
+  const server = createServer();
+  server.on('upgrade', (request, socket) => {
+    sockets.add(socket); socket.on('close', () => sockets.delete(socket)); socket.on('error', () => {});
+    const accept = createHash('sha1').update(`${request.headers['sec-websocket-key']}258EAFA5-E914-47DA-95CA-C5AB0DC85B11`).digest('base64');
+    socket.write(`HTTP/1.1 101 Switching Protocols\r\nUpgrade: websocket\r\nConnection: Upgrade\r\nSec-WebSocket-Accept: ${accept}\r\n\r\n`);
+    readFrames(socket, body => {
+      if (body.type === 'authenticateComputer')
+        send(socket, { version: 2, type: 'computerAuthentication', requestId: body.requestId, code: 'ACCEPTED' });
+      else handle(socket, body);
+    });
+  });
+  server.listen(0, '127.0.0.1'); await once(server, 'listening');
+  const child = spawn(process.execPath, ['src/daemon.mjs', '--url', `ws://127.0.0.1:${server.address().port}/browser/v2`,
+    '--origin', origin, '--max-matches', '1', '--idle-timeout-ms', '150', '--refresh-ms', '1000'], {
+    cwd: new URL('..', import.meta.url), windowsHide: true,
+    env: { ...process.env, FFB_COMPUTER_SERVICE_TOKEN: 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa' }
+  });
+  let output = '';
+  child.stdout.on('data', chunk => { output += chunk; });
+  child.stderr.on('data', chunk => { output += chunk; });
+  t.after(async () => {
+    try { await stopChild(child); }
+    finally {
+      for (const socket of sockets) socket.destroy();
+      server.close();
+    }
+  });
+  return {
+    async waitFor(predicate) {
+      const deadline = Date.now() + 4500;
+      while (!predicate(output) && Date.now() < deadline) await new Promise(done => setTimeout(done, 25));
+      assert.ok(predicate(output), output);
+    }
+  };
+}
+
+test('dispatcher reconnect wakes parked jobs even when it missed the human publication', { timeout: 9000 }, async t => {
+  let dispatcher, loads = 0, action, homeActed = false;
+  const { waitFor } = await dispatcherHarness(t, (socket, body) => {
+    if (body.operation === 'register') {
+      dispatcher = socket;
+      registeredJobs(socket, body.requestId, [[matchId]]);
+    } else if (body.operation === 'load') {
+      loads++;
+      const actor = homeActed ? 'away' : 'home';
+      send(socket, response(body.requestId, { ...state, callerRole: 'away', actor,
+        revision: homeActed ? 1 : 0, prompt: { ...state.prompt, actor } }));
+    } else if (body.operation === 'choice') {
+      action = body;
+      send(socket, response(body.requestId, { ...state, callerRole: 'away', revision: 2,
+        phase: 'FULL_TIME', prompt: null }));
+    }
+  });
+  await waitFor(output => output.includes('yielded its idle worker'));
+  dispatcher.destroy();
+  homeActed = true;
+  await waitFor(() => action);
+  assert.equal(action.expectedRevision, 1);
+  assert.equal(loads, 2);
+});
+
+test('an empty registration prunes parked jobs before a later job announcement', { timeout: 9000 }, async t => {
+  let dispatcher, advertised = true, emptySnapshot = false, loads = 0;
+  const { waitFor } = await dispatcherHarness(t, (socket, body) => {
+    if (body.operation === 'register') {
+      dispatcher = socket;
+      registeredJobs(socket, body.requestId, [advertised ? [matchId] : []]);
+      if (!advertised) emptySnapshot = true;
+    } else if (body.operation === 'load') {
+      loads++;
+      send(socket, response(body.requestId, { ...state, callerRole: 'away' }));
+    }
+  });
+  await waitFor(output => output.includes('yielded its idle worker'));
+  advertised = false;
+  await waitFor(() => emptySnapshot);
+  assert.equal(loads, 1);
+  advertised = true;
+  send(dispatcher, { version: 2, type: 'computerJobs', requestId: null, code: 'AVAILABLE', matches: [matchId] });
+  await waitFor(() => loads === 2);
+});
+
+test('dispatcher negotiates change notices again after a legacy registration fallback', { timeout: 9000 }, async t => {
+  const watchAttempts = [];
+  let dispatcher, readyWithWatch = false, loads = 0;
+  const { waitFor } = await dispatcherHarness(t, (socket, body) => {
+    if (body.operation === 'register') {
+      watchAttempts.push(body.watchChanges);
+      if (watchAttempts.length === 1) {
+        send(socket, { version: 2, type: 'error', requestId: body.requestId, code: 'MALFORMED_MESSAGE' });
+      } else if (!body.watchChanges) {
+        send(socket, { version: 2, type: 'computer', requestId: body.requestId, code: 'READY' });
+        send(socket, { version: 2, type: 'computerJobs', requestId: null, code: 'AVAILABLE', matches: [matchId] });
+      } else {
+        dispatcher = socket;
+        registeredJobs(socket, body.requestId, [[matchId]]);
+        readyWithWatch = true;
+      }
+    } else if (body.operation === 'load') {
+      loads++;
+      send(socket, response(body.requestId, { ...state, callerRole: 'away' }));
+    }
+  });
+  await waitFor(output => readyWithWatch && output.includes('yielded its idle worker'));
+  assert.deepEqual(watchAttempts.slice(0, 2), [true, undefined]);
+  assert.equal(loads, 1);
+  send(dispatcher, { version: 2, type: 'computerJobChanged', requestId: null, matchId, revision: 1, saveResumeChanged: false });
+  await waitFor(() => loads === 2);
+});
+
+test('a suspended Bogruk yields even on its own turn', { timeout: 9000 }, async t => {
+  const suspended = { ...state, projectionVersion: 4, callerRole: 'home', actor: 'home',
+    computer: { opponentId: 'coach-bogruk-weak', policyVersion: 'bogruk-v1', seed: 42, attackDirection: 1,
+      movement: null, progress: { turnKey: '1:1:1', stalledTurns: 0 }, policyState: null },
+    saveResume: { status: 'SUSPENDED', proposalId: null, proposer: null, expiresAt: null },
+    homeTeamName: 'Home', awayTeamName: 'Away',
+    homeResources: { apothecaries: 0, assistantCoaches: 0, cheerleaders: 0 },
+    awayResources: { apothecaries: 0, assistantCoaches: 0, cheerleaders: 0 } };
+  const { waitFor } = await dispatcherHarness(t, (socket, body) => {
+    if (body.operation === 'register') registeredJobs(socket, body.requestId, [[matchId]]);
+    if (body.operation === 'load') send(socket, response(body.requestId, suspended));
+  });
+  await waitFor(output => output.includes('yielded its idle worker'));
+});
+
+test('abandonment stops both a parked job and a worker that sees a durable abandoned match', { timeout: 9000 }, async t => {
+  let dispatcher, registrations = 0;
+  const loads = [];
+  const { waitFor } = await dispatcherHarness(t, (socket, body) => {
+    if (body.operation === 'register') {
+      dispatcher = socket;
+      registeredJobs(socket, body.requestId, [[matchId, secondMatchId]]);
+      registrations++;
+    } else if (body.operation === 'load') {
+      loads.push(body.matchId);
+      if (body.matchId === matchId) send(socket, response(body.requestId, { ...state, callerRole: 'away' }));
+      else send(socket, { version: 2, type: 'setupState', requestId: body.requestId, code: 'MATCH_ABANDONED',
+        duplicate: false, state: null });
+    }
+  });
+  await waitFor(output => output.includes(`Match ${secondMatchId} was abandoned.`));
+  send(dispatcher, { version: 2, type: 'computerJobEnded', requestId: null, matchId });
+  send(dispatcher, { version: 2, type: 'computerJobChanged', requestId: null, matchId, revision: 1, saveResumeChanged: false });
+  const nextRegistration = registrations + 1;
+  await waitFor(() => registrations >= nextRegistration);
+  await new Promise(done => setTimeout(done, 300));
+  assert.deepEqual(loads, [matchId, secondMatchId]);
 });
 
 test('idle lease never discards an unanswered gameplay request', { timeout: 10000 }, async () => {

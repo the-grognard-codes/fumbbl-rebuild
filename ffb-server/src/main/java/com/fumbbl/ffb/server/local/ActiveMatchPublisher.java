@@ -146,7 +146,7 @@ final class ActiveMatchPublisher {
 							.add("operation", "load").add("requestId", "broadcast").add("matchId", matchId);
 						JsonObject response = setup.publishedState(matchId, role, recipient.viewer.principal == null);
 						if (response == null) response = recipient.viewer.principal == null
-							? setup.handleComputerWithOutcome(load).response() : setup.handle(role, load);
+							? setup.handleComputerWithOutcome(role, load).response() : setup.handle(role, load);
 						response.set("requestId", JsonValue.NULL);
 						sendState(recipient.connection, response, transcript, () -> access.publicationRole(authorization, target(), slot), transcriptReserved);
 					}
