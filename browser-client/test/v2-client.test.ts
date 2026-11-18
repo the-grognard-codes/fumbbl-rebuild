@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs';
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { V2Client, v2PendingKey } from '../src/v2-client.ts';
@@ -767,4 +768,44 @@ test('gameplay responses leave queued lobby timers alone', async t => {
   now = 2000; t.mock.timers.tick(2000);
   assert.equal(socket.sent.at(-1).requestId, queued);
   client.disconnect();
+});
+
+test('opponent and spectator receive live positions without advancing the confirmed revision', async () => {
+  for (const watch of [false, true]) {
+    const { client, connect } = fixture(new Map(), { matchId: match, watch }, false, 'play');
+    const initial = await connect(true);
+    const frame = JSON.parse(readFileSync(new URL('./fixtures/m5a-blitz-projections.json', import.meta.url), 'utf8'))[0].actor;
+    const base = { ...frame, matchId: match, revision: 2, actor: 'home', callerRole: watch ? 'spectator' : 'away', actions: [],
+      phase: 'SETUP', turnMode: 'SETUP', activePlayerId: null, prompt: null };
+    delete base.playerActionMenu;
+    delete base.blockPreview;
+    const player = base.players.find((item: any) => item.role === 'home');
+    const load = (socket: Socket, value: unknown) => socket.reply({ type: 'setupState', requestId: socket.sent.at(-1).requestId,
+      code: 'ACCEPTED', duplicate: false, state: value });
+    load(initial, base);
+    const staged = { type: 'stagedPlacement', requestId: null, code: 'ACCEPTED', matchId: match, baseRevision: 2,
+      stageSeq: 2, players: [{ playerId: player.id, x: 8, y: 7 }] };
+    initial.reply(staged);
+    assert.equal(client.state?.revision, 2);
+    assert.equal(client.state?.players.find(item => item.id === player.id)?.x, 8);
+    initial.reply({ ...staged, stageSeq: 1, players: [{ playerId: player.id, x: 7, y: 7 }] });
+    assert.equal(client.state?.stageSeq, 2);
+    assert.equal(client.state?.players.find(item => item.id === player.id)?.x, 8);
+
+    const live = { ...base, stageSeq: 2, players: client.state?.players };
+    client.disconnect();
+    const reconnect = await connect(true);
+    load(reconnect, live);
+    assert.equal(client.state?.stageSeq, 2);
+    assert.equal(client.state?.players.find(item => item.id === player.id)?.x, 8);
+    reconnect.reply({ type: 'setupState', requestId: null, code: 'ACCEPTED', duplicate: false, state: { ...base, revision: 3 } });
+    reconnect.reply({ ...staged, stageSeq: 3 });
+    assert.equal(client.state?.revision, 3);
+    assert.equal(client.state?.stageSeq, undefined);
+
+    client.disconnect();
+    load(await connect(true), base);
+    assert.equal(client.state?.revision, 2, 'A restored server opens at the last checkpoint');
+    assert.equal(client.state?.players.find(item => item.id === player.id)?.x, player.x);
+  }
 });

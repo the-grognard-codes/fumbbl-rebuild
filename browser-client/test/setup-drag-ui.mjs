@@ -46,7 +46,7 @@ async function open(initial, touch = false) {
           requestId: request.requestId, code: 'ACCEPTED', accountId: 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa' }));
         if (request.type === 'matchTranscript' || request.type === 'matchChat') queueMicrotask(() => this.emit({
           version: 2, type: 'error', requestId: request.requestId, code: 'TRANSCRIPT_UNAVAILABLE' }));
-        if (request.type === 'setup' && request.operation === 'load') this.reply(request.requestId);
+        if (request.type === 'watch' || request.type === 'setup' && request.operation === 'load') this.reply(request.requestId);
         if (request.type === 'setup' && request.operation === 'place') {
           const moving = this.state.players.find(player => player.id === request.playerId);
           const displaced = request.to && this.state.players.find(player => player.id !== request.playerId && player.x === request.to.x && player.y === request.to.y);
@@ -95,11 +95,21 @@ async function open(initial, touch = false) {
       close() { this.readyState = 3; this.onclose?.(); }
     };
   }, initial);
-  await page.goto(`http://127.0.0.1:${server.httpServer.address().port}/play/match?matchId=${frame.matchId}`);
+  await page.goto(`http://127.0.0.1:${server.httpServer.address().port}/play/match?matchId=${frame.matchId}${initial.callerRole === 'spectator' ? '&watch=1' : ''}`);
   await page.locator('.live-pitch-scene').waitFor();
   return { page, errors };
 }
 try {
+  for (const callerRole of ['away', 'spectator']) {
+    const live = await open({ ...setup, turnMode: 'SETUP', callerRole });
+    const moved = live.page.locator('.live-marker[data-player-id="home1"][data-x="8"][data-y="7"]');
+    await live.page.evaluate(matchId => window.testSocket.emit({ version: 2, type: 'stagedPlacement', requestId: null,
+      code: 'ACCEPTED', matchId, baseRevision: 0, stageSeq: 1, players: [{ playerId: 'home1', x: 8, y: 7 }] }), frame.matchId);
+    await moved.waitFor();
+    assert.deepEqual(live.errors, []);
+    await live.page.close();
+  }
+
   const { page, errors } = await open(setup);
   const scene = page.locator('.live-pitch-scene');
   const sent = () => page.evaluate(() => window.testSocket.sent.filter(request => request.type === 'setup' && request.operation === 'place'));

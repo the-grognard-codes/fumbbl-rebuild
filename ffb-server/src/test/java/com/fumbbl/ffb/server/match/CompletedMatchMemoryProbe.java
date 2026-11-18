@@ -13,7 +13,7 @@ public final class CompletedMatchMemoryProbe {
 			BogrukEngineFixture fixture = new BogrukEngineFixture("human", "orc", 0xB06A7L);
 			RecoveryRepository.Record record = paddedRecoveryRecord(fixture, 40 * 1024 * 1024);
 			RetainedConcession retained = new RetainedConcession(record, fixture.document);
-			if (retained.closed() || retained.unsupported()) throw new AssertionError("valid retained recovery was not preserved");
+			if (retained.closed() || !retained.unsupported()) throw new AssertionError("retired recovery must remain available for administrative reads");
 			if (!"home".equals(retained.view("home").getString("callerRole", null)))
 				throw new AssertionError("retained recovery did not return the home view");
 			System.out.println("retained-read-passed bytes=" + record.json.length());

@@ -53,6 +53,32 @@ class ActiveMatchPublisherTest {
 		assertEquals("VIEW_UNAVAILABLE", JsonObject.readFrom(frame.getValue()).getString("code", null));
 	}
 
+	@Test void placementSendsOneIdenticalFrameToOpponentAndSpectatorWithoutReadingState() throws Exception {
+		V2MatchAccess access = mock(V2MatchAccess.class);
+		SetupApplication setup = mock(SetupApplication.class);
+		BrowserConnection coach = mock(BrowserConnection.class);
+		BrowserConnection opponent = mock(BrowserConnection.class);
+		BrowserConnection spectator = mock(BrowserConnection.class);
+		when(setup.spectatorView("match")).thenReturn(new JsonObject());
+		new PublicationTestGrants().allow(access, target ->
+			target.audience() == com.fumbbl.ffb.server.match.V2PublicationAuthorization.Audience.SPECTATOR ? "spectator" : "away");
+		ActiveMatchPublisher publisher = new ActiveMatchPublisher(access, setup);
+		publisher.enrollPlayer(coach, mock(AuthenticatedPrincipal.class), "match");
+		publisher.enrollPlayer(opponent, mock(AuthenticatedPrincipal.class), "match");
+		publisher.watch(spectator, mock(AuthenticatedPrincipal.class), "match", "watch");
+		JsonObject frame = new JsonObject().add("version", 2).add("type", "stagedPlacement")
+			.add("baseRevision", 8).add("stageSeq", 1);
+
+		publisher.publishPlacement("match", coach, frame);
+		publisher.retryPublications();
+
+		verify(coach, never()).send(any(String.class));
+		verify(opponent).send(frame.toString());
+		verify(spectator).send(frame.toString());
+		verify(setup).spectatorView("match");
+		org.mockito.Mockito.verifyNoMoreInteractions(setup);
+	}
+
 	@Test void spectatorBroadcastExcludesCoachOnlyGuidanceWithoutChangingTheCoachResponse() throws Exception {
 		V2MatchAccess access = mock(V2MatchAccess.class);
 		SetupApplication setup = mock(SetupApplication.class);

@@ -34,6 +34,10 @@ final class BogrukEngineFixture {
 	private final Random dice;
 
 	BogrukEngineFixture(String homeRoster, String awayRoster, long seed) throws Exception {
+		this(homeRoster, awayRoster, seed, false);
+	}
+
+	BogrukEngineFixture(String homeRoster, String awayRoster, long seed, boolean staged) throws Exception {
 		ComputerOpponentService computers = new ComputerOpponentService(null);
 		String id = "00000000-0000-0000-0000-000000000021";
 		FrozenTeam home = frozen(homeRoster, "home", "00000000-0000-0000-0000-000000000011");
@@ -55,7 +59,7 @@ final class BogrukEngineFixture {
 		when(server.getDebugLog()).thenReturn(mock(DebugLog.class));
 		when(server.getCommunication()).thenReturn(mock(ServerCommunication.class));
 		dice = new Random(seed);
-		session = new SetupSession(server, document, -2, true, true, true, true, true, true);
+		session = new SetupSession(server, document, -2, true, true, true, true, true, true, staged);
 		session.recordPlayerActivity(System.currentTimeMillis());
 		pinDice();
 	}

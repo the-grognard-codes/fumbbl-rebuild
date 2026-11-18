@@ -34,7 +34,7 @@ class ComputerPolicyRecoveryTest {
 	}
 
 	@Test void acceptedPolicyStateAndEngineActionCheckpointTogetherAndExactRetriesDoNotAdvanceEither() throws Exception {
-		BogrukEngineFixture fixture = new BogrukEngineFixture("human", "orc", 42);
+		BogrukEngineFixture fixture = new BogrukEngineFixture("human", "orc", 42, true);
 		MemoryRecovery recovery = new MemoryRecovery(fixture.document.matchId, fixture.session.recoveryArtifact());
 		MatchService matches = mock(MatchService.class);
 		when(matches.load("away", fixture.document.matchId)).thenReturn(new MatchService.Result(fixture.document, false));

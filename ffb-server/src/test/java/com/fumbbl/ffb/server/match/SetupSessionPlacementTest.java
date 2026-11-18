@@ -1,6 +1,7 @@
 package com.fumbbl.ffb.server.match;
 
 import com.eclipsesource.json.Json;
+import com.fumbbl.ffb.DiceCategory;
 import com.fumbbl.ffb.FactoryManager;
 import com.fumbbl.ffb.FactoryType;
 import com.fumbbl.ffb.FieldCoordinate;
@@ -310,6 +311,183 @@ class SetupSessionPlacementTest {
         }
     }
 
+
+    @Test void stagedSetupKeepsOnlyOneDurableConfirmationAfterOneHundredAdjustments() {
+        Fixture fixture = new Fixture("human", "human", true, 11);
+        JsonObject base = fixture.setup();
+        String actor = base.getString("actor", null);
+        String opponent = "home".equals(actor) ? "away" : "home";
+        JsonObject first = fixture.pitchPlayer(base, actor, 0);
+        JsonObject second = fixture.pitchPlayer(base, actor, 1);
+        String playerId = first.getString("id", null);
+        String checkpoint = fixture.session.recoveryArtifact();
+        int[] cursors = fixture.session.recoveryJournalCounts();
+        JsonObject lastRequest = null;
+        for (int index = 1; index <= StagedPlacements.SETUP_ADJUSTMENT_LIMIT; index++) {
+            JsonObject target = index % 2 == 1 ? second : first;
+            lastRequest = fixture.place("stage-" + index, base, playerId, target.getInt("x", -1), target.getInt("y", -1));
+            JsonObject live = fixture.session.apply(actor, lastRequest).get("state").asObject();
+            assertEquals(base.get("revision"), live.get("revision"));
+            assertEquals(index, live.getInt("stageSeq", -1));
+            assertEquals(target.get("x"), fixture.player(live, playerId).get("x"));
+            assertEquals(target.get("y"), fixture.player(fixture.session.spectatorView(), playerId).get("y"));
+            assertEquals(target.get("y"), fixture.player(fixture.session.reply("reconnect", "ACCEPTED", false, opponent)
+                .get("state").asObject(), playerId).get("y"));
+            if (index == 1) {
+                SetupSession restored = new SetupSession(fixture.server, fixture.document, fixture.session.recoveryArtifact(), true);
+                assertEquals(base.get("players"), restored.spectatorView().get("players"));
+                assertTrue(!restored.apply(actor, lastRequest).getBoolean("duplicate", true));
+            }
+        }
+        assertTrue(fixture.session.apply(actor, lastRequest).getBoolean("duplicate", false));
+        for (int index = StagedPlacements.SETUP_ADJUSTMENT_LIMIT + 1; index <= 1000; index++)
+            assertEquals("INVALID_OPTION", fixture.failure(actor,
+                fixture.place("over-limit-" + index, base, playerId, second.getInt("x", -1), second.getInt("y", -1))));
+        assertTrue(fixture.session.spectatorView().getBoolean("setupAdjustmentsExhausted", false));
+        assertEquals(checkpoint, fixture.session.recoveryArtifact());
+        org.junit.jupiter.api.Assertions.assertArrayEquals(cursors, fixture.session.recoveryJournalCounts());
+
+        JsonObject confirmed = fixture.session.apply(actor, fixture.request("confirm", "confirm-staged", base)).get("state").asObject();
+        assertEquals(base.getInt("revision", -1) + 1, confirmed.getInt("revision", -1));
+        int[] after = fixture.session.recoveryJournalCounts();
+        assertEquals(cursors[0] + 1, after[0]);
+        assertEquals(cursors[1] + 1, after[1]);
+        assertEquals(cursors[3] + 1, after[3]);
+        assertEquals(confirmed.get("players"), new SetupSession(fixture.server, fixture.document,
+            fixture.session.recoveryArtifact(), true).spectatorView().get("players"));
+        System.out.printf("STAGED_SETUP_CHECKPOINT_BYTES before=%d after=%d accepted=%d attempted=1000%n",
+            checkpoint.getBytes(java.nio.charset.StandardCharsets.UTF_8).length,
+            fixture.session.recoveryArtifact().getBytes(java.nio.charset.StandardCharsets.UTF_8).length,
+            StagedPlacements.SETUP_ADJUSTMENT_LIMIT);
+    }
+
+    @Test void forcedSetupRecoversLegalDeploymentForOneThroughTenPlayers() {
+        for (int players = 1; players <= 10; players++) {
+            Fixture fixture = new Fixture("human", "human", true, players);
+            JsonObject base = fixture.setup();
+            String actor = base.getString("actor", null);
+            JsonObject first = fixture.pitchPlayer(base, actor, 0);
+            JsonObject reserve = fixture.request("place", "to-reserves", base).add("playerId", first.get("id")).add("to", JsonValue.NULL);
+            assertEquals("ACCEPTED", fixture.session.apply(actor, reserve).getString("code", null));
+            assertEquals("ILLEGAL_SETUP", fixture.session.apply(actor, fixture.request("confirm", "illegal", base)).getString("code", null));
+            JsonObject result = fixture.session.forceConfirmStage(System.currentTimeMillis());
+            assertEquals("ACCEPTED", result.getString("code", null), "Available players: " + players);
+            JsonObject confirmed = result.get("state").asObject();
+            int fielderCount = 0;
+            for (JsonValue value : confirmed.get("players").asArray()) {
+                JsonObject player = value.asObject();
+                if (!actor.equals(player.getString("role", null)) || player.get("x").isNull()) continue;
+                fielderCount++;
+                if (players <= 3) {
+                    assertEquals("home".equals(actor) ? 12 : 13, player.getInt("x", -1));
+                    assertTrue(player.getInt("y", -1) >= 4 && player.getInt("y", -1) <= 10);
+                }
+            }
+            assertEquals(players, fielderCount);
+        }
+    }
+
+
+    @Test void solidDefenceStagesSelectionsAndRevertsAnIllegalFiftiethPlacement() throws Exception {
+        Fixture fixture = new Fixture("human", "human", true, 11);
+        JsonObject selection = fixture.kick(2, 2);
+        assertEquals("SOLID_DEFENCE", selection.get("kickoff").asObject().getString("event", null));
+        String actor = selection.getString("actor", null);
+        JsonObject eligible = fixture.action(selection, "event-pick:");
+        String playerId = eligible.get("target").asObject().getString("playerId", null);
+
+        String beforeSelection = fixture.session.recoveryArtifact();
+        JsonObject selected = fixture.submit(selection, "pick", eligible);
+        assertEquals(selection.get("revision"), selected.get("revision"));
+        assertEquals(1, selected.getInt("stageSeq", -1));
+        assertEquals(1, selected.get("kickoff").asObject().getInt("selected", -1));
+        assertEquals(beforeSelection, fixture.session.recoveryArtifact());
+
+        JsonObject base = fixture.submit(selected, "confirm-selection", fixture.action(selected, "event-confirm"));
+        assertEquals(selection.getInt("revision", -1) + 1, base.getInt("revision", -1));
+        String beforeMoves = fixture.session.recoveryArtifact();
+        JsonObject initial = fixture.player(base, playerId);
+        int x = initial.getInt("x", -1);
+        List<Integer> openRows = new ArrayList<>();
+        for (int row = 4; row <= 10; row++) {
+            if (fixture.actionOrNull(base, "solid-place:" + playerId + ":" + x + ":" + row) != null) openRows.add(row);
+        }
+        int first = openRows.get(0), second = openRows.get(1);
+        JsonObject live = base;
+        for (int i = 1; i <= 49; i++) {
+            live = fixture.submit(live, "move-" + i, fixture.action(live,
+                "solid-place:" + playerId + ":" + x + ":" + (i % 2 == 1 ? first : second)));
+            assertEquals(base.get("revision"), live.get("revision"));
+        }
+        JsonObject illegal = null;
+        for (JsonValue value : live.get("actions").asArray()) {
+            JsonObject option = value.asObject();
+            if (!"kickoffMove".equals(option.getString("kind", ""))
+                || !playerId.equals(option.get("sourcePlayerId").asString())) continue;
+            JsonObject square = option.get("target").asObject();
+            int targetY = square.getInt("y", -1);
+            int originalY = initial.getInt("y", -1);
+            int rowStart = targetY < 4 ? 0 : 11;
+            if (targetY >= 4 && targetY <= 10 || originalY >= rowStart && originalY < rowStart + 4) continue;
+            int wideCount = 0;
+            for (JsonValue player : live.get("players").asArray()) {
+                JsonObject item = player.asObject();
+                int row = item.getInt("y", -1);
+                if (actor.equals(item.getString("role", null)) && row >= rowStart && row < rowStart + 4) wideCount++;
+            }
+            if (wideCount >= 2) { illegal = option; break; }
+        }
+        assertTrue(illegal != null);
+        live = fixture.submit(live, "move-50", illegal);
+        assertEquals(50, live.getInt("stageSeq", -1));
+        assertEquals(initial.get("x"), fixture.player(live, playerId).get("x"));
+        assertEquals(initial.get("y"), fixture.player(live, playerId).get("y"));
+        assertEquals("INVALID_OPTION", fixture.failure(actor,
+            fixture.request("action", "over-50", live).add("actionId", illegal.get("id"))));
+        assertEquals(beforeMoves, fixture.session.recoveryArtifact());
+        int[] before = fixture.session.recoveryJournalCounts();
+        JsonObject confirmed = fixture.submit(live, "confirm-placements", fixture.action(live, "confirm-solid-defence"));
+        assertEquals(base.getInt("revision", -1) + 1, confirmed.getInt("revision", -1));
+        assertEquals(before[1] + 1, fixture.session.recoveryJournalCounts()[1]);
+        assertEquals(before[3] + 1, fixture.session.recoveryJournalCounts()[3]);
+    }
+
+    @Test void quickSnapAndHighKickStayOpenUntilFinish() throws Exception {
+        for (String event : List.of("QUICK_SNAP", "HIGH_KICK")) {
+            Fixture fixture = new Fixture("human", "human", true, 11);
+            boolean quick = "QUICK_SNAP".equals(event);
+            JsonObject base = fixture.kick(quick ? 4 : 2, quick ? 5 : 3);
+            assertEquals(event, base.get("kickoff").asObject().getString("event", null));
+            if (quick) {
+                base = fixture.submit(base, "pick", fixture.action(base, "event-pick:"));
+                base = fixture.submit(base, "confirm-choice", fixture.action(base, "event-confirm"));
+            }
+            String artifact = fixture.session.recoveryArtifact();
+            JsonObject move = fixture.action(base, "event-");
+            String player = move.getString("sourcePlayerId", null);
+            JsonObject live = fixture.submit(base, "kickoff-move", move);
+            assertEquals(base.get("revision"), live.get("revision"));
+            assertEquals(base.get("turnMode"), live.get("turnMode"));
+            assertEquals(1, live.getInt("stageSeq", -1));
+            assertEquals(move.get("target").asObject().get("x"), fixture.player(live, player).get("x"));
+            assertEquals(move.get("target").asObject().get("y"), fixture.player(live, player).get("y"));
+            assertEquals(artifact, fixture.session.recoveryArtifact());
+            assertEquals(null, fixture.actionOrNull(live, "event-"));
+            JsonObject confirmed = fixture.submit(live, "end-event", fixture.action(live, "end-event"));
+            assertEquals(base.getInt("revision", -1) + 1, confirmed.getInt("revision", -1));
+            assertEquals(fixture.player(live, player).get("x"), fixture.player(confirmed, player).get("x"));
+            assertEquals(fixture.player(live, player).get("y"), fixture.player(confirmed, player).get("y"));
+        }
+    }
+
+    @Test void currentRuntimeRejectsRetiredPlacementCheckpoints() {
+        Fixture fixture = new Fixture();
+        fixture.setup();
+        MatchService.Failure failure = org.junit.jupiter.api.Assertions.assertThrows(MatchService.Failure.class,
+            () -> new SetupSession(fixture.server, fixture.document, fixture.session.recoveryArtifact(), true));
+        assertEquals("RECOVERY_UNSUPPORTED", failure.code);
+    }
+
     private static final class Fixture {
         final FantasyFootballServer server = mock(FantasyFootballServer.class);
         final MatchDocument document;
@@ -321,8 +499,12 @@ class SetupSessionPlacementTest {
         }
 
         Fixture(String homeRoster, String awayRoster) {
-            FrozenTeam home = frozen("00000000-0000-0000-0000-000000000011", "home", homeRoster);
-            FrozenTeam away = frozen("00000000-0000-0000-0000-000000000012", "away", awayRoster);
+            this(homeRoster, awayRoster, false, 11);
+        }
+
+        Fixture(String homeRoster, String awayRoster, boolean staged, int players) {
+            FrozenTeam home = frozen("00000000-0000-0000-0000-000000000011", "home", homeRoster, players);
+            FrozenTeam away = frozen("00000000-0000-0000-0000-000000000012", "away", awayRoster, players);
             document = new MatchDocument("00000000-0000-0000-0000-000000000021", 3, "away", MatchDocument.Lifecycle.ACTIVATED,
                 new MatchDocument.Member("home", "home", home), new MatchDocument.Member("away", "away", away));
             FactoryManager manager = new FactoryManager();
@@ -333,13 +515,13 @@ class SetupSessionPlacementTest {
             when(server.getFactory(any())).thenAnswer(invocation -> factories.get(invocation.getArgument(0)));
             when(server.getDebugLog()).thenReturn(mock(DebugLog.class));
             when(server.getCommunication()).thenReturn(mock(ServerCommunication.class));
-            session = new SetupSession(server, document, -2, true, true, true, true, true, true);
+            session = new SetupSession(server, document, -2, true, true, true, true, true, true, staged);
         }
 
-        private FrozenTeam frozen(String id, String role, String roster) {
+        private FrozenTeam frozen(String id, String role, String roster, int playerCount) {
             RosterCatalog catalog = new RosterCatalog(roster);
             List<TeamDraft.Player> players = new ArrayList<>();
-            for (int slot = 1; slot <= 11; slot++)
+            for (int slot = 1; slot <= playerCount; slot++)
                 players.add(new TeamDraft.Player("player" + slot, slot, "orc".equals(roster) ? "orc-lineman" : "lineman", Collections.emptyList()));
             Map<String, Integer> resources = new LinkedHashMap<>();
             for (String resource : catalog.getResources().keySet()) resources.put(resource, 0);
@@ -358,6 +540,47 @@ class SetupSessionPlacementTest {
                 state = session.apply(state.getString("actor", null), choice).get("state").asObject();
             }
             return state;
+        }
+
+
+        JsonObject kick(int first, int second) throws Exception {
+            JsonObject view = setup();
+            for (int index = 0; index < 2; index++) {
+                view = session.apply(view.getString("actor", null), request("confirm", "setup-" + index, view))
+                    .get("state").asObject();
+            }
+            Field engine = SetupSession.class.getDeclaredField("state");
+            engine.setAccessible(true);
+            GameState nativeState = (GameState) engine.get(session);
+            Game game = nativeState.getGame();
+            List<DiceCategory> dice = new ArrayList<>();
+            for (int value : new int[] { 1, 1, first, second, 1, 6, 6 }) {
+                DiceCategory roll = new DiceCategory();
+                roll.parseCommand(Integer.toString(value), game, game.getTeamHome());
+                dice.add(roll);
+            }
+            nativeState.getDiceRoller().getTestRolls().put("General", dice);
+            return submit(view, "kick", action(view, game.isHomePlaying() ? "kick-22-8" : "kick-3-8"));
+        }
+
+        JsonObject actionOrNull(JsonObject view, String prefix) {
+            for (JsonValue option : view.get("actions").asArray()) {
+                JsonObject action = option.asObject();
+                if (action.getString("id", "").split(":", 2)[1].startsWith(prefix)) return action;
+            }
+            return null;
+        }
+
+        JsonObject action(JsonObject view, String prefix) {
+            JsonObject action = actionOrNull(view, prefix);
+            if (action == null) throw new AssertionError("Missing " + prefix + " in " + view.get("turnMode"));
+            return action;
+        }
+
+        JsonObject submit(JsonObject view, String id, JsonObject action) {
+            JsonObject result = session.apply(view.getString("actor", null), request("action", id, view).add("actionId", action.get("id")));
+            assertEquals("ACCEPTED", result.getString("code", null), id);
+            return result.get("state").asObject();
         }
 
         JsonObject request(String operation, String id, JsonObject state) {

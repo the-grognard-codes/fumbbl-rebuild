@@ -101,6 +101,34 @@ final class ActiveMatchPublisher {
 
 	void retryPublications() { delivery.retry(); }
 
+	/** One best-effort broadcast with the same revocation checks as a durable state push. */
+	void publishPlacement(String matchId, BrowserConnection source, JsonObject placement) {
+		if (placement == null) return;
+		List<Recipient> recipients = recipients(matchId, source, false);
+		if (recipients.isEmpty()) return;
+		V2PublicationAuthorization.Snapshot authorization;
+		try (BrowserRequestTiming.Scope ignored = timing.span(BrowserRequestTiming.Phase.PUBLICATION)) {
+			authorization = access.publication(matchId, V2PublicationAuthorization.Family.STATE,
+				recipients.stream().map(Recipient::target).toList());
+			String frame = placement.toString();
+			for (int slot = 0; slot < recipients.size(); slot++) {
+				Recipient recipient = recipients.get(slot);
+				try {
+					access.publicationRole(authorization, recipient.target, slot);
+					recipient.connection.send(frame);
+				} catch (V2MatchAccess.PublicationDeferred budgetSpent) {
+					return;
+				} catch (MatchService.Failure unauthorized) {
+					unavailable(recipient);
+				} catch (RuntimeException disconnected) {
+					disconnect(recipient.connection);
+				}
+			}
+		} catch (SQLException | RuntimeException unavailable) {
+			// Lost presentation frames are repaired by a later stage message, confirm or reload.
+		}
+	}
+
 	void publishChat(String matchId, BrowserConnection source, JsonObject page) {
 		String retainedPage = page.toString();
 		List<PublicationDelivery.Recipient> targets = new ArrayList<>();

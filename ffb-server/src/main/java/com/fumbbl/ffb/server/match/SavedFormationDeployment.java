@@ -10,6 +10,7 @@ import com.fumbbl.ffb.net.commands.ClientCommandSetupPlayer;
 import com.fumbbl.ffb.server.GameState;
 import com.fumbbl.ffb.server.net.ReceivedCommand;
 import com.fumbbl.ffb.server.team.bb2025.TeamFormations;
+import com.fumbbl.ffb.server.util.UtilServerSetup;
 
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -17,10 +18,15 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
-/** Applies a complete template through native setup commands within one durable mutation. */
+/** Projects jersey templates onto the available players and applies the resulting legal formation. */
 final class SavedFormationDeployment {
 
 	void apply(GameState state, boolean home, FrozenTeam frozen, TeamFormations.Formation formation, boolean computer) {
+        apply(state, home, frozen, formation, computer, false);
+    }
+
+    void apply(GameState state, boolean home, FrozenTeam frozen, TeamFormations.Formation formation,
+        boolean completeFormation, boolean staged) {
 		Game game = state.getGame();
 		Team team = home ? game.getTeamHome() : game.getTeamAway();
 		List<Player<?>> available = new ArrayList<>();
@@ -32,7 +38,7 @@ final class SavedFormationDeployment {
 			available.stream().filter(player -> jersey(frozen, player) == assignment.jerseyNumber()).findFirst()
 				.ifPresent(player -> plan.put(player, new FieldCoordinate(12 - assignment.depth(), assignment.column())));
 		}
-		if (computer) complete(plan, available);
+		if (completeFormation) complete(plan, available);
 		// Clear this side only. Ineligible players retain their KO/casualty/sent-off boxes.
 		for (Player<?> player : available) {
 			FieldCoordinate current = game.getFieldModel().getPlayerCoordinate(player);
@@ -41,18 +47,24 @@ final class SavedFormationDeployment {
 			int row = 0;
 			while (game.getFieldModel().getPlayer(new FieldCoordinate(box, row)) != null) row++;
 			FieldCoordinate reserve = new FieldCoordinate(box, row);
-			state.handleCommand(new ReceivedCommand(new ClientCommandSetupPlayer(player.getId(), home ? reserve : reserve.transform()), home));
+			place(state, home, player, home ? reserve : reserve.transform(), staged);
 		}
 		for (Map.Entry<Player<?>, FieldCoordinate> assignment : plan.entrySet()) {
 			// Native away commands mirror x only; rotate template columns to keep the coach's own perspective.
 			FieldCoordinate square = assignment.getValue();
 			FieldCoordinate commandSquare = home ? square : new FieldCoordinate(square.getX(), 14 - square.getY());
-			state.handleCommand(new ReceivedCommand(new ClientCommandSetupPlayer(assignment.getKey().getId(), commandSquare), home));
+			place(state, home, assignment.getKey(), commandSquare, staged);
 		}
 	}
 
+    private void place(GameState state, boolean home, Player<?> player, FieldCoordinate square, boolean staged) {
+        if (staged) UtilServerSetup.setupPlayer(state, player.getId(), square);
+        else state.handleCommand(new ReceivedCommand(new ClientCommandSetupPlayer(player.getId(), square), home));
+    }
+
 	private void complete(Map<Player<?>, FieldCoordinate> plan, List<Player<?>> available) {
 		int required = Math.min(11, available.size());
+        if (required <= 3) plan.clear();
 		int minimumLos = Math.min(3, required);
 		// Captains must be fielded even when the saved eleven predate their recruitment.
 		List<Player<?>> priority = new ArrayList<>(available);

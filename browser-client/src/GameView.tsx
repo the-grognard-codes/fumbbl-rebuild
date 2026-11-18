@@ -1059,7 +1059,7 @@ function GameViewContent({ view, connected, pending: requestPending, mutate, acc
         {touchInput && confirmationTarget && <button type="button" className="secondary" disabled={!canChoose}
           onClick={cancelPlan}>Cancel plan</button>}
         {teammateProposal && <button type="button" className="secondary" disabled={!canChoose} onClick={cancelProposal}>Cancel teammate selection</button>}
-        {view.phase === 'SETUP' && !playbackActive && <SavedFormationButtons formations={view.savedFormations} disabled={!maySetup}
+        {view.phase === 'SETUP' && !playbackActive && <SavedFormationButtons formations={view.savedFormations} disabled={!maySetup || view.setupAdjustmentsExhausted === true}
           select={index => { setPlayerId(''); mutate('formation', { formationIndex: index }); }} />}
       </div>}
       {hosted && <div ref={commandBar} className="match-command-bar" aria-label="Current decision">
@@ -1254,9 +1254,9 @@ function GameViewContent({ view, connected, pending: requestPending, mutate, acc
         <label>X <input aria-label="Setup X" type="number" min="0" max="25" value={x} onChange={event => setX(Number(event.target.value))} disabled={!maySetup} /></label>
         <label>Y <input aria-label="Setup Y" type="number" min="0" max="14" value={y} onChange={event => setY(Number(event.target.value))} disabled={!maySetup} /></label>
         <button type="button" onClick={() => mutate('place', { playerId, to: { x, y } })} disabled={!maySetup || !canPlaceReserve(view, playerId, x, y)}>Place on empty own-half square</button>
-        <button type="button" className="secondary" onClick={() => mutate('place', { playerId, to: null })} disabled={!maySetup || !own.some(player => player.id === playerId && player.x !== null)}>Return selected player to reserve</button>
+        <button type="button" className="secondary" onClick={() => mutate('place', { playerId, to: null })} disabled={!maySetup || view.setupAdjustmentsExhausted || !own.some(player => player.id === playerId && player.x !== null)}>Return selected player to reserve</button>
         <button type="button" onClick={() => mutate('confirm')} disabled={!maySetup}>Confirm Setup</button>
-        {!playbackActive && <SavedFormationButtons formations={view.savedFormations} disabled={!maySetup}
+        {!playbackActive && <SavedFormationButtons formations={view.savedFormations} disabled={!maySetup || view.setupAdjustmentsExhausted === true}
           select={index => { setPlayerId(''); mutate('formation', { formationIndex: index }); }} />}
       </section>}
       {!hosted && rosterTable}

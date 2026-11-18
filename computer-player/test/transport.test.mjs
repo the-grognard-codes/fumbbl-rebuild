@@ -406,6 +406,14 @@ test('idle lease never discards an unanswered gameplay request', { timeout: 1000
 test('authenticates over the browser route and acts from received state', { timeout: 15000 }, async () => {
   const seen = [];
   let choices = 0;
+  const event = solidDefenceState(matchId);
+  const playerId = event.players[0].id;
+  const placeId = "1:solid-place:" + playerId + ":8:7";
+  const staging = { ...event, revision: 1, callerRole: 'home', actor: 'home',
+    actions: [
+      { id: placeId, kind: 'kickoffMove', label: 'Place player', actor: 'home',
+        sourcePlayerId: playerId, target: { x: 8, y: 7 } }
+    ] };
   const server = createServer();
   server.on('upgrade', (request, socket) => {
     socket.on('error', () => {});
@@ -422,9 +430,12 @@ test('authenticates over the browser route and acts from received state', { time
       } else if (requestBody.operation === 'choice') {
         choices++;
         if (choices === 1) { socket.destroy(); return; } // The first action committed but its acknowledgement was lost.
-        send(socket, { ...response(requestBody.requestId, { ...state, revision: 1, phase: 'PLAY', prompt: null,
-          actions: [{ id: '1:end', label: 'End turn', actor: 'home', kind: 'endTurn', target: null }] }), duplicate: true });
-      } else if (requestBody.operation === 'action') {
+        send(socket, { ...response(requestBody.requestId, staging), duplicate: true });
+      } else if (requestBody.actionId === placeId) {
+        send(socket, response(requestBody.requestId, { ...staging, stageSeq: 1,
+          actions: [{ id: '1:confirm-solid-defence', kind: 'kickoffChoice', label: 'Confirm Solid Defence',
+            actor: 'home', target: null, sourcePlayerId: null }] }));
+      } else if (requestBody.actionId === '1:confirm-solid-defence') {
         send(socket, response(requestBody.requestId, { ...state, revision: 2, phase: 'FULL_TIME', prompt: null }));
       }
     });
@@ -446,12 +457,14 @@ test('authenticates over the browser route and acts from received state', { time
       new Promise((_, reject) => { timer = setTimeout(() => reject(Error(`Timed out: ${output}\n${errors}\n${JSON.stringify(seen)}`)), 8000); })
     ]);
     assert.equal(code, 0, errors);
-    assert.deepEqual(seen.map(request => request.type === 'authenticateComputer' ? 'authenticateComputer' : request.operation), ['authenticateComputer', 'load', 'choice', 'authenticateComputer', 'choice', 'action']);
+    assert.deepEqual(seen.map(request => request.type === 'authenticateComputer' ? 'authenticateComputer' : request.operation), ['authenticateComputer', 'load', 'choice', 'authenticateComputer', 'choice', 'action', 'action']);
     assert.ok(['heads', 'tails'].includes(seen[2].optionId));
     assert.equal(seen[2].expectedRevision, 0);
     assert.deepEqual(seen[4], seen[2], 'uncertain action must be retried with the exact request ID and body');
-    assert.equal(seen[5].actionId, '1:end');
+    assert.equal(seen[5].actionId, placeId);
     assert.equal(seen[5].expectedRevision, 1);
+    assert.equal(seen[6].actionId, '1:confirm-solid-defence');
+    assert.equal(seen[6].expectedRevision, 1, 'A staged acknowledgement permits another action at the same revision');
   } finally {
     clearTimeout(timer);
     try { await stopChild(child); }

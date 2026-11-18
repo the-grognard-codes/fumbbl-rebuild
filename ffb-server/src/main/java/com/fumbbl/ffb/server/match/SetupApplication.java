@@ -87,12 +87,21 @@ public final class SetupApplication {
 	public static final class HandleOutcome {
 		private final JsonObject response;
 		private final boolean publish;
-		private HandleOutcome(JsonObject response, boolean publish) { this.response = response; this.publish = publish; }
+		private final boolean staged;
+		private final JsonObject placement;
+		private HandleOutcome(JsonObject response, boolean publish, boolean staged, JsonObject placement) {
+			this.response = response;
+			this.publish = publish;
+			this.staged = staged;
+			this.placement = placement;
+		}
 		public JsonObject response() { return response; }
 		public boolean publish() { return publish; }
+		public boolean staged() { return staged; }
+		public JsonObject placement() { return placement; }
 	}
 
-	private HandleOutcome outcome(JsonObject response, boolean publish) { return new HandleOutcome(response, publish); }
+	private HandleOutcome outcome(JsonObject response, boolean publish) { return new HandleOutcome(response, publish, false, null); }
 
 	private JsonObject publishedState(SetupSession session, String requestId) {
 		return session.decorateSaveResume(session.reply(requestId, "ACCEPTED", false, "home")).get("state").asObject();
@@ -222,7 +231,7 @@ public final class SetupApplication {
 				RecoveryRepository.Record staged = recoveryRecord(id, false);
 				if (staged == null) {
 					// Persist an unpublished initial checkpoint first. Activation can then be retried after any crash.
-					SetupSession initial = new SetupSession(server, document, engineId--, true, defaultSetup, saveResume, true, true, true);
+					SetupSession initial = new SetupSession(server, document, engineId--, true, defaultSetup, saveResume, true, true, true, true);
 					if (saveResume) initial.startSaveResumeRetention(clock.millis());
 					if (!recovery.save(new RecoveryRepository.Record(id, 1, initial.recoveryArtifact()), 0))
 						return preparedFailure(request, "CONFLICT");
@@ -286,7 +295,7 @@ public final class SetupApplication {
 
 	private SetupSession reconstruct(MatchDocument document, RecoveryRepository.Record record) {
 		try {
-			SetupSession session = new SetupSession(server, document, record.json);
+			SetupSession session = new SetupSession(server, document, record.json, true);
 			rejectedRecoveryGenerations.remove(document.matchId);
 			return session;
 		} catch (MatchService.Failure failure) {
@@ -568,6 +577,7 @@ public final class SetupApplication {
 				return outcome(expired, true);
 			}
 			JsonObject response;
+			boolean staging = session.isStagedRequest(request);
 			try {
 				if (request.get("computerDecision") != null) session.validateComputerDecision(request);
 				else if (computerChannel && document.computer != null
@@ -578,14 +588,21 @@ public final class SetupApplication {
 				else try (BrowserRequestTiming.Scope ignored = timing.span(BrowserRequestTiming.Phase.SESSION_APPLY)) {
 					response = isSaveResumeOperation(operation) ? session.saveResume(role, request, clock.millis()) : session.apply(role, request, decisionTime);
 				}
+				if (staging) {
+					boolean accepted = "ACCEPTED".equals(response.getString("code", null)) && !response.getBoolean("duplicate", false);
+					return new HandleOutcome(session.decorateSaveResume(response), false, true, accepted ? session.stagedPlacement() : null);
+				}
 				if (request.get("computerDecision") != null && "ACCEPTED".equals(response.getString("code", null))
 					&& !response.getBoolean("duplicate", false)) session.acceptComputerDecision(request);
 				if ("ACCEPTED".equals(response.getString("code", null)) && !response.getBoolean("duplicate", false)
 					&& !"load".equals(operation) && !"concessionStatus".equals(operation) && !isSaveResumeOperation(operation)) session.recordPlayerActivity(clock.millis());
 			} catch (RuntimeException failure) {
-				checkpoint(owner, id, session);
+				if (!staging) checkpoint(owner, id, session);
 				throw failure;
 			}
+			if ("ILLEGAL_SETUP".equals(response.getString("code", null)) && response.get("state").isObject()
+				&& session.usesStagedPlacements())
+				return outcome(session.decorateSaveResume(response), false);
 			// Resident reads cannot change history. Retain the first restored checkpoint and any
 			// proposal/reaction/clock maintenance even when no native decision was executed.
 			if (!(session.isComplete() && recovered != null) && (!readOnly || pendingRestoreCheckpoints.contains(id) || expiredProposal

@@ -1035,10 +1035,24 @@ public class FieldModel implements IJsonSerializable {
 		return chompees == null || !chompees.contains(chompee.getId());
 	}
 
+    private boolean quietPlayerPositions;
+
+    /** Project a temporary board on the engine worker without publishing native model changes. */
+    public <T> T withQuietPlayerPositions(java.util.function.Supplier<T> operation) {
+        boolean prior = quietPlayerPositions;
+        quietPlayerPositions = true;
+        try {
+            return operation.get();
+        } finally {
+            quietPlayerPositions = prior;
+        }
+    }
+
 	// change tracking
 
 	private void notifyObservers(ModelChangeId pChangeId, String pKey, Object pValue) {
-		if ((getGame() == null) || (pChangeId == null)) {
+		if ((getGame() == null) || (pChangeId == null) || quietPlayerPositions
+            && (pChangeId == ModelChangeId.FIELD_MODEL_SET_PLAYER_COORDINATE || pChangeId == ModelChangeId.FIELD_MODEL_SET_PLAYER_STATE)) {
 			return;
 		}
 		getGame().notifyObservers(new ModelChange(pChangeId, pKey, pValue));

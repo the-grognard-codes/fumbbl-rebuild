@@ -34,7 +34,7 @@ export type BallState = { version: 1; carrierPlayerId: string | null; inPlay: bo
 export type ThreatGuidance = { version: 1; eligiblePlayerIds: string[]; zonePlayerIds: string[] };
 export type BlockPreview = { version: 1; rolls: { playerId: string; targetPlayerId: string; dice: number; highlight?: BlockHighlight }[];
   multiple?: { actionId: string; context: BlockContext }[] };
-export type SetupState = { savedFormations?: { name: string; index: number }[]; blockContext?: BlockContext; computer?: ComputerPolicyContext; projectionVersion?: 2 | 3 | 4; matchId: string; revision: number; callerRole: MatchRole | 'spectator'; phase: 'PRE_MATCH' | 'SETUP' | 'READY_FOR_KICKOFF' | 'PLAY' | 'FULL_TIME'; actor: MatchRole; prompt: SetupPrompt | null; players: SetupPlayer[]; weather: string; homeRerolls: number; awayRerolls: number; actions: SetupAction[]; playerActionMenu?: PlayerActionMenuEntry[]; turn: number; turnMode: string; ball: { x: number; y: number } | null; activePlayerId: string | null; activePlayerAction?: string; half: number; homeTurn: number; awayTurn: number; homeScore: number; awayScore: number; drive: number; homeTeamName?: string; awayTeamName?: string; homeTeamArt?: MatchTeamArt; awayTeamArt?: MatchTeamArt; homeResources?: TeamResources; awayResources?: TeamResources; saveResume?: SaveResumeStatus; clock?: MatchClock; passing?: PassingRanges; kickoff?: KickoffPresentation; driveTracker?: DriveTrackerPresentation; ballState?: BallState; kickPreview?: { deviation: { x: number; y: number }; withKick: { x: number; y: number } }; movementForecast?: MovementForecast; threats?: ThreatGuidance; blockPreview?: BlockPreview; reaction?: Reaction };
+export type SetupState = { stageSeq?: number; setupAdjustmentsExhausted?: true; savedFormations?: { name: string; index: number }[]; blockContext?: BlockContext; computer?: ComputerPolicyContext; projectionVersion?: 2 | 3 | 4; matchId: string; revision: number; callerRole: MatchRole | 'spectator'; phase: 'PRE_MATCH' | 'SETUP' | 'READY_FOR_KICKOFF' | 'PLAY' | 'FULL_TIME'; actor: MatchRole; prompt: SetupPrompt | null; players: SetupPlayer[]; weather: string; homeRerolls: number; awayRerolls: number; actions: SetupAction[]; playerActionMenu?: PlayerActionMenuEntry[]; turn: number; turnMode: string; ball: { x: number; y: number } | null; activePlayerId: string | null; activePlayerAction?: string; half: number; homeTurn: number; awayTurn: number; homeScore: number; awayScore: number; drive: number; homeTeamName?: string; awayTeamName?: string; homeTeamArt?: MatchTeamArt; awayTeamArt?: MatchTeamArt; homeResources?: TeamResources; awayResources?: TeamResources; saveResume?: SaveResumeStatus; clock?: MatchClock; passing?: PassingRanges; kickoff?: KickoffPresentation; driveTracker?: DriveTrackerPresentation; ballState?: BallState; kickPreview?: { deviation: { x: number; y: number }; withKick: { x: number; y: number } }; movementForecast?: MovementForecast; threats?: ThreatGuidance; blockPreview?: BlockPreview; reaction?: Reaction };
 export type SetupResponse = { version: 1; type: 'setupState'; requestId: string | null; code: SetupCode; duplicate: boolean; state: SetupState | null; setupErrors?: string[] };
 const codes = new Set<SetupCode>(['ACCEPTED','SESSION_UNAVAILABLE','NOT_ACTIVATED','WRONG_ACTOR','WRONG_PHASE','WRONG_PLAYER','ILLEGAL_PLACEMENT','ILLEGAL_SETUP','PROMPT_MISMATCH','INVALID_OPTION','REQUEST_ID_REUSED','REQUEST_HISTORY_LIMIT','SAVE_HISTORY_LIMIT','SAVE_RESUME_UNAVAILABLE','SAVE_PROPOSAL_PENDING','SAVE_PROPOSAL_MISSING','SAVE_PROPOSAL_MISMATCH','SAVE_PROPOSAL_OWNER','MATCH_SUSPENDED','MATCH_NOT_SUSPENDED','MATCH_ABANDONED','STALE_REVISION','INVALID_REQUEST','NOT_FOUND','AUTHENTICATION_REQUIRED','PERSISTENCE_FAILED','SNAPSHOT_UNSUPPORTED','REPLAY_UNSUPPORTED','MATCH_COMPLETED','COMPLETION_PENDING','MATCH_OUTCOME_UNKNOWN','COMPLETION_CONFLICT','REPLAY_LIMIT','RECOVERY_UNSUPPORTED','RECOVERY_CORRUPT','RECOVERY_CONFLICT','RECOVERY_LIMIT','ACTIVATION_LIMIT']);
 const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
@@ -50,7 +50,15 @@ export function decodeSetupStateValue(value: unknown, spectator = false): SetupS
 	const artV2 = source.projectionVersion === 2 || source.projectionVersion === 3 || detailsV4;
 	const targetsV3 = source.projectionVersion === 3 || detailsV4;
 	const required = artV2 ? [...base, 'projectionVersion', ...(detailsV4 ? ['homeTeamName','awayTeamName','homeResources','awayResources'] : [])] : base;
-	if ((source.projectionVersion !== undefined && !artV2) || required.some(key => !Object.hasOwn(source, key)) || keys.some(key => !required.includes(key) && key !== 'saveResume' && key !== 'clock' && key !== 'passing' && key !== 'kickoff' && key !== 'ballState' && key !== 'kickPreview' && key !== 'movementForecast' && key !== 'homeTeamArt' && key !== 'awayTeamArt' && key !== 'threats' && key !== 'driveTracker' && key !== 'blockPreview' && key !== 'blockContext' && key !== 'playerActionMenu' && key !== 'activePlayerAction' && key !== 'reaction' && key !== 'computer' && key !== 'savedFormations') || (Object.hasOwn(source, 'clock') || Object.hasOwn(source, 'passing') || Object.hasOwn(source, 'kickoff') || Object.hasOwn(source, 'ballState') || Object.hasOwn(source, 'kickPreview') || Object.hasOwn(source, 'movementForecast') || Object.hasOwn(source, 'homeTeamArt') || Object.hasOwn(source, 'awayTeamArt') || Object.hasOwn(source, 'threats') || Object.hasOwn(source, 'driveTracker') || Object.hasOwn(source, 'blockPreview') || Object.hasOwn(source, 'blockContext') || Object.hasOwn(source, 'playerActionMenu') || Object.hasOwn(source, 'activePlayerAction') || Object.hasOwn(source, 'reaction') || Object.hasOwn(source, 'computer')) && !detailsV4) throw Error('Unexpected fields');
+	if ((source.projectionVersion !== undefined && !artV2) || required.some(key => !Object.hasOwn(source, key)) || keys.some(key => !required.includes(key) && key !== 'saveResume' && key !== 'clock' && key !== 'passing' && key !== 'kickoff' && key !== 'ballState' && key !== 'kickPreview' && key !== 'movementForecast' && key !== 'homeTeamArt' && key !== 'awayTeamArt' && key !== 'threats' && key !== 'driveTracker' && key !== 'blockPreview' && key !== 'blockContext' && key !== 'playerActionMenu' && key !== 'activePlayerAction' && key !== 'reaction' && key !== 'computer' && key !== 'savedFormations' && key !== 'stageSeq' && key !== 'setupAdjustmentsExhausted') || (Object.hasOwn(source, 'clock') || Object.hasOwn(source, 'passing') || Object.hasOwn(source, 'kickoff') || Object.hasOwn(source, 'ballState') || Object.hasOwn(source, 'kickPreview') || Object.hasOwn(source, 'movementForecast') || Object.hasOwn(source, 'homeTeamArt') || Object.hasOwn(source, 'awayTeamArt') || Object.hasOwn(source, 'threats') || Object.hasOwn(source, 'driveTracker') || Object.hasOwn(source, 'blockPreview') || Object.hasOwn(source, 'blockContext') || Object.hasOwn(source, 'playerActionMenu') || Object.hasOwn(source, 'activePlayerAction') || Object.hasOwn(source, 'reaction') || Object.hasOwn(source, 'computer')) && !detailsV4) throw Error('Unexpected fields');
+
+    if (source.stageSeq !== undefined) {
+        integer(source.stageSeq, 100);
+        if (!spectator || source.stageSeq === 0 || !detailsV4) throw Error('Invalid placement sequence');
+    }
+    if (source.setupAdjustmentsExhausted !== undefined && (!spectator || !detailsV4
+        || source.setupAdjustmentsExhausted !== true || source.phase !== 'SETUP' || source.stageSeq !== 100))
+        throw Error('Invalid setup adjustment limit');
     if (Object.hasOwn(source, 'savedFormations')) {
         if (!detailsV4 || source.phase !== 'SETUP' || source.turnMode !== 'SETUP' || source.callerRole !== source.actor
             || !Array.isArray(source.savedFormations) || source.savedFormations.length < 1 || source.savedFormations.length > 3) throw Error('Invalid saved formation controls');
@@ -328,6 +336,7 @@ export function decodeSetupState(json: string): SetupResponse {
 }
 /** Client-side affordance only; the server remains authoritative for placement legality. */
 export function canPlaceReserve(state: SetupState, playerId: string, x: number, y: number): boolean {
+	if (state.setupAdjustmentsExhausted) return false;
 	const player = state.players.find(item => item.id === playerId);
 	return state.phase === 'SETUP' && state.actor === state.callerRole && !!player && player.role === state.callerRole && Number.isSafeInteger(x) && Number.isSafeInteger(y)
 		&& y >= 0 && y < 15 && (state.callerRole === 'home' ? x >= 0 && x <= 12 : x >= 13 && x < 26)
@@ -349,4 +358,34 @@ function decodePlayerSkillMarkers(value: unknown): void {
     ids.add(entry.id);
   }
   for (const detail of data.details) text(detail, 300);
+}
+
+/** These positions are live-only and never enter the playback queue. */
+export function applyStagedPlacement(state: SetupState, value: Record<string, unknown>): SetupState {
+    integer(value.baseRevision);
+    integer(value.stageSeq, 100);
+    if (value.stageSeq === 0 || !Array.isArray(value.players) || value.players.length > 32) throw Error('Invalid staged placement');
+    if (value.matchId !== state.matchId || value.baseRevision !== state.revision || value.stageSeq <= (state.stageSeq ?? 0)) return state;
+    const changed = new Map<string, { x: number | null; y: number | null }>();
+    for (const item of value.players) {
+        const { playerId, x, y } = object(item, ['playerId', 'x', 'y']);
+        text(playerId, 200);
+        if (changed.has(playerId) || !state.players.some(player => player.id === playerId && player.role === state.actor))
+            throw Error('Invalid staged player');
+        if (x === null && y === null) changed.set(playerId, { x, y });
+        else {
+            integer(x, 25); integer(y, 14);
+            changed.set(playerId, { x, y });
+        }
+    }
+    const players = state.players.map(player => {
+        const square = changed.get(player.id);
+        if (!square) return player;
+        const setupState = state.phase === 'SETUP' && player.x !== square.x
+            ? square.x === null ? { offPitch: 'reserve' as const, state: 'is in reserve', status: 'Reserve' }
+                : player.x === null ? { offPitch: 'pitch' as const, state: 'is standing', status: 'Standing' } : {}
+            : {};
+        return { ...player, ...setupState, ...square };
+    });
+    return { ...state, stageSeq: value.stageSeq, players };
 }

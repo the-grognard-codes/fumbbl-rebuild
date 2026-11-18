@@ -410,6 +410,11 @@ public final class BrowserV2Adapter implements BrowserProtocol {
 					publisher.enrollPlayer(connection, principals.get(connection), id);
 					preparationSubscriptions.remove(connection);
 				}
+				if (outcome.staged()) {
+					send(connection, response);
+					publisher.publishPlacement(id, connection, outcome.placement());
+					return;
+				}
 				JsonValue state = response.get("state");
 				LiveMatchTranscript transcript = publisher.transcript(id,
 					state != null && state.isObject() ? state.asObject() : new JsonObject());
@@ -489,6 +494,7 @@ public final class BrowserV2Adapter implements BrowserProtocol {
 			JsonObject response = outcome.response();
 			if ("ACCEPTED".equals(response.getString("code", ""))) publisher.enrollComputer(connection, matchId);
 			send(connection, response);
+			if (outcome.staged()) publisher.publishPlacement(matchId, connection, outcome.placement());
 			if (outcome.publish()) publisher.publish(matchId, connection, response.get("state").asObject());
 		} else { fail(connection, id, "UNSUPPORTED_MESSAGE"); }
 	}

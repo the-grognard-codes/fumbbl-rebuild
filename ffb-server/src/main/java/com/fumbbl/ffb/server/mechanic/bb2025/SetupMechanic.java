@@ -29,6 +29,17 @@ public class SetupMechanic extends com.fumbbl.ffb.server.mechanic.SetupMechanic 
 
 	@Override
 	public boolean checkSetup(GameState pGameState, boolean pHomeTeam, int additionalSwarmers) {
+        List<String> errors = setupErrors(pGameState, pHomeTeam, additionalSwarmers);
+        if (errors.isEmpty()) return true;
+        Game game = pGameState.getGame();
+        Team team = pHomeTeam ? game.getTeamHome() : game.getTeamAway();
+        UtilServerDialog.showDialog(pGameState,
+            new DialogSetupErrorParameter(team.getId(), errors.toArray(new String[0])), false);
+        return false;
+    }
+
+    /** Legality without publishing the native error dialog. */
+    public List<String> setupErrors(GameState pGameState, boolean pHomeTeam, int additionalSwarmers) {
 		if (pGameState == null) {
 			throw new IllegalArgumentException("Parameter gameState must not be null.");
 		}
@@ -117,13 +128,7 @@ public class SetupMechanic extends com.fumbbl.ffb.server.mechanic.SetupMechanic 
 			messageList.add("Your Team Captain is in reserves.");
 		}
 
-		if (!messageList.isEmpty()) {
-			UtilServerDialog.showDialog(pGameState,
-					new DialogSetupErrorParameter(team.getId(), messageList.toArray(new String[0])), false);
-			return false;
-		} else {
-			return true;
-		}
+		return messageList;
 	}
 
 	@Override
