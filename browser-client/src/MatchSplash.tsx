@@ -1,5 +1,5 @@
 import { useTeamColorContext } from './TeamColorArtProvider.tsx';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import type { CSSProperties, ReactNode } from 'react';
 import { MatchArt } from './MatchScoreboard.tsx';
 import { announcementHeadline, announcementOutcome, announcementScorer, announcementText } from './match-announcements.ts';
@@ -31,18 +31,10 @@ export type MatchSplashProps = {
   icon?: ReactNode; colors?: { accent?: string; secondary?: string };
 };
 
-function startShadeEntrance(node: HTMLDivElement | null) {
-  if (!node) return;
-  // Establish the transparent starting value once per mount. The same CSS
-  // transition can then reverse in place as cards arrive or leave.
-  node.style.opacity = '0';
-  void getComputedStyle(node).opacity;
-  node.style.removeProperty('opacity');
-}
-
 /** No focus transfer: Escape and the explicit button dismiss without reaching pitch shortcuts. */
 export function MatchSplash({ announcement, onDismiss, hold, exiting, rate, shadeHeld = false, fading = false,
   icon, colors, onExited, onSkipGap, cameraEnd = 'home' }: MatchSplashProps) {
+  const [entranceRate] = useState(rate);
   const escapeAction = fading ? undefined : announcement ? onDismiss : onSkipGap;
   useEffect(() => {
     if (!escapeAction) return;
@@ -56,12 +48,12 @@ export function MatchSplash({ announcement, onDismiss, hold, exiting, rate, shad
   }, [escapeAction]);
   const otherEnd = cameraEnd === 'home' ? 'away' : 'home';
   const screenTeam = cameraEnd === 'away' ? announcement?.team === 'home' ? 'away' : 'home' : announcement?.team;
-  return <div ref={startShadeEntrance} className="match-splash-shade" data-announcement-id={announcement?.id} data-exiting={exiting}
+  return <div className="match-splash-shade" data-announcement-id={announcement?.id} data-exiting={exiting}
     data-shade-held={shadeHeld} data-fading={fading} data-team={screenTeam}
     style={{ '--splash-rate': rate } as CSSProperties}
     onAnimationEnd={event => {
       if (!exiting || fading) return;
-      const cardExit = event.target instanceof Element && event.target.parentElement === event.currentTarget
+      const cardExit = event.target instanceof Element && event.target.classList.contains('match-splash')
         && ['match-splash-exit', 'match-splash-dim-out'].includes(event.animationName);
       if (cardExit) onExited?.();
     }}
@@ -69,7 +61,9 @@ export function MatchSplash({ announcement, onDismiss, hold, exiting, rate, shad
     onClick={event => event.stopPropagation()} onDoubleClick={event => event.stopPropagation()}
     onContextMenu={event => { event.preventDefault(); event.stopPropagation(); }}
     onKeyDown={event => event.stopPropagation()}>
-    {announcement && <MatchSplashCard key={announcement.id} {...{ announcement, onDismiss, hold, icon, colors, cameraEnd, otherEnd, fading }}/>}
+    <div className="match-splash-shade-content" style={{ '--splash-entrance-rate': entranceRate } as CSSProperties}>
+      {announcement && <MatchSplashCard key={announcement.id} {...{ announcement, onDismiss, hold, icon, colors, cameraEnd, otherEnd, fading }}/>}
+    </div>
   </div>;
 }
 

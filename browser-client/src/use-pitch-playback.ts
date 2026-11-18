@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 
 import { playbackBeats, failedRerollGate, withConfirmedBallChanges, withConfirmedMove, withBlockContext, withConfirmedPlayerChanges } from './pitch-playback.ts';
 import { blockFaceLabel, diceRollGroups, offeredBlockDice, isOfferedPartialReroll } from './dice-presentation.ts';
@@ -40,7 +40,7 @@ export function usePitchPlayback(view: SetupState, records: TranscriptRecord[], 
   const [synchronizing, setSynchronizing] = useState(false);
   const [announcement, setAnnouncement] = useState<MatchAnnouncement | null>(null);
   const [announcementExiting, setAnnouncementExiting] = useState(false);
-  const announcementRate = useRef(1);
+  const [announcementRate, setAnnouncementRate] = useState(1);
   const [announcementShadeHeld, setAnnouncementShadeHeld] = useState(false);
   const shadeHeld = useRef(false);
   const holdShade = (held: boolean) => {
@@ -55,7 +55,6 @@ export function usePitchPlayback(view: SetupState, records: TranscriptRecord[], 
     advance: () => void; resume?: () => void; skipGap?: () => void; settledView?: SetupState } | null>(null);
   const announcementTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const announcementTransitionTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const announcementFadeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const announcementExitComplete = useRef<(() => void) | null>(null);
   const announced = useRef(new Set<string>());
   const presented = useRef(view), received = useRef(view), latest = useRef(view);
@@ -83,12 +82,6 @@ export function usePitchPlayback(view: SetupState, records: TranscriptRecord[], 
     holdShade(false);
     setAnnouncement(card);
     setAnnouncementFading(true);
-    if (announcementFadeTimer.current) clearTimeout(announcementFadeTimer.current);
-    announcementFadeTimer.current = setTimeout(() => {
-      announcementFadeTimer.current = null;
-      setAnnouncement(null);
-      setAnnouncementFading(false);
-    }, DICE_EXIT_MS / announcementRate.current);
   };
   const releaseHeldShade = () => {
     if (shadeHeld.current) fadeShade(null);
@@ -116,8 +109,6 @@ export function usePitchPlayback(view: SetupState, records: TranscriptRecord[], 
     announcementTimer.current = null;
     if (announcementTransitionTimer.current) clearTimeout(announcementTransitionTimer.current);
     announcementTransitionTimer.current = null;
-    if (announcementFadeTimer.current) clearTimeout(announcementFadeTimer.current);
-    announcementFadeTimer.current = null;
     provisional.current = null;
     clearDice();
     timer.current = null; running.current = false; waiting.current = false;
@@ -351,14 +342,12 @@ export function usePitchPlayback(view: SetupState, records: TranscriptRecord[], 
           const nextIndex = index + (pairedWeather ? 2 : 1);
           // Revealing the score changes presented.current. Remember the already
           // deferred prompt so a refresh cannot mistake it for a new choice.
-          if (announcementFadeTimer.current) clearTimeout(announcementFadeTimer.current);
-          announcementFadeTimer.current = null;
           pendingAnnouncement.current = { closing: false, chained: false,
             deferredResponseRevision: deferScoringResponse ? view.revision : null,
             advance: () => advance(nextIndex) };
           presentationRevision.current = record.revision;
           setAnnouncementFading(false);
-          announcementRate.current = rate;
+          setAnnouncementRate(rate);
           setAnnouncement(beat.announcement);
           return;
         }
@@ -403,24 +392,36 @@ export function usePitchPlayback(view: SetupState, records: TranscriptRecord[], 
     pending.committed?.();
     timer.current = setTimeout(pending.advance, pending.delay);
   }, [pitchView, diceMoment]);
-  const dismissAnnouncement = () => {
+  const dismissAnnouncement = useCallback(() => {
     const pending = pendingAnnouncement.current;
-    if (!pending || pending.closing) return;
+    if (!pending) return;
+    if (pending.closing) {
+      pending.skipGap?.();
+      return;
+    }
     pending.closing = true;
     if (announcementTimer.current) clearTimeout(announcementTimer.current);
     announcementTimer.current = null;
     pending.advance();
-  };
+  }, []);
   useEffect(() => {
     if (announcement && announcementPreferences.hiddenAnnouncements.includes(announcement.kind)) dismissAnnouncement();
-  }, [announcement, announcementPreferences.hiddenAnnouncements]);
+  }, [announcement, announcementPreferences.hiddenAnnouncements, dismissAnnouncement]);
+  useLayoutEffect(() => {
+    if (!announcementFading) return;
+    const timeout = setTimeout(() => {
+      setAnnouncement(null);
+      setAnnouncementFading(false);
+    }, DICE_EXIT_MS / announcementRate);
+    return () => clearTimeout(timeout);
+  }, [announcement, announcementFading, announcementRate]);
   // Start the fade timer after its visual state commits. Keep the queue active
   // through the clear interval, and retain pending state so recovery/choices
   // can cancel both phases without a stale callback advancing the old queue.
   useLayoutEffect(() => {
     const pending = pendingAnnouncement.current;
     if (!announcementExiting || !pending) return;
-    const rate = announcementRate.current;
+    const rate = announcementRate;
     const complete = () => {
       if (pendingAnnouncement.current !== pending) return;
       announcementExitComplete.current = null;
@@ -448,14 +449,14 @@ export function usePitchPlayback(view: SetupState, records: TranscriptRecord[], 
       if (announcementTransitionTimer.current) clearTimeout(announcementTransitionTimer.current);
       announcementTransitionTimer.current = null;
     };
-  }, [announcementExiting]);
+  }, [announcementExiting, announcementRate]);
   useLayoutEffect(() => {
     if (!announcement || announcementExiting || announcementPreferences.holdAnnouncements) return;
-    const rate = announcementRate.current;
+    const rate = announcementRate;
     const timeout = setTimeout(dismissAnnouncement, announcementDuration(announcement, rate) - DICE_EXIT_MS / rate);
     announcementTimer.current = timeout;
     return () => { clearTimeout(timeout); };
-  }, [announcement, announcementExiting, announcementPreferences.holdAnnouncements]);
+  }, [announcement, announcementExiting, announcementPreferences.holdAnnouncements, announcementRate, dismissAnnouncement]);
   const beginProvisional = (route: RoutePreview) => {
     if (!enabled || mode !== 'live' || running.current || waiting.current || provisional.current) return;
     const moves = provisionalMoves(latest.current, route);
@@ -464,10 +465,10 @@ export function usePitchPlayback(view: SetupState, records: TranscriptRecord[], 
     setTick(value => value + 1);
   };
   const splash: MatchSplashProps | undefined = announcement || announcementShadeHeld || announcementFading ? {
-    announcement, exiting: announcementExiting || announcementFading, rate: announcementRate.current, shadeHeld: announcementShadeHeld,
+    announcement, exiting: announcementExiting || announcementFading, rate: announcementRate, shadeHeld: announcementShadeHeld,
     fading: announcementFading, hold: announcementPreferences.holdAnnouncements,
     onDismiss: dismissAnnouncement, onExited: () => announcementExitComplete.current?.(),
-    onSkipGap: !announcement && announcementShadeHeld ? pendingAnnouncement.current?.skipGap : undefined,
+    onSkipGap: !announcement && announcementShadeHeld && announcementExiting ? dismissAnnouncement : undefined,
   } : undefined;
   return { pitchView, presentationRevision: active ? Math.max(pitchView.revision, presentationRevision.current, diceMoment?.revision ?? -1) : pitchView.revision, provisionalActive: !!provisional.current, playbackActive: active, diceMoment, synchronizing, movementDuration: moveMillis, beginProvisional,
     splash, announcement: announcementFading ? null : announcement, announcementExiting,

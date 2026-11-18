@@ -33,13 +33,14 @@ const finishTimed = async (duration, transition = 550) => {
 };
 const splash = kind => page.locator(`.match-splash-${kind}`);
 const shade = page.locator('.match-splash-shade');
-const finishShadeEntrance = () => shade.evaluate(node => {
-  for (const transition of node.getAnimations()) transition.finish();
+const shadeContent = shade.locator('.match-splash-shade-content');
+const finishShadeEntrance = () => shadeContent.evaluate(node => {
+  for (const animation of node.getAnimations()) animation.finish();
 });
 const verifyHeldShade = async () => {
   assert.deepEqual(await shade.evaluate(node => {
     const box = node.getBoundingClientRect();
-    return [node === window.chainedShade, getComputedStyle(node).opacity, document.elementFromPoint(box.left + 4, box.top + 4) === node];
+    return [node === window.chainedShade, getComputedStyle(node).opacity, node.contains(document.elementFromPoint(box.left + 4, box.top + 4))];
   }), [true, '1', true], 'The same fully dimmed shade still intercepts pitch input');
 };
 const setHold = async hold => {
@@ -78,10 +79,6 @@ try {
   assert.equal(await splash('turnover').getByRole('button').count(), 1, 'Timed announcements have an explicit dismiss button');
   assert.equal(await splash('turnover').getByRole('checkbox').count(), 0);
   assert.equal(await splash('turnover').locator('h2').evaluate(node => node.getAnimations()[0]?.animationName), 'splash-impact');
-  assert.deepEqual(await shade.evaluate(node => {
-    const entrance = node.getAnimations().find(transition => transition.transitionProperty === 'opacity');
-    return entrance?.effect.getKeyframes().map(frame => frame.opacity);
-  }), ['0', '1'], 'The initial shade fades in from transparent');
   await finishShadeEntrance();
   await shade.evaluate(node => { window.chainedShade = node; });
   await page.keyboard.press('Escape');
@@ -116,6 +113,26 @@ try {
   assert.equal(await page.evaluate(() => window.pitchClicks), 0, 'Dismissal never clicks through');
   await advance([event('turnover'), event('turnStart', 'away')]);
   assert.equal(await page.locator('.match-splash').count(), 0, 'Duplicate delivery is not replayed');
+
+  // Leave the animation on its before phase until the test sets the halfway frame.
+  const delayedEntrance = await page.addStyleTag({ content: '.match-splash-shade-content { animation-delay: 10s; }' });
+  await reset(); await advance([event('turnover')]); await splash('turnover').waitFor();
+  const entrance = await shadeContent.evaluate(node => {
+    const entrance = node.getAnimations().find(animation => animation.animationName === 'match-splash-dim-in');
+    entrance.pause(); entrance.currentTime = 10075;
+    return { opacity: Number(getComputedStyle(node).opacity), frames: entrance.effect.getKeyframes().map(frame => frame.opacity) };
+  });
+  assert.deepEqual(entrance, { opacity: 0.5, frames: ['0', '1'] }, 'The initial shade fades in from transparent');
+  await page.keyboard.press('Escape');
+  assert.deepEqual(await shadeContent.evaluate(node => [getComputedStyle(node).animationPlayState, Number(getComputedStyle(node).opacity)]),
+    ['paused', entrance.opacity], 'An early exit freezes the dim-in at its current opacity');
+  assert.equal(await shade.evaluate(node => {
+    const fade = node.getAnimations().find(transition => transition.transitionProperty === 'opacity');
+    fade.pause(); fade.currentTime = 100;
+    return Number(getComputedStyle(node).opacity);
+  }), 0.5, 'The outer shade fades independently during an early exit');
+  await page.clock.runFor(550); await active(false);
+  await delayedEntrance.evaluate(node => node.remove());
 
   await reset(); await advance([event('touchdown', 'away')]); await splash('touchdown').waitFor();
   await finishTimed(3000);

@@ -2,7 +2,7 @@
 
 ## Unreleased
 
-- Keep the scoreboard and turn counter on the outgoing revision until its splash and gap finish. Fade in the pitch shade with a standard opacity transition.
+- Keep the scoreboard and turn counter on the outgoing revision until its splash and gap finish. Fade the pitch shade in with CSS keyframes and preserve opacity when an early exit interrupts the fade.
 
 - Keep the pitch shade continuous when an announcement is skipped or a required choice interrupts it. Escape during the gap opens the next queued card immediately.
 

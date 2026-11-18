@@ -1,10 +1,14 @@
 .live-pitch-viewport:has(.match-splash-shade) { isolation: isolate; }
 .match-splash-shade {
-  position: absolute; inset: 0; z-index: 160; display: grid; justify-items: center; align-items: safe center;
-  padding: clamp(12px, 3vw, 40px); background: #050a12aa; overflow: auto; overscroll-behavior: contain;
-  cursor: default; box-sizing: border-box;
+  position: absolute; inset: 0; z-index: 160;
   opacity: 1;
   transition: opacity calc(150ms / var(--splash-rate, 1)) linear;
+}
+.match-splash-shade-content {
+  position: absolute; inset: 0; display: grid; justify-items: center; align-items: safe center;
+  padding: clamp(12px, 3vw, 40px); background: #050a12aa; overflow: auto; overscroll-behavior: contain;
+  cursor: default; box-sizing: border-box;
+  animation: match-splash-dim-in calc(150ms / var(--splash-entrance-rate, 1)) linear backwards;
 }
 .play-runtime .match-splash-shade .match-splash {
   --splash-accent: #edb644; --splash-secondary: #426c9b;
@@ -28,6 +32,9 @@
 .play-runtime .match-splash-shade .match-splash .match-splash-reason { font-family: inherit; margin: 16px auto 0; max-width: 48ch; font-size: clamp(16px, 1.8vw, 21px); line-height: 1.4; animation: match-splash-dim-in calc(150ms / var(--splash-rate, 1)) calc(550ms / var(--splash-rate, 1)) linear both; }
 .match-splash-shade[data-exiting=true][data-shade-held=false],
 .match-splash-shade[data-fading=true] { opacity: 0; transition-duration: calc(200ms / var(--splash-rate, 1)); }
+/* Keep an unfinished entrance from darkening the pitch during an early exit. */
+.match-splash-shade[data-exiting=true][data-shade-held=false] .match-splash-shade-content,
+.match-splash-shade[data-fading=true] .match-splash-shade-content { animation-play-state: paused; }
 .match-splash-shade[data-fading=true] { pointer-events: none; }
 .play-runtime .match-splash-shade[data-exiting=true] .match-splash { animation: match-splash-exit calc(200ms / var(--splash-rate, 1)) steps(4) both; }
 @keyframes match-splash-dim-in { from { opacity: 0; } to { opacity: 1; } }
