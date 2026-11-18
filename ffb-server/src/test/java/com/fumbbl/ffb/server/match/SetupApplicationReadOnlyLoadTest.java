@@ -30,8 +30,12 @@ import static org.mockito.Mockito.when;
 import static org.mockito.Mockito.withSettings;
 
 class SetupApplicationReadOnlyLoadTest {
+	private static final long HOUR = 60 * 60_000L;
+	private static final long SAVED_RETENTION = 30 * 24 * HOUR;
+
 	@Test void evictedComputerMatchIsDurablyAbandonedOnFirstTouchAfterOneHour() throws Exception {
 		Fixture fixture = new Fixture("away");
+		moveToActor(fixture, "home");
 		SetupApplication application = fixture.application();
 		application.handle("home", fixture.load());
 		fixture.now.addAndGet(30 * 60_000L);
@@ -46,14 +50,115 @@ class SetupApplicationReadOnlyLoadTest {
 		assertEquals(1, fixture.recovery.saves);
 	}
 
-	@Test void onlyHumanPlayerActivityExtendsTheComputerMatchDeadline() throws Exception {
+	@Test void computerTurnDoesNotUseHumanTimeAndEachHandoverStartsAFullHour() throws Exception {
 		Fixture fixture = new Fixture("away");
-		SetupSession session = fixture.engine.session;
-		long start = fixture.now.get();
-		session.recordPlayerActivity("home", start + 10_000);
-		session.recordPlayerActivity("away", start + 3_600_000);
-		assertFalse(session.abandonmentDue(start + 3_609_999));
-		assertTrue(session.abandonIfInactive(start + 3_610_000));
+		moveToActor(fixture, "away");
+		for (int turn = 0; turn < 2; turn++) {
+			fixture.now.addAndGet(2 * HOUR);
+			SetupApplication restarted = fixture.application();
+			JsonObject waiting = stateOf(restarted.handleComputerWithOutcome("away", fixture.load()).response());
+			assertEquals("away", waiting.getString("actor", null));
+			JsonObject handover = stateOf(restarted.handleComputerWithOutcome("away",
+				endTurn(fixture.engine, waiting, "computer-end-" + turn)).response());
+			assertEquals("home", handover.getString("actor", null));
+			assertEquals(fixture.now.get(), retainedSave(fixture).getLong("humanDecisionSince", -1));
+			fixture.now.addAndGet(HOUR - 1);
+			SetupApplication cold = fixture.application();
+			JsonObject human = stateOf(cold.handle("home", fixture.load()));
+			if (turn == 0) {
+				JsonObject next = stateOf(cold.handle("home", endTurn(fixture.engine, human, "human-end")));
+				assertEquals("away", next.getString("actor", null));
+				assertEquals(null, retainedSave(fixture).get("humanDecisionSince"));
+			} else {
+				fixture.now.incrementAndGet();
+				assertEquals("MATCH_ABANDONED", cold.handle("home", fixture.load()).getString("code", null));
+			}
+		}
+	}
+
+	@Test void legacyHumanWaitStartsItsClockWhenItIsFirstRestored() throws Exception {
+		Fixture fixture = new Fixture("away");
+		moveToActor(fixture, "home");
+		JsonObject envelope = JsonObject.readFrom(fixture.recovery.record.json);
+		JsonObject payload = envelope.get("payload").asObject();
+		payload.get("saveResume").asObject().remove("humanDecisionSince");
+		envelope.set("sha256", new JsonDigest().sha256(payload));
+		fixture.recovery.record = new RecoveryRepository.Record(fixture.id, 1, envelope.toString());
+		fixture.now.addAndGet(2 * HOUR);
+		long touchedAt = fixture.now.get();
+		SetupApplication application = fixture.application();
+		assertEquals("ACCEPTED", application.handleComputerWithOutcome("away", fixture.load()).response().getString("code", null));
+		assertEquals(0, fixture.recovery.saves);
+		fixture.now.addAndGet(30 * 60_000L);
+		assertTrue(application.expireReactiveDecisions().isEmpty());
+		assertEquals(0, application.lifecycleMetrics().getInt("residentSessions", -1));
+		assertEquals(touchedAt, retainedSave(fixture).getLong("humanDecisionSince", -1));
+		fixture.now.set(touchedAt + HOUR);
+		assertEquals("MATCH_ABANDONED", fixture.application().handleComputerWithOutcome("away", fixture.load()).response().getString("code", null));
+	}
+
+	@Test void savedComputerMatchIsResumableUntilThirtyDays() throws Exception {
+		Fixture fixture = new Fixture("away");
+		moveToActor(fixture, "home");
+		SetupApplication application = fixture.application();
+		JsonObject suspended = saveComputerMatch(fixture, application);
+		assertEquals("SUSPENDED", saveStatus(suspended));
+		fixture.now.addAndGet(HOUR);
+		SetupApplication cold = fixture.application();
+		assertEquals("SUSPENDED", saveStatus(stateOf(cold.handleComputerWithOutcome("away", fixture.load()).response())));
+
+		fixture.now.addAndGet(SAVED_RETENTION - HOUR - 1);
+		JsonObject proposed = stateOf(cold.handle("home", proposal(fixture, suspended, "resumeRequest", "resume")));
+		assertEquals("RESUME_PENDING", saveStatus(proposed));
+		JsonObject resumed = stateOf(cold.handleComputerWithOutcome("away", proposal(fixture, proposed, "resumeAccept", "accept-resume")
+			.add("proposalId", proposed.get("saveResume").asObject().get("proposalId"))).response());
+		assertEquals("ACTIVE", saveStatus(resumed));
+		assertEquals(fixture.now.get(), retainedSave(fixture).getLong("humanDecisionSince", -1));
+	}
+
+	@Test void savedComputerMatchIsAbandonedAtThirtyDaysAfterSuspension() throws Exception {
+		Fixture fixture = new Fixture("away");
+		moveToActor(fixture, "home");
+		fixture.now.addAndGet(HOUR - 1);
+		saveComputerMatch(fixture, fixture.application());
+		fixture.now.addAndGet(SAVED_RETENTION - 1);
+		assertEquals("SUSPENDED", saveStatus(stateOf(fixture.application().handleComputerWithOutcome("away", fixture.load()).response())));
+		fixture.now.incrementAndGet();
+		assertEquals("MATCH_ABANDONED", fixture.application().handleComputerWithOutcome("away", fixture.load()).response().getString("code", null));
+		assertTrue(retainedSave(fixture).getBoolean("abandoned", false));
+	}
+
+	@Test void consentProposalPausesTheClockWhileTheComputerOwesTheResponse() throws Exception {
+		Fixture fixture = new Fixture("away");
+		moveToActor(fixture, "home");
+		SetupApplication application = fixture.application();
+		JsonObject active = stateOf(application.handle("home", fixture.load()));
+		fixture.now.addAndGet(HOUR - 1);
+		JsonObject proposed = stateOf(application.handle("home", proposal(fixture, active, "saveRequest", "offer")));
+		assertEquals("SAVE_PENDING", saveStatus(proposed));
+		assertEquals(null, retainedSave(fixture).get("humanDecisionSince"));
+		fixture.now.incrementAndGet();
+		assertEquals("SAVE_PENDING", saveStatus(stateOf(application.handleComputerWithOutcome("away", fixture.load()).response())));
+		long expiry = proposed.get("saveResume").asObject().getLong("expiresAt", -1);
+		fixture.now.set(expiry);
+		assertEquals("ACTIVE", saveStatus(application.expireReactiveDecisions().get(fixture.id)));
+		assertEquals(expiry, retainedSave(fixture).getLong("humanDecisionSince", -1));
+	}
+
+	@Test void humanResumeResponseOwnsTheDecisionWhileTheSavedRetentionStillApplies() throws Exception {
+		Fixture fixture = new Fixture("away");
+		moveToActor(fixture, "home");
+		SetupApplication application = fixture.application();
+		JsonObject suspended = saveComputerMatch(fixture, application);
+		fixture.now.addAndGet(HOUR);
+		JsonObject proposed = stateOf(application.handleComputerWithOutcome("away",
+			proposal(fixture, suspended, "resumeRequest", "computer-resume")).response());
+		assertEquals("RESUME_PENDING", saveStatus(proposed));
+		assertEquals(fixture.now.get(), retainedSave(fixture).getLong("humanDecisionSince", -1));
+		fixture.now.set(proposed.get("saveResume").asObject().getLong("expiresAt", -1));
+		assertEquals("SUSPENDED", saveStatus(application.expireReactiveDecisions().get(fixture.id)));
+		assertEquals(null, retainedSave(fixture).get("humanDecisionSince"));
+		assertEquals("SUSPENDED", saveStatus(stateOf(fixture.application().handle("home", fixture.load()))));
 	}
 
 	@Test void humanMatchKeepsItsThirtyDayDeadline() throws Exception {
@@ -153,6 +258,28 @@ class SetupApplicationReadOnlyLoadTest {
 
 	private String otherRole(String role) { return "home".equals(role) ? "away" : "home"; }
 
+	private JsonObject stateOf(JsonObject reply) {
+		assertEquals("ACCEPTED", reply.getString("code", null));
+		return reply.get("state").asObject();
+	}
+
+	private JsonObject retainedSave(Fixture fixture) {
+		return JsonObject.readFrom(fixture.recovery.record.json).get("payload").asObject().get("saveResume").asObject();
+	}
+
+	private String saveStatus(JsonObject state) { return state.get("saveResume").asObject().getString("status", null); }
+
+	private JsonObject proposal(Fixture fixture, JsonObject state, String operation, String requestId) {
+		return fixture.load().set("operation", operation).set("requestId", requestId).add("expectedRevision", state.get("revision"));
+	}
+
+	private JsonObject saveComputerMatch(Fixture fixture, SetupApplication application) {
+		JsonObject active = stateOf(application.handle("home", fixture.load()));
+		JsonObject pending = stateOf(application.handle("home", proposal(fixture, active, "saveRequest", "offer-save")));
+		return stateOf(application.handleComputerWithOutcome("away", proposal(fixture, pending, "saveAccept", "accept-save")
+			.add("proposalId", pending.get("saveResume").asObject().get("proposalId"))).response());
+	}
+
 	private void moveToActor(Fixture fixture, String actor) {
 		JsonObject view = fixture.initial;
 		String currentActor = view.getString("actor", null);
@@ -160,6 +287,7 @@ class SetupApplicationReadOnlyLoadTest {
 			JsonObject response = fixture.engine.session.apply(currentActor, endTurn(fixture.engine, view, "fixture-pass-turn"));
 			assertEquals("ACCEPTED", response.getString("code", null));
 			view = response.get("state").asObject();
+			fixture.engine.session.startSaveResumeRetention(fixture.now.get());
 			fixture.recovery.record = new RecoveryRepository.Record(fixture.id, 1, fixture.engine.session.recoveryArtifact());
 		}
 		assertEquals(actor, view.getString("actor", null));

@@ -3,7 +3,6 @@ package com.fumbbl.ffb.test;
 import com.fumbbl.ffb.PlayerState;
 import com.fumbbl.ffb.Weather;
 import com.fumbbl.ffb.server.GameState;
-import com.fumbbl.ffb.server.match.ComputerCoach;
 import com.fumbbl.ffb.server.match.ComputerOpponentService;
 import com.fumbbl.ffb.server.match.FrozenTeam;
 import com.fumbbl.ffb.server.match.MatchDocument;
@@ -175,13 +174,15 @@ class SavedFormationSessionTest {
 		FrozenTeam home = new FrozenTeam(UUID.randomUUID().toString(), 1, "home", draft, 700000, 0, catalog);
 		FrozenTeam away = new FrozenTeam(UUID.randomUUID().toString(), 1, "away", draft, 700000, 0, catalog);
 		String matchId = UUID.randomUUID().toString();
+		ComputerOpponentService opponents = new ComputerOpponentService(null);
+		if (computer) away = away.copyForMatch(opponents.cloneTeamId(matchId), "away", opponents.teamName(ComputerOpponentService.BUGMAN_ID));
 		Map<String, MatchDocument.Request> history = new LinkedHashMap<>();
 		history.put("home\ncreate", new MatchDocument.Request("create|" + home.sourceTeamId + "|1|away"));
 		history.put("away\njoin", new MatchDocument.Request("join|" + matchId + "|1|" + away.sourceTeamId + "|1"));
 		history.put("home\nactivate", new MatchDocument.Request("activate|" + matchId + "|2"));
 		MatchDocument document = new MatchDocument(matchId, 3, "away", MatchDocument.Lifecycle.ACTIVATED,
 			new MatchDocument.Member("home", "home", home), new MatchDocument.Member("away", "away", away), history);
-		if (computer) document = document.withComputer(new ComputerCoach(ComputerOpponentService.BUGMAN_ID, "random-v1", 17));
+		if (computer) document = document.withComputer(opponents.identity(matchId, ComputerOpponentService.BUGMAN_ID));
 		SetupSession session = new SetupSession(new TestServer().getServer(), document, -7, true, true);
 		engine(session).getGame().getFieldModel().setWeather(Weather.NICE);
 		return session;

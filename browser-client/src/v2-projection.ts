@@ -13,7 +13,7 @@ const fields: Record<string, string[]> = {
   skillUsePreferences: ['code', 'preferences'],
   computer: ['code'], computerAuthentication: ['code'], computerJobs: ['code', 'matches'],
   computerJobChanged: ['matchId', 'revision', 'saveResumeChanged'],
-  computerJobEnded: ['matchId'],
+  computerJobEnded: ['matchId'], computerJobSuspended: ['matchId'],
   publicationDelayed: ['code', 'matchId', 'family'],
   preparationChanged: ['code', 'matchId'], setupState: ['code', 'duplicate', 'state'],
   matchResult: ['code', 'result', 'event'],
@@ -36,6 +36,10 @@ export function assertV2Projection(message: Record<string, unknown>) {
   if (message.type === 'authentication' && Object.hasOwn(message, 'liveTranscript')) {
     if (message.liveTranscript !== true) throw Error('Invalid live transcript negotiation');
     allowed.push('liveTranscript');
+  }
+  if (message.type === 'computer' && Object.hasOwn(message, 'inventoryPending')) {
+    if (message.code !== 'READY' || message.inventoryPending !== true) throw Error('Invalid computer inventory continuation');
+    allowed.push('inventoryPending');
   }
   if (message.type === 'setupState' && message.code === 'ILLEGAL_SETUP' && Object.hasOwn(message, 'setupErrors')) {
     if (!Array.isArray(message.setupErrors) || message.setupErrors.length > 32 || message.setupErrors.some(reason => typeof reason !== 'string' || !reason || reason.length > 1000))
@@ -71,7 +75,7 @@ export function assertV2Projection(message: Record<string, unknown>) {
     || typeof message.revision !== 'number' || !Number.isSafeInteger(message.revision) || message.revision < 0
     || typeof message.saveResumeChanged !== 'boolean'))
     throw Error('Invalid computer job change');
-  if (message.type === 'computerJobEnded' && (message.requestId !== null || typeof message.matchId !== 'string'
+  if ((message.type === 'computerJobEnded' || message.type === 'computerJobSuspended') && (message.requestId !== null || typeof message.matchId !== 'string'
     || !/^[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}$/.test(message.matchId)))
-    throw Error('Invalid ended computer job');
+    throw Error('Invalid computer job notice');
 }

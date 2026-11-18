@@ -36,6 +36,8 @@ import java.lang.reflect.Field;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.atomic.AtomicReference;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneOffset;
@@ -46,6 +48,10 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 class ReactiveSkillDecisionTest {
     @Test void nativeTackleAndTentaclesPromptsExposeCalculatedTargetsAndTimeoutAsDeclines() throws Exception {
@@ -301,6 +307,77 @@ class ReactiveSkillDecisionTest {
         assertEquals("STALE_REVISION", assertThrows(MatchService.Failure.class, () -> restored.apply("away", stale)).code);
     }
 
+    @Test void expiredHumanReactionReturnsControlToTheComputerBeforeAbandonment() throws Exception {
+        for (boolean timer : new boolean[] { false, true }) {
+            LateReaction fixture = lateReaction("home");
+            if (timer) fixture.application.handle("away", fixture.load);
+            fixture.now.set(fixture.deadline + 3_600_000L);
+            JsonObject returned;
+            if (timer) returned = fixture.application.expireReactiveDecisions().get(fixture.matchId);
+            else {
+                SetupApplication.HandleOutcome outcome = fixture.application.handleComputerWithOutcome("home", fixture.load);
+                assertEquals("ACCEPTED", outcome.response().getString("code", null));
+                assertTrue(outcome.publish());
+                returned = outcome.response().get("state").asObject();
+            }
+            assertNotNull(returned);
+            assertEquals("home", returned.getString("actor", null));
+            assertNull(returned.get("reaction"));
+            assertFalse(fixture.retainedSave().getBoolean("abandoned", false));
+            assertNull(fixture.retainedSave().get("humanDecisionSince"));
+        }
+    }
+
+    @Test void lateComputerReactionStartsTheNewHumanClockAtTheReactionDeadline() throws Exception {
+        LateReaction fixture = lateReaction("away");
+        fixture.now.set(fixture.deadline + 3_600_000L - 1);
+        JsonObject response = fixture.application.handleComputerWithOutcome("away", fixture.load).response();
+        assertEquals("ACCEPTED", response.getString("code", null));
+        assertEquals("home", response.get("state").asObject().getString("actor", null));
+        assertEquals(fixture.deadline, fixture.retainedSave().getLong("humanDecisionSince", -1));
+        fixture.now.incrementAndGet();
+        assertEquals("MATCH_ABANDONED", fixture.application.handle("home", fixture.load).getString("code", null));
+    }
+
+    private LateReaction lateReaction(String computerRole) throws Exception {
+        SetupSessionMovementTest.Fixture fixture = new SetupSessionMovementTest.Fixture(0, true, computerRole);
+        state(fixture.session).getDiceRoller().setRecoveryRoll(sides -> 1);
+        fixture.advanceToTurn();
+        pushback(fixture, "Stand Firm", false);
+        long started = System.currentTimeMillis();
+        assertFalse(fixture.session.expireReactiveDecision(started));
+        fixture.session.startSaveResumeRetention(started);
+        long deadline = live(fixture.session, "away").get("reaction").asObject().getLong("expiresAt", -1);
+        String id = fixture.document.matchId;
+        AtomicLong now = new AtomicLong(started);
+        Clock clock = mock(Clock.class);
+        when(clock.millis()).thenAnswer(call -> now.get());
+        MatchService matches = mock(MatchService.class);
+        for (String role : new String[] { "home", "away" }) {
+            when(matches.loadForSetup(role, id)).thenReturn(new MatchService.Result(fixture.document, false));
+            when(matches.load(role, id)).thenReturn(new MatchService.Result(fixture.document, false));
+        }
+        AtomicReference<RecoveryRepository.Record> durable = new AtomicReference<>(
+            new RecoveryRepository.Record(id, 1, fixture.session.recoveryArtifact()));
+        RecoveryRepository recovery = mock(RecoveryRepository.class);
+        when(recovery.find(id)).thenAnswer(call -> durable.get());
+        when(recovery.save(any(RecoveryRepository.Record.class), anyLong())).thenAnswer(call -> {
+            durable.set(call.getArgument(0));
+            return true;
+        });
+        JsonObject load = new JsonObject().add("version", 1).add("type", "setup").add("operation", "load")
+            .add("requestId", "load").add("matchId", id);
+        return new LateReaction(new SetupApplication(fixture.server, matches, recovery, true, clock, true),
+            load, id, deadline, now, durable);
+    }
+
+    private record LateReaction(SetupApplication application, JsonObject load, String matchId, long deadline, AtomicLong now,
+                                AtomicReference<RecoveryRepository.Record> durable) {
+        JsonObject retainedSave() {
+            return JsonObject.readFrom(durable.get().json).get("payload").asObject().get("saveResume").asObject();
+        }
+    }
+
     @Test void nativeSideStepCommitsUseAndDestinationInOneActionForEitherCoach() throws Exception {
         for (boolean own : new boolean[] {false, true}) {
             SetupSessionMovementTest.Fixture fixture = pushback("Sidestep", own);
@@ -395,6 +472,11 @@ class ReactiveSkillDecisionTest {
 
     private SetupSessionMovementTest.Fixture pushback(String skill, boolean own) throws Exception {
         SetupSessionMovementTest.Fixture fixture = fixture();
+        pushback(fixture, skill, own);
+        return fixture;
+    }
+
+    private void pushback(SetupSessionMovementTest.Fixture fixture, String skill, boolean own) throws Exception {
         GameState state = state(fixture.session); Game game = state.getGame(); game.setHomePlaying(true);
         UtilBox.putAllPlayersIntoBox(game);
         Player<?> attacker = game.getTeamHome().getPlayers()[0], defender = (own ? game.getTeamHome() : game.getTeamAway()).getPlayers()[1];
@@ -406,7 +488,6 @@ class ReactiveSkillDecisionTest {
         pushback.setParameter(StepParameter.from(StepParameterKey.STARTING_PUSHBACK_SQUARE, new PushbackSquare(new FieldCoordinate(8, 7), Direction.EAST, true)));
         pushback.setParameter(StepParameter.from(StepParameterKey.OLD_DEFENDER_STATE, new PlayerState(PlayerState.STANDING)));
         state.getStepStack().push(pushback); state.startNextStep();
-        return fixture;
     }
 
     private void place(Game game, Player<?> player, int x, int y) {

@@ -2,10 +2,10 @@ import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
 import { createServer } from 'node:http';
 import { execFileSync, spawn } from 'node:child_process';
-import { once } from 'node:events';
+import { EventEmitter, once } from 'node:events';
 import { test } from 'node:test';
 import { solidDefenceState } from '../../browser-client/test/fixtures/solid-defence-state.ts';
-import { idleWorkerExitCode, persistenceUnavailableExitCode } from '../src/worker-lifecycle.mjs';
+import { idleWorkerExitCode, observeWorkerClose, persistenceUnavailableExitCode } from '../src/worker-lifecycle.mjs';
 
 const matchId = '00000000-0000-0000-0000-000000000001';
 const secondMatchId = '00000000-0000-0000-0000-000000000002';
@@ -17,6 +17,18 @@ const state = {
   turnMode: 'REGULAR', ball: null, activePlayerId: null, half: 1, homeTurn: 0, awayTurn: 0,
   homeScore: 0, awayScore: 0, drive: 1
 };
+
+test('worker exit can precede the final idle revision on the IPC channel', () => {
+  const child = new EventEmitter();
+  const outcomes = [];
+  observeWorkerClose(child, (code, revision) => outcomes.push([code, revision]));
+  child.emit('exit', idleWorkerExitCode);
+  assert.deepEqual(outcomes, []);
+  child.emit('message', { type: 'idle', revision: 42 });
+  child.emit('disconnect');
+  child.emit('close', idleWorkerExitCode);
+  assert.deepEqual(outcomes, [[idleWorkerExitCode, 42]]);
+});
 
 async function stopChild(child) {
   if (child.exitCode !== null || child.signalCode !== null) return;
@@ -372,7 +384,7 @@ test('idle human-turn matches yield capacity, ignore refreshes and wake on a new
   }
 });
 
-async function dispatcherHarness(t, handle) {
+async function dispatcherHarness(t, handle, nodeArgs = [], refreshMs = 1000) {
   const sockets = new Set();
   const server = createServer();
   server.on('upgrade', (request, socket) => {
@@ -386,8 +398,8 @@ async function dispatcherHarness(t, handle) {
     });
   });
   server.listen(0, '127.0.0.1'); await once(server, 'listening');
-  const child = spawn(process.execPath, ['src/daemon.mjs', '--url', `ws://127.0.0.1:${server.address().port}/browser/v2`,
-    '--origin', origin, '--max-matches', '1', '--idle-timeout-ms', '150', '--refresh-ms', '1000'], {
+  const child = spawn(process.execPath, [...nodeArgs, 'src/daemon.mjs', '--url', `ws://127.0.0.1:${server.address().port}/browser/v2`,
+    '--origin', origin, '--max-matches', '1', '--idle-timeout-ms', '150', '--refresh-ms', String(refreshMs)], {
     cwd: new URL('..', import.meta.url), windowsHide: true,
     env: { ...process.env, FFB_COMPUTER_SERVICE_TOKEN: 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa' }
   });
@@ -430,7 +442,8 @@ test('dispatcher reconnect staggers parked loads and recovers a missed human pub
       send(socket, response(body.requestId, { ...state, callerRole: 'away', revision: 2,
         phase: 'FULL_TIME', prompt: null }));
     }
-  });
+  // Freeze only the dispatcher's wall clock. The monotonic retry timer must still start the worker.
+  }, ['--import', 'data:text/javascript,Date.now%20%3D%20()%20%3D%3E%20100000']);
   await waitFor(output => output.includes('yielded its idle worker'));
   dispatcher.destroy();
   homeActed = true;
@@ -467,7 +480,7 @@ test('dispatcher negotiates change notices again after a legacy registration fal
   const { waitFor } = await dispatcherHarness(t, (socket, body) => {
     if (body.operation === 'register') {
       watchAttempts.push(body.watchChanges);
-      if (watchAttempts.length === 1) {
+      if (watchAttempts.length <= 2) {
         send(socket, { version: 2, type: 'error', requestId: body.requestId, code: 'MALFORMED_MESSAGE' });
       } else if (!body.watchChanges) {
         send(socket, { version: 2, type: 'computer', requestId: body.requestId, code: 'READY' });
@@ -483,13 +496,13 @@ test('dispatcher negotiates change notices again after a legacy registration fal
     }
   });
   await waitFor(output => readyWithWatch && output.includes('yielded its idle worker'));
-  assert.deepEqual(watchAttempts.slice(0, 2), [true, undefined]);
+  assert.deepEqual(watchAttempts.slice(0, 3), [true, true, undefined]);
   assert.equal(loads, 1);
   send(dispatcher, { version: 2, type: 'computerJobChanged', requestId: null, matchId, revision: 1, saveResumeChanged: false });
   await waitFor(() => loads === 2);
 });
 
-test('a suspended Bogruk yields even on its own turn', { timeout: 9000 }, async t => {
+test('a saved match releases its slot and resumes only when advertised again', { timeout: 9000 }, async t => {
   const suspended = { ...state, projectionVersion: 4, callerRole: 'home', actor: 'home',
     computer: { opponentId: 'coach-bogruk-weak', policyVersion: 'bogruk-v1', seed: 42, attackDirection: 1,
       movement: null, progress: { turnKey: '1:1:1', stalledTurns: 0 }, policyState: null },
@@ -497,11 +510,82 @@ test('a suspended Bogruk yields even on its own turn', { timeout: 9000 }, async 
     homeTeamName: 'Home', awayTeamName: 'Away',
     homeResources: { apothecaries: 0, assistantCoaches: 0, cheerleaders: 0 },
     awayResources: { apothecaries: 0, assistantCoaches: 0, cheerleaders: 0 } };
+  let dispatcher, active = true, registrations = 0, loads = 0;
   const { waitFor } = await dispatcherHarness(t, (socket, body) => {
-    if (body.operation === 'register') registeredJobs(socket, body.requestId, [[matchId]]);
-    if (body.operation === 'load') send(socket, response(body.requestId, suspended));
+    if (body.operation === 'register') {
+      dispatcher = socket;
+      assert.equal(body.watchSuspension, true);
+      registeredJobs(socket, body.requestId, [active ? [matchId] : []]);
+      registrations++;
+    }
+    if (body.operation === 'load') {
+      loads++;
+      send(socket, response(body.requestId, loads === 1 ? suspended : { ...suspended, phase: 'FULL_TIME' }));
+    }
   });
-  await waitFor(output => output.includes('yielded its idle worker'));
+  await waitFor(output => output.includes('releasing worker capacity'));
+  active = false;
+  send(dispatcher, { version: 2, type: 'computerJobSuspended', requestId: null, matchId });
+  const until = registrations + 2;
+  await waitFor(() => registrations >= until);
+  assert.equal(loads, 1);
+  active = true;
+  send(dispatcher, { version: 2, type: 'computerJobs', requestId: null, code: 'AVAILABLE', matches: [matchId] });
+  await waitFor(() => loads === 2);
+});
+
+test('a resume announced while the suspended worker is closing starts a fresh worker', { timeout: 9000 }, async t => {
+  let dispatcher, loads = 0;
+  const { waitFor } = await dispatcherHarness(t, (socket, body) => {
+    if (body.operation === 'register') {
+      dispatcher = socket;
+      registeredJobs(socket, body.requestId, [[matchId]]);
+    } else if (body.operation === 'load') {
+      loads++;
+      if (loads === 1) {
+        send(dispatcher, { version: 2, type: 'computerJobSuspended', requestId: null, matchId });
+        send(dispatcher, { version: 2, type: 'computerJobs', requestId: null, code: 'AVAILABLE', matches: [matchId] });
+      } else send(socket, response(body.requestId, { ...state, phase: 'FULL_TIME', prompt: null }));
+    }
+  });
+  await waitFor(output => output.includes(`Match ${matchId} completed.`));
+  assert.equal(loads, 2);
+});
+
+test('dispatcher continues a partial inventory before its regular refresh', { timeout: 9000 }, async t => {
+  let registrations = 0;
+  const { waitFor } = await dispatcherHarness(t, (socket, body) => {
+    if (body.operation === 'register') {
+      registrations++;
+      send(socket, { version: 2, type: 'computerJobs', requestId: body.requestId, code: 'AVAILABLE', matches: [] });
+      send(socket, { version: 2, type: 'computer', requestId: body.requestId, code: 'READY',
+        ...(registrations === 1 ? { inventoryPending: true } : {}) });
+    }
+  }, [], 30000);
+  await waitFor(() => registrations === 2);
+});
+
+test('older change-capable servers can readvertise a saved match without respawning its worker', { timeout: 9000 }, async t => {
+  let dispatcher, registrations = 0, loads = 0;
+  const { waitFor } = await dispatcherHarness(t, (socket, body) => {
+    if (body.operation === 'register') {
+      if (body.watchSuspension) {
+        send(socket, { version: 2, type: 'error', requestId: body.requestId, code: 'MALFORMED_MESSAGE' });
+        return;
+      }
+      dispatcher = socket;
+      registeredJobs(socket, body.requestId, [[matchId]]);
+      registrations++;
+    } else if (body.operation === 'load') {
+      loads++;
+      send(socket, response(body.requestId, { ...state, saveResume: { status: 'SUSPENDED',
+        proposer: null, proposalId: null, expiresAt: null } }));
+    }
+  });
+  await waitFor(() => registrations >= 3);
+  assert.equal(loads, 1);
+  send(dispatcher, { version: 2, type: 'computerJobChanged', requestId: null, matchId, revision: 0, saveResumeChanged: true });
+  await waitFor(() => loads === 2);
 });
 
 test('abandonment stops both a parked job and a worker that sees a durable abandoned match', { timeout: 9000 }, async t => {

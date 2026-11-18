@@ -4,7 +4,7 @@ import { decodeSetupStateValue } from '../../browser-client/src/setup-protocol.t
 import { assertV2Projection } from '../../browser-client/src/v2-projection.ts';
 import { parseV2Response } from '../../browser-client/src/v2-response.ts';
 import { chooseComputerDecision, isComputerGameOperation } from './computer-policy.mjs';
-import { abandonedWorkerExitCode, idleWorkerExitCode, persistenceUnavailableExitCode } from './worker-lifecycle.mjs';
+import { abandonedWorkerExitCode, idleWorkerExitCode, persistenceUnavailableExitCode, suspendedWorkerExitCode } from './worker-lifecycle.mjs';
 
 const uuid = /^[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}$/;
 const matchId = value('--match');
@@ -66,7 +66,6 @@ function yieldIdleWorker() {
   }
   log(`Match ${matchId} is waiting for the human coach; yielding worker capacity.`);
   process.exitCode = idleWorkerExitCode;
-  // The dispatcher may process exit before this IPC arrives. It wakes conservatively if a change was observed.
   if (process.connected) process.send({ type: 'idle', revision: state.revision });
   stop();
 }
@@ -78,6 +77,13 @@ function requestLoad() {
 function decide() {
   if (!state || pending || loadId || !authenticated || socket?.readyState !== WebSocket.OPEN) return;
   if (state.phase === 'FULL_TIME') { log(`Match complete at revision ${state.revision}.`); stop(); return; }
+  if (idleTimeoutMs && state.saveResume?.status === 'SUSPENDED') {
+    log(`Match ${matchId} is suspended; releasing worker capacity.`);
+    process.exitCode = suspendedWorkerExitCode;
+    if (process.connected) process.send({ type: 'idle', revision: state.revision });
+    stop();
+    return;
+  }
   if (!waitingForHuman()) clearIdleTimer();
   else if (idleTimeoutMs && !idleTimer) idleTimer = setTimeout(yieldIdleWorker, idleTimeoutMs);
   const decisionKey = `${state.revision}:${state.saveResume?.status ?? ''}:${state.saveResume?.proposalId ?? ''}`;

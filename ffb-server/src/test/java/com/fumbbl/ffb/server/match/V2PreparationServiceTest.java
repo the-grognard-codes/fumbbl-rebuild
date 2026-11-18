@@ -204,12 +204,14 @@ class V2PreparationServiceTest {
 		});
 		V2PreparationService service = new V2PreparationService(() -> connection, null, catalog, Clock.systemUTC(), computers);
 		assertTrue(service.isComputerMatch(matchId));
-		assertTrue(service.activeComputerMatches().isEmpty(), "a completed match is no longer an active computer job");
+		assertEquals(new V2PreparationService.ComputerInventory(List.of(), false), service.activeComputerMatches(),
+			"a completed match is no longer an active computer job");
 		assertEquals(1, documentReads.get(), "historical completed rows must be filtered before document decode");
-		verify(connection).prepareStatement(eq("SELECT p.match_id,computer.role FROM ffb_prepared_matches p "
+		verify(connection).prepareStatement(eq("SELECT p.match_id,computer.role,r.computer_work_until_epoch_ms FROM ffb_prepared_matches p "
 			+ "JOIN ffb_v2_match_members computer ON computer.matchid=p.match_id AND computer.account_id=? "
 			+ "JOIN ffb_v2_match_members opponent ON opponent.matchid=p.match_id AND opponent.role<>computer.role "
-			+ "WHERE p.document_version=3 ORDER BY p.match_id"));
+			+ "JOIN ffb_match_recovery r ON r.matchid=p.match_id "
+			+ "WHERE p.document_version=3 AND (r.computer_work_until_epoch_ms>? OR r.computer_work_until_epoch_ms IS NULL) ORDER BY p.match_id"));
 	}
 
 	@Test void randomCoachKeepsStoredMembershipAndCloneIdentifiers() {

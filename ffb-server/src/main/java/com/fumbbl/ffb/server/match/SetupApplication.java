@@ -67,7 +67,8 @@ public final class SetupApplication {
 	private final Map<String, Long> lastAccess = new LinkedHashMap<>();
 	private final Map<String, Long> generations = new LinkedHashMap<>();
 	private final Map<String, byte[]> committedFingerprints = new LinkedHashMap<>();
-	private final java.util.Set<String> pendingRestoreCheckpoints = new HashSet<>();
+	private enum RestoreCheckpoint { DEFERRED, HUMAN_DECISION_CLOCK }
+	private final Map<String, RestoreCheckpoint> pendingRestoreCheckpoints = new LinkedHashMap<>();
 	private static final long INITIAL_COMPLETION_BACKOFF_MILLIS = 1_000;
 	private static final long MAX_COMPLETION_BACKOFF_MILLIS = 60_000;
 	private record PendingCompletion(long retryAt, long nextDelayMillis) {
@@ -136,6 +137,7 @@ public final class SetupApplication {
 		if (recovery == null) return;
 		long now = clock.millis();
 		for (String id : new ArrayList<>(lastAccess.keySet())) {
+			if (pendingRestoreCheckpoints.get(id) == RestoreCheckpoint.HUMAN_DECISION_CLOCK) continue;
 			if (now - lastAccess.get(id) >= IDLE_MILLIS && !sessions.get(id).isComplete()) { release(id); idleReleases++; }
 		}
 	}
@@ -232,7 +234,7 @@ public final class SetupApplication {
 					// Persist an unpublished initial checkpoint first. Activation can then be retried after any crash.
 					SetupSession initial = new SetupSession(server, document, engineId--, true, defaultSetup, saveResume, true, true, true);
 					if (saveResume) initial.startSaveResumeRetention(clock.millis());
-					if (!recovery.save(new RecoveryRepository.Record(id, 1, initial.recoveryArtifact()), 0))
+					if (!recovery.save(new RecoveryRepository.Record(id, 1, initial.recoveryArtifact(), initial.computerWorkUntil()), 0))
 						return preparedFailure(request, "CONFLICT");
 				} else reconstruct(document, staged); // Reject incompatible staged state before activation.
 			}
@@ -288,12 +290,14 @@ public final class SetupApplication {
 		String id = document.matchId;
 		SetupSession session = reconstruct(document, record, validated);
 		if (session.isFailed()) return session;
+		boolean initializedDecisionClock = session.initializeHumanDecisionClock(clock.millis());
 		byte[] fingerprint = fingerprints.of(record.json);
 		sessions.put(id, session);
 		generations.put(id, record.generation);
 		committedFingerprints.put(id, fingerprint);
 		if (recovery.supportsJournal()) journalCursors.put(id, journal.cursor(record, session));
-		if (!session.isComplete()) pendingRestoreCheckpoints.add(id);
+		if (!session.isComplete()) pendingRestoreCheckpoints.put(id,
+			initializedDecisionClock ? RestoreCheckpoint.HUMAN_DECISION_CLOCK : RestoreCheckpoint.DEFERRED);
 		lastAccess.put(id, clock.millis());
 		restoredSessions++;
 		return session;
@@ -372,7 +376,7 @@ public final class SetupApplication {
 					matches.load(owner, id); // Reauthorize before writing the durable generation.
 					timing.value(BrowserRequestTiming.Value.CHECKPOINT_PATH, 1);
 					try (BrowserRequestTiming.Scope store = timing.span(BrowserRequestTiming.Phase.CHECKPOINT_STORE)) {
-						if (!recovery.append(new RecoveryRepository.Record(id, generation + 1, change.json), generation))
+						if (!recovery.append(new RecoveryRepository.Record(id, generation + 1, change.json, session.computerWorkUntil()), generation))
 							throw new MatchService.Failure("RECOVERY_CONFLICT");
 					}
 					generations.put(id, generation + 1); journalCursors.put(id, change.next);
@@ -396,7 +400,7 @@ public final class SetupApplication {
 			}
 			matches.load(owner, id);
 			try (BrowserRequestTiming.Scope store = timing.span(BrowserRequestTiming.Phase.CHECKPOINT_STORE)) {
-				if (!recovery.save(new RecoveryRepository.Record(id, generation + 1, after), generation))
+				if (!recovery.save(new RecoveryRepository.Record(id, generation + 1, after, session.computerWorkUntil()), generation))
 					throw new MatchService.Failure("RECOVERY_CONFLICT");
 			}
 			generations.put(id, generation + 1);
@@ -442,27 +446,43 @@ public final class SetupApplication {
 	public Map<String, JsonObject> expireReactiveDecisions(Consumer<String> abandoned) {
 		Map<String, JsonObject> changed = new LinkedHashMap<>();
 		retryPendingCompletion(changed);
+		// A legacy clock is durable even if its first cold load is the only request before eviction.
+		// Use at most one fresh timer budget per tick for this restore maintenance.
+		String clockCheckpoint = pendingRestoreCheckpoints.entrySet().stream()
+			.filter(entry -> entry.getValue() == RestoreCheckpoint.HUMAN_DECISION_CLOCK)
+			.map(Map.Entry::getKey).findFirst().orElse(null);
 		for (String id : new ArrayList<>(sessions.keySet())) {
 			if (pendingCompletions.containsKey(id)) continue;
 			SetupSession session = sessions.get(id);
 			long now = clock.millis();
 			boolean abandonmentDue = recovery != null && session.abandonmentDue(now);
-			if (!abandonmentDue && !session.reactiveDecisionDue(now)) continue;
+			boolean proposalDue = session.saveResumeProposalDue(now);
+			boolean reactionDue = session.reactiveDecisionDue(now);
+			boolean persistDecisionClock = id.equals(clockCheckpoint);
+			if (!abandonmentDue && !proposalDue && !reactionDue && !persistDecisionClock) continue;
 			try {
-				if (abandonmentDue && session.abandonIfInactive(now)) {
-					checkpoint(session.checkpointOwner(), id, session);
-					release(id);
+				boolean expiredProposal = proposalDue && session.expireSaveResumeProposal(now);
+				if (recovery != null && recordAbandonment(session.checkpointOwner(), id, session, now)) {
 					abandoned.accept(id);
 					continue;
 				}
-				refreshSkillUsePreferences(id, session);
-				if (!session.expireReactiveDecision(clock.millis())) continue;
+				boolean expiredReaction = false;
+				if (reactionDue) {
+					refreshSkillUsePreferences(id, session);
+					expiredReaction = session.expireReactiveDecision(clock.millis());
+				}
+				if (recovery != null && expiredReaction && session.isComputerMatch()
+					&& recordAbandonment(session.checkpointOwner(), id, session, now)) {
+					abandoned.accept(id);
+					continue;
+				}
+				if (!expiredProposal && !expiredReaction && !persistDecisionClock) continue;
 				checkpoint(session.checkpointOwner(), id, session);
 				if (session.isComplete()) {
 					if (recovery != null) queueCompletion(id);
 					else matches.complete(session.checkpointOwner(), id, session.completedMatch());
 				}
-				changed.put(id, publishedState(session, "deadline"));
+				if (expiredProposal || expiredReaction) changed.put(id, publishedState(session, "deadline"));
 			} catch (SQLException | RuntimeException failure) {
 				if (session.isFailed() && sessions.containsKey(id)) {
 					try { checkpoint(session.checkpointOwner(), id, session); }
@@ -474,6 +494,13 @@ public final class SetupApplication {
 		}
 		releaseIdle();
 		return changed;
+	}
+
+	private boolean recordAbandonment(String owner, String id, SetupSession session, long now) throws SQLException {
+		if (!session.abandonIfInactive(now)) return false;
+		checkpoint(owner, id, session);
+		release(id);
+		return true;
 	}
 
 	private void queueCompletion(String id) {
@@ -592,28 +619,31 @@ public final class SetupApplication {
 				if (recorded) { releaseCompleted(id); }
 				return outcome(response, true);
 			}
-			if (session.abandonIfInactive(clock.millis())) {
-				checkpoint(owner, id, session);
-				release(id);
+			// Human matches return the committed cold projection and defer maintenance to a fresh request budget.
+			if (cold && "load".equals(operation) && !session.isComputerMatch())
+				return outcome(session.decorateSaveResume(session.reply(requestId, "ACCEPTED", false, role)), false);
+			long decisionTime = clock.millis();
+			boolean expiredProposal = session.expireSaveResumeProposal(decisionTime);
+			if (recordAbandonment(owner, id, session, decisionTime)) {
 				return outcome(failure(requestId, "MATCH_ABANDONED"), false);
 			}
-			if (session.isAbandoned()) {
+			if (session.isComputerMatch() && session.isAbandoned()) {
 				release(id);
 				return outcome(failure(requestId, "MATCH_ABANDONED"), false);
 			}
 			// Leave optional restore maintenance for the next resident request's fresh budget.
-			if (cold && "load".equals(operation))
+			if (cold && "load".equals(operation) && !session.reactiveDecisionDue(decisionTime))
 				return outcome(session.decorateSaveResume(session.reply(requestId, "ACCEPTED", false, role)), false);
 			boolean readOnly = "load".equals(operation) || "concessionStatus".equals(operation);
-			boolean expiredProposal = session.expireSaveResumeProposal(clock.millis());
 			String maintenanceBefore = readOnly ? session.reactiveMaintenanceState() : null;
-			long decisionTime = clock.millis();
 			boolean expiredDecision;
 			try (BrowserRequestTiming.Scope ignored = timing.span(BrowserRequestTiming.Phase.SESSION_APPLY)) {
 				expiredDecision = session.expireReactiveDecision(decisionTime);
 			}
 			catch (RuntimeException failure) { checkpoint(owner, id, session); throw failure; }
 			if (expiredDecision) {
+				if (session.isComputerMatch() && recordAbandonment(owner, id, session, decisionTime))
+					return outcome(failure(requestId, "MATCH_ABANDONED"), false);
 				checkpoint(owner, id, session);
 				boolean recorded = false;
 				if (session.isComplete()) {
@@ -646,7 +676,7 @@ public final class SetupApplication {
 			}
 			// Resident reads cannot change history. Retain the first restored checkpoint and any
 			// proposal/reaction/clock maintenance even when no native decision was executed.
-			if (!(session.isComplete() && recovered != null) && (!readOnly || pendingRestoreCheckpoints.contains(id) || expiredProposal
+			if (!(session.isComplete() && recovered != null) && (!readOnly || pendingRestoreCheckpoints.containsKey(id) || expiredProposal
 				|| !java.util.Objects.equals(maintenanceBefore, session.reactiveMaintenanceState())))
 				checkpoint(owner, id, session);
 			session.decorateSaveResume(response);
@@ -714,7 +744,7 @@ public final class SetupApplication {
 			duplicate = retained.close(role, request, clock.millis());
 			matches.load(owner, id);
 			try (BrowserRequestTiming.Scope ignored = timing.span(BrowserRequestTiming.Phase.CHECKPOINT)) {
-				if (!recovery.save(new RecoveryRepository.Record(id, record.generation + 1, retained.artifact()), record.generation))
+				if (!recovery.save(new RecoveryRepository.Record(id, record.generation + 1, retained.artifact(), Long.MAX_VALUE), record.generation))
 					throw new MatchService.Failure("RECOVERY_CONFLICT");
 			}
 		}

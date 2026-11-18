@@ -557,16 +557,24 @@ public final class SetupSession {
 	public void startSaveResumeRetention(long now) {
 		if (!saveResume) throw new IllegalStateException("Save/resume is unavailable for this checkpoint runtime");
 		saveResumeState = new SaveResumeState(now);
+		refreshHumanDecisionClock(false, now);
 	}
 
 	public boolean usesSaveResume() { return saveResume; }
 
 	/** Expiry is durable and fail-closed; it is never a background deletion or an inferred consent. */
 	public boolean abandonIfInactive(long now) {
-		if (!abandonmentDue(now)) return false;
+		if (!abandonmentDue(now) || computerTimeoutBeforeAbandonment(now)) return false;
 		saveResumeState.abandoned = true;
 		saveResumeState.proposal = null;
+		saveResumeState.humanDecisionSince = -1L;
 		return true;
+	}
+
+	private boolean computerTimeoutBeforeAbandonment(long now) {
+		if (!isComputerMatch()) return false;
+		return saveResumeProposalDue(now) && !saveResumeState.inactive(true, saveResumeState.proposal.expiresAt)
+			|| reactiveDecisionDue(now) && !saveResumeState.inactive(true, reactiveDecision.expiresAt());
 	}
 
 	boolean abandonmentDue(long now) {
@@ -576,17 +584,54 @@ public final class SetupSession {
 
 	boolean isAbandoned() { return saveResume && saveResumeState.abandoned; }
 
+	boolean isComputerMatch() { return computerMember != null; }
+
+	long computerWorkUntil() { return saveResume ? saveResumeState.computerWorkUntil() : Long.MAX_VALUE; }
+
 	/** A native action invalidates pending consent. Only a human action extends retention. */
 	public void recordPlayerActivity(String role, long now) {
 		if (!saveResume || saveResumeState.abandoned) return;
 		saveResumeState.proposal = null;
 		if (!saveResumeState.suspended()) refreshHumanActivity(role, now);
+		refreshHumanDecisionClock(!computerMemberIs(role), now);
+	}
+
+	boolean initializeHumanDecisionClock(long now) {
+		if (!saveResume || computerMember == null) return false;
+		long previous = saveResumeState.humanDecisionSince;
+		refreshHumanDecisionClock(false, now);
+		return previous != saveResumeState.humanDecisionSince;
+	}
+
+	private void refreshHumanDecisionClock(boolean humanAction, long now) {
+		if (!saveResume || computerMember == null) return;
+		if (isComplete() || failed || saveResumeState.abandoned
+			|| saveResumeState.suspended() && saveResumeState.proposal == null || !humanOwesDecision()) {
+			saveResumeState.humanDecisionSince = -1L;
+		} else if (humanAction || saveResumeState.humanDecisionSince < 0) {
+			saveResumeState.humanDecisionSince = now;
+		}
+	}
+
+	private boolean humanOwesDecision() {
+		Proposal proposal = saveResumeState.proposal;
+		if (proposal != null) return computerMember.role.equals(proposal.proposer);
+		String decidingRole = reactiveDecision.pending() ? reactiveDecision.actor() : actor();
+		return !computerMember.role.equals(decidingRole);
+	}
+
+	boolean saveResumeProposalDue(long now) {
+		return saveResume && saveResumeState.proposal != null && now >= saveResumeState.proposal.expiresAt;
 	}
 
 	/** An expired proposal must not be shown again when a saved match is loaded. */
 	public boolean expireSaveResumeProposal(long now) {
-		if (saveResume && saveResumeState.proposal != null && now >= saveResumeState.proposal.expiresAt) {
+		if (saveResumeProposalDue(now)) {
+			long expiredAt = saveResumeState.proposal.expiresAt;
+			if (isComputerMatch() && (saveResumeState.inactive(true, expiredAt)
+				|| reactiveDecisionDue(now) && reactiveDecision.expiresAt() < expiredAt)) return false;
 			saveResumeState.proposal = null;
+			refreshHumanDecisionClock(false, expiredAt);
 			return true;
 		}
 		return false;
@@ -633,12 +678,15 @@ public final class SetupSession {
 			refreshHumanActivity(role, now);
 		} else throw new MatchService.Failure("INVALID_REQUEST");
 		saveResumeState.history.put(key, new Record(fingerprint, "ACCEPTED"));
+		refreshHumanDecisionClock(!computerMemberIs(role), now);
 		return reply(id, "ACCEPTED", false, role);
 	}
 
 	private void refreshHumanActivity(String role, long now) {
-		if (computerMember == null || !computerMember.role.equals(role)) saveResumeState.lastPlayerActivityAt = now;
+		if (!computerMemberIs(role)) saveResumeState.lastPlayerActivityAt = now;
 	}
+
+	private boolean computerMemberIs(String role) { return computerMember != null && computerMember.role.equals(role); }
 
 	private void requestProposal(String role, String requestId, String intent, long now) {
 		if (saveResumeState.proposal != null) throw new MatchService.Failure("SAVE_PROPOSAL_PENDING");
@@ -910,7 +958,7 @@ public final class SetupSession {
 			} else if ("formation".equals(operation)) {
                 FrozenTeam frozen = "home".equals(role) ? document.home.team : document.away.team;
                 new SavedFormationDeployment().apply(state, "home".equals(role), frozen,
-                    savedFormations().get(request.getInt("formationIndex", -1)), document.computer != null && "away".equals(role));
+                    savedFormations().get(request.getInt("formationIndex", -1)), computerMemberIs(role));
             } else if (command != null) {
 				if (swapTarget != null) {
 					boolean home = "home".equals(role);
@@ -984,7 +1032,7 @@ public final class SetupSession {
         FrozenTeam selectedTeam = "home".equals(actor()) ? document.home.team : document.away.team;
         if (selectedTeam.formations != null) {
             List<TeamFormations.Formation> group = savedFormations();
-            boolean computer = document.computer != null && "away".equals(actor());
+            boolean computer = computerMemberIs(actor());
             // A stable per-drive draw survives journal replay without another source of randomness.
             int index = computer && !group.isEmpty() ? new java.util.Random(java.util.Objects.hash(matchId, drive, actor())).nextInt(group.size()) : 0;
             new SavedFormationDeployment().apply(state, "home".equals(actor()), selectedTeam, group.isEmpty() ? null : group.get(index), computer);
@@ -1376,19 +1424,26 @@ public final class SetupSession {
 	/** Executed only on the communication worker, using the same command and checkpoint path as coach input. */
 	public boolean expireReactiveDecision(long now) {
 		if (failed || isComplete() || saveResume && (saveResumeState.suspended() || saveResumeState.abandoned)) return false;
-		refreshReaction(now);
+		refreshReaction(isComputerMatch() && reactiveDecision.due(now) ? reactiveDecision.expiresAt() : now);
 		if (!reactiveDecision.due(now)) return false;
+		long resolutionTime = isComputerMatch() ? reactiveDecision.expiresAt() : now;
 		Action decline = reactiveDecision.decline(state, actions());
 		String role = decline.role;
 		JsonObject request = new JsonObject().add("operation", "action").add("expectedRevision", revision)
 			.add("requestId", "timeout-" + reactiveDecision.id() + "-" + revision).add("actionId", actionId(decline));
 		expiringReaction = true;
-		try { apply(role, request, now); }
+		try { apply(role, request, resolutionTime); }
 		finally { expiringReaction = false; }
+		if (saveResume && saveResumeState.proposal != null && saveResumeState.proposal.revision != revision)
+			saveResumeState.proposal = null;
+		refreshHumanDecisionClock(false, resolutionTime);
 		return true;
 	}
 
-	boolean reactiveDecisionDue(long now) { return reactiveDecision.due(now); }
+	boolean reactiveDecisionDue(long now) {
+		return !failed && !isComplete() && (!saveResume || !saveResumeState.suspended() && !saveResumeState.abandoned)
+			&& reactiveDecision.due(now);
+	}
 
     public boolean isComplete() { return state.getGame().getFinished() != null; }
     private int homeScore() { return state.getGame().getGameResult().getTeamResultHome().getScore(); }
@@ -1920,6 +1975,7 @@ public final class SetupSession {
 		static final long COMPUTER_RETENTION_MILLIS = 60L * 60 * 1000;
 		static final int HISTORY_LIMIT = 256;
 		long lastPlayerActivityAt;
+		long humanDecisionSince = -1L;
 		long suspendedAt = -1L;
 		boolean abandoned;
 		Proposal proposal;
@@ -1928,7 +1984,13 @@ public final class SetupSession {
 		SaveResumeState(long now) { lastPlayerActivityAt = now; }
 
 		SaveResumeState(JsonObject json) {
-			exact(json, "lastPlayerActivityAt", "suspendedAt", "abandoned", "proposal", "history");
+			if (json.get("humanDecisionSince") == null)
+				exact(json, "lastPlayerActivityAt", "suspendedAt", "abandoned", "proposal", "history");
+			else {
+				exact(json, "lastPlayerActivityAt", "humanDecisionSince", "suspendedAt", "abandoned", "proposal", "history");
+				humanDecisionSince = json.get("humanDecisionSince").asLong();
+				if (humanDecisionSince < 0) throw new IllegalArgumentException("Invalid human decision clock");
+			}
 			lastPlayerActivityAt = json.get("lastPlayerActivityAt").asLong();
 			suspendedAt = json.get("suspendedAt").asLong();
 			abandoned = json.get("abandoned").asBoolean();
@@ -1948,16 +2010,26 @@ public final class SetupSession {
 		}
 
 		boolean inactive(boolean computerMatch, long now) {
-			return now - lastPlayerActivityAt >= (computerMatch ? COMPUTER_RETENTION_MILLIS : RETENTION_MILLIS);
+			if (!computerMatch) return now - lastPlayerActivityAt >= RETENTION_MILLIS;
+			if (suspended()) return now - suspendedAt >= RETENTION_MILLIS;
+			return humanDecisionSince >= 0 && now - humanDecisionSince >= COMPUTER_RETENTION_MILLIS;
 		}
 
 		boolean suspended() { return suspendedAt >= 0; }
 
+		long computerWorkUntil() {
+			if (abandoned) return 0L;
+			if (!suspended()) return Long.MAX_VALUE;
+			return proposal == null ? 0L : proposal.expiresAt;
+		}
+
 		JsonObject json() {
 			JsonArray entries = new JsonArray();
 			history.forEach((key, entry) -> entries.add(new JsonObject().add("key", key).add("fingerprint", entry.fingerprint).add("code", entry.code)));
-			return new JsonObject().add("lastPlayerActivityAt", lastPlayerActivityAt).add("suspendedAt", suspendedAt).add("abandoned", abandoned)
+			JsonObject result = new JsonObject().add("lastPlayerActivityAt", lastPlayerActivityAt).add("suspendedAt", suspendedAt).add("abandoned", abandoned)
 				.add("proposal", proposal == null ? JsonValue.NULL : proposal.json()).add("history", entries);
+			if (humanDecisionSince >= 0) result.add("humanDecisionSince", humanDecisionSince);
+			return result;
 		}
 
 		JsonObject publicJson() {

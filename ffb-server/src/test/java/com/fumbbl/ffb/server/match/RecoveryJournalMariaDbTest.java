@@ -17,6 +17,10 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.time.Clock;
+import java.time.Instant;
+import java.time.ZoneOffset;
+import java.util.List;
 import java.util.Scanner;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -61,13 +65,13 @@ class RecoveryJournalMariaDbTest {
 			return new JsonObject();
 		});
 		for (String phase : new String[] { "DB_CONNECT", "DB_READ", "DB_WRITE", "DB_COMMIT", "STORAGE_COMPRESSION" })
-			assertTrue(writeTrace.get("totals").asObject().get(phase).isObject(), phase);
+			assertTrue(writeTrace.get("totals").asObject().names().contains(phase), phase);
 		JsonObject readTrace = new CaptureRequestProbe().details(diagnosticRequest, () -> {
 			try { assertNative(engine, repository.find(id)); } catch (SQLException failure) { throw new AssertionError(failure); }
 			return new JsonObject();
 		});
-		for (String phase : new String[] { "DB_CONNECT", "DB_READ", "DB_COMMIT", "STORAGE_DECODE", "STORAGE_DECOMPRESSION" })
-			assertTrue(readTrace.get("totals").asObject().get(phase).isObject(), phase);
+		for (String phase : new String[] { "DB_CONNECT", "DB_READ", "DB_ROLLBACK", "STORAGE_DECODE", "STORAGE_DECOMPRESSION" })
+			assertTrue(readTrace.get("totals").asObject().names().contains(phase), phase);
 		assertFalse(repository.append(first, 1), "An exact CAS retry does not append twice");
 		assertEquals("1", scalar(connections, "SELECT COUNT(*) FROM ffb_match_recovery_journal"));
 		assertEquals(originalStored, scalar(connections, "SELECT artifact_json FROM ffb_match_recovery"), "Append does not rewrite the full artifact");
@@ -116,6 +120,116 @@ class RecoveryJournalMariaDbTest {
 					sql.executeUpdate("DROP TABLE IF EXISTS " + table);
 			}
 		}
+	}
+
+	@Test void savedComputerJobStaysOffTheInventoryAcrossRestartAndReturnsOnResume() throws Exception {
+		String url = System.getenv("RECOVERY_JOURNAL_TEST_JDBC_URL"), password = System.getenv("RECOVERY_JOURNAL_TEST_PASSWORD");
+		Assumptions.assumeTrue(url != null && password != null, "Opt-in empty recovery journal test database required");
+		if (!url.matches("jdbc:mariadb://127\\.0\\.0\\.1:[0-9]+/ffb_recovery_journal_test"))
+			throw new IllegalArgumentException("Only the isolated recovery journal test database is allowed");
+		JdbcRecoveryRepository.Connections connections = () -> DriverManager.getConnection(url, "root", password);
+		try (Connection connection = connections.open(); Statement sql = connection.createStatement();
+			ResultSet tables = sql.executeQuery("SHOW TABLES")) {
+			assertFalse(tables.next(), "Test schema must be empty before any write");
+		}
+		try {
+			BogrukEngineFixture engine = new BogrukEngineFixture("human", "orc", 42);
+			BogrukEngineFixture other = new BogrukEngineFixture("human", "orc", 42, "00000000-0000-0000-0000-000000000022");
+			ComputerOpponentService computers = new ComputerOpponentService(null);
+			String id = engine.document.matchId;
+			long now = 1_800_000_000_000L;
+			engine.session.startSaveResumeRetention(now);
+			other.session.startSaveResumeRetention(now);
+			try (Connection connection = connections.open(); Statement sql = connection.createStatement()) {
+				resource(sql, "/local-schema/003-prepared-matches.sql");
+				resource(sql, "/local-schema/005-match-recovery.sql");
+				resource(sql, "/local-schema/006-v2-membership.sql");
+				sql.execute("CREATE TABLE ffb_local_schema (version INT NOT NULL PRIMARY KEY)");
+				sql.execute("INSERT INTO ffb_local_schema VALUES (8)");
+				resource(sql, "/local-schema/009-recovery-journal.sql");
+				insertComputerMatch(connection, engine.document, computers.memberId());
+				insertComputerMatch(connection, other.document, computers.memberId());
+			}
+			JdbcRecoveryRepository legacy = new JdbcRecoveryRepository(connections, true);
+			assertTrue(legacy.save(new RecoveryRepository.Record(id, 1, engine.session.recoveryArtifact()), 0));
+			RecoveryJournal journal = new RecoveryJournal();
+			RecoveryJournal.Cursor base = journal.cursor(legacy.find(id));
+			JsonObject save = consent(engine.session, "home", "saveRequest", "save", null, now);
+			consent(engine.session, "away", "saveAccept", "accept-save", save.getString("proposalId", null), now + 1);
+			RecoveryJournal.Change suspended = journal.change(engine.session, base, 1);
+			assertFalse(suspended.compact);
+			assertTrue(legacy.append(new RecoveryRepository.Record(id, 2, suspended.json), 1));
+			JsonObject otherSave = consent(other.session, "home", "saveRequest", "save", null, now);
+			consent(other.session, "away", "saveAccept", "accept-save", otherSave.getString("proposalId", null), now + 1);
+			assertTrue(legacy.save(new RecoveryRepository.Record(other.document.matchId, 1, other.session.recoveryArtifact()), 0));
+			String baseBytesQuery = "SELECT artifact_json FROM ffb_match_recovery ORDER BY matchid LIMIT 1";
+			String baseBytes = scalar(connections, baseBytesQuery);
+			String tailBytes = scalar(connections, "SELECT record_json FROM ffb_match_recovery_journal");
+			try (Connection connection = connections.open(); Statement sql = connection.createStatement()) {
+				resource(sql, "/local-schema/010-computer-job-availability.sql");
+			}
+			assertEquals("10", scalar(connections, "SELECT version FROM ffb_local_schema"));
+			assertEquals(baseBytes, scalar(connections, baseBytesQuery));
+			assertEquals(tailBytes, scalar(connections, "SELECT record_json FROM ffb_match_recovery_journal"));
+
+			JdbcRecoveryRepository repository = new JdbcRecoveryRepository(connections, true, true);
+			Clock beforeResume = Clock.fixed(Instant.ofEpochMilli(now + 20), ZoneOffset.UTC);
+			V2PreparationService inventory = new V2PreparationService(connections::open, null, null, beforeResume, computers);
+			assertEquals(new V2PreparationService.ComputerInventory(List.of(), true), inventory.activeComputerMatches(),
+				"Legacy journal head is suspended and another saved checkpoint remains unclassified");
+			assertEquals("1", scalar(connections, "SELECT COUNT(*) FROM ffb_match_recovery WHERE computer_work_until_epoch_ms=0"));
+			assertEquals("1", scalar(connections, "SELECT COUNT(*) FROM ffb_match_recovery WHERE computer_work_until_epoch_ms IS NULL"));
+			V2PreparationService restartedInventory = new V2PreparationService(connections::open, null, null, beforeResume, computers);
+			assertEquals(new V2PreparationService.ComputerInventory(List.of(), false), restartedInventory.activeComputerMatches(),
+				"An empty inventory remains after classifying both suspended matches");
+			assertEquals("2", scalar(connections, "SELECT COUNT(*) FROM ffb_match_recovery WHERE computer_work_until_epoch_ms=0"));
+
+			RecoveryJournal.Cursor paused = journal.cursor(repository.find(id));
+			JsonObject resume = consent(engine.session, "home", "resumeRequest", "resume", null, now + 21);
+			RecoveryJournal.Change proposed = journal.change(engine.session, paused, 2);
+			assertFalse(proposed.compact);
+			RecoveryRepository.Record pendingResume = new RecoveryRepository.Record(id, 3, proposed.json, engine.session.computerWorkUntil());
+			JdbcRecoveryRepository interrupted = new JdbcRecoveryRepository(
+				() -> fault(connections.open(), "INSERT INTO ffb_match_recovery_journal", false), true, true);
+			assertThrows(SQLException.class, () -> interrupted.append(pendingResume, 2));
+			assertEquals(List.of(), restartedInventory.activeComputerMatches().matches(), "Rolled-back journal leaves the match suspended");
+			assertTrue(repository.append(pendingResume, 2));
+			assertEquals(List.of(id), restartedInventory.activeComputerMatches().matches());
+			Clock atExpiry = Clock.fixed(Instant.ofEpochMilli(resume.getLong("expiresAt", -1)), ZoneOffset.UTC);
+			assertEquals(List.of(), new V2PreparationService(connections::open, null, null, atExpiry, computers).activeComputerMatches().matches());
+
+			consent(engine.session, "away", "resumeAccept", "accept-resume", resume.getString("proposalId", null), now + 22);
+			assertTrue(repository.save(new RecoveryRepository.Record(id, 4, engine.session.recoveryArtifact(), engine.session.computerWorkUntil()), 3));
+			assertEquals(List.of(id), new V2PreparationService(connections::open, null, null, atExpiry, computers).activeComputerMatches().matches());
+		} finally {
+			try (Connection connection = connections.open(); Statement sql = connection.createStatement()) {
+				for (String table : new String[] {"ffb_match_recovery_journal", "ffb_match_recovery", "ffb_local_schema",
+					"ffb_prepared_matches", "ffb_v2_match_members", "ffb_v2_identity", "ffb_v2_account_scope", "ffb_v2_account"})
+					sql.executeUpdate("DROP TABLE IF EXISTS " + table);
+			}
+		}
+	}
+
+	private void insertComputerMatch(Connection connection, MatchDocument match, String computerAccount) throws SQLException {
+		try (PreparedStatement document = connection.prepareStatement("INSERT INTO ffb_prepared_matches VALUES (?,3,?)");
+			PreparedStatement members = connection.prepareStatement("INSERT INTO ffb_v2_match_members VALUES (?,?,'home'), (?,?,'away')")) {
+			document.setString(1, match.matchId);
+			document.setString(2, new MatchJson().encode(match).toString());
+			assertEquals(1, document.executeUpdate());
+			members.setString(1, match.matchId);
+			members.setString(2, "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa");
+			members.setString(3, match.matchId);
+			members.setString(4, computerAccount);
+			assertEquals(2, members.executeUpdate());
+		}
+	}
+
+	private JsonObject consent(SetupSession session, String role, String operation, String requestId, String proposal, long now) {
+		JsonObject request = new JsonObject().add("requestId", requestId).add("operation", operation).add("expectedRevision", session.revision());
+		if (proposal != null) request.add("proposalId", proposal);
+		JsonObject result = session.decorateSaveResume(session.saveResume(role, request, now));
+		assertEquals("ACCEPTED", result.getString("code", null));
+		return result.get("state").asObject().get("saveResume").asObject();
 	}
 
 	private RecoveryRepository.Record next(SetupSessionMovementTest.Fixture engine, RecoveryJournal journal,

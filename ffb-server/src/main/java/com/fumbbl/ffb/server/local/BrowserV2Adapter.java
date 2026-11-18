@@ -57,6 +57,7 @@ public final class BrowserV2Adapter implements BrowserProtocol {
 	private BrowserConnection computerDispatcher;
 	private final Set<String> watchedComputerMatches = new HashSet<>();
 	private boolean watchComputerChanges;
+	private boolean watchComputerSuspension;
 	private final Set<BrowserConnection> computerConnections = new HashSet<>();
 	private final BrowserTeamJson catalog = new BrowserTeamJson(new RosterCatalog());
 	private final Map<BrowserConnection, AuthenticatedPrincipal> principals = new LinkedHashMap<>();
@@ -101,7 +102,8 @@ public final class BrowserV2Adapter implements BrowserProtocol {
 
 	@Override public synchronized void expireDecisions() {
 		setup.expireReactiveDecisions(this::computerJobEnded).forEach((id, state) -> {
-			computerJobChanged(id, state, false);
+			if (isSuspended(state)) suspendComputerJob(id);
+			else computerJobChanged(id, state, false);
 			publisher.publish(id, null, state);
 		});
 	}
@@ -419,7 +421,7 @@ public final class BrowserV2Adapter implements BrowserProtocol {
 				LiveMatchTranscript transcript = publisher.transcript(id,
 					state != null && state.isObject() ? state.asObject() : new JsonObject());
 				publisher.sendState(connection, response, transcript);
-				notifyComputerOfSetupOutcome(id, request, outcome);
+				notifyComputerOfSetupOutcome(id, request, outcome, false);
 				if (outcome.publish()) {
 					publisher.publish(id, connection, state.asObject(), transcript);
 				}
@@ -461,7 +463,8 @@ public final class BrowserV2Adapter implements BrowserProtocol {
 				preparationCompletedAt.remove(connection);
 				publisher.remove(connection);
 				if (!"load".equals(request.getString("operation", ""))) preparationChanged(id, connection);
-				if ("activate".equals(request.getString("operation", "")) && preparation.isComputerMatch(id)) {
+				if ("activate".equals(request.getString("operation", "")) && !response.getBoolean("duplicate", false)
+					&& preparation.isComputerMatch(id)) {
 					if (watchComputerChanges) watchedComputerMatches.add(id);
 					sendComputerJobs(Collections.singletonList(id), null);
 				}
@@ -480,7 +483,7 @@ public final class BrowserV2Adapter implements BrowserProtocol {
 		String id = request.getString("requestId", null);
 		if (!"status".equals(operation)) throw new IllegalArgumentException();
 		fields(request, "version", "type", "operation", "requestId");
-		computerResponse(connection, id, computerDispatcher == null ? "UNAVAILABLE" : "READY");
+		send(connection, computerResponse(id, computerDispatcher == null ? "UNAVAILABLE" : "READY"));
 	}
 
 	private void handleComputerConnection(BrowserConnection connection, JsonObject request) throws SQLException {
@@ -488,18 +491,26 @@ public final class BrowserV2Adapter implements BrowserProtocol {
 		String id = request.getString("requestId", null);
 		if (type == BrowserV2RequestType.COMPUTER && "register".equals(request.getString("operation", ""))) {
 			boolean watch = request.get("watchChanges") != null;
+			boolean suspension = request.get("watchSuspension") != null;
 			if (watch) {
-				fields(request, "version", "type", "operation", "requestId", "watchChanges");
+				if (suspension) {
+					fields(request, "version", "type", "operation", "requestId", "watchChanges", "watchSuspension");
+					if (!request.getBoolean("watchSuspension", false)) throw new IllegalArgumentException();
+				} else fields(request, "version", "type", "operation", "requestId", "watchChanges");
 				if (!request.getBoolean("watchChanges", false)) throw new IllegalArgumentException();
 			} else fields(request, "version", "type", "operation", "requestId");
-			List<String> activeMatches = preparation.activeComputerMatches();
+			V2PreparationService.ComputerInventory inventory = preparation.activeComputerMatches();
+			List<String> activeMatches = inventory.matches();
 			computerDispatcher = connection;
 			watchComputerChanges = watch;
+			watchComputerSuspension = suspension;
 			watchedComputerMatches.clear();
 			if (watch) watchedComputerMatches.addAll(activeMatches);
 			// Only correlated chunks before READY form an authoritative snapshot, including an empty list.
 			if (watch) sendComputerJobs(activeMatches, id);
-			computerResponse(connection, id, "READY");
+			JsonObject ready = computerResponse(id, "READY");
+			if (suspension && inventory.inventoryPending()) ready.add("inventoryPending", true);
+			send(connection, ready);
 			if (!watch) sendComputerJobs(activeMatches, null);
 		} else if (type == BrowserV2RequestType.SETUP) {
 			String matchId = request.get("matchId").asString();
@@ -510,20 +521,55 @@ public final class BrowserV2Adapter implements BrowserProtocol {
 			JsonObject response = outcome.response();
 			if ("ACCEPTED".equals(response.getString("code", ""))) publisher.enrollComputer(connection, matchId);
 			send(connection, response);
-			notifyComputerOfSetupOutcome(matchId, request, outcome);
+			notifyComputerOfSetupOutcome(matchId, request, outcome, true);
 			if (outcome.publish()) publisher.publish(matchId, connection, response.get("state").asObject());
 		} else { fail(connection, id, "UNSUPPORTED_MESSAGE"); }
 	}
 
-	private void notifyComputerOfSetupOutcome(String matchId, JsonObject request, SetupApplication.HandleOutcome outcome) {
+	private void notifyComputerOfSetupOutcome(String matchId, JsonObject request, SetupApplication.HandleOutcome outcome,
+		boolean fromComputer) {
 		JsonObject response = outcome.response();
 		String code = response.getString("code", "");
 		if ("MATCH_ABANDONED".equals(code)) computerJobEnded(matchId);
 		else if (outcome.publish()) {
+			JsonObject state = response.get("state").asObject();
+			if (isSuspended(state)) {
+				suspendComputerJob(matchId);
+				return;
+			}
+			String operation = request.getString("operation", "");
 			boolean saveResumeChanged = "ACCEPTED".equals(code) && !response.getBoolean("duplicate", false)
-				&& SetupApplication.SAVE_RESUME_OPERATIONS.contains(request.getString("operation", ""));
-			computerJobChanged(matchId, response.get("state").asObject(), saveResumeChanged);
+				&& SetupApplication.SAVE_RESUME_OPERATIONS.contains(operation);
+			if (saveResumeChanged && ("resumeRequest".equals(operation) || "resumeAccept".equals(operation)))
+				reenlistComputerJob(matchId, request.getString("requestId", null));
+			if (!fromComputer || saveResumeChanged || "concede".equals(operation) || "STALE_REVISION".equals(code)
+				|| "load".equals(operation)) computerJobChanged(matchId, state, saveResumeChanged);
+			else if ("FULL_TIME".equals(state.getString("phase", null))) watchedComputerMatches.remove(matchId);
 		}
+	}
+
+	private boolean isSuspended(JsonObject state) {
+		JsonValue save = state.get("saveResume");
+		return save != null && save.isObject() && "SUSPENDED".equals(save.asObject().getString("status", null));
+	}
+
+	private void suspendComputerJob(String matchId) {
+		if (computerDispatcher == null || !watchedComputerMatches.remove(matchId) || !watchComputerSuspension) return;
+		send(computerDispatcher, new JsonObject().add("type", "computerJobSuspended").add("requestId", JsonValue.NULL)
+			.add("matchId", matchId));
+	}
+
+	private void reenlistComputerJob(String matchId, String requestId) {
+		if (computerDispatcher == null || watchedComputerMatches.contains(matchId)) return;
+		try {
+			if (!preparation.isComputerMatch(matchId)) return;
+		} catch (SQLException unavailable) {
+			// The next authoritative inventory reads the committed resume state.
+			new MatchPersistenceLog().rejected("computer-resume-dispatch", matchId, requestId, unavailable);
+			return;
+		}
+		if (watchComputerChanges) watchedComputerMatches.add(matchId);
+		sendComputerJobs(Collections.singletonList(matchId), null);
 	}
 
 	private void computerJobChanged(String matchId, JsonObject state, boolean saveResumeChanged) {
@@ -551,14 +597,15 @@ public final class BrowserV2Adapter implements BrowserProtocol {
 				.add("code", "AVAILABLE").add("matches", jobs));
 		}
 	}
-	private void computerResponse(BrowserConnection connection, String requestId, String code) {
-		send(connection, new JsonObject().add("type", "computer").add("requestId", requestId).add("code", code));
+	private JsonObject computerResponse(String requestId, String code) {
+		return new JsonObject().add("type", "computer").add("requestId", requestId).add("code", code);
 	}
 
 	private void removeComputerDispatcher(BrowserConnection connection) {
 		if (connection != computerDispatcher) return;
 		computerDispatcher = null;
 		watchComputerChanges = false;
+		watchComputerSuspension = false;
 		watchedComputerMatches.clear();
 	}
 

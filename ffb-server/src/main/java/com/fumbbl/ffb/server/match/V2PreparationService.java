@@ -36,10 +36,13 @@ public final class V2PreparationService {
 	private final RosterCatalog catalog;
 	private final Clock clock;
 	private final ComputerOpponentService computers;
+	private final JdbcRecoveryRepository recovery;
 	private final MatchJson json = new MatchJson();
 	private final BoundedJsonStorageCodec storageCodec = new BoundedJsonStorageCodec(
 		BoundedJsonStorageCodec.PREPARED_ENCODED_LIMIT, BoundedJsonStorageCodec.PREPARED_DECODED_LIMIT);
 	private final SecureRandom random = new SecureRandom();
+	private String lastLegacyComputerMatch = "";
+	private JdbcRecoveryRepository.LegacyComputerWork pendingLegacyComputerWork;
 
 	public V2PreparationService(Connections connections, SavedTeamService teams, RosterCatalog catalog, Clock clock) {
 		this(connections, teams, catalog, clock, new ComputerOpponentService(null));
@@ -48,6 +51,7 @@ public final class V2PreparationService {
 	public V2PreparationService(Connections connections, SavedTeamService teams, RosterCatalog catalog, Clock clock,
 		ComputerOpponentService computers) {
 		this.connections = connections; this.teams = teams; this.catalog = catalog; this.clock = clock; this.computers = computers;
+		this.recovery = new JdbcRecoveryRepository(connections::open, true, true);
 	}
 
 	public JsonObject handle(String accountId, JsonObject request) {
@@ -106,25 +110,76 @@ public final class V2PreparationService {
 		return computer != null && computer.role.equals(role);
 	}
 
+	public record ComputerInventory(List<String> matches, boolean inventoryPending) {
+		public ComputerInventory { matches = List.copyOf(matches); }
+	}
+
 	/** Active jobs are replayed when the independent computer process reconnects. */
-	public List<String> activeComputerMatches() throws SQLException {
+	public ComputerInventory activeComputerMatches() throws SQLException {
 		List<String> result = new ArrayList<>();
+		long now = clock.millis();
+		persistLegacyComputerWork();
+		String legacy = null, firstLegacy = null;
+		boolean deferredLegacy = false;
 		try (Connection connection = connections.open(); PreparedStatement query = connection.prepareStatement(
-			"SELECT p.match_id,computer.role FROM ffb_prepared_matches p "
+			"SELECT p.match_id,computer.role,r.computer_work_until_epoch_ms FROM ffb_prepared_matches p "
 				+ "JOIN ffb_v2_match_members computer ON computer.matchid=p.match_id AND computer.account_id=? "
 				+ "JOIN ffb_v2_match_members opponent ON opponent.matchid=p.match_id AND opponent.role<>computer.role "
-				+ "WHERE p.document_version=3 ORDER BY p.match_id")) {
+				+ "JOIN ffb_match_recovery r ON r.matchid=p.match_id "
+				+ "WHERE p.document_version=3 AND (r.computer_work_until_epoch_ms>? OR r.computer_work_until_epoch_ms IS NULL) ORDER BY p.match_id")) {
 			query.setString(1, computers.memberId());
+			query.setLong(2, now);
 			try (ResultSet rows = query.executeQuery()) {
 				while (rows.next()) {
 					String id = rows.getString(1);
+					rows.getLong(3);
+					boolean unknown = rows.wasNull();
+					if (unknown && (pendingLegacyComputerWork != null || legacy != null
+						|| firstLegacy != null && id.compareTo(lastLegacyComputerMatch) <= 0)) {
+						deferredLegacy = true;
+						continue;
+					}
 					MatchDocument document = document(connection, id, false);
-					if (document != null && document.lifecycle == MatchDocument.Lifecycle.ACTIVATED
-						&& verifiedComputerRole(document, rows.getString(2))) result.add(id);
+					if (document == null || document.lifecycle != MatchDocument.Lifecycle.ACTIVATED
+						|| !verifiedComputerRole(document, rows.getString(2))) continue;
+					if (!unknown) result.add(id);
+					else {
+						if (id.compareTo(lastLegacyComputerMatch) > 0) {
+							legacy = id;
+							deferredLegacy |= firstLegacy != null;
+						}
+						if (firstLegacy == null) firstLegacy = id;
+					}
 				}
 			}
 		}
-		return result;
+		if (legacy == null) legacy = firstLegacy;
+		if (legacy != null) {
+			// Marker-9 artifacts remain valid. Classify at most one older job per refresh.
+			lastLegacyComputerMatch = legacy;
+			try {
+				pendingLegacyComputerWork = recovery.readLegacyComputerWork(legacy);
+				if (persistLegacyComputerWork() > now) result.add(legacy);
+			} catch (SQLException unavailable) {
+				deferredLegacy = true;
+				new MatchPersistenceLog().rejected("computer-inventory-backfill", legacy, null, unavailable);
+			}
+		}
+		return new ComputerInventory(result, deferredLegacy || pendingLegacyComputerWork != null);
+	}
+
+	private long persistLegacyComputerWork() {
+		JdbcRecoveryRepository.LegacyComputerWork work = pendingLegacyComputerWork;
+		if (work == null) return 0;
+		try {
+			boolean updated = recovery.backfillComputerWork(work);
+			pendingLegacyComputerWork = null;
+			return updated ? work.workUntil() : 0;
+		} catch (SQLException unavailable) {
+			// Keep only the bounded metadata so a subsequent refresh can retry with a fresh JDBC budget.
+			new MatchPersistenceLog().rejected("computer-inventory-backfill", work.matchId(), null, unavailable);
+			return 0;
+		}
 	}
 
 	/** A disconnect tracker must grant this permission; clients cannot express it through {@link #handle}. */

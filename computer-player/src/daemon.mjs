@@ -4,7 +4,7 @@ import { readFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import { assertV2Projection } from '../../browser-client/src/v2-projection.ts';
 import { parseUniqueJson } from '../../browser-client/src/saved-team-protocol.ts';
-import { abandonedWorkerExitCode, idleWorkerExitCode, persistenceUnavailableExitCode } from './worker-lifecycle.mjs';
+import { abandonedWorkerExitCode, idleWorkerExitCode, observeWorkerClose, persistenceUnavailableExitCode, suspendedWorkerExitCode } from './worker-lifecycle.mjs';
 
 const url = option('--url');
 const origin = option('--origin');
@@ -36,6 +36,9 @@ let connectionGeneration = 0;
 let watchChangesAttempts = 0;
 let watchChangesRetryAt = 0;
 let registerWatchesChanges = false;
+let watchesChanges = false;
+let watchSuspension = true;
+let inventoryContinuation;
 let registeredMatches;
 let activeMatches;
 const queued = new Set();
@@ -54,11 +57,12 @@ function log(message) { console.log(`[computer-daemon] ${message}`); }
 function send(request) { socket.send(JSON.stringify(request)); sentAt = Date.now(); }
 function register() {
   if (stopped || !authenticated || !socket || socket.readyState !== WebSocket.OPEN || registerId) return;
+  clearTimeout(inventoryContinuation);
   registerId = randomUUID();
   registerWatchesChanges = Date.now() >= watchChangesRetryAt;
   registeredMatches = undefined;
   send({ version: 2, type: 'computer', operation: 'register', requestId: registerId,
-    ...(registerWatchesChanges ? { watchChanges: true } : {}) });
+    ...(registerWatchesChanges ? { watchChanges: true, ...(watchSuspension ? { watchSuspension: true } : {}) } : {}) });
 }
 function retryBackoff(attempts, initialMs) {
   return Math.min(initialMs * 2 ** Math.min(attempts - 1, 9), 300000);
@@ -76,6 +80,19 @@ function parkWorker(matchId, revision, observedGeneration) {
   // The next inventory refresh checks this deadline, so fallback retries have refreshMs granularity.
   waiting.set(matchId, { revision, attempts, retryAt: Date.now() + delay, generation: observedGeneration });
   log(`Match ${matchId} yielded its idle worker; waiting for a change or retry after ${delay} ms.`);
+}
+function withdrawSuspendedMatch(matchId) {
+  activeMatches?.delete(matchId);
+  registeredMatches?.delete(matchId);
+  waiting.delete(matchId);
+  failures.delete(matchId);
+  queued.delete(matchId);
+  const worker = children.get(matchId);
+  if (worker) {
+    worker.withdrawn = true;
+    worker.readvertised = false;
+    worker.child.kill();
+  }
 }
 function rememberEndedMatch(matchId) {
   waiting.delete(matchId);
@@ -97,30 +114,31 @@ function startQueued() {
       '--url', url, '--origin', origin, '--idle-timeout-ms', String(idleTimeoutMs)];
     if (tokenFile) args.push('--service-token-file', tokenFile);
     const child = spawn(process.execPath, args, { stdio: ['inherit', 'inherit', 'inherit', 'ipc'], env: process.env, windowsHide: true });
-    const worker = { child, connectionGeneration, idleRevision: -1, changedRevision: -1, saveResumeRevision: -1 };
+    const worker = { child, connectionGeneration, changedRevision: -1, saveResumeRevision: -1, withdrawn: false, readvertised: false };
     children.set(matchId, worker);
-    child.on('message', message => {
-      if (message?.type === 'idle' && Number.isSafeInteger(message.revision)) worker.idleRevision = message.revision;
-    });
     log(`Started match ${matchId}; ${children.size} active computer clients.`);
     child.once('error', error => {
       children.delete(matchId);
       markFailure(matchId, `Could not start match ${matchId}: ${error.message}`);
       startQueued();
     });
-    child.once('exit', code => {
+    observeWorkerClose(child, (code, idleRevision) => {
       if (children.get(matchId) !== worker) return;
       children.delete(matchId);
-      if (code === idleWorkerExitCode && !stopped) {
+      if (worker.withdrawn || code === suspendedWorkerExitCode && watchSuspension && watchesChanges) {
+        if (worker.readvertised && !completed.has(matchId)) queued.add(matchId);
+      } else if ((code === idleWorkerExitCode || code === suspendedWorkerExitCode) && !stopped) {
         failures.delete(matchId);
         if (!completed.has(matchId) && (!activeMatches || activeMatches.has(matchId))) {
           // A reconnect can miss publications even if the child exits after registration.
-          if (worker.changedRevision > worker.idleRevision
-            || worker.saveResumeRevision >= 0 && worker.saveResumeRevision === worker.idleRevision) {
+          if (worker.changedRevision > idleRevision
+            || worker.saveResumeRevision >= 0 && worker.saveResumeRevision === idleRevision) {
             waiting.delete(matchId);
             queued.add(matchId);
           } else {
-            parkWorker(matchId, worker.idleRevision, worker.connectionGeneration);
+            parkWorker(matchId, idleRevision, worker.connectionGeneration);
+            // Older inventories include saved matches. A change-capable server will announce resume.
+            if (code === suspendedWorkerExitCode && watchesChanges) waiting.get(matchId).retryAt = Infinity;
             if (ready) queueAvailableMatches([matchId]);
           }
         }
@@ -138,7 +156,9 @@ function startQueued() {
 function queueAvailableMatches(matches) {
   const now = Date.now();
   for (const matchId of matches) {
-    if (children.has(matchId) || completed.has(matchId)) continue;
+    const worker = children.get(matchId);
+    if (worker?.withdrawn) worker.readvertised = true;
+    if (worker || completed.has(matchId)) continue;
     const parked = waiting.get(matchId);
     if (parked && parked.generation !== connectionGeneration) {
       // Recheck missed publications only after the server advertises this job on the new connection.
@@ -148,7 +168,8 @@ function queueAvailableMatches(matches) {
       parked.retryAt = now + delay;
       setTimeout(() => {
         if (ready && connectionGeneration === generation && waiting.get(matchId) === parked) {
-          queueAvailableMatches([matchId]);
+          queued.add(matchId);
+          startQueued();
         }
       }, delay).unref();
     } else if (!parked || parked.retryAt <= now) queued.add(matchId);
@@ -170,7 +191,8 @@ function receive(raw) {
   if (message.type === 'error') {
     if (registerWatchesChanges && registerId && message.requestId === registerId && message.code === 'MALFORMED_MESSAGE') {
       // A daemon can be upgraded before its server. Registration still supplies the fallback jobs.
-      watchChangesRetryAt = Date.now() + retryBackoff(++watchChangesAttempts, refreshMs);
+      if (watchSuspension) watchSuspension = false;
+      else watchChangesRetryAt = Date.now() + retryBackoff(++watchChangesAttempts, refreshMs);
       registerId = null;
       register();
       return;
@@ -190,7 +212,11 @@ function receive(raw) {
     if (message.code !== 'READY') throw Error(`Computer registration rejected: ${message.code}`);
     if (!ready) log(`Ready for computer matches; capacity ${maxMatches}.`);
     ready = true;
+    watchesChanges = registerWatchesChanges;
     if (registerWatchesChanges) { watchChangesAttempts = 0; watchChangesRetryAt = 0; }
+    if (message.inventoryPending && watchSuspension && watchesChanges) {
+      inventoryContinuation = setTimeout(register, 1000).unref();
+    }
     activeMatches = registeredMatches;
     if (activeMatches) reconcileRegisteredMatches(activeMatches);
     else { trimLegacyEndedMatches(); startQueued(); }
@@ -199,7 +225,11 @@ function receive(raw) {
   if (message.type === 'computerJobs') {
     if (message.code !== 'AVAILABLE') throw Error('Invalid computer jobs');
     if (message.requestId === null) {
-      if (activeMatches) for (const matchId of message.matches) activeMatches.add(matchId);
+      for (const matchId of message.matches) {
+        activeMatches?.add(matchId);
+        const worker = children.get(matchId);
+        if (worker) worker.readvertised = true;
+      }
       queueAvailableMatches(message.matches);
     } else if (registerId && message.requestId === registerId) {
       registeredMatches ??= new Set();
@@ -221,6 +251,7 @@ function receive(raw) {
     queued.add(matchId);
     startQueued();
   }
+  if (message.type === 'computerJobSuspended') withdrawSuspendedMatch(message.matchId);
   if (message.type === 'computerJobEnded') rememberEndedMatch(message.matchId);
 }
 async function connect() {
@@ -241,9 +272,11 @@ async function connect() {
   current.addEventListener('close', () => {
     if (socket !== current || stopped) return;
     socket = null; sentAt = 0; registerId = null; ready = false; authenticated = false;
+    clearTimeout(inventoryContinuation);
     connectionGeneration++;
     queued.clear();
     activeMatches = undefined;
+    watchSuspension = true;
     watchChangesAttempts = 0; watchChangesRetryAt = 0;
     const delay = retryDelay;
     retryDelay = Math.min(retryDelay * 2, 30000);

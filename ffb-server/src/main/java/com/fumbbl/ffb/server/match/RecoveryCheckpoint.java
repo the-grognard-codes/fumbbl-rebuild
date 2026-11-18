@@ -47,9 +47,10 @@ final class RecoveryCheckpoint {
 			if (save != null && !save.isNull()) {
 				SetupSession.SaveResumeState retained = new SetupSession.SaveResumeState(save.asObject());
 				if (retained.abandoned) return Optional.of(new ComputerReply("MATCH_ABANDONED", JsonValue.NULL));
-				if (retained.suspended() || retained.proposal != null || retained.inactive(true, now))
-					return Optional.empty();
+				if (retained.suspended() || retained.proposal != null || retained.inactive(true, now)) return Optional.empty();
 				view.add("saveResume", retained.publicJson());
+				// A pre-clock checkpoint needs a fresh, durable start when the human owes the decision.
+				if (retained.humanDecisionSince < 0) return Optional.empty();
 			}
 			if (payload.get("reactiveDecision") != null || !humanRole.equals(view.getString("actor", null)))
 				return Optional.empty();

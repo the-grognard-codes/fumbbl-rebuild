@@ -34,8 +34,11 @@ final class BogrukEngineFixture {
 	private final Random dice;
 
 	BogrukEngineFixture(String homeRoster, String awayRoster, long seed) throws Exception {
+		this(homeRoster, awayRoster, seed, "00000000-0000-0000-0000-000000000021");
+	}
+
+	BogrukEngineFixture(String homeRoster, String awayRoster, long seed, String id) throws Exception {
 		ComputerOpponentService computers = new ComputerOpponentService(null);
-		String id = "00000000-0000-0000-0000-000000000021";
 		FrozenTeam home = frozen(homeRoster, "home", "00000000-0000-0000-0000-000000000011");
 		FrozenTeam away = frozen(awayRoster, "away", "00000000-0000-0000-0000-000000000012")
 			.copyForMatch(computers.cloneTeamId(id, ComputerOpponentService.BOGRUK_ID), "away", ComputerOpponentService.BOGRUK_TEAM_NAME);
