@@ -27,12 +27,12 @@ function Review() {
   const detail = facts.find(fact => fact.kind === kind && fact.code === variant) ?? facts.find(fact => fact.kind === kind);
   const isChangingWeather = detail?.code === 'WEATHER_CHANGE';
   const resultingWeather = isChangingWeather ? facts.find(fact => fact.kind === 'weather' && fact.code === weatherResult) : undefined;
-  const touchdown = kind === 'touchdown' ? {
-    scorer: team === 'home' ? 'Catcher #4' : 'Throwie #6',
-    score: {
-      home: { name: 'Skill-Test Humans 1', points: team === 'home' ? 1 : 0 },
-      away: { name: "Bogruk's Almost Best", points: 1 },
-    },
+  const scorer = kind === 'touchdown' ? (team === 'home' ? 'Catcher #4' : 'Throwie #6') : null;
+  const homePoints = kind === 'touchdown' && team === 'away' ? 0 : 1;
+  const winningPoint = kind === 'fullTime' && outcome !== 'DRAW';
+  const score = kind === 'touchdown' || kind === 'halfTime' || kind === 'fullTime' ? {
+    home: { name: 'Skill-Test Humans 1', points: homePoints + Number(winningPoint && team === 'home') },
+    away: { name: "Bogruk's Almost Best", points: 1 + Number(winningPoint && team === 'away') },
   } : undefined;
   const savedColors = { version: 1 as const, primary: pair === 'black' ? 'black' : pair === 'white' ? 'white' : 'gold', secondary: pair === 'black' ? 'black' : pair === 'white' ? 'ivory' : 'navy' };
   useEffect(() => {
@@ -57,11 +57,11 @@ function Review() {
       <button onClick={restart}>Replay animation</button><button onClick={() => setExiting(true)}>Exit</button>
     </nav>
     <TeamColorArtProvider home={{ rosterId: 'human', league: null, colors: savedColors }} away={{ rosterId: 'orc', league: null, colors: savedColors }}><div className="review-stage" ref={stage}><MatchSplash key={serial} announcement={{ id: String(serial), kind, team, turn: 3, half: 1,
-      teamName: touchdown?.score[team].name ?? (team === 'home' ? 'Altdorf Blue Badgers' : 'Blackwater Green Giants'),
-      helmet: team === 'home' ? 'human' : 'orc', touchdown,
+      teamName: score?.[team].name ?? (team === 'home' ? 'Altdorf Blue Badgers' : 'Blackwater Green Giants'),
+      helmet: team === 'home' ? 'human' : 'orc', score, scorer,
       kickoffWeather: resultingWeather ? { code: resultingWeather.code, label: resultingWeather.headline, detail: resultingWeather.reason } : undefined,
-      reason: kind === 'turnover' ? 'Pippin failed to dodge.' : kind === 'kickoff' ? 'The offence may reposition D3+3 open players one square each.' : kind === 'weather' ? '−1 to pick up, catch and intercept.' : kind === 'halfTime' || kind === 'fullTime' ? 'Altdorf Blue Badgers 2 – 1 Blackwater Green Giants' : null,
-      ...(detail ? { headline: detail.headline, code: detail.code, reason: detail.reason } : kind === 'kickoff' ? { headline: 'Quick Snap', code: 'QUICK_SNAP' } : kind === 'weather' ? { headline: 'Pouring Rain', code: 'POURING_RAIN' } : kind === 'fullTime' ? { headline: outcome === 'CONCEDED' ? 'MATCH CONCEDED' : 'End of Regulation', code: outcome, reason: outcome === 'DRAW' ? 'Altdorf Blue Badgers 1 – 1 Blackwater Green Giants — DRAW' : 'Altdorf Blue Badgers 2 – 1 Blackwater Green Giants — Altdorf Blue Badgers wins' } : {}) }} hold exiting={exiting} rate={rate} cameraEnd={cameraEnd} onDismiss={() => setExiting(true)}/></div></TeamColorArtProvider>
+      reason: kind === 'turnover' ? 'Pippin failed to dodge.' : null,
+      ...(detail ? { headline: detail.headline, code: detail.code, reason: detail.reason } : kind === 'fullTime' ? { code: outcome } : {}) }} hold exiting={exiting} rate={rate} cameraEnd={cameraEnd} onDismiss={() => setExiting(true)}/></div></TeamColorArtProvider>
   </main>;
 }
 createRoot(document.getElementById('app')!).render(<Review/>);

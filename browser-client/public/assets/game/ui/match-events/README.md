@@ -1,6 +1,6 @@
 # Match event emblems
 
-These assets are used in the #565 match splashes. The existing mole referee from Argue the Call is reused for Get the Ref. Weather cards and Changing Weather soften the edges of the existing condition sprites over the animated effects. Half-time and End of Regulation share a metal sports whistle with the same animation.
+These assets are used in the #565 match splashes. The existing mole referee from Argue the Call is reused for Get the Ref. Weather cards and Changing Weather soften the edges of the existing condition sprites over the animated effects. Half-time and End of Match share a metal sports whistle and starburst animation.
 
 `whistle.png` was created with the built-in ImageGen tool and exported to a transparent 192×192 canvas. The generation prompt follows.
 

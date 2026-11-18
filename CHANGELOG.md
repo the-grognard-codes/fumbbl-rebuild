@@ -2,15 +2,15 @@
 
 ## Unreleased
 
-- Use a shared sports whistle animation on the half-time and End of Regulation cards, and blend weather artwork into its animated background.
+- Share the sports whistle and starburst animations between half-time and End of Match, and blend weather artwork into its animated background.
 
-- Label the final whistle “End of Regulation,” give kickoff events individual emblems, and show the resulting condition in a single Changing Weather splash.
+- Give kickoff events individual emblems and show the resulting condition in a single Changing Weather splash.
 
-- Show touchdown scores in two columns so each number is clearly paired with its team.
+- Show touchdown, half-time and final scores in two columns so each number is clearly paired with its team.
 
 - Keep the current step notice clear of match splashes and their exit transitions.
 
-- Keep held scoring announcements visible when the same deferred next-drive prompt refreshes; show the touchdown scorer and current score on separate lines. Center the single-line halftime heading over a short dotted scrimmage line with faint wide-zone markings.
+- Keep held scoring announcements visible when the same deferred next-drive prompt refreshes. Show the touchdown scorer on a separate line above the score.
 
 - Show authoritative kick-off, initial/changed weather, half-time, full-time and concession announcements with scorer/score details and staged-event ordering. Animate match announcements with stepped ribbons and headline impacts, saved team colours, reduced-motion fades, and exits included in playback timing. Add per-kind visibility preferences, brief celebration bursts, weather effects, camera-aware ribbons and contrasting team-colour edges.
 

@@ -2,7 +2,7 @@ import { useTeamColorContext } from './TeamColorArtProvider.tsx';
 import { useEffect, useState } from 'react';
 import type { CSSProperties, ReactNode } from 'react';
 import { MatchArt } from './MatchScoreboard.tsx';
-import { announcementHeadline, announcementText } from './match-announcements.ts';
+import { announcementHeadline, announcementOutcome, announcementText } from './match-announcements.ts';
 import type { MatchAnnouncement } from './match-announcements.ts';
 import './match-splash.css';
 import { teamColorRamps } from './team-color-art.ts';
@@ -51,7 +51,9 @@ export function MatchSplash({ announcement, onDismiss, hold, exiting, rate, icon
   const kit = teamColors[announcement.team];
   const neutral = announcement.kind === 'weather' || announcement.kind === 'halfTime' || announcement.code === 'DRAW'
     || announcement.kind === 'kickoff' && !['SOLID_DEFENCE', 'QUICK_SNAP', 'CHARGE', 'HIGH_KICK'].includes(announcement.code ?? '');
-  const { touchdown, kickoffWeather } = announcement;
+  const { score, scorer, kickoffWeather } = announcement;
+  const outcome = announcementOutcome(announcement);
+  const highlightedTeam = announcement.kind === 'touchdown' || (outcome && announcement.code !== 'DRAW') ? announcement.team : null;
   const weatherCode = announcement.kind === 'weather' ? announcement.code : kickoffWeather?.code;
   const weatherSprite = weatherCode && weatherPresentation(weatherCode).sprite;
   const weatherTint: Record<string, string> = { SWELTERING_HEAT: '#ef9847', VERY_SUNNY: '#ffe17b', NICE: '#49beae', POURING_RAIN: '#9bbdd2', BLIZZARD: '#edf5ff' };
@@ -77,20 +79,21 @@ export function MatchSplash({ announcement, onDismiss, hold, exiting, rate, icon
         onClick={event => { event.stopPropagation(); onDismiss(); }}><span aria-hidden="true">×</span></button>
       <div className="match-splash-backdrop" aria-hidden="true"/>
       <div className="match-splash-ribbon" aria-hidden="true"/>
-      {announcement.kind === 'halfTime' && <div className="match-splash-half-pitch" aria-hidden="true"/>}
-      {(announcement.kind === 'touchdown' || announcement.kind === 'fullTime' && announcement.code === 'WIN') && <div className="match-splash-burst" aria-hidden="true"/>}
+      {(announcement.kind === 'touchdown' || announcement.kind === 'halfTime' || announcement.kind === 'fullTime' && announcement.code === 'WIN')
+        && <div className="match-splash-burst" aria-hidden="true"/>}
       {weatherCode && <div className="match-splash-weather-fx" aria-hidden="true"/>}
       <div className="match-splash-icon" aria-hidden="true">{icon ?? (emblem ? <img className="match-art" src={`${import.meta.env.BASE_URL}assets/game/ui/${emblem}`} alt=""/> : <MatchArt name={announcement.helmet} colors={teamColors[announcement.team]}/>)}</div>
       {!neutral && announcement.kind !== 'fullTime' && <p className="match-splash-team">{announcement.teamName}</p>}
       <h2>{announcementHeadline(announcement)}</h2>
-      {touchdown ? <div className="match-splash-reason">
-        {touchdown.scorer && <div className="match-splash-scorer">{touchdown.scorer}</div>}
+      {score ? <div className="match-splash-reason">
+        {scorer && <div className="match-splash-scorer">{scorer}</div>}
         <dl className="match-splash-score" aria-label="Current score">
-          {(['home', 'away'] as const).map(team => <div key={team} data-scoring={announcement.team === team}>
-            <dt>{touchdown.score[team].name}</dt>
-            <dd>{touchdown.score[team].points}</dd>
+          {(['home', 'away'] as const).map(team => <div key={team} data-highlighted={highlightedTeam === team}>
+            <dt>{score[team].name}</dt>
+            <dd>{score[team].points}</dd>
           </div>)}
         </dl>
+        {outcome && <div className="match-splash-outcome">{outcome}</div>}
       </div> : kickoffWeather ? <p className="match-splash-reason">
         <strong className="match-splash-weather-condition">{kickoffWeather.label}</strong>
         {kickoffWeather.detail && <span>{kickoffWeather.detail}</span>}

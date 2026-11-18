@@ -232,8 +232,12 @@ try {
     await publish({ view: next.state, records: [start, next] });
     await splash(fact.kind).waitFor();
     const title = fact.code === 'WEATHER_CHANGE' ? 'CHANGING WEATHER'
-      : fact.code === 'WIN' ? 'END OF REGULATION' : (fact.headline ?? 'HALF-TIME').toUpperCase();
+      : fact.code === 'WIN' ? 'END OF MATCH' : (fact.headline ?? 'HALF-TIME').toUpperCase();
     assert.equal(await splash(fact.kind).getByRole('heading').textContent(), title);
+    if (fact.kind === 'halfTime' || fact.kind === 'fullTime') {
+      assert.deepEqual(await splash(fact.kind).locator('.match-splash-score dt').allTextContents(), ['Altdorf Blue Badgers', 'Blackwater Green Giants']);
+      assert.deepEqual(await splash(fact.kind).locator('.match-splash-score dd').allTextContents(), [String(next.state.homeScore), String(next.state.awayScore)]);
+    }
     await page.keyboard.press('Escape'); await page.clock.runFor(550); await active(false);
   }
   await reset();

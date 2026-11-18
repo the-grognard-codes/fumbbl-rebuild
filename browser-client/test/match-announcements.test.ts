@@ -131,9 +131,9 @@ test('extended authoritative kinds retain ordering and rate-scaled durations', (
   }
 });
 
-test('regulation replays use the new title and concessions keep their own title', () => {
+test('completed match replays use the new title and concessions keep their own title', () => {
   for (const code of ['WIN', 'DRAW']) {
-    assert.equal(announcementHeadline({ ...turnover, kind: 'fullTime', code, headline: 'FULL TIME' }), 'END OF REGULATION');
+    assert.equal(announcementHeadline({ ...turnover, kind: 'fullTime', code, headline: 'FULL TIME' }), 'END OF MATCH');
   }
   assert.equal(announcementHeadline({ ...turnover, kind: 'fullTime', code: 'CONCEDED', headline: 'MATCH CONCEDED' }), 'MATCH CONCEDED');
 });

@@ -9,12 +9,10 @@ export type MatchAnnouncementEvent = {
 };
 export const kickoffCodes = ['GET_THE_REF', 'TIME_OUT', 'SOLID_DEFENCE', 'HIGH_KICK', 'CHEERING_FANS', 'WEATHER_CHANGE', 'BRILLIANT_COACHING', 'QUICK_SNAP', 'CHARGE', 'DODGY_SNACK', 'PITCH_INVASION'];
 export const weatherCodes = ['SWELTERING_HEAT', 'VERY_SUNNY', 'NICE', 'POURING_RAIN', 'BLIZZARD'];
-type TouchdownDetails = {
-  scorer: string | null;
-  score: Record<'home' | 'away', { name: string; points: number }>;
-};
 export type MatchAnnouncement = MatchAnnouncementEvent & {
-  id: string; teamName: string; helmet: 'human' | 'orc'; touchdown?: TouchdownDetails;
+  id: string; teamName: string; helmet: 'human' | 'orc';
+  score?: Record<'home' | 'away', { name: string; points: number }>;
+  scorer?: string | null;
   kickoffWeather?: { code: string; label: string; detail: string | null; pairedEventId?: string };
 };
 
@@ -48,15 +46,13 @@ export function syncAnnouncements(record: TranscriptRecord, sync: Record<string,
   return events.map((event, index) => {
     const announcement: MatchAnnouncement = { ...event, id: id(index),
       teamName: matchTeamName(state, event.team), helmet: announcementHelmet(state, event.team) };
-    if (event.kind === 'touchdown') {
-      announcement.touchdown = {
-        scorer: event.reason?.match(/^(.* #\d+) — (.+)$/s)?.[1] ?? event.reason,
-        score: {
-          home: { name: matchTeamName(state, 'home'), points: state.homeScore },
-          away: { name: matchTeamName(state, 'away'), points: state.awayScore },
-        },
+    if (event.kind === 'touchdown' || event.kind === 'halfTime' || event.kind === 'fullTime') {
+      announcement.score = {
+        home: { name: matchTeamName(state, 'home'), points: state.homeScore },
+        away: { name: matchTeamName(state, 'away'), points: state.awayScore },
       };
     }
+    if (event.kind === 'touchdown') announcement.scorer = event.reason?.match(/^(.* #\d+) — (.+)$/s)?.[1] ?? event.reason;
     if (event.kind === 'kickoff' && event.code === 'WEATHER_CHANGE') {
       const weather = events[index + 1];
       if (weather?.kind === 'weather' && weather.code && weather.headline) {
@@ -81,16 +77,28 @@ function announcementHelmet(view: SetupState, team: 'home' | 'away'): 'human' | 
 
 export function announcementHeadline(event: MatchAnnouncementEvent): string {
   if (event.kind === 'kickoff' && event.code === 'WEATHER_CHANGE') return 'CHANGING WEATHER';
-  if (event.kind === 'fullTime' && event.headline?.toUpperCase() === 'FULL TIME') return 'END OF REGULATION';
+  if (event.kind === 'fullTime') return event.code === 'CONCEDED' ? 'MATCH CONCEDED' : 'END OF MATCH';
   if (event.headline) return event.headline.toUpperCase();
   return event.kind === 'turnStart' ? `START OF TURN ${event.turn}` : event.kind === 'touchdown' ? 'TOUCHDOWN!' : event.kind === 'halfTime' ? 'HALF-TIME' : 'TURNOVER';
+}
+
+export function announcementOutcome(event: MatchAnnouncement): string | null {
+  if (event.kind !== 'fullTime') return null;
+  return event.code === 'DRAW' ? 'Draw' : `${event.teamName} wins`;
 }
 
 export function announcementText(event: MatchAnnouncement, surface: 'log' | 'splash' = 'log'): string {
   const shared = ['weather', 'halfTime', 'fullTime'].includes(event.kind) || event.kind === 'kickoff' && !['SOLID_DEFENCE', 'QUICK_SNAP', 'CHARGE', 'HIGH_KICK'].includes(event.code ?? '');
   const team = shared ? '' : `${event.teamName} — `;
   const headline = surface === 'log' && event.headline ? event.headline.toUpperCase() : announcementHeadline(event);
-  const detail = surface === 'splash' ? event.kickoffWeather?.label ?? event.reason : event.reason;
+  let detail = event.reason;
+  if (surface === 'splash') {
+    if (event.score) {
+      const { home, away } = event.score;
+      detail = [event.scorer, `${home.name}: ${home.points}. ${away.name}: ${away.points}`, announcementOutcome(event)]
+        .filter(Boolean).join('. ');
+    } else if (event.kickoffWeather) detail = event.kickoffWeather.label;
+  }
   return `${team}${headline}${detail ? `. ${detail}` : ''}`;
 }
 
