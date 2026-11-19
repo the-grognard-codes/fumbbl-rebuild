@@ -9,6 +9,16 @@
 
 ### What to compare
 
+#### Neutral crowd clothing preview
+
+This proposed revision places umber, tan, warm grey and charcoal clothing among the supporters. The native proof applies fixed ramps to 75 home and eight visiting spectator selections. The club banners and flags keep their colours. Open either image at full size to judge the balance. The layered gallery continues to use the approved Gatehouse still pending visual review.
+
+| Approved Gatehouse | Proposed crowd mix |
+| --- | --- |
+| [![Approved crowd](../../assets/game/references/stadiums/round-four/candidate-02.png)](../../assets/game/references/stadiums/round-four/candidate-02.png) | [![Neutral crowd preview](../../assets/game/references/stadiums/round-four/neutral-crowd-preview.webp)](../../assets/game/references/stadiums/round-four/neutral-crowd-preview.webp) |
+
+To reproduce the lossless proof with Pillow 13, run `python assets/game/references/stadiums/round-four/layers/neutral_preview.py .tools/neutral-review/neutral.png` from the repository root. The WebP above is a compressed review copy. The lossless comparison changed 20,082 clothing pixels and preserved the full pitch and its two-square apron.
+
 Candidate 02 comes closest to the concept's foreground wall depth, hanging cloth and readable faces. Three differences remain visible. The sideline faces are larger and the bays repeat more regularly. The turf meets the apron at a sharper edge. Showing both end walls makes them more prominent than in the owner's cropped reference. The centre crop misses the red block at upper right, which is visible in the full still. Judge the face scale and wall rhythm using the cropped concept, then look at the full frame to judge the end walls. [Owner's concept](../../assets/game/references/stadiums/concept-round-3/01-old-world-classic-human-home.webp)
 
 ![Candidate 02 beside the round-three concept at the gallery comparison crop](../../assets/game/references/stadiums/round-four/gatehouse-comparison.jpg)
