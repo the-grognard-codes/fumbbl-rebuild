@@ -494,6 +494,8 @@ function GameViewContent({ view, connected, pending: requestPending, mutate, acc
       if (!canChoose) return;
       const choice = kickoff.players.find(player => player.id === id);
       if (choice && kickoff.batch) {
+        // Threat inspection follows the requested Charge player once the server includes them in the group.
+        if (view.kickoff?.event === 'CHARGE') setPlayerId(kickoff.selected.includes(id) ? '' : id);
         mutate('action', { actionId: choice.action.id });
       } else if (choice) {
         const selected = toggleKickoffPlayer(kickoffIds, id, kickoff.maximum);

@@ -34,7 +34,7 @@ try {
     const errors = []; page.on('pageerror', error => errors.push(error.message));
     const view = state(role);
     await page.addInitScript(view => {
-      window.threatState = view; window.threatIntents = [];
+      window.threatState = view; window.threatIntents = []; window.threatRangeReads = [];
       window.threatRange = { rangeVersion: 2, playerId: 'friendly', from: { x: 9, y: 7 }, remaining: 8, normalRemaining: 6,
         normal: [{ x: 10, y: 7 }], full: [{ x: 10, y: 7 }, { x: 11, y: 7 }], revision: view.revision };
     }, view);
@@ -143,19 +143,38 @@ try {
     } }]) {
       await page.evaluate(state => window.publishThreat(state), { ...view, ...patch }); await select(); await overlap.waitFor();
     }
-    // Local Charge choices retain threat inspection without sending draft commands.
+    // Charge picks follow the server's staged selection. Inspection sends no extra command.
     await page.locator('.live-pitch-viewport').focus(); await page.keyboard.press('Escape');
     const charge = { ...view, turnMode: 'KICKOFF', kickoff: { version: 1, event: 'CHARGE', actor: role, stage: 'selection', allowed: 1, selected: 0, completed: 0 },
       actions: [{ id: 'event:event-pick:friendly', label: 'Select friendly', actor: role, kind: 'kickoffChoice', target: { playerId: 'friendly' }, sourcePlayerId: null }],
       players: [...view.players, { ...view.players[0], id: 'unoffered', name: 'unoffered', x: 7, y: 7 }] };
-    await page.evaluate(state => window.publishThreat(state), charge); await select(); await overlap.waitFor();
+    const pick = { operation: 'action', fields: { actionId: charge.actions[0].id } };
+    const publishCharge = selected => page.evaluate(state => window.publishThreat(state), {
+      ...charge,
+      kickoff: { ...charge.kickoff, selected: selected ? 1 : 0, participantIds: selected ? ['friendly'] : [] },
+      actions: [{ ...charge.actions[0], label: selected ? 'Deselect friendly' : 'Select friendly' }],
+    });
+    const chargeIntents = () => page.evaluate(() => window.threatIntents);
+    await publishCharge(false);
     await select();
+    assert.deepEqual(await chargeIntents(), [pick]);
+    assert.equal(await overlap.count(), 0, 'The requested pick waits for the server selection');
+    await publishCharge(true);
+    await overlap.waitFor();
+    await page.waitForFunction(() => window.threatRangeReads.at(-1) === 'friendly');
+
+    await select();
+    assert.deepEqual(await chargeIntents(), [pick, pick]);
+    await publishCharge(false);
     await page.waitForFunction(() => !document.querySelector('[data-threat-square]'));
-    await select(); await overlap.waitFor();
+    await page.waitForFunction(() => window.threatRangeReads.at(-1) === null);
+    await select();
+    await publishCharge(true);
+    await overlap.waitFor();
     await page.locator('[data-player-id="unoffered"]').focus(); await page.keyboard.press('Enter');
     await page.waitForFunction(() => !document.querySelector('[data-threat-square]'));
     assert.equal(await page.locator('.live-selection-square[data-selection="friendly"]').count(), 1, 'Inspection does not discard the selected group');
-    assert.deepEqual(await page.evaluate(() => window.threatIntents), [], 'Draft choices and inspection send no gameplay commands');
+    assert.deepEqual(await chargeIntents(), [pick, pick, pick], 'Inspecting an unoffered player sends no command');
     await page.evaluate(state => window.publishThreat(state), view); await select(); await overlap.waitFor();
     await page.locator('.live-pitch-viewport').focus(); await page.keyboard.press('Escape');
     await page.waitForFunction(() => !document.querySelector('[data-threat-square]'));

@@ -72,21 +72,30 @@ try {
   await page.goto(`http://127.0.0.1:${server.httpServer.address().port}/roundup-log`);
   await page.getByRole('log').waitFor(); await page.evaluate(() => document.fonts.ready);
   await check('all log dice scale at every selected size, including grouped and appended entries', async () => {
-    const widths = [];
+    const heights = [];
+    const dice = page.locator('.match-event-scroll .polygon-die');
+    const scale = kind => kind === 'd8' || kind === 'd16' ? 1.9 : 1.5;
     for (const [name, pixels] of [['Small', 10], ['Medium', 12], ['Large', 14]]) {
       await page.getByRole('button', { name: `${name} log text` }).click();
-      const sizes = await page.locator('.match-event-scroll .polygon-die').evaluateAll(elements => elements.map(element => ({ kind: element.dataset.dieKind, width: element.getBoundingClientRect().width, font: parseFloat(getComputedStyle(element).fontSize) })));
+      const sizes = await dice.evaluateAll(elements => elements.map(element => ({
+        kind: element.dataset.dieKind, height: element.getBoundingClientRect().height,
+        font: parseFloat(getComputedStyle(element).fontSize),
+      })));
       assert.ok(sizes.length >= 29);
-      assert.ok(sizes.every(size => Math.abs(size.width - pixels * 1.9) < .1), `${name}: ${JSON.stringify(sizes.slice(0, 5))}`);
+      const incorrectSizes = sizes.filter(size => size.font !== pixels || Math.abs(size.height - pixels * scale(size.kind)) >= .1);
+      assert.deepEqual(incorrectSizes, [], `${name}: all log dice have the expected height`);
       assert.equal(await page.getByRole('log').evaluate(element => element.scrollWidth <= element.clientWidth), true, `${name}: wrapping log has no horizontal clipping`);
-      assert.equal(await page.locator('.match-event-scroll .polygon-die').evaluateAll(elements => elements.every(element => {
+      assert.equal(await dice.evaluateAll(elements => elements.every(element => {
         const die = element.getBoundingClientRect(), row = element.closest('p').getBoundingClientRect();
         return die.left >= row.left - .5 && die.right <= row.right + .5 && die.top >= row.top - .5 && die.bottom <= row.bottom + .5;
       })), true, `${name}: every die fits its wrapped text row`);
-      widths.push(sizes[0].width);
+      heights.push(sizes[0].height);
       const appended = { ...records.at(-1), index: records.length, revision: records.length };
-      await page.evaluate(records => window.publishLogRecords(records), [...records, appended]);
-      assert.equal(await page.locator('.match-event-scroll .polygon-die').last().evaluate(element => Math.round(element.getBoundingClientRect().width * 10)), Math.round(pixels * 19));
+      records.push(appended);
+      await page.evaluate(records => window.publishLogRecords(records), records);
+      await dice.nth(sizes.length).waitFor({ state: 'attached' });
+      const appendedSize = await dice.last().evaluate(element => ({ kind: element.dataset.dieKind, height: element.getBoundingClientRect().height }));
+      assert.ok(Math.abs(appendedSize.height - pixels * scale(appendedSize.kind)) < .1, `${name}: appended dice match the selected size`);
       if (evidence) {
         await page.setViewportSize({ width: 1100, height: 2000 });
         const saved = await page.locator('.match-event-log').getAttribute('style');
@@ -99,7 +108,7 @@ try {
         await page.setViewportSize({ width: 1100, height: 900 });
       }
     }
-    assert.ok(widths[0] < widths[1] && widths[1] < widths[2]);
+    assert.ok(heights[0] < heights[1] && heights[1] < heights[2]);
   });
   await check('D8 and D16 use matching triangles and every numeral fits and centers at every size', async () => {
     for (const size of ['Small', 'Medium', 'Large']) {

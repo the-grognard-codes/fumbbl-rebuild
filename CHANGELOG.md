@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Show opposing threat markings for the inspected Charge player after the server accepts their selection.
+
 - Prepare Firebase deploy authentication for repository renames using immutable GitHub IDs. Add an authentication-only check for production and preserve historical links on the Development page.
 
 - Broadcast setup and kick-off adjustments live and save the final formation at confirmation. Coaches and spectators see participants highlighted as they are selected or deselected for Solid Defence, Quick Snap and Charge. After reconnect, clients ignore delayed adjustments that no longer fit the current stage. Both coaches can still propose a save while adjustments are pending. Setup allows 100 adjustments per stage and kick-off events allow 50. Live recovery now requires checkpoint version 7 (r5.4). Older checkpoints return `RECOVERY_UNSUPPORTED`.
