@@ -32,15 +32,16 @@
   ],
   "trackId": "f0e123d4-ef95-45e8-a527-6bb8e447099d",
   "sourceFormat": "Native-size RGB archived in lossless WebP. No resizing. Each scene ID matches the corresponding variant.",
-  "preparation": "Run python prepare.py with Pillow 13.0.0. Reuses original grass at 80% contrast, blends the dirt plate into the grass fringe. No stand layers extracted.",
+  "preparation": "Run python prepare.py with Pillow 13. Gatehouse includes the approved neutral clothing revision for 75 home supporters and eight visitors. The one-bit mask excludes those garments from all team-colour ramps.",
   "sha256": {
     "candidate-01.png": "93a9975c762ce5adcc70c33c323666af959c4863d1110a17f21b388458201907",
-    "candidate-02.png": "c83343713f5f15296828a76ebba35ac801735437f414a4638f0d75e3bb7e0bb5",
+    "candidate-02.png": "91c1a2190cbfa23c6040932b30916a0b96ec4a96c82daeedf6299d911761e5cc",
     "candidate-03.png": "c7cfcb48d60eb73a24253147555bacd3e1f08458c4ee24f71afd36aeb6df477a",
     "layout-base.png": "4ace1e85c04496081bdf842e7161bcf7773443a196ce4371467ac8a59f180924",
     "sources/scene-01.webp": "bf8b98cbb5684d364660b6692205b3cc7a768cb791218070e69a26fbf96ecc83",
     "sources/scene-02.webp": "c042befb394466c146f8b8252c7abbff2615a02971a3c1166b266c9a39b46ba5",
     "sources/scene-03.webp": "2233438e115784956d3c6c79621b6451bd42e6daf6bb28239baff27c784bccb6",
-    "sources/track.webp": "e3f1ef1b9a418ef421ca59c8eff1093024a8eee47723314151cc35184d6997cf"
+    "sources/track.webp": "e3f1ef1b9a418ef421ca59c8eff1093024a8eee47723314151cc35184d6997cf",
+    "neutral-clothing-mask.png": "753a076885b53cf43421c4608c508c645d2f88dda438bd6adfea02ee19e14c7d"
   }
 }

@@ -1,11 +1,8 @@
 """Make the owner-review neutral crowd proof from the approved native Gatehouse still."""
-import argparse
-from hashlib import sha256
-from pathlib import Path
 
 from PIL import Image, ImageChops, ImageDraw, ImageFilter
 
-from cut import RED_CLOTH, SOURCE, SOURCE_HASH, VISITOR, home_cloth, visitor_cloth
+from .cut import RED_CLOTH, VISITOR, home_cloth, visitor_cloth
 
 # Each entry selects one person's hat and visible garment around a face centre.
 # The cloth masks perform the final pixel selection inside these bounds.
@@ -79,12 +76,7 @@ def paint_people(result, source, allowed, people):
     return len(selected)
 
 
-if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("output", type=Path)
-    args = parser.parse_args()
-    assert sha256(SOURCE.read_bytes()).hexdigest() == SOURCE_HASH
-    source = Image.open(SOURCE).convert("RGB")
+def neutral_crowd(source):
     result = source.copy()
     home = home_cloth(source)
     away = Image.new("L", source.size)
@@ -93,5 +85,4 @@ if __name__ == "__main__":
         ImageDraw.Draw(away).polygon(banner, fill=0)
     for group, allowed, people in [("Home",home,HOME),("Visiting",away,VISITING)]:
         print(group, len(people), "garments,", paint_people(result,source,allowed,people), "pixels")
-    args.output.parent.mkdir(parents=True,exist_ok=True)
-    result.save(args.output)
+    return result

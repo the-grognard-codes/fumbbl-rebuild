@@ -1,6 +1,6 @@
 # Old World Classic stadium, round four
 
-**Approved still: 02, Gatehouse.** On November 18, 2026, the owner selected the open near gate because it helps orient the viewer. The source for extraction is the approved 1024 × 1536 PNG, SHA-256 `c83343713f5f15296828a76ebba35ac801735437f414a4638f0d75e3bb7e0bb5`. [Approval record](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/572#issuecomment-6988171353)
+**Approved still: 02, Gatehouse.** On November 18, 2026, the owner selected the open near gate because it helps orient the viewer. The source for extraction is the approved 1024 × 1536 PNG, SHA-256 `91c1a2190cbfa23c6040932b30916a0b96ec4a96c82daeedf6299d911761e5cc`. [Approval record](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/572#issuecomment-6988171353)
 
 | 01 · Drummers | 02 · Gatehouse | 03 · Lion wall |
 | --- | --- | --- |
@@ -9,15 +9,9 @@
 
 ### What to compare
 
-#### Neutral crowd clothing preview
+#### Approved neutral crowd clothing
 
-This proposed revision places umber, tan, warm grey and charcoal clothing among the supporters. The native proof applies fixed ramps to 75 home and eight visiting spectator selections. The club banners and flags keep their colours. Open either image at full size to judge the balance. The layered gallery continues to use the approved Gatehouse still pending visual review.
-
-| Approved Gatehouse | Proposed crowd mix |
-| --- | --- |
-| [![Approved crowd](../../assets/game/references/stadiums/round-four/candidate-02.png)](../../assets/game/references/stadiums/round-four/candidate-02.png) | [![Neutral crowd preview](../../assets/game/references/stadiums/round-four/neutral-crowd-preview.webp)](../../assets/game/references/stadiums/round-four/neutral-crowd-preview.webp) |
-
-To reproduce the lossless proof with Pillow 13, run `python assets/game/references/stadiums/round-four/layers/neutral_preview.py .tools/neutral-review/neutral.png` from the repository root. The WebP above is a compressed review copy. The lossless comparison changed 20,082 clothing pixels and preserved the full pitch and its two-square apron.
+The owner approved the fixed umber, tan, warm grey and charcoal mix on November 18. It covers 75 home supporters and eight visitors. A native one-bit mask keeps all 20,082 selected garment pixels out of the team-colour ramps before the layers are cut for either coach end. The revised Gatehouse still is the gallery comparison target. [Earlier painting](https://github.com/the-grognard-codes/fumbbl-rebuild/blob/55db1cf9b/assets/game/references/stadiums/round-four/candidate-02.png) and [approved revision](../../assets/game/references/stadiums/round-four/candidate-02.png).
 
 Candidate 02 comes closest to the concept's foreground wall depth, hanging cloth and readable faces. Three differences remain visible. The sideline faces are larger and the bays repeat more regularly. The turf meets the apron at a sharper edge. Showing both end walls makes them more prominent than in the owner's cropped reference. The centre crop misses the red block at upper right, which is visible in the full still. Judge the face scale and wall rhythm using the cropped concept, then look at the full frame to judge the end walls. [Owner's concept](../../assets/game/references/stadiums/concept-round-3/01-old-world-classic-human-home.webp)
 

@@ -307,6 +307,18 @@ try {
     }
     assert.notEqual(awaySpeciesSources.get('orc'), awaySpeciesSources.get('human'));
 
+    // Sample one home garment and one travelling visitor garment at their painted positions.
+    for (const end of ['home', 'away']) {
+      await endSelect.selectOption(end);
+      const points = end === 'home' ? [[534, 42], [941, 290]] : [[489, 42], [82, 1181]];
+      for (const preset of ['defaults', 'identical', 'yellow / purple']) {
+        await colors.selectOption(preset);
+        const samples = await painting.evaluate((canvas, points) => points.map(([x, y]) =>
+          Array.from(canvas.getContext('2d').getImageData(x, y, 1, 1).data)), points);
+        assert.deepEqual(samples, [[87, 62, 43, 255], [59, 61, 63, 255]], end + ' ' + preset);
+      }
+    }
+
     for (const end of ['home', 'away']) {
       await endSelect.selectOption(end);
       await page.getByLabel('Longitudinal pan').fill('5');

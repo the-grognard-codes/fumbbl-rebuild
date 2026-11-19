@@ -1,6 +1,7 @@
 """Reproduce the three flat review stills at native resolution (Pillow 13)."""
 from pathlib import Path
 
+from layers.neutral_preview import neutral_crowd
 from PIL import Image, ImageChops, ImageEnhance, ImageFilter
 
 ROOT = Path(__file__).resolve().parent
@@ -23,6 +24,12 @@ def prepare(index, bounds, track):
     turf = ImageEnhance.Contrast(source.crop(PITCH)).enhance(0.80)
     result.paste(turf, PITCH)
     assert ImageChops.difference(turf, result.crop(PITCH)).getbbox() is None
+    if index == 2:
+        original = result
+        result = neutral_crowd(original)
+        changed = ImageChops.difference(original, result).split()
+        neutral_mask = ImageChops.lighter(ImageChops.lighter(changed[0], changed[1]), changed[2]).point(lambda value: 255 if value else 0)
+        neutral_mask.convert("1").save(ROOT / "neutral-clothing-mask.png")
     result.save(ROOT / f"candidate-{index:02}.png", optimize=True)
 
 

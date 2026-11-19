@@ -11,7 +11,7 @@ from PIL import Image, ImageChops, ImageDraw, ImageEnhance, ImageFilter, ImageOp
 
 ROOT = Path(__file__).resolve().parent
 SOURCE = ROOT.parent / "candidate-02.png"
-SOURCE_HASH = "c83343713f5f15296828a76ebba35ac801735437f414a4638f0d75e3bb7e0bb5"
+SOURCE_HASH = "91c1a2190cbfa23c6040932b30916a0b96ec4a96c82daeedf6299d911761e5cc"
 WIDTH, HEIGHT = 1024, 1536
 PITCH = (272, 352, 752, 1184)
 SIDE_TOP, SIDE_BOTTOM = 132, 1312
@@ -327,7 +327,10 @@ class Cut:
 
     def run(self, previews):
         painting = self.source.copy()
+        neutral = Image.open(ROOT.parent / "neutral-clothing-mask.png").convert("L")
+        assert neutral.size == painting.size and neutral.histogram()[255] == 20_082
         cloth = home_cloth(painting)
+        cloth.paste(0, mask=neutral)
         emblems = []
         for name, group, box in HOME_LIONS:
             emblem = take_emblem(painting, box, cobalt)
@@ -343,6 +346,7 @@ class Cut:
         vx, vy, vr, vb = VISITOR
         home_visitor = painting.crop(VISITOR)
         visitor_mask = visitor_cloth(self.source)
+        visitor_mask.paste(0, mask=neutral.crop(VISITOR))
         fallback_box = (0, vy, vr - vx, vb)
         fallback = ImageOps.mirror(painting.crop(fallback_box))
         painting.paste(fallback, VISITOR, inner)
