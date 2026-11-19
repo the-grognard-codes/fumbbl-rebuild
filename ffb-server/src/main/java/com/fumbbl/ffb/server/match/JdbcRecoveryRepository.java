@@ -346,19 +346,20 @@ public final class JdbcRecoveryRepository implements RecoveryRepository {
 		try {
 			BoundedJsonStorageCodec decoder = journalHead
 				? new BoundedJsonStorageCodec(RecoveryJournal.MAX_ENTRY_BYTES, RecoveryJournal.MAX_ENTRY_BYTES) : codec;
-			JsonObject payload = new RecoveryCheckpoint().validate(decoder.decode(stored)).payload();
+			RecoveryCheckpoint checkpoints = new RecoveryCheckpoint();
+			String json = decoder.decode(stored);
+			JsonObject payload;
 			if (journalHead) {
-				if (payload.getInt("journalVersion", -1) != 1 || generation != payload.getLong("generation", -1)
-					|| !matchId.equals(payload.getString("matchId", null))) throw new IllegalArgumentException("Invalid journal head");
-				payload = payload.get("state").asObject();
-			}
+				payload = new RecoveryJournal().readHeadState(json, matchId, generation);
+				checkpoints.requireSupported(payload);
+			} else payload = checkpoints.validate(json).payload();
 			if (!matchId.equals(payload.getString("matchId", null))) throw new IllegalArgumentException("Invalid checkpoint match");
 			JsonValue saved = payload.get("saveResume");
 			workUntil = saved == null || saved.isNull() || payload.getBoolean("pendingTerminal", false)
 				? Long.MAX_VALUE : new SetupSession.SaveResumeState(saved.asObject()).computerWorkUntil();
 		} catch (RuntimeException invalid) {
 			new MatchPersistenceLog().coldComputerLoadFallback("computer-inventory-backfill", matchId, invalid);
-			workUntil = 0;
+			workUntil = Long.MAX_VALUE; // Keep the job visible so normal recovery can report the failure.
 		}
 		return new LegacyComputerWork(matchId, generation, workUntil);
 	}

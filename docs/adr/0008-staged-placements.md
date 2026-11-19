@@ -56,16 +56,18 @@ Staged actions at `33d95b7c6`:
   - `matchId`
   - `baseRevision`, the durable revision the stage belongs to
   - `stageSeq`, a counter that rises within that base revision
-  - only the changed players, each as a player ID and square (or reserve)
+  - the players touched during the stage, each as a player ID and square (or reserve)
+  - `selectedPlayerIds`, the full current set of staged participants. During kick-off selection an empty list clears the highlight.
 - **Revision.** It never increments `revision`.
 - **Ordering.** Clients apply a message only if its `baseRevision` equals their current revision and its `stageSeq` is higher than the last one applied. Anything else is dropped.
-- **No catch-up machinery.** There are no acknowledgements, retries or gap detection. A missed message is corrected by a later staged message (which carries the full staged positions of the moved players), by the confirm, or by a reconnect.
-- **Reconnect.** A reconnecting or newly joining viewer receives the current durable state plus the current staged positions in its normal state response. No missed messages are replayed.
+- **No catch-up machinery.** There are no acknowledgements, retries or gap detection. A missed message is corrected by a later staged message (which carries all touched positions and the current selection), by the confirm, or by a reconnect.
+- **Reconnect.** A reconnecting or newly joining viewer receives the current durable state plus the current staged positions and selected participants in its normal state response. No missed messages are replayed.
 - **Publication rules.** Publication follows [ADR 0006](0006-single-engine-worker.md): it runs on the engine worker, makes no per-recipient provider or service calls, and needs no JDBC.
 
 ### Durability
 
 - **Confirm.** The confirming action is the only durable step in a stage. It produces exactly one revision, one state snapshot, one transcript record and one checkpoint, all holding the final positions.
+- **Ending a stage.** Confirming a selection passes its participants to the native command. Declining it clears the selection. Concession ends the match from the confirmed board. While adjustments are pending, the acting coach's unrelated gameplay commands are rejected. The other coach's commands use normal role and action checks. Either coach can use the separate save/resume protocol without clearing the stage.
 - **No interim records.** Staged actions write no checkpoint, journal entry, event, transcript record or durable request history.
 - **Crash, release or reload before confirm.** Recovery restores the last checkpoint, which holds the stage's base positions. That is as if no staged action ever happened, and the coach starts the stage afresh.
 - **Request idempotence.** Each staged request ID is deduplicated in a small in-memory set held by the resident session. It is cleared at confirm and lost on restore, where a retried staged request simply applies to the restored board. The confirming request keeps its existing durable request-history entry.
@@ -108,7 +110,7 @@ Replays and the match transcript record only confirmed states. A replay shows a 
   3. If the positions are illegal when the limit is reached, the board reverts to the stage's base positions, which are always legal. Confirm is then offered. This is the same revert rule that clock expiry uses for kick-off events (above).
 - **Where the counter lives:**
   - **Until #556 lands:** the counter lives on the native kick-off step (#553, PR #558) and survives checkpoint restore.
-  - **With #556:** staged actions bypass the native step and the recorded events, so the counter moves into the staging layer. The emergency accepted-decision guard of #553 then counts staged actions too.
+  - **With #556:** staged actions bypass the native step and the recorded events, so the counter moves into the staging layer. Under the [November 17 maintainer decision](https://github.com/the-grognard-codes/fumbbl-rebuild/pull/574#issuecomment-6967747125), the emergency 1,024-decision guard counts durable decisions only. Each stage has its own adjustment limit.
 
 ### Budget
 
@@ -157,7 +159,7 @@ Replays and the match transcript record only confirmed states. A replay shows a 
 - **Storage and checkpoint cost:** setup and kick-off events cost one checkpoint and one event per stage, whatever the number of placements. A placement loop can no longer grow history.
 - **Live view unchanged:** opponents and spectators still watch every placement.
 - **Lost work on restore:** a crash or release mid-stage loses unconfirmed placements. This is accepted.
-- **New client contract:** clients handle `stagedPlacement` separately from revisions. Stale checks, playback and the announcement queue key on `revision` only.
+- **New client contract:** clients handle `stagedPlacement` separately from revisions. A well-formed frame that no longer fits the local stage is ignored in full. Stale checks, playback and the announcement queue key on `revision` only.
 - **Clock expiry is specified ahead of its toggle.** When enforcement is introduced, staged stages need a deadline on the worker like `expireReactiveDecision`, and coach-facing presentation of a forced confirmation or revert. Until then, #556 implements the expiry sequence as the forced-confirmation routine and tests it directly, with no clock trigger.
 - **Gaps to close in #556:**
   - `deployDefaultSetup`'s hard-coded fallback (3 + 8 players) is replaced by the Chevron and 5-4-2 templates completed by `SavedFormationDeployment.complete`.

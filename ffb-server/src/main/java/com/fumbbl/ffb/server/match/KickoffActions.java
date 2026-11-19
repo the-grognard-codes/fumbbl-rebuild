@@ -38,9 +38,16 @@ public final class KickoffActions {
     public List<Action> actions() { return actions(new KickoffBudgetLookup().find(state)); }
 
     List<Action> actions(KickoffAdjustmentBudget budget) {
+        return actions(budget, budget != null && budget.kickoffAdjustmentsExhausted(), -1);
+    }
+
+    List<Action> stagedActions(KickoffAdjustmentBudget budget, int sequence, int moved) {
+        return actions(budget, sequence >= KickoffAdjustmentBudget.KICKOFF_ADJUSTMENT_LIMIT, moved);
+    }
+
+    private List<Action> actions(KickoffAdjustmentBudget budget, boolean exhausted, int stagedMoved) {
         List<Action> actions = new ArrayList<>();
         Game game = state.getGame();
-        boolean exhausted = budget != null && budget.kickoffAdjustmentsExhausted();
         String role = game.isHomePlaying() ? "home" : "away";
         if (state.getCurrentStep().getId() == StepId.KICKOFF) {
             for (int x = game.isHomePlaying() ? 13 : 0; x < (game.isHomePlaying() ? 26 : 13); x++) {
@@ -93,12 +100,18 @@ public final class KickoffActions {
         } else if (game.getTurnMode() == TurnMode.HIGH_KICK || game.getTurnMode() == TurnMode.QUICK_SNAP) {
             actions.add(new Action("end-event", "kickoffChoice", "Finish " + game.getTurnMode().name(), role,
                 new ClientCommandEndTurn(game.getTurnMode(), null)));
-            if (!exhausted) for (Player<?> player : game.getActingTeam().getPlayers()) {
+            boolean staging = stagedMoved >= 0;
+            int allowed = game.getTurnMode() == TurnMode.HIGH_KICK ? 1 : budget == null ? 0 : budget.allowedParticipants();
+            if (!exhausted && (!staging || stagedMoved < allowed)) for (Player<?> player : game.getActingTeam().getPlayers()) {
+                if (staging && game.getTurnMode() == TurnMode.QUICK_SNAP
+                    && (budget == null || !budget.selectedParticipantIds().contains(player.getId()))) continue;
                 FieldCoordinate from = game.getFieldModel().getPlayerCoordinate(player);
                 if (!FieldCoordinateBounds.FIELD.isInBounds(from) || !game.getFieldModel().getPlayerState(player).isActive()) continue;
                 for (int x = 0; x < 26; x++) for (int y = 0; y < 15; y++) {
                     FieldCoordinate to = new FieldCoordinate(x, y);
-                    boolean legal = game.getFieldModel().getPlayer(to) == null && (game.getTurnMode() == TurnMode.HIGH_KICK
+                    boolean safe = !staging || game.getTurnMode() != TurnMode.QUICK_SNAP
+                        || game.getFieldModel().getTrapDoors().stream().noneMatch(trap -> to.equals(trap.getCoordinate()));
+                    boolean legal = safe && game.getFieldModel().getPlayer(to) == null && (game.getTurnMode() == TurnMode.HIGH_KICK
                         ? to.equals(game.getFieldModel().getBallCoordinate()) : Math.max(Math.abs(x - from.getX()), Math.abs(y - from.getY())) == 1);
                     if (legal) actions.add(new Action("event-" + player.getId() + "-" + x + "-" + y, "kickoffMove",
                         player.getName() + " to " + x + ", " + y, role, new ClientCommandSetupPlayer(player.getId(), oriented(to, role)), to));

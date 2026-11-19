@@ -15,6 +15,7 @@ const fields: Record<string, string[]> = {
   computerJobChanged: ['matchId', 'revision', 'saveResumeChanged'],
   computerJobEnded: ['matchId'], computerJobSuspended: ['matchId'],
   publicationDelayed: ['code', 'matchId', 'family'],
+  stagedPlacement: ['code', 'matchId', 'baseRevision', 'stageSeq', 'players', 'selectedPlayerIds'],
   preparationChanged: ['code', 'matchId'], setupState: ['code', 'duplicate', 'state'],
   matchResult: ['code', 'result', 'event'],
   matchTranscript: ['code', 'matchId', 'page'],

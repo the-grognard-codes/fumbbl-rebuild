@@ -14,7 +14,35 @@ existing recovery generation as its base-checkpoint generation and creates the
 journal table; it does not delete or rewrite existing match artifacts, teams or
 accounts. Verify marker 9 before continuing.
 
-Current servers require **marker 10**. With the game service stopped and a restorable backup available, verify a single marker row at version 9. Apply the additive job-availability migration with the operator connection. Verify marker 10, then start the matching server and check its read-only schema validation. Existing matches acquire scheduling metadata from their committed recovery state. [010-computer-job-availability.sql](../../ffb-server/src/main/resources/local-schema/010-computer-job-availability.sql)
+Current servers require **marker 10**. Roll out the migration and server
+together.
+
+1. Stop the game service. Verify that `ffb_local_schema` contains a single marker
+   row at version 9 and take a restorable backup.
+2. Apply [010-computer-job-availability.sql](../../ffb-server/src/main/resources/local-schema/010-computer-job-availability.sql)
+   using the operator connection. Verify the marker is 10 and
+   `ffb_match_recovery.computer_work_until_epoch_ms` exists as a nullable
+   `BIGINT UNSIGNED`.
+3. Start the marker-10 server and verify that its read-only schema check passes.
+   Check dispatcher registration for active computer matches and backfill errors.
+
+The server commits the availability column with each full checkpoint or journal
+append. `0` excludes suspended and abandoned jobs, a pending resume proposal sets its expiry
+in epoch milliseconds, and `Long.MAX_VALUE` marks a job with no scheduling
+deadline. A `NULL` value marks an unclassified legacy row. Registration
+backfills one legacy head at a time, guarded by its recovery generation.
+If the head cannot be decoded or is unsupported, the server logs the match ID
+and keeps the job eligible for the normal recovery diagnostics. Schema 10
+preserves the saved artifact's recovery format. In-progress matches need
+recovery version 7 (r5.4) to resume. Finish or reset in-progress matches with
+older checkpoints before the upgrade. Older checkpoints return
+`RECOVERY_UNSUPPORTED`.
+
+To roll back, stop the marker-10 server. Use the pre-upgrade marker-9 backup,
+or another verified marker-9 database, before starting the older server.
+Backup restoration loses writes made after the snapshot, so retain the
+marker-10 database for reconciliation and get the maintainer's approval for
+the recovery point. Verify the marker and the older server's schema check.
 
 MariaDB DDL commits implicitly. After interruption, inspect the column, journal
 table and marker before retrying; never automatically drop partial storage or

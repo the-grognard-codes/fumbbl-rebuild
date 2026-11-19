@@ -34,7 +34,7 @@ async function open(initial, touch = false) {
       static OPEN = 1;
       readyState = 1;
       sent = [];
-      state = initial;
+      state = JSON.parse(sessionStorage.getItem('test-kickoff-selection') ?? 'null') ?? initial;
       constructor() { window.testSocket = this; queueMicrotask(() => this.onopen?.()); }
       emit(value) { this.onmessage?.({ data: JSON.stringify(value) }); }
       reply(requestId) { queueMicrotask(() => this.emit({ version: 2, type: 'setupState', requestId,
@@ -46,7 +46,7 @@ async function open(initial, touch = false) {
           requestId: request.requestId, code: 'ACCEPTED', accountId: 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa' }));
         if (request.type === 'matchTranscript' || request.type === 'matchChat') queueMicrotask(() => this.emit({
           version: 2, type: 'error', requestId: request.requestId, code: 'TRANSCRIPT_UNAVAILABLE' }));
-        if (request.type === 'setup' && request.operation === 'load') this.reply(request.requestId);
+        if (request.type === 'watch' || request.type === 'setup' && request.operation === 'load') this.reply(request.requestId);
         if (request.type === 'setup' && request.operation === 'place') {
           const moving = this.state.players.find(player => player.id === request.playerId);
           const displaced = request.to && this.state.players.find(player => player.id !== request.playerId && player.x === request.to.x && player.y === request.to.y);
@@ -59,8 +59,21 @@ async function open(initial, touch = false) {
         if (request.type === 'setup' && request.operation === 'confirm') queueMicrotask(() => this.emit({version:2,type:'setupState',requestId:request.requestId,code:'ILLEGAL_SETUP',duplicate:false,state:this.state,
           setupErrors:['Too many players in a wide zone.','Minimum of 3 players on the Line of Scrimmage.']}));
         if (request.type === 'setup' && request.operation === 'action' && request.actionId.endsWith(':event-confirm')) {
-          this.state = { ...this.state, revision: this.state.revision + 1, actions: [],
-            kickoff: { ...this.state.kickoff, stage: 'movement', selected: request.playerIds.length, participantIds: request.playerIds } };
+          const { stageSeq, ...state } = this.state;
+          this.state = { ...state, revision: state.revision + 1, actions: [], kickoff: { ...state.kickoff, stage: 'movement' } };
+          sessionStorage.removeItem('test-kickoff-selection');
+          this.reply(request.requestId); return;
+        }
+        if (request.type === 'setup' && request.operation === 'action' && request.actionId.includes(':event-pick:') && this.state.kickoff?.stage === 'selection') {
+          const action = this.state.actions.find(offered => offered.id === request.actionId);
+          const id = action.target.playerId;
+          const previous = this.state.kickoff.participantIds ?? [];
+          const selected = previous.includes(id) ? previous.filter(item => item !== id) : [...previous, id];
+          this.state = { ...this.state, stageSeq: (this.state.stageSeq ?? 0) + 1,
+            actions: this.state.actions.map(offered => offered === action ? { ...offered,
+              label: `${selected.includes(id) ? 'Deselect' : 'Select'} ${id}` } : offered),
+            kickoff: { ...this.state.kickoff, selected: selected.length, participantIds: selected } };
+          sessionStorage.setItem('test-kickoff-selection', JSON.stringify(this.state));
           this.reply(request.requestId); return;
         }
         if (request.type === 'setup' && request.operation === 'action' && request.actionId.endsWith(':touch-recipient')) {
@@ -95,11 +108,40 @@ async function open(initial, touch = false) {
       close() { this.readyState = 3; this.onclose?.(); }
     };
   }, initial);
-  await page.goto(`http://127.0.0.1:${server.httpServer.address().port}/play/match?matchId=${frame.matchId}`);
+  await page.goto(`http://127.0.0.1:${server.httpServer.address().port}/play/match?matchId=${frame.matchId}${initial.callerRole === 'spectator' ? '&watch=1' : ''}`);
   await page.locator('.live-pitch-scene').waitFor();
   return { page, errors };
 }
 try {
+  for (const callerRole of ['away', 'spectator']) {
+    const live = await open({ ...setup, turnMode: 'SETUP', callerRole });
+    const moved = live.page.locator('.live-marker[data-player-id="home1"][data-x="8"][data-y="7"]');
+    await live.page.evaluate(matchId => window.testSocket.emit({ version: 2, type: 'stagedPlacement', requestId: null,
+      code: 'ACCEPTED', matchId, baseRevision: 0, stageSeq: 1, players: [{ playerId: 'home1', x: 8, y: 7 }], selectedPlayerIds: [] }), frame.matchId);
+    await moved.waitFor();
+    assert.deepEqual(live.errors, []);
+    await live.page.close();
+  }
+
+  for (const callerRole of ['away', 'spectator']) for (const event of ['CHARGE', 'QUICK_SNAP', 'SOLID_DEFENCE']) {
+    const live = await open({ ...frame, phase: 'PLAY', turnMode: 'KICKOFF', callerRole, actions: [],
+      kickoff: { version: 1, event, actor: 'home', stage: 'selection', allowed: 1, selected: 0, completed: 0 } });
+    const marked = live.page.locator('.live-marker[data-player-id="home1"].kickoff-participant');
+    const push = (stageSeq, selectedPlayerIds) => live.page.evaluate(({ matchId, stageSeq, selectedPlayerIds }) =>
+      window.testSocket.emit({ version: 2, type: 'stagedPlacement', requestId: null, code: 'ACCEPTED',
+        matchId, baseRevision: 0, stageSeq, players: [], selectedPlayerIds }), { matchId: frame.matchId, stageSeq, selectedPlayerIds });
+    await push(1, ['home1']);
+    await marked.waitFor();
+    assert.match(await live.page.getByRole('status', { name: 'Current game step' }).textContent(), /1 selected/);
+    await push(2, []);
+    await marked.waitFor({ state: 'detached' });
+    assert.match(await live.page.getByRole('status', { name: 'Current game step' }).textContent(), /0 selected/);
+    await push(1, ['home1']);
+    assert.equal(await marked.count(), 0, 'An older selection cannot undo a deselection');
+    assert.deepEqual(live.errors, []);
+    await live.page.close();
+  }
+
   const { page, errors } = await open(setup);
   const scene = page.locator('.live-pitch-scene');
   const sent = () => page.evaluate(() => window.testSocket.sent.filter(request => request.type === 'setup' && request.operation === 'place'));
@@ -245,21 +287,22 @@ try {
     const current = selection.page;
     const player = current.locator('.live-marker[data-player-id="home1"]');
     const toggle = async () => { if (touch) await player.tap(); else { await player.focus(); await player.press('Enter'); } };
+    const outline = current.locator('.live-selection-square[data-selection="home1"]');
     await toggle();
-    assert.equal(await current.locator('.live-selection-square[data-selection="home1"]').count(), 1);
+    await outline.waitFor();
     assert.match(await player.getAttribute('class'), /selected/);
-    assert.equal(await current.evaluate(() => window.testSocket.sent.filter(request => request.operation === 'action').length), 0);
+    assert.equal(await current.evaluate(() => window.testSocket.sent.filter(request => request.operation === 'action').length), single ? 0 : 1);
     await toggle();
+    await outline.waitFor({ state: 'detached' });
     assert.doesNotMatch(await player.getAttribute('class'), /selected/);
-    assert.equal(await current.locator('.live-selection-square[data-selection="home1"]').count(), 0);
     await toggle();
+    await outline.waitFor();
     assert.match(await current.getByRole('status', { name: 'Current game step' }).textContent(), /Selected 1 of 1/);
     if (name === 'QUICK_SNAP' && !touch) {
       await current.reload();
       await current.locator('.live-pitch-scene').waitFor();
-      assert.equal(await current.locator('.live-selection-square[data-selection]').count(), 0, 'Reload discards the unconfirmed local group');
-      assert.match(await current.getByRole('status', { name: 'Current game step' }).textContent(), /Selected 0 of 1/);
-      await toggle();
+      await outline.waitFor();
+      assert.match(await current.getByRole('status', { name: 'Current game step' }).textContent(), /Selected 1 of 1/);
       await mkdir(new URL('../../.notes/kickoff-review/', import.meta.url), { recursive: true });
       await current.screenshot({ path: fileURLToPath(new URL('../../.notes/kickoff-review/selection.png', import.meta.url)) });
     }
@@ -272,9 +315,11 @@ try {
     await current.waitForFunction(() => window.testSocket.state.revision === 1);
     assert.doesNotMatch(await player.getAttribute('class'), / selected/);
     const requests = await current.evaluate(() => window.testSocket.sent.filter(request => request.operation === 'action'));
-    assert.equal(requests.length, 1);
+    const reloaded = name === 'QUICK_SNAP' && !touch;
+    assert.equal(requests.length, single || reloaded ? 1 : 4);
     if (!single) {
-      assert.deepEqual(requests[0].playerIds, ['home1']);
+      assert.ok(requests.every(request => !('playerIds' in request)));
+      assert.equal(requests.at(-1).actionId, '0:event-confirm');
       assert.match(await player.getAttribute('class'), /kickoff-participant/);
     }
     assert.deepEqual(selection.errors, []);

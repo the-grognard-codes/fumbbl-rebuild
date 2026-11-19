@@ -132,7 +132,7 @@ function instrument() {
         if (message.type === 'setupState' && message.state) {
           soak.state = message.state; soak.revision = message.state.revision;
           soak.arrivals.push({ at: performance.now(), wall: Date.now(), revision: message.state.revision, actor: message.state.prompt?.actor ?? message.state.actor,
-            phase: message.state.phase, bytes: event.data.length });
+            phase: message.state.phase, stageSeq: message.state.stageSeq, bytes: event.data.length });
           if (soak.arrivals.length > 20_000) soak.arrivals.splice(0, 10_000);
         }
         const sent = message.requestId && soak.outgoing.findLast(entry => entry.requestId === message.requestId);
@@ -171,13 +171,13 @@ async function advanced(view, intent) {
   await intent();
   const deadline = Date.now() + 30_000;
   while (Date.now() < deadline) {
-    const result = await page.evaluate(mark => ({ revision: window.__soak.revision,
+    const result = await page.evaluate(mark => ({ revision: window.__soak.revision, stageSeq: window.__soak.state?.stageSeq ?? 0,
       failure: window.__soak.failures.find(entry => entry.seq > mark) ?? null }), mark);
     if (result.failure) throw Error(`setup ${result.failure.operation} rejected: ${result.failure.code}`);
-    if (result.revision > view.revision) return state();
+    if (result.revision > view.revision || (result.revision === view.revision && result.stageSeq > (view.stageSeq ?? 0))) return state();
     await sleep(25);
   }
-  throw Error(`no new revision after intent at ${view.revision}`);
+  throw Error(`no new revision or staged placement after intent at revision ${view.revision}`);
 }
 
 async function setDebug(open) {
@@ -337,7 +337,7 @@ async function arrangeByDebug(view) {
     await page.getByLabel('Setup Y', { exact: true }).fill(String(y));
     view = await advanced(view, () => page.getByRole('button', { name: 'Place on empty own-half square', exact: true }).click());
   }
-  view = await advanced(view, () => page.getByRole('button', { name: 'Confirmed!', exact: true }).click());
+  view = await advanced(view, () => page.getByRole('button', { name: 'Confirm Setup', exact: true }).click());
   await setDebug(false);
   return view;
 }
@@ -375,9 +375,9 @@ const observedMatches = new Set();
 const retainedRequests = new SoakRetainedRequests(() => page, log);
 
 function recordMatch(event, details) {
-  const id = new URL(page.url()).searchParams.get('matchId');
-  if (!observedMatches.has(id)) { observedMatches.add(id); matches++; }
-  log(event, { matches, ...details });
+  const matchId = new URL(page.url()).searchParams.get('matchId');
+  if (!observedMatches.has(matchId)) { observedMatches.add(matchId); matches++; }
+  log(event, { matches, matchId, ...details });
 }
 async function rejectedSignIn() {
   const alerts = (await page.getByRole('alert').allTextContents().catch(() => [])).join(' ');
@@ -558,7 +558,7 @@ while (Date.now() < deadline) {
     await maybeDecide();
     const view = lastView;
     if (view?.phase === 'FULL_TIME') {
-      completed++; log('match-completed', { revision: view.revision, score: [view.homeScore, view.awayScore] });
+      completed++; recordMatch('match-completed', { revision: view.revision, score: [view.homeScore, view.awayScore] });
       await exportCapture().catch(() => {}); await flushArrivals().catch(() => {});
       await screenshot('full-time'); await sleep(10_000); await repeatRetainedRequest(); needMatch = true; continue;
     }

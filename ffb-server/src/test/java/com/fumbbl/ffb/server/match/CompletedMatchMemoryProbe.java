@@ -13,7 +13,7 @@ public final class CompletedMatchMemoryProbe {
 			BogrukEngineFixture fixture = new BogrukEngineFixture("human", "orc", 0xB06A7L);
 			RecoveryRepository.Record record = paddedRecoveryRecord(fixture, 40 * 1024 * 1024);
 			RetainedConcession retained = new RetainedConcession(record, fixture.document);
-			if (retained.closed() || retained.unsupported()) throw new AssertionError("valid retained recovery was not preserved");
+			if (retained.closed() || !retained.unsupported()) throw new AssertionError("retired recovery must remain available for administrative reads");
 			if (!"home".equals(retained.view("home").getString("callerRole", null)))
 				throw new AssertionError("retained recovery did not return the home view");
 			System.out.println("retained-read-passed bytes=" + record.json.length());
@@ -47,6 +47,7 @@ public final class CompletedMatchMemoryProbe {
 		JsonObject payload = JsonObject.readFrom(fixture.session.recoveryArtifact()).get("payload").asObject();
 		StringBuilder padding = new StringBuilder(paddingSize);
 		for (int index = 0; index < paddingSize; index++) padding.append('x');
+		payload.set("recoveryVersion", 6).set("runtimeVersion", SetupSession.CHAT_RUNTIME);
 		payload.add("diagnosticPadding", padding.toString());
 		JsonObject envelope = new JsonObject().add("payload", payload).add("sha256", new JsonDigest().sha256(payload));
 		return new RecoveryRepository.Record(fixture.document.matchId, 1, envelope.toString());

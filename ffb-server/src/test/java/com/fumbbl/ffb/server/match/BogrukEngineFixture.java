@@ -58,7 +58,7 @@ final class BogrukEngineFixture {
 		when(server.getDebugLog()).thenReturn(mock(DebugLog.class));
 		when(server.getCommunication()).thenReturn(mock(ServerCommunication.class));
 		dice = new Random(seed);
-		session = new SetupSession(server, document, -2, true, true, true, true, true, true);
+		session = SetupSession.startRecoverable(server, document, -2, true, true);
 		session.recordPlayerActivity("home", System.currentTimeMillis());
 		pinDice();
 	}

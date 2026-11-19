@@ -30,8 +30,8 @@ import java.util.function.Function;
 
 /** Resident presentation sidecar. Only native committed boundaries produce events. */
 final class MatchAnnouncementPresentation {
-    private static final List<String> CHECKPOINT_FIELDS = List.of("voluntary", "confirmed", "reason", "lastTurn",
-        "pending", "lastWeather", "pendingKickoff", "deferredWeather");
+    private static final List<String> LEGACY_CHECKPOINT_FIELDS = List.of("voluntary", "confirmed", "reason", "lastTurn", "pending");
+    private static final List<String> KICKOFF_CHECKPOINT_FIELDS = List.of("lastWeather", "pendingKickoff", "deferredWeather");
     private final MatchSplashRules rules = new MatchSplashRules();
     private final Map<Integer, JsonArray> syncs = new LinkedHashMap<>();
     private JsonArray pending = new JsonArray();
@@ -187,17 +187,20 @@ final class MatchAnnouncementPresentation {
     }
 
     void restore(JsonObject saved) {
-        if (saved.size() != CHECKPOINT_FIELDS.size() || !saved.names().containsAll(CHECKPOINT_FIELDS))
-            throw new IllegalArgumentException("Invalid match announcement checkpoint: expected all eight fields");
+        boolean legacy = saved.size() == LEGACY_CHECKPOINT_FIELDS.size();
+        boolean current = saved.size() == LEGACY_CHECKPOINT_FIELDS.size() + KICKOFF_CHECKPOINT_FIELDS.size()
+            && saved.names().containsAll(KICKOFF_CHECKPOINT_FIELDS);
+        if (!saved.names().containsAll(LEGACY_CHECKPOINT_FIELDS) || !(legacy || current))
+            throw new IllegalArgumentException("Invalid match announcement checkpoint fields");
         try {
             voluntary = saved.get("voluntary").asBoolean();
             confirmed = saved.get("confirmed").asBoolean();
             reason = readNullable(saved, "reason", JsonValue::asString);
             lastTurn = readNullable(saved, "lastTurn", JsonValue::asString);
             pending = JsonArray.readFrom(saved.get("pending").toString());
-            lastWeather = readNullable(saved, "lastWeather", JsonValue::asString);
-            pendingKickoff = readNullable(saved, "pendingKickoff", JsonValue::asObject);
-            deferredWeather = readNullable(saved, "deferredWeather", JsonValue::asObject);
+            lastWeather = legacy ? null : readNullable(saved, "lastWeather", JsonValue::asString);
+            pendingKickoff = legacy ? null : readNullable(saved, "pendingKickoff", JsonValue::asObject);
+            deferredWeather = legacy ? null : readNullable(saved, "deferredWeather", JsonValue::asObject);
         } catch (UnsupportedOperationException invalid) {
             throw new IllegalArgumentException("Invalid match announcement checkpoint field type", invalid);
         }

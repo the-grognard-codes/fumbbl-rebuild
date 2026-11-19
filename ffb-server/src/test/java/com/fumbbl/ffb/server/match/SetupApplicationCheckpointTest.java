@@ -130,6 +130,29 @@ class SetupApplicationCheckpointTest {
 		}
 	}
 
+	@Test void stagedRequestsSkipCheckpointUntilConfirmation() throws Exception {
+		try (Fixture fixture = new Fixture()) {
+			fixture.application.handle("home", load());
+			SetupSession session = fixture.session();
+			JsonObject stage = new JsonObject().add("type", "stagedPlacement").add("stageSeq", 1);
+			for (int i = 1; i <= 10; i++) {
+				JsonObject placement = request("placement-" + i).set("operation", "place").remove("actionId")
+					.add("playerId", "player").add("to", new JsonObject().add("x", 8).add("y", 7));
+				when(session.isStagedRequest(placement)).thenReturn(true);
+				when(session.stagedPlacement()).thenReturn(stage);
+				SetupApplication.HandleOutcome outcome = fixture.application.handleWithOutcome("home", placement);
+				assertEquals("ACCEPTED", outcome.response().getString("code", null));
+				assertSame(stage, outcome.placement());
+				assertFalse(outcome.publish());
+			}
+			verify(fixture.recovery, never()).save(any(RecoveryRepository.Record.class), anyLong());
+			verify(session, never()).recoveryArtifact();
+			assertTrue(fixture.application.handleWithOutcome("home", request("confirm").set("operation", "confirm").remove("actionId")).publish());
+			verify(fixture.recovery).save(any(RecoveryRepository.Record.class), eq(4L));
+			verify(session).recoveryArtifact();
+		}
+	}
+
 	@Test void failedConflictingAndUnknownCommitsReleaseFingerprintsBeforeRetry() throws Exception {
 		for (String failure : new String[] {"PERSISTENCE_FAILED", "RECOVERY_CONFLICT", "MATCH_OUTCOME_UNKNOWN"}) {
 			try (Fixture fixture = new Fixture()) {

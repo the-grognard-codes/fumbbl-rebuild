@@ -86,7 +86,7 @@ function decide() {
   }
   if (!waitingForHuman()) clearIdleTimer();
   else if (idleTimeoutMs && !idleTimer) idleTimer = setTimeout(yieldIdleWorker, idleTimeoutMs);
-  const decisionKey = `${state.revision}:${state.saveResume?.status ?? ''}:${state.saveResume?.proposalId ?? ''}`;
+  const decisionKey = `${state.revision}:${state.stageSeq ?? 0}:${state.saveResume?.status ?? ''}:${state.saveResume?.proposalId ?? ''}`;
   if (decisionKey === lastDecisionKey) return;
   const key = `${state.half}:${state.drive}:${state.homeTurn}:${state.awayTurn}:${state.actor}`;
   if (key !== turnKey) { turnKey = key; actionsThisTurn = 0; }
@@ -114,7 +114,8 @@ function decide() {
 function applyState(raw) {
   const next = decodeSetupStateValue(raw, 'computer');
   if (next.matchId !== matchId || next.callerRole === 'spectator') throw Error('Unexpected match or role');
-  if (!state || next.revision >= state.revision) state = next;
+  if (!state || next.revision > state.revision
+    || next.revision === state.revision && (next.stageSeq ?? 0) >= (state.stageSeq ?? 0)) state = next;
 }
 function yieldToDaemon() {
   // The daemon owns persistence backoff and emits one diagnostic per failed worker.

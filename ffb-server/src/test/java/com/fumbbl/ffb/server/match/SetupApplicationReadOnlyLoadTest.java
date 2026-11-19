@@ -201,6 +201,22 @@ class SetupApplicationReadOnlyLoadTest {
 		waitingComputerLoadsDoNotExtendResidencyOrRestoreAnIdleMatch("away");
 	}
 
+	@Test void coldComputerLoadRejectsRetiredCheckpointBeforeReturningTheStoredView() throws Exception {
+		Fixture fixture = new Fixture("away");
+		moveToActor(fixture, "home");
+		JsonObject envelope = JsonObject.readFrom(fixture.recovery.record.json);
+		JsonObject payload = envelope.get("payload").asObject();
+		payload.set("recoveryVersion", 6).set("runtimeVersion", SetupSession.CHAT_RUNTIME);
+		envelope.set("sha256", new JsonDigest().sha256(payload));
+		fixture.recovery.record = new RecoveryRepository.Record(fixture.id, 1, envelope.toString());
+
+		SetupApplication application = fixture.application();
+		JsonObject response = application.handleComputerWithOutcome("away", fixture.load()).response();
+		assertEquals("RECOVERY_UNSUPPORTED", response.getString("code", null));
+		assertEquals(JsonValue.NULL, response.get("state"));
+		assertEquals(0, application.lifecycleMetrics().getInt("restoredSessions", -1));
+	}
+
 	private void waitingComputerLoadsDoNotExtendResidencyOrRestoreAnIdleMatch(String computerRole) throws Exception {
 		Fixture fixture = new Fixture(computerRole);
 		String humanRole = otherRole(computerRole);

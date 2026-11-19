@@ -379,10 +379,28 @@ class MatchAnnouncementPresentationTest {
         assertEquals(Weather.NICE.getName(), facts.getFirst().get("weather").asObject().getString("headline", null));
     }
 
+    @Test void restoresAFullMatchCheckpointWithLegacyAnnouncementFields() throws Exception {
+        SetupSessionMovementTest.Fixture fixture = fixture();
+        fixture.advanceToTurn();
+        JsonObject payload = fixture.session.orderedRecoveryPayload();
+        JsonObject announcements = payload.get("matchAnnouncements").asObject();
+        JsonValue lastTurn = announcements.get("lastTurn");
+        announcements.remove("lastWeather").remove("pendingKickoff").remove("deferredWeather");
+        String artifact = new RecoveryArtifactJson().encodeCheckpoint(payload).envelope();
+
+        SetupSession restored = new SetupSession(fixture.server, fixture.document, artifact);
+        assertEquals(fixture.session.revision(), restored.revision());
+        JsonObject currentAnnouncements = restored.orderedRecoveryPayload().get("matchAnnouncements").asObject();
+        assertEquals(lastTurn, currentAnnouncements.get("lastTurn"));
+        assertEquals(JsonValue.NULL, currentAnnouncements.get("lastWeather"));
+        assertEquals(JsonValue.NULL, currentAnnouncements.get("pendingKickoff"));
+        assertEquals(JsonValue.NULL, currentAnnouncements.get("deferredWeather"));
+    }
+
     @Test void rejectsCheckpointsMissingRequiredFields() {
         MatchAnnouncementPresentation presentation = new MatchAnnouncementPresentation();
-        JsonObject old = presentation.checkpoint().remove("lastWeather").remove("pendingKickoff").remove("deferredWeather");
-        assertThrows(IllegalArgumentException.class, () -> presentation.restore(old));
+        JsonObject incomplete = presentation.checkpoint().remove("lastWeather");
+        assertThrows(IllegalArgumentException.class, () -> presentation.restore(incomplete));
         JsonObject malformed = presentation.checkpoint().remove("lastWeather").add("wrongField", JsonValue.NULL);
         assertThrows(IllegalArgumentException.class, () -> presentation.restore(malformed));
     }

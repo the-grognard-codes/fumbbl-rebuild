@@ -41,9 +41,27 @@ Schema marker 10 records computer job availability in the same transaction as a 
 
 The dispatcher reads the idle revision after child IPC has drained. A reconnect timer can enqueue its job even if the wall clock has moved backwards. Human changes, save/resume transitions, concessions and reactive expiry can trigger notices. An ordinary computer move does not send a wake-up to its own dispatcher.
 
-## Final uninterrupted dev-local soak
+## Third-round review of `c0df23e34`
 
-The final quick-built server ran continuously from kickoff to full time. Three previously abandoned matches remained in the database. The browser created three additional Bogruk matches and left them on the human turn, then played a fourth to a 0-3 finish at revision 825 in 11 minutes 44 seconds. MariaDB confirmed the completed match at document version 4 and all three new unattended matches at version 3.
+An unreadable legacy head stays in the dispatcher inventory. The backfill logs the failure and stores `Long.MAX_VALUE` so the worker uses the normal recovery validation and diagnostics. The MariaDB regression verifies that the job remains visible after registration and that recovery still rejects the corrupt artifact. The transport regression verifies that a saved job uses no worker slot and that Bogruk accepts a resume proposed during a dispatcher disconnect before the five-minute window expires.
+
+The isolated server was stopped while migration 010 was applied to a backed-up marker-9 database. The ten active legacy matches began with unclassified availability. Backfill classified seven as eligible and excluded three with zero availability. The two completed rows remained unclassified and outside the inventory. The first worker runs exposed an additional recovery incompatibility from the announcement changes merged from main. The previous five-field announcement checkpoint now restores with empty kickoff and weather state. A read-only recovery check restored all ten legacy matches with this fix.
+
+After the patched marker-10 server restarted, the dispatcher started seven distinct retained jobs during the registration check with zero failed workers and zero server `PERSISTENCE_FAILED` entries. All 133 focused Java tests passed, including the live MariaDB schema and journal checks. All 65 computer-player and 556 browser tests passed, and the browser and server builds succeeded. The credential-free engine harness reached full time for Orc versus Human with seed 73 after 737 accepted decisions and seven checkpoint restores. The known seed-42 setup-candidate stop was reproduced at revision 402.
+
+## Integration with staged placements
+
+The update from `main` combines staged setup and kick-off publication with computer dispatch and keeps recovery version 7 as the supported format. Both native restore and cold computer loads reject older checkpoints. The announcement reader handles the five-field sidecar within a supported checkpoint. Schema migration preserves checkpoint bytes and does not convert retired recovery versions.
+
+Both MariaDB tests passed on a disposable instance. Migration 010 preserved the stored checkpoint and journal bytes. Registration classified two saved matches as ineligible and kept one corrupt checkpoint in the inventory for normal recovery diagnostics. A committed resume proposal readvertised the saved match. A fresh engine restored its migrated journal and accepted the proposal. The dispatcher regression separately confirms that Bogruk accepts a proposal made during a reconnect within its five-minute window.
+
+All 196 focused Java tests passed after integrating `main`, followed by 47 focused recovery, journal, and native-policy tests after the backfill fix. All 65 computer-player tests and 559 browser tests passed. The production browser build and local server image build succeeded. The credential-free engine harness ran Orc versus Human with seed 73 to a 0–3 finish at revision 667. It recorded 673 accepted decisions, six checkpoint restores, and zero invalid responses or decision-limit warnings.
+
+The authenticated dev-local soak is pending. Both configured DEV credential sources returned `SESSION_EXPIRED`. The current build still needs a browser save and resume, a live match through full time, and `PERSISTENCE_FAILED` and `RATE_LIMITED` totals from that run. Maintainer acknowledgement of the [migration and rollback procedure](../operations/recovery-journal-schema.md) is pending before merge.
+
+## Earlier uninterrupted dev-local soak
+
+The quick-built server from the earlier review ran continuously from kickoff to full time. Three previously abandoned matches remained in the database. The browser created three additional Bogruk matches and left them on the human turn, then played a fourth to a 0-3 finish at revision 825 in 11 minutes 44 seconds. MariaDB confirmed the completed match at document version 4 and all three new unattended matches at version 3.
 
 | Measure | Final run |
 | --- | --- |

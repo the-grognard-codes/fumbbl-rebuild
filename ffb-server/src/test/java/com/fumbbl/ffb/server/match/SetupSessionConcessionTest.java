@@ -27,11 +27,11 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 class SetupSessionConcessionTest {
-    @Test void recoverableLegacyRuntimesPersistAndRetryConcessionsForEitherCoach() {
+    @Test void recoverableSessionsPersistAndRetryConcessionsForEitherCoach() {
         SetupSessionMovementTest.Fixture fixture = new SetupSessionMovementTest.Fixture();
         for (String role : new String[] { "home", "away" }) {
-            for (int runtime = 0; runtime < 3; runtime++) {
-                SetupSession session = new SetupSession(fixture.server, fixture.document, -3 - runtime, true, runtime > 0, runtime > 1);
+            for (boolean saveResume : new boolean[] {true, false}) {
+                SetupSession session = SetupSession.startRecoverable(fixture.server, fixture.document, -3, true, saveResume);
                 JsonObject request = fixture.request("concede", "legacy-concede", session.spectatorView());
                 assertEquals("ACCEPTED", session.apply(role, request).getString("code", null));
                 new MatchJson().validateCompletion(session.completedMatch(), fixture.document);
@@ -87,7 +87,7 @@ class SetupSessionConcessionTest {
         when(server.getFactory(any())).thenAnswer(invocation -> factories.get(invocation.getArgument(0)));
         when(server.getDebugLog()).thenReturn(mock(DebugLog.class));
         when(server.getCommunication()).thenReturn(mock(ServerCommunication.class));
-        SetupSession session = new SetupSession(server, document, -2, true, true, true, true, true, true);
+        SetupSession session = SetupSession.startRecoverable(server, document, -2, true, true);
         assertBrowseSummaryMatchesView(session);
         JsonObject initialClock = session.decorateSaveResume(session.reply("load", "ACCEPTED", false, "home"))
             .get("state").asObject().get("clock").asObject();

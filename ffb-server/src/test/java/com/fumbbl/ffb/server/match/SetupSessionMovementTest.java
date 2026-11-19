@@ -921,42 +921,22 @@ class SetupSessionMovementTest {
         Fixture fixture = new Fixture(1);
         JsonObject ready = fixture.advanceToTurn();
         String role = ready.getString("actor", null);
-        JsonObject plan = null;
-        String playerId = null, targetId = null;
-        for (JsonValue candidate : ready.get("actions").asArray()) {
-            JsonObject action = candidate.asObject();
-            if (!"blitz".equals(action.getString("kind", null))) continue;
-            String sourceId = action.get("target").asObject().getString("playerId", null);
-            for (JsonValue entry : ready.get("players").asArray()) {
-                JsonObject defender = entry.asObject();
-                if (role.equals(defender.getString("role", null)) || !"pitch".equals(defender.getString("offPitch", null))) continue;
-                String defenderId = defender.getString("id", null);
-                JsonObject base;
-                try { base = fixture.session.movementPreview(role, ready.getInt("revision", -1),
-                    sourceId, "blitz", defenderId, new JsonArray()); }
-                catch (MatchService.Failure unavailable) { continue; }
-                JsonArray steps = base.get("route").asObject().get("steps").asArray();
-                if (steps.size() != 2 || !safe(steps)) continue;
-                JsonObject source = base.get("route").asObject().get("from").asObject();
-                JsonObject first = steps.get(0).asObject(), last = steps.get(1).asObject();
-                for (int dx = -1; dx <= 1 && plan == null; dx++) for (int dy = -1; dy <= 1 && plan == null; dy++) {
-                    if (dx == 0 && dy == 0) continue;
-                    int x = source.getInt("x", -1) + dx, y = source.getInt("y", -1) + dy;
-                    if (Math.abs(x - first.getInt("x", -1)) > 1 || Math.abs(y - first.getInt("y", -1)) > 1) continue;
-                    JsonArray waypoints = new JsonArray().add(new JsonObject().add("x", x).add("y", y))
-                        .add(new JsonObject().add("x", first.getInt("x", -1)).add("y", first.getInt("y", -1)))
-                        .add(new JsonObject().add("x", last.getInt("x", -1)).add("y", last.getInt("y", -1)));
-                    try {
-                        JsonObject candidatePlan = fixture.session.movementPreview(role, ready.getInt("revision", -1),
-                            sourceId, "blitz", defenderId, waypoints);
-                        if (!hasRisk(candidatePlan.get("route").asObject().get("steps").asArray())) continue;
-                        plan = candidatePlan; playerId = sourceId; targetId = defenderId;
-                    } catch (MatchService.Failure unavailable) { /* Try another nearby square. */ }
-                }
-            }
-            if (plan != null) break;
-        }
-        assertTrue(plan != null, ready.toString());
+        GameState state = nativeState(fixture.session);
+        Game game = state.getGame();
+        Player<?> blitzer = game.getActingTeam().getPlayers()[1];
+        Player<?> target = game.getOtherTeam(game.getActingTeam()).getPlayers()[1];
+        clearBlockPreviewKickoffEffects(state);
+        UtilBox.putAllPlayersIntoBox(game);
+        place(game, blitzer, 4, 7, PlayerState.STANDING);
+        place(game, target, 12, 7, PlayerState.STANDING);
+        game.getFieldModel().setBallCoordinate(new FieldCoordinate(1, 14));
+        game.getFieldModel().setBallMoving(true);
+        String playerId = blitzer.getId(), targetId = target.getId();
+        // The blitzer must rush to reach the square adjacent to the target.
+        JsonArray waypoints = points(11, 7);
+        JsonObject plan = fixture.session.movementPreview(role, ready.getInt("revision", -1), playerId, "blitz", targetId, waypoints);
+        assertTrue(plan.get("route").asObject().get("steps").asArray().values().stream()
+            .anyMatch(step -> step.asObject().getInt("rush", -1) > 0), plan.toString());
         forceGeneralRolls(fixture.session, 1, 6, 6, 6, 6, 6);
         JsonObject request = fixture.request("movement", "prompted-blitz", ready)
             .add("playerId", playerId).add("kind", "blitz").add("targetPlayerId", targetId)
@@ -1020,14 +1000,6 @@ class SetupSessionMovementTest {
             rolls.add(roll);
         }
         state.getDiceRoller().getTestRolls().put("Block", rolls);
-    }
-
-    private boolean hasRisk(JsonArray steps) {
-        for (JsonValue value : steps) {
-            JsonObject step = value.asObject();
-            if (step.getInt("dodge", -1) > 0 || step.getInt("rush", -1) > 0) return true;
-        }
-        return false;
     }
 
     @Test void activePassMoverCanContinueWithACommittedMovementRoute() {
@@ -1412,7 +1384,7 @@ class SetupSessionMovementTest {
             when(server.getDebugLog()).thenReturn(mock(DebugLog.class));
             ServerCommunication communication = captureNative ? new ServerCommunication(server) : mock(ServerCommunication.class);
             when(server.getCommunication()).thenReturn(communication);
-            session = new SetupSession(server, document, -2, true, true, true, true, true, true);
+            session = SetupSession.startRecoverable(server, document, -2, true, true);
         }
 
         JsonObject request(String operation, String id, JsonObject state) {

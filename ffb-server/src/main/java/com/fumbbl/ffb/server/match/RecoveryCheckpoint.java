@@ -23,10 +23,21 @@ final class RecoveryCheckpoint {
 			JsonObject payload = envelope.get("payload").asObject();
 			if (envelope.size() != 2 || !new JsonDigest().sha256(payload).equals(envelope.getString("sha256", null)))
 				throw new IllegalArgumentException("Recovery checksum mismatch");
+			requireSupported(payload);
 			return new Validated(payload);
+		} catch (MatchService.Failure failure) {
+			throw failure;
 		} catch (RuntimeException invalid) {
 			throw new MatchService.Failure("RECOVERY_CORRUPT");
 		}
+	}
+
+	void requireSupported(JsonObject payload) {
+		if (payload.getInt("recoveryVersion", -1) != SetupSession.STAGED_RECOVERY_VERSION
+			|| !SetupSession.STAGED_RUNTIME.equals(payload.getString("runtimeVersion", null))
+			|| !"ffb-3.4.0-bb2025-m3d.1".equals(payload.getString("engineVersion", null))
+			|| payload.getInt("replayVersion", -1) != 2)
+			throw new MatchService.Failure("RECOVERY_UNSUPPORTED");
 	}
 
 	record ComputerReply(String code, JsonValue view) { }

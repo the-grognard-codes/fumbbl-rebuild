@@ -68,41 +68,41 @@ class RecoverySessionTest {
 		Field documentField = SetupSession.class.getDeclaredField("document"); documentField.setAccessible(true);
 		MatchDocument document = (MatchDocument) documentField.get(seed);
 		TestServer server = new TestServer();
-		SetupSession current = new SetupSession(server.getServer(), document, -17, true, true, false, true, true, true);
+		SetupSession current = SetupSession.startRecoverable(server.getServer(), document, -17, true, false);
 		int before = view(current, "home").getInt("revision", -1);
 		current.sendChat("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa", "home", "chat-1", "Hello", 1000);
 		assertEquals(before, view(current, "home").getInt("revision", -1));
 		JsonObject payload = JsonObject.readFrom(current.recoveryArtifact()).get("payload").asObject();
-		assertEquals(6, payload.getInt("recoveryVersion", -1));
-		assertEquals(SetupSession.CHAT_RUNTIME, payload.getString("runtimeVersion", null));
+		assertEquals(7, payload.getInt("recoveryVersion", -1));
+		assertEquals(SetupSession.STAGED_RUNTIME, payload.getString("runtimeVersion", null));
 		SetupSession restored = restore(server, document, current);
 		assertEquals(1, restored.chatPage(0, 32).getInt("total", -1));
 		assertTrue(restored.sendChat("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa", "home", "chat-1", "Hello", 2000).duplicate);
 		assertEquals(current.recoveryArtifact(), restored.recoveryArtifact());
 	}
-	@Test void routeRuntimeRoundTripsAndRetainsTranscriptCheckpointCompatibility() throws Exception {
+	@Test void retiredRecoveryFormatsAreRejectedEvenWithValidChecksums() throws Exception {
 		SetupSession seed = new SetupSessionTest().session(11);
-		Field documentField = SetupSession.class.getDeclaredField("document");
-		documentField.setAccessible(true);
-		MatchDocument document = (MatchDocument) documentField.get(seed);
+		Field field = SetupSession.class.getDeclaredField("document");
+		field.setAccessible(true);
+		MatchDocument document = (MatchDocument) field.get(seed);
 		TestServer server = new TestServer();
-		SetupSession current = new SetupSession(server.getServer(), document, -15, true, true, false, true, true);
-		JsonObject payload = JsonObject.readFrom(current.recoveryArtifact()).get("payload").asObject();
-		assertEquals(5, payload.getInt("recoveryVersion", -1));
-		assertEquals(SetupSession.ROUTE_RUNTIME, payload.getString("runtimeVersion", null));
-		assertTrue(payload.get("pendingRoute").isNull());
-		assertEquals(current.recoveryArtifact(), restore(server, document, current).recoveryArtifact());
-
-		SetupSession previous = new SetupSession(server.getServer(), document, -16, true, true, false, true);
-		assertEquals(4, JsonObject.readFrom(previous.recoveryArtifact()).get("payload").asObject().getInt("recoveryVersion", -1));
-		assertEquals(previous.recoveryArtifact(), restore(server, document, previous).recoveryArtifact());
+		SetupSession current = SetupSession.startRecoverable(server.getServer(), document, -15, true, false);
+		String[] retired = {SetupSession.LEGACY_RUNTIME, SetupSession.DEFAULT_SETUP_RUNTIME, SetupSession.SAVE_RESUME_RUNTIME,
+			SetupSession.TRANSCRIPT_RUNTIME, SetupSession.ROUTE_RUNTIME, SetupSession.CHAT_RUNTIME};
+		int[] versions = {2, 2, 3, 4, 5, 6};
+		for (int i = 0; i < retired.length; i++) {
+			JsonObject payload = JsonObject.readFrom(current.recoveryArtifact()).get("payload").asObject();
+			payload.set("recoveryVersion", versions[i]).set("runtimeVersion", retired[i]);
+			assertEquals("RECOVERY_UNSUPPORTED", assertThrows(MatchService.Failure.class,
+				() -> new SetupSession(server.getServer(), document, signed(payload))).code);
+		}
 	}
 	@Test void olderPresentationViewsRestoreWithoutWeakeningCurrentViewComparison() throws Exception {
 		SetupSession fixture = new SetupSessionTest().session(11);
 		Field documentField = SetupSession.class.getDeclaredField("document"); documentField.setAccessible(true);
 		MatchDocument document = (MatchDocument) documentField.get(fixture);
 		TestServer server = new TestServer();
-		SetupSession original = new SetupSession(server.getServer(), document, -15, true);
+		SetupSession original = SetupSession.startRecoverable(server.getServer(), document, -15, false, false);
 		for (int version : new int[] {1, 2, 3}) {
 			JsonObject payload = JsonObject.readFrom(original.recoveryArtifact()).get("payload").asObject();
 			for (String role : new String[] {"homeView", "awayView"}) {
@@ -143,7 +143,7 @@ class RecoverySessionTest {
 	@Test void fullRequestHistoryPreservesExactRetryAndRejectsNewWorkBeforeDice() throws Exception {
 		SetupSession seed = new SetupSessionTest().session(11);
 		Field documentField = SetupSession.class.getDeclaredField("document"); documentField.setAccessible(true);
-		SetupSession session = new SetupSession(new TestServer().getServer(), (MatchDocument) documentField.get(seed), -8, true);
+		SetupSession session = SetupSession.startRecoverable(new TestServer().getServer(), (MatchDocument) documentField.get(seed), -8, false, false);
 		JsonObject before = view(session, "home"); String role = before.getString("actor", null);
 		JsonObject request = new JsonObject().add("operation", "choice").add("requestId", "accepted")
 			.add("expectedRevision", before.get("revision")).add("promptId", before.get("prompt").asObject().get("id")).add("optionId", "heads");
@@ -155,7 +155,8 @@ class RecoverySessionTest {
 		String artifact = session.recoveryArtifact();
 		assertTrue(session.apply(role, request).getBoolean("duplicate", false));
 		assertEquals("REQUEST_HISTORY_LIMIT", assertThrows(MatchService.Failure.class,
-			() -> session.apply(role, JsonObject.readFrom(request.toString()).set("requestId", "new"))).code);
+			() -> session.apply(view(session, "home").getString("actor", null), JsonObject.readFrom(request.toString()).set("requestId", "new")
+				.set("expectedRevision", view(session, "home").get("revision")))).code);
 		assertEquals(artifact, session.recoveryArtifact());
 	}
 	@Test void prematchAndPlacementRestoreBothViewsAndCommittedRetryWithoutConsumingDice() throws Exception {
@@ -163,7 +164,7 @@ class RecoverySessionTest {
 		Field field = SetupSession.class.getDeclaredField("document"); field.setAccessible(true);
 		MatchDocument document = (MatchDocument) field.get(fixture);
 		TestServer server = new TestServer();
-		SetupSession original = new SetupSession(server.getServer(), document, -3, true);
+		SetupSession original = SetupSession.startRecoverable(server.getServer(), document, -3, false, false);
 		for (int decision = 0; decision < 2; decision++) {
 			SetupSession restored = restore(server, document, original);
 			JsonObject view = view(original, "home");
@@ -202,7 +203,7 @@ class RecoverySessionTest {
 		Field field = SetupSession.class.getDeclaredField("document"); field.setAccessible(true);
 		MatchDocument document = (MatchDocument) field.get(fixture);
 		TestServer server = new TestServer();
-		String artifact = new SetupSession(server.getServer(), document, -4, true).recoveryArtifact();
+		String artifact = SetupSession.startRecoverable(server.getServer(), document, -4, false, false).recoveryArtifact();
 		for (String version : new String[] {"recoveryVersion", "replayVersion", "runtimeVersion", "engineVersion"}) {
 			JsonObject payload = JsonObject.readFrom(artifact).get("payload").asObject();
 			if (version.endsWith("Version") && (version.equals("runtimeVersion") || version.equals("engineVersion"))) payload.set(version, "unknown");
@@ -218,12 +219,12 @@ class RecoverySessionTest {
 			() -> new SetupSession(server.getServer(), document, damaged.toString())).code);
 	}
 
-	@Test void r41CheckpointRestoresMutualConsentAndRebasesOnlyThePausedTurnClock() throws Exception {
+	@Test void currentCheckpointRestoresMutualConsentAndRebasesOnlyThePausedTurnClock() throws Exception {
 		SetupSession seed = new SetupSessionTest().session(11);
 		Field field = SetupSession.class.getDeclaredField("document"); field.setAccessible(true);
 		MatchDocument document = (MatchDocument) field.get(seed);
 		TestServer server = new TestServer();
-		SetupSession session = new SetupSession(server.getServer(), document, -9, true, true, true);
+		SetupSession session = SetupSession.startRecoverable(server.getServer(), document, -9, true, true);
 		session.startSaveResumeRetention(1000L);
 		Field state = SetupSession.class.getDeclaredField("state"); state.setAccessible(true);
 		((com.fumbbl.ffb.server.GameState) state.get(session)).setTurnTimeStarted(100L);
@@ -231,8 +232,8 @@ class RecoverySessionTest {
 		JsonObject request = save(view, "save-request", "saveRequest", null);
 		assertEquals("ACCEPTED", session.saveResume("home", request, 2000L).getString("code", null));
 		JsonObject payload = JsonObject.readFrom(session.recoveryArtifact()).get("payload").asObject();
-		assertEquals(3, payload.getInt("recoveryVersion", -1));
-		assertEquals(SetupSession.SAVE_RESUME_RUNTIME, payload.getString("runtimeVersion", null));
+		assertEquals(7, payload.getInt("recoveryVersion", -1));
+		assertEquals(SetupSession.STAGED_RUNTIME, payload.getString("runtimeVersion", null));
 		String proposal = payload.get("saveResume").asObject().get("proposal").asObject().getString("id", null);
 		JsonObject accept = save(view, "save-accept", "saveAccept", proposal);
 		assertEquals("ACCEPTED", session.saveResume("away", accept, 2100L).getString("code", null));
@@ -291,6 +292,7 @@ class RecoverySessionTest {
 	private void removeElapsed(com.eclipsesource.json.JsonValue value) {
 		if (value.isObject()) {
 			value.asObject().remove("gameTime");
+			if (value.asObject().get("revision") != null && value.asObject().get("kind") != null) value.asObject().remove("at");
 			for (com.eclipsesource.json.JsonObject.Member member : value.asObject()) removeElapsed(member.getValue());
 		} else if (value.isArray()) for (com.eclipsesource.json.JsonValue item : value.asArray()) removeElapsed(item);
 	}

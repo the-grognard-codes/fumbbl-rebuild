@@ -502,7 +502,7 @@ test('dispatcher negotiates change notices again after a legacy registration fal
   await waitFor(() => loads === 2);
 });
 
-test('a saved match releases its slot and resumes only when advertised again', { timeout: 9000 }, async t => {
+test('a saved match releases its slot and the computer accepts a resume proposed during reconnect', { timeout: 12000 }, async t => {
   const suspended = { ...state, projectionVersion: 4, callerRole: 'home', actor: 'home',
     computer: { opponentId: 'coach-bogruk-weak', policyVersion: 'bogruk-v1', seed: 42, attackDirection: 1,
       movement: null, progress: { turnKey: '1:1:1', stalledTurns: 0 }, policyState: null },
@@ -510,28 +510,36 @@ test('a saved match releases its slot and resumes only when advertised again', {
     homeTeamName: 'Home', awayTeamName: 'Away',
     homeResources: { apothecaries: 0, assistantCoaches: 0, cheerleaders: 0 },
     awayResources: { apothecaries: 0, assistantCoaches: 0, cheerleaders: 0 } };
-  let dispatcher, active = true, registrations = 0, loads = 0;
+  let dispatcher, initialDispatcher, suspendedJob = false, registrations = 0, loads = 0, proposal, accepted;
   const { waitFor } = await dispatcherHarness(t, (socket, body) => {
     if (body.operation === 'register') {
       dispatcher = socket;
+      initialDispatcher ??= socket;
       assert.equal(body.watchSuspension, true);
-      registeredJobs(socket, body.requestId, [active ? [matchId] : []]);
+      const pending = proposal && Date.now() < proposal.expiresAt;
+      registeredJobs(socket, body.requestId, [!suspendedJob || pending ? [matchId] : []]);
       registrations++;
-    }
-    if (body.operation === 'load') {
+    } else if (body.operation === 'load') {
       loads++;
-      send(socket, response(body.requestId, loads === 1 ? suspended : { ...suspended, phase: 'FULL_TIME' }));
+      send(socket, response(body.requestId, { ...suspended, saveResume: proposal ?? suspended.saveResume }));
+    } else if (body.operation === 'resumeAccept') {
+      accepted = { proposalId: body.proposalId, at: Date.now() };
+      send(socket, response(body.requestId, { ...suspended, phase: 'FULL_TIME', prompt: null, saveResume: null }));
     }
   });
   await waitFor(output => output.includes('releasing worker capacity'));
-  active = false;
+  suspendedJob = true;
   send(dispatcher, { version: 2, type: 'computerJobSuspended', requestId: null, matchId });
   const until = registrations + 2;
   await waitFor(() => registrations >= until);
   assert.equal(loads, 1);
-  active = true;
-  send(dispatcher, { version: 2, type: 'computerJobs', requestId: null, code: 'AVAILABLE', matches: [matchId] });
-  await waitFor(() => loads === 2);
+  dispatcher.destroy(); // The proposal is committed while the change notice cannot reach the dispatcher.
+  proposal = { status: 'RESUME_PENDING', proposalId: secondMatchId, proposer: 'away', expiresAt: Date.now() + 5 * 60_000 };
+  await waitFor(() => accepted);
+  assert.notEqual(dispatcher, initialDispatcher);
+  assert.equal(loads, 2);
+  assert.equal(accepted.proposalId, proposal.proposalId);
+  assert.ok(accepted.at < proposal.expiresAt);
 });
 
 test('a resume announced while the suspended worker is closing starts a fresh worker', { timeout: 9000 }, async t => {
@@ -661,6 +669,14 @@ test('idle lease never discards an unanswered gameplay request', { timeout: 1000
 test('authenticates over the browser route and acts from received state', { timeout: 15000 }, async () => {
   const seen = [];
   let choices = 0;
+  const event = solidDefenceState(matchId);
+  const playerId = event.players[0].id;
+  const placeId = "1:solid-place:" + playerId + ":8:7";
+  const staging = { ...event, revision: 1, callerRole: 'home', actor: 'home',
+    actions: [
+      { id: placeId, kind: 'kickoffMove', label: 'Place player', actor: 'home',
+        sourcePlayerId: playerId, target: { x: 8, y: 7 } }
+    ] };
   const server = createServer();
   server.on('upgrade', (request, socket) => {
     socket.on('error', () => {});
@@ -677,9 +693,12 @@ test('authenticates over the browser route and acts from received state', { time
       } else if (requestBody.operation === 'choice') {
         choices++;
         if (choices === 1) { socket.destroy(); return; } // The first action committed but its acknowledgement was lost.
-        send(socket, { ...response(requestBody.requestId, { ...state, revision: 1, phase: 'PLAY', prompt: null,
-          actions: [{ id: '1:end', label: 'End turn', actor: 'home', kind: 'endTurn', target: null }] }), duplicate: true });
-      } else if (requestBody.operation === 'action') {
+        send(socket, { ...response(requestBody.requestId, staging), duplicate: true });
+      } else if (requestBody.actionId === placeId) {
+        send(socket, response(requestBody.requestId, { ...staging, stageSeq: 1,
+          actions: [{ id: '1:confirm-solid-defence', kind: 'kickoffChoice', label: 'Confirm Solid Defence',
+            actor: 'home', target: null, sourcePlayerId: null }] }));
+      } else if (requestBody.actionId === '1:confirm-solid-defence') {
         send(socket, response(requestBody.requestId, { ...state, revision: 2, phase: 'FULL_TIME', prompt: null }));
       }
     });
@@ -701,12 +720,14 @@ test('authenticates over the browser route and acts from received state', { time
       new Promise((_, reject) => { timer = setTimeout(() => reject(Error(`Timed out: ${output}\n${errors}\n${JSON.stringify(seen)}`)), 8000); })
     ]);
     assert.equal(code, 0, errors);
-    assert.deepEqual(seen.map(request => request.type === 'authenticateComputer' ? 'authenticateComputer' : request.operation), ['authenticateComputer', 'load', 'choice', 'authenticateComputer', 'choice', 'action']);
+    assert.deepEqual(seen.map(request => request.type === 'authenticateComputer' ? 'authenticateComputer' : request.operation), ['authenticateComputer', 'load', 'choice', 'authenticateComputer', 'choice', 'action', 'action']);
     assert.ok(['heads', 'tails'].includes(seen[2].optionId));
     assert.equal(seen[2].expectedRevision, 0);
     assert.deepEqual(seen[4], seen[2], 'uncertain action must be retried with the exact request ID and body');
-    assert.equal(seen[5].actionId, '1:end');
+    assert.equal(seen[5].actionId, placeId);
     assert.equal(seen[5].expectedRevision, 1);
+    assert.equal(seen[6].actionId, '1:confirm-solid-defence');
+    assert.equal(seen[6].expectedRevision, 1, 'A staged acknowledgement permits another action at the same revision');
   } finally {
     clearTimeout(timer);
     try { await stopChild(child); }

@@ -135,6 +135,7 @@ class RecoveryJournalMariaDbTest {
 		try {
 			BogrukEngineFixture engine = new BogrukEngineFixture("human", "orc", 42);
 			BogrukEngineFixture other = new BogrukEngineFixture("human", "orc", 42, "00000000-0000-0000-0000-000000000022");
+			BogrukEngineFixture corrupt = new BogrukEngineFixture("human", "orc", 42, "00000000-0000-0000-0000-000000000023");
 			ComputerOpponentService computers = new ComputerOpponentService(null);
 			String id = engine.document.matchId;
 			long now = 1_800_000_000_000L;
@@ -149,6 +150,7 @@ class RecoveryJournalMariaDbTest {
 				resource(sql, "/local-schema/009-recovery-journal.sql");
 				insertComputerMatch(connection, engine.document, computers.memberId());
 				insertComputerMatch(connection, other.document, computers.memberId());
+				insertComputerMatch(connection, corrupt.document, computers.memberId());
 			}
 			JdbcRecoveryRepository legacy = new JdbcRecoveryRepository(connections, true);
 			assertTrue(legacy.save(new RecoveryRepository.Record(id, 1, engine.session.recoveryArtifact()), 0));
@@ -162,6 +164,8 @@ class RecoveryJournalMariaDbTest {
 			JsonObject otherSave = consent(other.session, "home", "saveRequest", "save", null, now);
 			consent(other.session, "away", "saveAccept", "accept-save", otherSave.getString("proposalId", null), now + 1);
 			assertTrue(legacy.save(new RecoveryRepository.Record(other.document.matchId, 1, other.session.recoveryArtifact()), 0));
+			String corruptId = corrupt.document.matchId;
+			assertTrue(legacy.save(new RecoveryRepository.Record(corruptId, 1, "{}"), 0));
 			String baseBytesQuery = "SELECT artifact_json FROM ffb_match_recovery ORDER BY matchid LIMIT 1";
 			String baseBytes = scalar(connections, baseBytesQuery);
 			String tailBytes = scalar(connections, "SELECT record_json FROM ffb_match_recovery_journal");
@@ -178,11 +182,19 @@ class RecoveryJournalMariaDbTest {
 			assertEquals(new V2PreparationService.ComputerInventory(List.of(), true), inventory.activeComputerMatches(),
 				"Legacy journal head is suspended and another saved checkpoint remains unclassified");
 			assertEquals("1", scalar(connections, "SELECT COUNT(*) FROM ffb_match_recovery WHERE computer_work_until_epoch_ms=0"));
-			assertEquals("1", scalar(connections, "SELECT COUNT(*) FROM ffb_match_recovery WHERE computer_work_until_epoch_ms IS NULL"));
+			assertEquals("2", scalar(connections, "SELECT COUNT(*) FROM ffb_match_recovery WHERE computer_work_until_epoch_ms IS NULL"));
 			V2PreparationService restartedInventory = new V2PreparationService(connections::open, null, null, beforeResume, computers);
-			assertEquals(new V2PreparationService.ComputerInventory(List.of(), false), restartedInventory.activeComputerMatches(),
-				"An empty inventory remains after classifying both suspended matches");
+			assertEquals(new V2PreparationService.ComputerInventory(List.of(), true), restartedInventory.activeComputerMatches(),
+				"Both suspended matches are classified and the corrupt checkpoint still needs classification");
 			assertEquals("2", scalar(connections, "SELECT COUNT(*) FROM ffb_match_recovery WHERE computer_work_until_epoch_ms=0"));
+			assertEquals(new V2PreparationService.ComputerInventory(List.of(corruptId), false), restartedInventory.activeComputerMatches(),
+				"A corrupt legacy checkpoint remains available for normal recovery");
+			assertEquals("1", scalar(connections, "SELECT COUNT(*) FROM ffb_match_recovery WHERE computer_work_until_epoch_ms=" + Long.MAX_VALUE));
+			assertEquals(List.of(corruptId), inventory.activeComputerMatches().matches(),
+				"A separate dispatcher continues to see the job after backfill");
+			RecoveryRepository.CorruptRecord failure = assertThrows(RecoveryRepository.CorruptRecord.class,
+				() -> repository.find(corruptId));
+			assertEquals(corruptId, failure.matchId);
 
 			RecoveryJournal.Cursor paused = journal.cursor(repository.find(id));
 			JsonObject resume = consent(engine.session, "home", "resumeRequest", "resume", null, now + 21);
@@ -192,15 +204,18 @@ class RecoveryJournalMariaDbTest {
 			JdbcRecoveryRepository interrupted = new JdbcRecoveryRepository(
 				() -> fault(connections.open(), "INSERT INTO ffb_match_recovery_journal", false), true, true);
 			assertThrows(SQLException.class, () -> interrupted.append(pendingResume, 2));
-			assertEquals(List.of(), restartedInventory.activeComputerMatches().matches(), "Rolled-back journal leaves the match suspended");
+			assertEquals(List.of(corruptId), restartedInventory.activeComputerMatches().matches(), "Rolled-back journal leaves the match suspended");
 			assertTrue(repository.append(pendingResume, 2));
-			assertEquals(List.of(id), restartedInventory.activeComputerMatches().matches());
+			assertEquals(List.of(id, corruptId), restartedInventory.activeComputerMatches().matches());
 			Clock atExpiry = Clock.fixed(Instant.ofEpochMilli(resume.getLong("expiresAt", -1)), ZoneOffset.UTC);
-			assertEquals(List.of(), new V2PreparationService(connections::open, null, null, atExpiry, computers).activeComputerMatches().matches());
+			assertEquals(List.of(corruptId), new V2PreparationService(connections::open, null, null, atExpiry, computers).activeComputerMatches().matches());
 
-			consent(engine.session, "away", "resumeAccept", "accept-resume", resume.getString("proposalId", null), now + 22);
-			assertTrue(repository.save(new RecoveryRepository.Record(id, 4, engine.session.recoveryArtifact(), engine.session.computerWorkUntil()), 3));
-			assertEquals(List.of(id), new V2PreparationService(connections::open, null, null, atExpiry, computers).activeComputerMatches().matches());
+			SetupSession recovered = new SetupSession(engine.server, engine.document, repository.find(id).json);
+			JsonObject resumed = consent(recovered, "away", "resumeAccept", "accept-resume",
+				resume.getString("proposalId", null), now + 22);
+			assertEquals("ACTIVE", resumed.getString("status", null));
+			assertTrue(repository.save(new RecoveryRepository.Record(id, 4, recovered.recoveryArtifact(), recovered.computerWorkUntil()), 3));
+			assertEquals(List.of(id, corruptId), new V2PreparationService(connections::open, null, null, atExpiry, computers).activeComputerMatches().matches());
 		} finally {
 			try (Connection connection = connections.open(); Statement sql = connection.createStatement()) {
 				for (String table : new String[] {"ffb_match_recovery_journal", "ffb_match_recovery", "ffb_local_schema",
