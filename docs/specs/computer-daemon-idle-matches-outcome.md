@@ -57,6 +57,8 @@ Both MariaDB tests passed on a disposable instance. Migration 010 preserved the 
 
 All 196 focused Java tests passed after integrating `main`, followed by 47 focused recovery, journal, and native-policy tests after the backfill fix. All 65 computer-player tests and 559 browser tests passed. The production browser build and local server image build succeeded. The credential-free engine harness ran Orc versus Human with seed 73 to a 0–3 finish at revision 667. It recorded 673 accepted decisions, six checkpoint restores, and zero invalid responses or decision-limit warnings.
 
+Three GitHub shards exhausted the Java heap during the server suite. A local run with a 1,800 MiB limit reproduced the failure and retained about two million Mockito call records during the recovery tests. The server test suite now releases inline mocks after each test class. The same capped run passed with 887 server tests passed, 16 environment-gated skips, and zero failures or errors.
+
 The authenticated dev-local soak is pending. Both configured DEV credential sources returned `SESSION_EXPIRED`. The current build still needs a browser save and resume, a live match through full time, and `PERSISTENCE_FAILED` and `RATE_LIMITED` totals from that run. Maintainer acknowledgement of the [migration and rollback procedure](../operations/recovery-journal-schema.md) is pending before merge.
 
 ## Earlier uninterrupted dev-local soak
