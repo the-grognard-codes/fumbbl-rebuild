@@ -10,6 +10,14 @@ permissions:
   contents: read
 
 jobs:
+  firebase-wif:
+    name: Firebase deploy trust migration
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - run: bash deployment/firebase/scripts/wif-repository-id.test.sh dev
+      - run: bash deployment/firebase/scripts/wif-repository-id.test.sh prod
+
   workflow-lint:
     name: GitHub Actions lint
     runs-on: ubuntu-24.04

@@ -1,5 +1,13 @@
 # issues
 
+- [ ] [#581 Prepare deploy trust, paths and links for the repository rename](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/581).
+  The pre-rename branch includes retry-safe DEV and PROD trust migrations,
+  mock CI coverage, an authentication-only PROD check on a protected tag,
+  and support for both PR URL formats. See the
+  [implementation and validation report](docs/specs/repository-rename-preparation-outcome.md)
+  and the [maintainer runbook](docs/development-and-release.md#migrate-the-existing-dev-and-prod-providers-before-the-rename).
+  Live checks, the rename, and the URL and filesystem cutover remain pending.
+
 - [x] [#421 BB2025-only engine](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/421) and [#422 BB2025-only integration](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/422): merged in [PR #425](https://github.com/the-grognard-codes/fumbbl-rebuild/pull/425) after CI and the complete local browser gate passed. See [outcome and validation](.notes/bb2025-only/outcome.md).
 
 - [x] [#420 Consistent BB2025 kickoff selection](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/420): merged in [PR #423](https://github.com/the-grognard-codes/fumbbl-rebuild/pull/423) after CI passed. See [validation and outcome](docs/specs/bb2025-kickoff-selection-outcome.md).

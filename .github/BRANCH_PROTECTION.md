@@ -21,6 +21,9 @@ that environment require approval or make a tag immutable.
   allows creation only by release maintainers.
 - Create tags only from commits already on `main`. The production workflow also
   checks that invariant before deploying.
+- Use protected `moles-v0-wif-check-*` tags for PROD identity verification.
+  These tags require production approval for the verification run and never
+  publish Hosting.
 
 ## Environments
 

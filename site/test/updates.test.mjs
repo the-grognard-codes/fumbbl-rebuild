@@ -35,6 +35,15 @@ test('URL state rejects invalid page/category values and round trips literal sea
   assert.deepEqual(paginationPages(5, 10), [1, 4, 5, 6, 10]);
 });
 
+test('historical and renamed repository URLs each point to the exact merged PR', () => {
+  const [historical, entry] = history;
+  const url = `https://github.com/the-grognard-codes/moles-under-the-pitch/pull/${entry.number}`;
+  assert.ok(renderUpdatesPage([historical, { ...entry, url }]).includes(`href="${url}"`));
+  assert.throws(() => validateUpdates([{ ...entry, url: `${url}0` }]));
+  assert.throws(() => validateUpdates([{ ...entry, url: `${url}/files` }]));
+  assert.throws(() => validateUpdates([{ ...entry, url: url.replace('the-grognard-codes', 'another-owner') }]));
+});
+
 test('the complete merged history remains in static HTML with escaped prose and local merge dates', () => {
   assert.doesNotThrow(() => validateUpdates(history));
   const page = renderUpdatesPage(history);
