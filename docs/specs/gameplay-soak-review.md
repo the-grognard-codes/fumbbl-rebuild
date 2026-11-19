@@ -299,3 +299,44 @@ credential needed `quota_project_id` and an account with
 set, and it fails again when the Google session expires. A dedicated service
 account for the local stack would make unattended soaks independent of a
 personal sign-in.
+
+## Re-run: 3-hour soak, 2026-11-15 (main `33d95b7c6`, after #537–#540, #542)
+
+Run `.tools/overnight-soak/run-2026-11-15T15-27-36-125Z`, started 15:27 UTC on a server image built 15:23 from `main` at `33d95b7c6`.
+
+**Outcome:**
+- **Duration:** the run stopped after about 65 of 180 minutes.
+- **Matches:** 7 started, 6 completed, 385 decisions.
+- **Server:** it ran out of memory at 16:31:05, then again within 7–12 s of each of three restarts. The `on-failure:3` policy (#540) then left it stopped at 16:32:13, and the driver gave up at 16:48.
+- **Heap dumps:** four, each about 1.1 GB, under `/data/heap-dumps`.
+
+### 8. The computer coach loops in Solid Defence and never confirms — Critical (#553)
+
+- **What happened:** in match `ef487189` (half 2, drive 2), the away computer coach received the Solid Defence kick-off event. From revision 174 to 1,167 (about 1,000 actions over 8 minutes, 16:23–16:31) it kept placing the same 5 selected players and never chose **Confirm Solid Defence**. The server offered that action throughout, and its kick-off state stayed `allowed 6, selected 5, completed 0, stage movement`.
+- **Policy:** `computer-player/src/bogruk-policy.mjs:206-219` intends "one small redeployment, then confirm". It confirms only when `moved` is true, which depends on a plan carried over from the previous decision. The stored `computerMemory.policyState` is `null`, so `moved` stays false and the policy picks another move every time.
+- **Missing bounds:** neither the policy nor the server limits Solid Defence placements before confirming.
+- **Effect:** the revision rate fell from 155 to 60 per minute as the checkpoint cost grew with history.
+
+### 9. One oversized match exhausts the heap and crash-loops the server — Critical (#554)
+
+- **Size:** the looping match's recovery artifact reached 46.8 MB decoded (1.0 MB stored): `eventsJson` 22.7 MB and `transcript` 21.6 MB. Each event stores a full state snapshot of about 16–20 KB. Completed matches of 320–500 revisions decode to about 23–28 MB.
+- **Limits:** the per-match cap is 64 MiB (`SetupSession.MAX_MATCH_ARTIFACT_BYTES = CompletedMatch.MAX_BYTES`), which is more than a 768 MiB heap can parse, hold and re-serialize for one resident match.
+- **Restart loop:** after each restart the match is reloaded within seconds, and the server fails again. One bad match therefore makes the server unrecoverable without manual action. The restart cap turns an endless crash loop into an outage.
+- **Recovery:** clear or abandon the match before restarting.
+- **Related:** this is the real-play retention evidence #524 and #548 were waiting for.
+
+### 10. Completion is still deferred on every match, and the final-state broadcast is not retried — High (#535)
+
+Against the #535 soak criterion (no `COMPLETION_TERMINAL` or `COMPLETION_REJECTED`; all 6 results appear recorded):
+
+| Check | Result |
+| --- | --- |
+| No held "Repeat retained request" after full time | Pass |
+| No deferred completion survives more than one healthy worker tick | **Fail.** All 6 completions logged `COMPLETION_DEFERRED … NotStarted`. `d2025a3d` needed 1 retry; `a3658dd6` needed 3 (12 s, each `NotStarted`). |
+| No final board freezes | **Fail.** `d3a4c488` was deferred at 16:02:42. Its three final-state broadcasts then failed (`PERSISTENCE_FAILED phase=match-load requestId=broadcast … NotStarted`). The coach's board stayed on revision 408 until the driver reloaded at 16:10:41, about 8 minutes later. `a68854c7` also logged a failed `retained-concession` broadcast. |
+
+#537 stopped the client holding its request, but the cause remains: the terminal checkpoint uses up the 2,000 ms budget, so the result write and the broadcast load start with no JDBC allowance. Timer retries also start with none, and a failed broadcast has no retry.
+
+### Memory
+
+Before the loop, container memory went from 0.54 to 1.16 GiB within each match and fell between matches, similar to the 2026-11-14 run. There is no sign of cross-match growth in the first 6 matches.
