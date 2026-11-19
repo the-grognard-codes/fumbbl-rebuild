@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Repair stale or missing GitHub App CLI credentials from the token cache and retry interrupted token refreshes.
+
 - Show opposing threat markings for the inspected Charge player after the server accepts their selection.
 
 - Prepare Firebase deploy authentication for repository renames using immutable GitHub IDs. Add an authentication-only check for production and preserve historical links on the Development page.
