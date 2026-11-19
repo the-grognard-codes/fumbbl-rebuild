@@ -1,7 +1,7 @@
 package com.fumbbl.ffb.server.local;
 
-import com.fumbbl.ffb.server.match.FirebaseProviderProbe;
 import com.fumbbl.ffb.server.match.FirebaseProviderBounds;
+import com.fumbbl.ffb.server.match.FirebaseProviderProbe;
 import com.fumbbl.ffb.server.match.FirebaseV2PrincipalAuthenticator;
 import com.fumbbl.ffb.server.match.V2PrincipalAuthenticator;
 import com.fumbbl.ffb.server.FantasyFootballServer;
@@ -60,19 +60,29 @@ import static org.mockito.Mockito.when;
 
 class FirebaseOwnedTransportCandidateTest {
 	private static final String PROJECT = "owned-transport-spike";
+	// Give the loopback DNS and TLS requests room to run on shared CI executors.
+	private static final FirebaseProviderBounds MULTI_REQUEST_BOUNDS = new FirebaseProviderBounds(1_850, 200, 250, 3, 5_000);
 
 	@Test void explicitRejectionRetiresTrustedSessionEvenWhenSigningKeysCannotBeReusedAfterTheOperation() throws Exception {
 		try (TlsProvider provider = new TlsProvider(new Behavior("", 200, false, 0, 0, true)); FirebaseDnsCandidateTest.DnsServer server = dns();
-			FirebaseOwnedTransportCandidate transport = new FirebaseOwnedTransportCandidate(new FirebaseDnsCandidate(server.address()), provider.clientTrust(), provider.port())) {
-			FirebaseProviderProbe probe = new FirebaseProviderProbe(transport);
+			FirebaseOwnedTransportCandidate transport = new FirebaseOwnedTransportCandidate(new FirebaseDnsCandidate(server.address()), provider.clientTrust(), uri -> provider.port(), MULTI_REQUEST_BOUNDS)) {
+			FirebaseProviderProbe probe = new FirebaseProviderProbe(transport, MULTI_REQUEST_BOUNDS);
 			GoogleCredentials credentials = probe.bind(UserCredentials.newBuilder().setClientId("synthetic").setClientSecret("synthetic").setRefreshToken("synthetic").build());
 			FirebaseApp app = app(transport, credentials);
 			try {
+				// Initialize loopback TLS before testing the cold SDK signing-key and credential caches.
+				try (var warmup = transport.begin()) {
+					transport.createRequestFactory().buildGetRequest(new GenericUrl("https://www.googleapis.com/fixture-warmup"))
+						.execute().disconnect();
+				}
+				provider.paths.clear();
 				FirebaseV2PrincipalAuthenticator verifier = probe.verifier(FirebaseAuth.getInstance(app), PROJECT);
 				List<com.fumbbl.ffb.server.match.ProviderSessionRejection> observed = new ArrayList<>(); verifier.observeProviderRejection(observed::add);
 				String token = provider.token(); assertThrows(V2PrincipalAuthenticator.Rejected.class, () -> verifier.authenticate(token));
+				assertEquals(4, provider.paths.size(), () -> "Provider requests: " + provider.paths);
+				assertTrue(provider.paths.getLast().endsWith("/accounts:lookup"), () -> "Expected an account lookup: " + provider.paths);
 				assertEquals(1, observed.size()); assertTrue(observed.getFirst().rejects(probe.knownPrincipal(PROJECT)));
-				assertEquals(4, provider.paths.size()); assertEquals(0, transport.destinations());
+				assertEquals(0, transport.destinations());
 			} finally { app.delete(); }
 		}
 	}
@@ -265,18 +275,23 @@ class FirebaseOwnedTransportCandidateTest {
 	}
 
 	@Test void coldSequentialDelaysCannotReceiveThreeIndependentAllocations() throws Exception {
-		try (TlsProvider provider = new TlsProvider(new Behavior("*", 200, false, 350)); FirebaseDnsCandidateTest.DnsServer server = dns();
-			FirebaseOwnedTransportCandidate transport = new FirebaseOwnedTransportCandidate(new FirebaseDnsCandidate(server.address()), provider.clientTrust(), provider.port())) {
+		// Three 600 ms responses fit individual I/O budgets but exceed the shared 1,750 ms budget.
+		try (TlsProvider provider = new TlsProvider(new Behavior("*", 200, false, 600)); FirebaseDnsCandidateTest.DnsServer server = dns();
+			FirebaseOwnedTransportCandidate transport = new FirebaseOwnedTransportCandidate(new FirebaseDnsCandidate(server.address()), provider.clientTrust(), uri -> provider.port(), MULTI_REQUEST_BOUNDS)) {
 			GoogleCredentials credentials = UserCredentials.newBuilder().setClientId("synthetic").setClientSecret("synthetic").setRefreshToken("synthetic").setHttpTransportFactory(() -> transport).build();
 			String token = provider.token(); FirebaseApp app = app(transport, credentials);
 			FirebaseOwnedTransportCandidate.Operation operation = transport.begin();
 			try (operation) {
 				assertThrows(FirebaseAuthException.class, () -> FirebaseAuth.getInstance(app).verifyIdToken(token, true));
-				assertTrue(operation.elapsedMillis() < 1_000); assertEquals(3, provider.paths.size());
+				assertEquals(3, operation.attempts());
+				assertEquals(3, provider.paths.size(), () -> "Provider requests: " + provider.paths);
+				assertTrue(provider.paths.getLast().endsWith("/accounts:lookup"), () -> "Expected an account lookup: " + provider.paths);
+				// The transport can record a response status before rejecting it for arriving after the deadline.
+				assertEquals(List.of(200, 200), operation.statuses().stream().limit(2).toList(),
+					"Signing key and credential requests must succeed before the account lookup times out");
 				assertEquals(0, operation.openChannels());
-				assertReleased(operation, transport);
-				System.out.println("FIREBASE_OWNED_SPIKE delayedCold elapsedMs=" + operation.elapsedMillis() + " attempts=" + operation.attempts());
 			} finally { app.delete(); }
+			assertEquals(0, transport.destinations());
 		}
 	}
 
