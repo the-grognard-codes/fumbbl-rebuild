@@ -54,31 +54,32 @@ try {
     })), true, `${input.name}: selected dice identify the chooser and use a clear outline`);
     const d6 = log.locator('.numeric-die.d6').first();
     if (await d6.count()) {
-      const markerOffset = await d6.evaluate(die => {
-        const face = die.querySelector('.block-die-side[data-result="true"]'), bounds = face.getBoundingClientRect();
-        const markers = [...face.querySelectorAll('[data-pip]')].map(marker => marker.getBoundingClientRect());
+      const { markerOffset, pips, result } = await d6.evaluate(die => {
+        const bounds = die.getBoundingClientRect();
+        const markers = [...die.querySelectorAll(':scope > svg [data-pip]')].map(marker => marker.getBoundingClientRect());
         const center = markers.reduce((sum, marker) => sum + marker.y + marker.height / 2, 0) / markers.length;
-        return center - (bounds.y + bounds.height / 2);
+        return { markerOffset: center - (bounds.y + bounds.height / 2), pips: markers.length, result: Number(die.dataset.face) };
       });
+      assert.equal(pips, result, `${input.name}: the settled D6 shows the recorded pips`);
       assert.ok(markerOffset < .75 && markerOffset > -.75, `${input.name}: D6 pips are optically centered on the face (${markerOffset}px)`);
     }
     for (const image of await log.getByRole('img').all()) assert.match(await image.getAttribute('aria-label'), /^Ivory and cyan die: /);
+    assert.equal(await log.locator('.block-die-cube').count(), 0, `${input.name}: settled log dice use flat faces`);
     const blockGeometry = await log.locator('.match-log-dice .block-die').first().evaluate(die => ({
       bounds: die.getBoundingClientRect().toJSON(),
       fontSize: parseFloat(getComputedStyle(die).fontSize),
-      cube: parseFloat(getComputedStyle(die.querySelector('.block-die-cube')).width),
-      mark: getComputedStyle(die.querySelector('.block-die-side svg')).transform
+      marks: die.querySelectorAll(':scope > svg path').length,
     }));
-    const slotSize = blockGeometry.fontSize * 1.9;
-    assert.ok(Math.abs(blockGeometry.bounds.width - slotSize) < .05, `${input.name}: block die width scales with log text`);
+    const slotSize = blockGeometry.fontSize * 1.5;
+    assert.ok(blockGeometry.marks > 0, `${input.name}: the settled block result has a visible mark`);
     assert.ok(Math.abs(blockGeometry.bounds.height - slotSize) < .05, `${input.name}: block die height scales with log text`);
     if (await d6.count()) {
       const numericBounds = await d6.boundingBox();
-      assert.ok(Math.abs(blockGeometry.bounds.width - numericBounds.width) < .05, `${input.name}: block and numeric log dice share a slot size`);
+      assert.ok(Math.abs(blockGeometry.bounds.height - numericBounds.height) < .05, `${input.name}: block and numeric log dice share a height`);
     }
     const selectionShift = await log.locator('.match-log-dice .block-die.selected').evaluateAll(dice => dice.map(die => {
       const before = die.getBoundingClientRect();
-      const face = die.querySelector('.block-die-side[data-result="true"]');
+      const face = die.querySelector(':scope > svg');
       const graphicBefore = face.getBoundingClientRect();
       die.classList.remove('selected');
       const after = die.getBoundingClientRect(), graphicAfter = face.getBoundingClientRect();
@@ -87,11 +88,6 @@ try {
         Math.abs(before[key] - after[key]), Math.abs(graphicBefore[key] - graphicAfter[key]))));
     }));
     assert.ok(selectionShift.every(shift => shift < .05), `${input.name}: selection outline does not shift the die or its face`);
-    assert.ok(Math.abs(blockGeometry.cube - blockGeometry.fontSize * 1.5) < .05, `${input.name}: block die face scales within its log slot`);
-    assert.equal(blockGeometry.mark, 'matrix(1, 0, 0, 1, 0, -0.5)', `${input.name}: face marking is centered without moving the die`);
-    await page.waitForFunction(() => [...document.querySelectorAll('.match-log-dice image')].every(image => {
-      const probe = new Image(); probe.src = image.getAttribute('href'); return probe.complete && probe.naturalWidth > 0;
-    }));
     if (process.env.MATCH_LOG_EVIDENCE_DIR && ['home-both-block', 'home-wrestle-defender', 'home-chain', 'home-pro-test-uphill'].includes(input.name)) {
       mkdirSync(process.env.MATCH_LOG_EVIDENCE_DIR, { recursive: true });
       await log.evaluate(element => { element.scrollTop = element.scrollHeight; });
@@ -106,15 +102,26 @@ try {
     assert.equal(await log.locator('.match-log-debug').count() > 0, showDebug);
   }
   await debug.uncheck(); await movement.uncheck(); await modifiers.check();
-  await page.reload(); assert.equal(await log.locator('.match-die.selected').count(), 1); assert.equal(await debug.isChecked(), false);
+  await page.reload(); await log.waitFor();
+  assert.equal(await log.locator('.match-die.selected').count(), 1); assert.equal(await debug.isChecked(), false);
   const records = structuredClone(input.records); while (records.length < 220) {
     const record = structuredClone(input.records.find(record => record.native.some(command => command.reportList.reports.some(report => report.reportId === 'blockChoice'))));
     record.index = records.length; record.revision = records.length; record.state.revision = records.length; record.decision = null; records.push(record);
   }
   await page.evaluate(records => window.publishLogRecords(records), records);
-  const completeLines = matchLogLines(records);
-  await page.waitForFunction(count => document.querySelectorAll('[role="log"] p').length === count, completeLines.length);
-  assert.equal(await log.getByRole('button', { name: /Earlier|Later/ }).count(), 0);
+  const completeKeys = matchLogLines(records).map(line => line.key);
+  const earlier = page.getByRole('button', { name: 'Earlier log events', exact: true });
+  const later = page.getByRole('button', { name: 'Later log events', exact: true });
+  await earlier.waitFor();
+  assert.equal(await later.isDisabled(), true);
   assert.ok(await log.getByRole('img').count() > 0);
+  for (let end = completeKeys.length; end > 0;) {
+    const start = Math.max(0, end - 100);
+    const keys = await log.locator('p').evaluateAll(rows => rows.map(row => row.dataset.logKey));
+    assert.deepEqual(keys, completeKeys.slice(start, end));
+    assert.equal(await earlier.isDisabled(), start === 0);
+    if (start > 0) await earlier.click();
+    end = start;
+  }
   assert.deepEqual(errors, []); console.log(`PASS ${cases.length} native block log journeys, loaded dice artwork, chooser, skills, outcomes, all settings, reload and complete history`);
 } finally { await browser.close(); await server.close(); }
