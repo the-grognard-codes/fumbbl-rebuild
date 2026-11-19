@@ -11,9 +11,9 @@ account; with one, they are limited to that repository.
 
 Installation tokens last one hour; this script reuses a cached token until it has less
 than 15 minutes left, then mints a new one. The cache is encrypted with Windows DPAPI.
-Every mint also rewrites gh's hosts.yml in <data>\gh, so gh run with
-GH_CONFIG_DIR=<data>\gh sees a current token. The gh shim in .\shim calls -Mode ensure
-before each gh command, so gh never sees an expired one.
+The script syncs gh's hosts.yml in <data>\gh with the current token. The gh shim in
+.\shim calls -Mode ensure before each gh command to refresh the token or repair
+the gh config if needed.
 
 Modes:
   status          Shows the app, scope and token expiry. Never prints the token.
@@ -148,7 +148,7 @@ function Get-Identity($Config, [switch]$Refresh) {
 }
 
 # gh has no token-command hook, so the current token is written where gh reads stored logins.
-function Write-GhHosts([string]$Login, [string]$Token) {
+function Sync-GhHosts([string]$Login, [string]$Token) {
 	$ghDirectory = Join-Path (Get-DataDirectory) 'gh'
 	New-Item -ItemType Directory -Force -Path $ghDirectory | Out-Null
 	$hosts = @"
@@ -161,7 +161,14 @@ github.com:
     user: "$Login"
 
 "@
-	Write-FileAtomically (Join-Path $ghDirectory 'hosts.yml') $hosts
+	$hostsPath = Join-Path $ghDirectory 'hosts.yml'
+	$expectedHosts = ($hosts -replace '\r\n', "`n").TrimEnd()
+	$savedHosts = if (Test-Path -LiteralPath $hostsPath) {
+		(([string](Get-Content -Raw -LiteralPath $hostsPath)) -replace '\r\n', "`n").TrimEnd()
+	}
+	if ($savedHosts -cne $expectedHosts) {
+		Write-FileAtomically $hostsPath $hosts
+	}
 	$configPath = Join-Path $ghDirectory 'config.yml'
 	if (-not (Test-Path -LiteralPath $configPath)) {
 		Write-FileAtomically $configPath "version: `"1`"`ngit_protocol: https`nprompt: disabled`n"
@@ -217,15 +224,40 @@ function New-InstallationToken($Config) {
 		expiresAt      = $expiresAt.ToString('o')
 		protectedToken = $protected
 	}
+	# Only commit the cache once gh can use the new token.
+	Sync-GhHosts (Get-Identity $Config -Refresh).login $minted.token
 	Write-FileAtomically (Join-Path (Get-DataDirectory) 'token.json') ($record | ConvertTo-Json)
-	Write-GhHosts (Get-Identity $Config -Refresh).login $minted.token
 	return [pscustomobject]@{ token = $minted.token; expiresAt = $expiresAt; installationId = $installation.id }
 }
 
 function Get-CurrentToken($Config) {
-	$cached = Read-CachedToken $Config
-	if ($cached -and ($cached.expiresAt - [DateTimeOffset]::UtcNow) -gt $MinimumRemaining) { return $cached }
-	return New-InstallationToken $Config
+	# A cache hit must not repair hosts.yml with an old token during another process's refresh.
+	$dataPath = [IO.Path]::TrimEndingDirectorySeparator([IO.Path]::GetFullPath((Get-DataDirectory)))
+	$lockKey = [Convert]::ToHexString([Security.Cryptography.SHA256]::HashData(
+		[Text.Encoding]::UTF8.GetBytes($dataPath.ToUpperInvariant())))
+	$mutex = [Threading.Mutex]::new($false, "Global\mutp-github-app-token-$lockKey")
+	$ownsMutex = $false
+	try {
+		try {
+			$ownsMutex = $mutex.WaitOne([TimeSpan]::FromSeconds(30))
+		}
+		catch [Threading.AbandonedMutexException] {
+			# The previous process exited. Recheck both files while holding its lock.
+			$ownsMutex = $true
+		}
+		if (-not $ownsMutex) { throw 'Timed out waiting for the GitHub App token cache.' }
+
+		$cached = Read-CachedToken $Config
+		if ($cached -and ($cached.expiresAt - [DateTimeOffset]::UtcNow) -gt $MinimumRemaining) {
+			Sync-GhHosts (Get-Identity $Config).login $cached.token
+			return $cached
+		}
+		return New-InstallationToken $Config
+	}
+	finally {
+		if ($ownsMutex) { $mutex.ReleaseMutex() }
+		$mutex.Dispose()
+	}
 }
 
 function Remove-CachedToken {

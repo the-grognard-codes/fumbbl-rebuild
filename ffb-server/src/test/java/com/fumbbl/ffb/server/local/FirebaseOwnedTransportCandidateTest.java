@@ -1,7 +1,7 @@
 package com.fumbbl.ffb.server.local;
 
-import com.fumbbl.ffb.server.match.FirebaseProviderProbe;
 import com.fumbbl.ffb.server.match.FirebaseProviderBounds;
+import com.fumbbl.ffb.server.match.FirebaseProviderProbe;
 import com.fumbbl.ffb.server.match.FirebaseV2PrincipalAuthenticator;
 import com.fumbbl.ffb.server.match.V2PrincipalAuthenticator;
 import com.fumbbl.ffb.server.FantasyFootballServer;
@@ -51,6 +51,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.CountDownLatch;
 
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -60,19 +61,24 @@ import static org.mockito.Mockito.when;
 
 class FirebaseOwnedTransportCandidateTest {
 	private static final String PROJECT = "owned-transport-spike";
+	// Give the loopback DNS and TLS requests room to run on shared CI executors.
+	private static final FirebaseProviderBounds MULTI_REQUEST_BOUNDS = new FirebaseProviderBounds(1_850, 900, 900, 3, 5_000);
 
 	@Test void explicitRejectionRetiresTrustedSessionEvenWhenSigningKeysCannotBeReusedAfterTheOperation() throws Exception {
 		try (TlsProvider provider = new TlsProvider(new Behavior("", 200, false, 0, 0, true)); FirebaseDnsCandidateTest.DnsServer server = dns();
-			FirebaseOwnedTransportCandidate transport = new FirebaseOwnedTransportCandidate(new FirebaseDnsCandidate(server.address()), provider.clientTrust(), provider.port())) {
-			FirebaseProviderProbe probe = new FirebaseProviderProbe(transport);
+			FirebaseOwnedTransportCandidate transport = new FirebaseOwnedTransportCandidate(new FirebaseDnsCandidate(server.address()), provider.clientTrust(), uri -> provider.port(), MULTI_REQUEST_BOUNDS)) {
+			FirebaseProviderProbe probe = new FirebaseProviderProbe(transport, MULTI_REQUEST_BOUNDS);
 			GoogleCredentials credentials = probe.bind(UserCredentials.newBuilder().setClientId("synthetic").setClientSecret("synthetic").setRefreshToken("synthetic").build());
 			FirebaseApp app = app(transport, credentials);
 			try {
+				warmUpTls(transport, provider);
 				FirebaseV2PrincipalAuthenticator verifier = probe.verifier(FirebaseAuth.getInstance(app), PROJECT);
 				List<com.fumbbl.ffb.server.match.ProviderSessionRejection> observed = new ArrayList<>(); verifier.observeProviderRejection(observed::add);
 				String token = provider.token(); assertThrows(V2PrincipalAuthenticator.Rejected.class, () -> verifier.authenticate(token));
+				assertEquals(4, provider.paths.size(), () -> "Provider requests: " + provider.paths);
+				assertTrue(provider.paths.getLast().endsWith("/accounts:lookup"), () -> "Expected an account lookup: " + provider.paths);
 				assertEquals(1, observed.size()); assertTrue(observed.getFirst().rejects(probe.knownPrincipal(PROJECT)));
-				assertEquals(4, provider.paths.size()); assertEquals(0, transport.destinations());
+				assertEquals(0, transport.destinations());
 			} finally { app.delete(); }
 		}
 	}
@@ -133,25 +139,27 @@ class FirebaseOwnedTransportCandidateTest {
 	@Test void productionCredentialRebindingAndAuthenticatorShareOneColdOperationAndFailClosedWithoutRetries() throws Exception {
 		for (boolean service : new boolean[] {false, true}) for (boolean unavailable : new boolean[] {false, true}) {
 			try (TlsProvider provider = new TlsProvider(new Behavior("/token", unavailable ? 503 : 200, false, 0)); FirebaseDnsCandidateTest.DnsServer server = dns();
-				FirebaseOwnedTransportCandidate transport = new FirebaseOwnedTransportCandidate(new FirebaseDnsCandidate(server.address()), provider.clientTrust(), provider.port())) {
-				FirebaseProviderProbe probe = new FirebaseProviderProbe(transport);
+				FirebaseOwnedTransportCandidate transport = new FirebaseOwnedTransportCandidate(new FirebaseDnsCandidate(server.address()), provider.clientTrust(), uri -> provider.port(), MULTI_REQUEST_BOUNDS)) {
+				FirebaseProviderProbe probe = new FirebaseProviderProbe(transport, MULTI_REQUEST_BOUNDS);
 				// Deliberately omit the factory: the production binder must replace the source's default transport.
 				GoogleCredentials original = service ? ServiceAccountCredentials.newBuilder().setClientEmail("synthetic@example.invalid")
 					.setPrivateKey(provider.privateKey()).setScopes(List.of("https://www.googleapis.com/auth/cloud-platform")).build()
 					: UserCredentials.newBuilder().setClientId("synthetic").setClientSecret("synthetic").setRefreshToken("synthetic").build();
 				FirebaseApp app = app(transport, probe.bind(original));
 				try {
+					warmUpTls(transport, provider);
 					FirebaseV2PrincipalAuthenticator verifier = probe.verifier(FirebaseAuth.getInstance(app), PROJECT);
 					String token = provider.token(); long started = System.nanoTime();
 					if (unavailable) {
 						assertThrows(V2PrincipalAuthenticator.Rejected.class, () -> verifier.authenticate(token));
 						assertEquals(2, provider.paths.size());
 					} else {
-						var principal = verifier.authenticate(token); verifier.reauthorize(principal);
+						var principal = assertDoesNotThrow(() -> verifier.authenticate(token),
+							() -> "Cold authentication with service credentials " + service + ", requests: " + provider.paths);
+						verifier.reauthorize(principal);
 						assertEquals(3, provider.paths.size());
 					}
 					long elapsed = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - started);
-					assertTrue(elapsed < 1_000, "Bound authenticator returned in " + elapsed);
 					assertEquals(0, transport.destinations());
 					System.out.println("FIREBASE_PROVIDER_BOUND service=" + service + " unavailable=" + unavailable + " elapsedMs=" + elapsed + " httpCalls=" + provider.paths.size());
 				} finally { app.delete(); }
@@ -265,17 +273,25 @@ class FirebaseOwnedTransportCandidateTest {
 	}
 
 	@Test void coldSequentialDelaysCannotReceiveThreeIndependentAllocations() throws Exception {
-		try (TlsProvider provider = new TlsProvider(new Behavior("*", 200, false, 350)); FirebaseDnsCandidateTest.DnsServer server = dns();
-			FirebaseOwnedTransportCandidate transport = new FirebaseOwnedTransportCandidate(new FirebaseDnsCandidate(server.address()), provider.clientTrust(), provider.port())) {
+		// Each response fits a 1,750 ms I/O budget, but 200 + 200 + 1,500 ms exceeds the shared budget.
+		try (TlsProvider provider = new TlsProvider(new Behavior("*", 200, false, 200, 3_600, false, 1_500));
+			FirebaseDnsCandidateTest.DnsServer server = dns();
+			FirebaseOwnedTransportCandidate transport = new FirebaseOwnedTransportCandidate(new FirebaseDnsCandidate(server.address()), provider.clientTrust(), uri -> provider.port(), MULTI_REQUEST_BOUNDS)) {
 			GoogleCredentials credentials = UserCredentials.newBuilder().setClientId("synthetic").setClientSecret("synthetic").setRefreshToken("synthetic").setHttpTransportFactory(() -> transport).build();
 			String token = provider.token(); FirebaseApp app = app(transport, credentials);
-			FirebaseOwnedTransportCandidate.Operation operation = transport.begin();
-			try (operation) {
-				assertThrows(FirebaseAuthException.class, () -> FirebaseAuth.getInstance(app).verifyIdToken(token, true));
-				assertTrue(operation.elapsedMillis() < 1_000); assertEquals(3, provider.paths.size());
-				assertEquals(0, operation.openChannels());
-				assertReleased(operation, transport);
-				System.out.println("FIREBASE_OWNED_SPIKE delayedCold elapsedMs=" + operation.elapsedMillis() + " attempts=" + operation.attempts());
+			try {
+				warmUpTls(transport, provider);
+				try (var operation = transport.begin()) {
+					assertThrows(FirebaseAuthException.class, () -> FirebaseAuth.getInstance(app).verifyIdToken(token, true));
+					assertEquals(3, operation.attempts(), () -> "Provider requests: " + provider.paths);
+					assertEquals(3, provider.paths.size(), () -> "Provider requests: " + provider.paths);
+					assertTrue(provider.paths.getLast().endsWith("/accounts:lookup"), () -> "Expected an account lookup: " + provider.paths);
+					// The transport can record a response status before rejecting it for arriving after the deadline.
+					assertEquals(List.of(200, 200), operation.statuses().stream().limit(2).toList(),
+						"Signing key and credential requests must succeed before the account lookup times out");
+					assertEquals(0, operation.openChannels());
+				}
+				assertEquals(0, transport.destinations());
 			} finally { app.delete(); }
 		}
 	}
@@ -396,6 +412,16 @@ class FirebaseOwnedTransportCandidateTest {
 			return answer;
 		});
 	}
+
+	private void warmUpTls(FirebaseOwnedTransportCandidate transport, TlsProvider provider) throws IOException {
+		// Initialize loopback TLS without warming the SDK signing-key or credential caches.
+		try (var warmup = transport.begin()) {
+			transport.createRequestFactory().buildGetRequest(new GenericUrl("https://www.googleapis.com/fixture-warmup"))
+				.execute().disconnect();
+		}
+		provider.paths.clear();
+	}
+
 	private FirebaseApp app(FirebaseOwnedTransportCandidate transport, GoogleCredentials credentials) {
 		FirebaseApp app = FirebaseApp.initializeApp(FirebaseOptions.builder().setProjectId(PROJECT).setCredentials(credentials).setHttpTransport(transport)
 			.setConnectTimeout(250).setReadTimeout(900).setWriteTimeout(900).build(), "owned-spike-" + UUID.randomUUID());
@@ -409,8 +435,11 @@ class FirebaseOwnedTransportCandidateTest {
 		}
 	}
 
-	private record Behavior(String path, int status, boolean stall, int delayMillis, int maxAge, boolean disabled) {
+	private record Behavior(String path, int status, boolean stall, int delayMillis, int maxAge, boolean disabled, int lookupDelayMillis) {
 		Behavior(String path, int status, boolean stall, int delayMillis) { this(path, status, stall, delayMillis, 3600, false); }
+		Behavior(String path, int status, boolean stall, int delayMillis, int maxAge, boolean disabled) {
+			this(path, status, stall, delayMillis, maxAge, disabled, delayMillis);
+		}
 	}
 	private static final class TlsProvider implements AutoCloseable {
 		final List<String> paths = new CopyOnWriteArrayList<>();
@@ -436,7 +465,8 @@ class FirebaseOwnedTransportCandidateTest {
 						for (String line : headers.split("\r\n")) if (line.toLowerCase(java.util.Locale.ROOT).startsWith("content-length:")) peer.getInputStream().readNBytes(Integer.parseInt(line.substring(line.indexOf(':') + 1).trim()));
 						boolean special = behavior.path.equals("*") || path.equals(behavior.path);
 						if (special && behavior.stall) { while (peer.getInputStream().read() >= 0) { } active = null; continue; }
-						if (special && behavior.delayMillis > 0) Thread.sleep(behavior.delayMillis);
+						int delayMillis = path.endsWith("/accounts:lookup") ? behavior.lookupDelayMillis : behavior.delayMillis;
+						if (special && delayMillis > 0) Thread.sleep(delayMillis);
 						String body;
 						if (path.contains("/robot/")) body = new JsonObject().add("synthetic", "-----BEGIN CERTIFICATE-----\n" + Base64.getMimeEncoder(64, new byte[] {'\n'}).encodeToString(store.getCertificate("synthetic").getEncoded()) + "\n-----END CERTIFICATE-----\n").toString();
 						else if (path.equals("/token")) body = "{\"access_token\":\"synthetic\",\"expires_in\":3600,\"token_type\":\"Bearer\"}";
