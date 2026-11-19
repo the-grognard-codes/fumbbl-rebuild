@@ -50,3 +50,5 @@ The intended differences in the other views are visible below. First, the reloca
 The gallery can cross-fade the live render against either the approved full still or the cropped concept. The automated check compares both endpoints and the midpoint. The archived thumbnail shows the midpoint against the approved still. Run `npm run test:stadium-mockup` in `browser-client` to reproduce the full-size browser captures and pixel counts under `.tools/stadium-mockup/`. [Home cross-fade](../../assets/game/references/stadiums/round-four/home-crossfade.jpg)
 
 **Angled cameras.** Keep the gallery's 30, 40 and 50 degree views on turf. The approved painting uses upright faces and banners on both sidelines. A perspective stadium needs its own visual target before work starts on angled architecture or crowds. Live match rendering continues to use its existing assets.
+
+The follow-up gallery compares four touchline treatments with actual player sprites. [Gatehouse scale and colour studies](gatehouse-scale-studies.md)

@@ -1,0 +1,180 @@
+import assert from 'node:assert/strict';
+import { mkdir, readFile, writeFile } from 'node:fs/promises';
+import { resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { chromium } from 'playwright';
+import { createServer } from './browser-test-server.mjs';
+
+const root = fileURLToPath(new URL('../', import.meta.url));
+const assets = new URL('../../assets/game/references/stadiums/scale-studies/', import.meta.url);
+const output = resolve(process.env.STADIUM_SCALE_STUDIES_OUTPUT ||
+  fileURLToPath(new URL('../../.tools/stadium-scale-studies/', import.meta.url)));
+await mkdir(output, { recursive: true });
+const server = await createServer({ root, server: { host: '127.0.0.1', port: 0 } });
+await server.listen();
+let browser;
+try {
+  browser = await chromium.launch({ executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH });
+  const page = await browser.newPage({ viewport: { width: 1440, height: 1000 } });
+  const errors = [];
+  page.on('pageerror', error => errors.push(error.message));
+  page.on('response', response => {
+    if (response.status() >= 400) errors.push(response.status() + ' ' + response.url());
+  });
+  const galleryUrl = `http://127.0.0.1:${server.httpServer.address().port}/stadium-mockup`;
+  await page.goto(galleryUrl);
+  await page.getByRole('link', { name: 'Compare player scales' }).click();
+  await page.waitForURL(galleryUrl + '?view=scale');
+  const comparisons = page.locator('.scale-study-comparisons[data-ready="true"]');
+  const inspector = page.locator('.scale-study-stand[data-ready="true"]');
+  const sprites = comparisons.locator('.scale-study-player');
+  const kit = page.getByLabel('Kit colours');
+  const background = page.getByLabel('Background');
+  const artwork = page.getByLabel('Artwork');
+  await comparisons.waitFor();
+
+  async function settleSprites() {
+    await page.waitForFunction(() => {
+      const sprites = [...document.querySelectorAll('.scale-study-player')];
+      return sprites.length === 28 && sprites.every(sprite => sprite.src.startsWith('data:') && sprite.complete);
+    });
+    await sprites.evaluateAll(images => Promise.all(images.map(image => image.decode())));
+  }
+
+  await settleSprites();
+  const geometry = await comparisons.locator('figure').evaluateAll(figures => figures.map(figure => {
+    const crop = figure.querySelector('.scale-study-crop').getBoundingClientRect();
+    return {
+      id: figure.dataset.variant,
+      dimensions: [crop.width, crop.height],
+      origin: [crop.x, crop.y],
+      players: [...figure.querySelectorAll('img')].map(sprite => {
+        const bounds = sprite.getBoundingClientRect();
+        const { playerId, roster, footX, footY, anchorX, anchorY } = sprite.dataset;
+        const foot = [Number(footX), Number(footY)];
+        const drawnFoot = [bounds.x - crop.x + bounds.width * Number(anchorX) / sprite.naturalWidth,
+          bounds.y - crop.y + bounds.height * Number(anchorY) / sprite.naturalHeight];
+        return { id: playerId, roster, foot, drawnFoot, width: bounds.width, filtering: getComputedStyle(sprite).imageRendering };
+      }),
+    };
+  }));
+  assert.deepEqual(geometry.map(variant => variant.id), ['a', 'b', 'c', 'd']);
+  const [[ax, ay], [bx, by], [cx, cy], [dx, dy]] = geometry.map(variant => variant.origin);
+  assert.ok(ax < bx && ax === cx && bx === dx && ay < cy && ay === by && cy === dy);
+  for (const { dimensions, players } of geometry) {
+    assert.deepEqual(dimensions, [416, 352]);
+    assert.deepEqual(players.map(player => player.roster), ['human', 'orc', 'orc', 'orc', 'human', 'human', 'human']);
+    assert.deepEqual(players.map(player => player.foot), [[288, 80], [288, 208], [320, 208], [352, 208],
+      [288, 240], [320, 240], [352, 240]]);
+    for (const { foot, drawnFoot, filtering } of players) {
+      assert.equal(filtering, 'pixelated');
+      assert.ok(foot.every((point, axis) => Math.abs(point - drawnFoot[axis]) < .05));
+    }
+  }
+  for (let i = 0; i < geometry[0].players.length; i++) {
+    assert.ok(Math.abs(geometry[0].players[i].width * 1.25 - geometry[1].players[i].width) < .05);
+    assert.equal(geometry[1].players[i].width, geometry[2].players[i].width);
+    assert.equal(geometry[1].players[i].width, geometry[3].players[i].width);
+  }
+
+  const backgroundChanges = await comparisons.locator('canvas').evaluateAll(([a, b, c, d]) => {
+    const pixels = canvas => new Uint32Array(canvas.getContext('2d')
+      .getImageData(0, 0, canvas.width, canvas.height).data.buffer);
+    const [first, second, third, fourth] = [a, b, c, d].map(pixels);
+    return first.reduce((result, pixel, i) => {
+      if (pixel !== second[i]) result.sameGatehouse++;
+      if (i % a.width >= 272) {
+        if (pixel !== third[i] || pixel !== fourth[i]) result.pitch++;
+      } else {
+        if (pixel !== third[i]) result.sideline++;
+        if (pixel !== fourth[i]) result.painted++;
+      }
+      return result;
+    }, { sameGatehouse: 0, pitch: 0, sideline: 0, painted: 0 });
+  });
+  assert.equal(backgroundChanges.sameGatehouse, 0);
+  assert.equal(backgroundChanges.pitch, 0);
+  assert.ok(backgroundChanges.sideline > 40_000);
+  await comparisons.screenshot({ path: resolve(output, 'desktop-default-kits.png') });
+
+  const originalSprites = await sprites.evaluateAll(images => images.map(image => image.src));
+  const paintedScene = comparisons.locator('[data-variant="d"] canvas');
+  const paintedOriginal = await paintedScene.evaluate(canvas => canvas.toDataURL());
+  await kit.selectOption('white / black');
+  await settleSprites();
+  assert.ok((await sprites.evaluateAll(images => images.map(image => image.src))).every((src, i) => src !== originalSprites[i]));
+  const paintedKitIndependent = await paintedScene.evaluate(canvas => canvas.toDataURL()) === paintedOriginal;
+  await comparisons.screenshot({ path: resolve(output, 'desktop-white-black-kits.png') });
+
+  async function inspectLayer(layer) {
+    const file = layer === 'cutout' ? 'mask-first-sideline.cutout' : 'mask-first-sideline';
+    const [source, mask] = await Promise.all(['.png', '.materials.png'].map(async suffix =>
+      (await readFile(new URL(file + suffix, assets))).toString('base64')));
+    return inspector.locator('canvas').evaluate(async (canvas, { source, mask }) => {
+      async function readAsset(base64) {
+        const image = new Image();
+        image.src = `data:image/png;base64,${base64}`;
+        await image.decode();
+        const buffer = document.createElement('canvas');
+        buffer.width = canvas.width;
+        buffer.height = canvas.height;
+        const context = buffer.getContext('2d');
+        context.drawImage(image, 0, 0);
+        return context.getImageData(0, 0, canvas.width, canvas.height).data;
+      }
+      const [original, materials] = await Promise.all([readAsset(source), readAsset(mask)]);
+      const painted = canvas.getContext('2d').getImageData(0, 0, canvas.width, canvas.height).data;
+      const result = { transparent: 0, alphaChanged: 0, fixedRgbChanged: 0, primaryRgbChanged: 0, secondaryRgbChanged: 0 };
+      for (let i = 0; i < painted.length; i += 4) {
+        if (painted[i + 3] === 0) result.transparent++;
+        if (original[i + 3] !== painted[i + 3]) result.alphaChanged++;
+        if (original[i] === painted[i] && original[i + 1] === painted[i + 1] && original[i + 2] === painted[i + 2]) continue;
+        if (materials[i] === 1) result.primaryRgbChanged++;
+        else if (materials[i] === 2) result.secondaryRgbChanged++;
+        else result.fixedRgbChanged++;
+      }
+      return result;
+    }, { source, mask });
+  }
+
+  const edgeChecks = {};
+  for (const layer of ['stand', 'cutout']) {
+    await artwork.selectOption(layer);
+    const profile = await inspectLayer(layer);
+    assert.ok(profile.transparent > 0);
+    assert.equal(profile.alphaChanged, 0);
+    assert.equal(profile.fixedRgbChanged, 0);
+    assert.ok(profile.primaryRgbChanged > 0);
+    assert.ok(profile.secondaryRgbChanged > 0);
+    const before = await inspector.locator('canvas').evaluate(canvas => canvas.toDataURL());
+    const backdrops = new Set();
+    for (const mode of ['Checkerboard', 'Light', 'Dark']) {
+      await background.selectOption(mode);
+      assert.equal(await inspector.getAttribute('data-background'), mode);
+      assert.equal(await inspector.locator('canvas').evaluate(canvas => canvas.toDataURL()), before);
+      backdrops.add(await inspector.evaluate(element => getComputedStyle(element).background));
+      await inspector.screenshot({ path: resolve(output, `${layer}-${mode.toLowerCase()}.png`) });
+    }
+    assert.equal(backdrops.size, 3);
+    edgeChecks[layer] = profile;
+  }
+  assert.ok(edgeChecks.cutout.transparent > edgeChecks.stand.transparent);
+
+  await page.setViewportSize({ width: 412, height: 915 });
+  assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
+  const alignment = await comparisons.locator('figure').evaluateAll(variants =>
+    variants.map(variant => [variant.getBoundingClientRect().x, variant.getBoundingClientRect().y]));
+  assert.ok(alignment.every(([x], _, rows) => x === rows[0][0]));
+  assert.ok(alignment[0][1] < alignment[1][1] && alignment[1][1] < alignment[2][1]);
+  await page.screenshot({ path: resolve(output, 'mobile-comparison.png'), fullPage: true });
+  await page.getByRole('link', { name: 'Back to Gatehouse gallery' }).click();
+  await page.getByRole('link', { name: 'Compare player scales' }).waitFor();
+  assert.deepEqual(errors, []);
+  await writeFile(resolve(output, 'checks.json'), JSON.stringify({ geometry, backgroundChanges, paintedKitIndependent, edgeChecks }, null, 2));
+  assert.ok(backgroundChanges.painted > 40_000);
+  assert.equal(paintedKitIndependent, true);
+  console.log('Stadium scale studies passed. Evidence in ' + output);
+} finally {
+  await browser?.close();
+  await server.close();
+}

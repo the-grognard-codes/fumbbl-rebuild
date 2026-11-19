@@ -39,7 +39,7 @@ const imageFiles = import.meta.glob('../../assets/game/references/stadiums/round
 const imageUrls = new Map(Object.entries(imageFiles).map(([path, url]) => [path.slice(path.lastIndexOf('/') + 1), url]));
 
 let paintings: Promise<Map<string, HTMLImageElement>> | undefined;
-function loadPainting() {
+export function loadStadiumMockupPainting() {
   if (!paintings) paintings = (async () => {
     if (!manifest || manifest.width !== STILL_LAYOUT.width || manifest.height !== STILL_LAYOUT.height
       || manifest.pixelsPerSquare !== STILL_LAYOUT.pixelsPerSquare) throw Error('Invalid stadium painting dimensions');
@@ -81,19 +81,47 @@ function tintedLayer(source: HTMLImageElement, mask: HTMLImageElement, colors: T
   return canvas;
 }
 
-export function StadiumMockupPainting({ end, preset, colors, visitor, visible, onError }: {
+type PaintingOptions = {
   end: PitchEnd;
   preset: PitchPreset;
   colors: MockupColorPreset;
   visitor: Visitor;
   visible: PaintingVisibility;
-  onError: () => void;
-}) {
+};
+
+export function drawStadiumMockupPainting(context: CanvasRenderingContext2D, images: ReadonlyMap<string, HTMLImageElement>, {
+  end, preset, colors, visitor, visible,
+}: PaintingOptions) {
+  const pair = mockupColorPair(colors, visitor);
+  context.clearRect(0, 0, STILL_LAYOUT.width, STILL_LAYOUT.height);
+  context.imageSmoothingEnabled = false;
+  for (const layer of manifest.layers) {
+    const group = layer.role === 'emblem' ? layer.group ?? 'sides' : layer.role;
+    if (!visible[group]) continue;
+    const pose = layer[end];
+    const humanImage = visitor === 'human' ? pose.humanImage ?? layer.humanImage : undefined;
+    const imageFile = preset === 'calm' && layer.calmImage ? layer.calmImage : humanImage ?? pose.image ?? layer.image;
+    const source = images.get(imageFile)!;
+    const humanMask = visitor === 'human' ? pose.humanMask ?? layer.humanMask : undefined;
+    const maskFile = humanMask ?? pose.mask ?? layer.mask;
+    const recolor = colors !== 'defaults' || visitor === 'human' && layer.team === 'away';
+    const image = recolor && maskFile && layer.team ? tintedLayer(source, images.get(maskFile)!, pair[layer.team]) : source;
+    if (pose.flipX) {
+      context.save();
+      context.translate(pose.x + source.naturalWidth, pose.y);
+      context.scale(-1, 1);
+      context.drawImage(image, 0, 0);
+      context.restore();
+    } else context.drawImage(image, pose.x, pose.y);
+  }
+}
+
+export function StadiumMockupPainting({ end, preset, colors, visitor, visible, onError }: PaintingOptions & { onError: () => void }) {
   const canvas = useRef<HTMLCanvasElement>(null);
   const [images, setImages] = useState<ReadonlyMap<string, HTMLImageElement>>();
   useEffect(() => {
     let disposed = false;
-    loadPainting().then(
+    loadStadiumMockupPainting().then(
       loaded => { if (!disposed) setImages(loaded); },
       () => { if (!disposed) onError(); },
     );
@@ -103,28 +131,7 @@ export function StadiumMockupPainting({ end, preset, colors, visitor, visible, o
   useLayoutEffect(() => {
     const context = canvas.current?.getContext('2d');
     if (!context || !images) return;
-    const pair = mockupColorPair(colors, visitor);
-    context.clearRect(0, 0, STILL_LAYOUT.width, STILL_LAYOUT.height);
-    context.imageSmoothingEnabled = false;
-    for (const layer of manifest.layers) {
-      const group = layer.role === 'emblem' ? layer.group ?? 'sides' : layer.role;
-      if (!visible[group]) continue;
-      const pose = layer[end];
-      const humanImage = visitor === 'human' ? pose.humanImage ?? layer.humanImage : undefined;
-      const imageFile = preset === 'calm' && layer.calmImage ? layer.calmImage : humanImage ?? pose.image ?? layer.image;
-      const source = images.get(imageFile)!;
-      const humanMask = visitor === 'human' ? pose.humanMask ?? layer.humanMask : undefined;
-      const maskFile = humanMask ?? pose.mask ?? layer.mask;
-      const recolor = colors !== 'defaults' || visitor === 'human' && layer.team === 'away';
-      const image = recolor && maskFile && layer.team ? tintedLayer(source, images.get(maskFile)!, pair[layer.team]) : source;
-      if (pose.flipX) {
-        context.save();
-        context.translate(pose.x + source.naturalWidth, pose.y);
-        context.scale(-1, 1);
-        context.drawImage(image, 0, 0);
-        context.restore();
-      } else context.drawImage(image, pose.x, pose.y);
-    }
+    drawStadiumMockupPainting(context, images, { end, preset, colors, visitor, visible });
   }, [colors, end, images, preset, visitor, visible]);
 
   return <canvas ref={canvas} className="mockup-painted-canvas" data-painting-ready={Boolean(images)}

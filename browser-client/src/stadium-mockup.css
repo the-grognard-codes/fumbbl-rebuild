@@ -6,7 +6,7 @@
 }
 .stadium-mockup.mockup-wide { max-width: 2092px; }
 .stadium-mockup h1 { margin: 0; font-size: 1.7rem; }
-.mockup-heading { display: flex; flex-wrap: wrap; align-items: baseline; gap: 8px 20px; margin-bottom: 16px; }
+.mockup-heading { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 20px; margin-bottom: 16px; }
 .stadium-mockup p { max-width: 75ch; margin: 8px 0 14px; }
 .stadium-mockup :focus-visible { outline: 2px solid #f0ca7b; outline-offset: 3px; }
 .mockup-status { color: #ebcf95; }

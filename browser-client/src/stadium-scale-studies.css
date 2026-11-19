@@ -1,0 +1,54 @@
+.mockup-scale-link {
+  display: inline-flex;
+  align-items: center;
+  min-height: 36px;
+  padding: 0 10px;
+  border: 1px solid #f0ca7b;
+  color: #f0ca7b;
+  font-weight: 700;
+}
+.scale-studies { min-width: 0; max-width: 878px; }
+.scale-study-header { display: block; }
+.scale-study-header > a, .scale-study-controls > a { color: #c1e9ff; text-underline-offset: 3px; }
+.scale-study-header > a { display: inline-block; margin-bottom: 12px; }
+.scale-study-controls { margin-bottom: 16px; }
+.scale-study-comparisons {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 24px 14px;
+  max-width: 846px;
+}
+.scale-study-variant { min-width: 0; margin: 0; }
+.scale-study-variant figcaption {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  padding: 8px 0;
+  border-top: 1px solid #62655e;
+  line-height: 1.3;
+}
+.scale-study-variant figcaption > :nth-child(2) { font-size: .9375rem; }
+.scale-study-variant-id { color: #f0ca7b; font-weight: 700; }
+.scale-study-variant strong { margin-left: auto; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.scale-study-crop { position: relative; overflow: hidden; background: #342c24; }
+.scale-study-crop canvas { display: block; width: 100%; height: auto; image-rendering: pixelated; }
+.scale-study-player { position: absolute; image-rendering: pixelated; max-width: none; }
+.scale-study-inspector { margin-top: 30px; }
+.scale-study-inspector h2 { margin: 0; font-size: 1.25rem; }
+.scale-study-stand {
+  display: grid;
+  justify-items: center;
+  max-width: 416px;
+  padding: 24px;
+  border: 1px solid #62655e;
+}
+.scale-study-stand[data-background="Checkerboard"] {
+  background: conic-gradient(#989b99 25%, #c2c3bf 0 50%, #989b99 0 75%, #c2c3bf 0) 0 0 / 24px 24px;
+}
+.scale-study-stand[data-background="Light"] { background: #f2f0e8; }
+.scale-study-stand[data-background="Dark"] { background: #1a1b20; }
+.scale-study-stand canvas { display: block; max-width: 100%; height: auto; image-rendering: pixelated; }
+
+@media (max-width: 680px) {
+  .scale-study-comparisons { grid-template-columns: minmax(0, 416px); }
+}

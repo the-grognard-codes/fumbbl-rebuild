@@ -8,6 +8,7 @@ export const STILL_LAYOUT = {
 } as const;
 export const ANGLED_HEIGHT = 576;
 export const CONCEPT_HEIGHT = STILL_LAYOUT.width * 971 / 1619;
+export const MOCKUP_PLAYER_WIDTH_IN_SQUARES = 1.08;
 export type MockupAngle = PerspectiveElevation | 90;
 export type Visitor = 'orc' | 'human';
 export type PitchPreset = 'calm' | 'balanced';

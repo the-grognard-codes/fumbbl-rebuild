@@ -2,11 +2,12 @@ import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from '
 import { PitchScenery } from './PitchScenery.tsx';
 import { allPaintingLayers, StadiumMockupPainting, type PaintingVisibility } from './StadiumMockupPainting.tsx';
 import { StadiumMockupTurf, useMockupTurf } from './StadiumMockupTurf.tsx';
+import { StadiumScaleStudies } from './StadiumScaleStudies.tsx';
 import { PITCH_LENGTH, PITCH_WIDTH, type PitchEnd, type Point } from './pitch-projection.ts';
 import { playerArtPlacement, resolvePlayerArt } from './player-art.ts';
 import { teamColorArt } from './team-color-art.ts';
 import {
-  ANGLED_HEIGHT, CONCEPT_HEIGHT, MOCKUP_COLOR_PRESETS, STILL_LAYOUT,
+  ANGLED_HEIGHT, CONCEPT_HEIGHT, MOCKUP_COLOR_PRESETS, MOCKUP_PLAYER_WIDTH_IN_SQUARES, STILL_LAYOUT,
   mockupCamera, mockupColorPair, mockupPaintingFrame, mockupPlayers,
   type MockupAngle, type MockupColorPreset, type PitchPreset, type Visitor,
 } from './stadium-mockup.ts';
@@ -40,6 +41,10 @@ function svgPoints(points: readonly Point[]) {
 }
 
 export function StadiumMockup() {
+  return new URLSearchParams(window.location.search).get('view') === 'scale' ? <StadiumScaleStudies/> : <GatehouseGallery/>;
+}
+
+function GatehouseGallery() {
   const [end, setEnd] = useState<PitchEnd>('home');
   const [angle, setAngle] = useState<MockupAngle>(90);
   const [focus, setFocus] = useState(PITCH_LENGTH / 2);
@@ -110,6 +115,7 @@ export function StadiumMockup() {
   return <main className={comparison === 'side-by-side' ? 'stadium-mockup mockup-wide' : 'stadium-mockup'}>
     <header className="mockup-heading">
       <h1>Old World Classic</h1>
+      <a className="mockup-scale-link" href="?view=scale">Compare player scales</a>
       {candidates.length > 0 && <a href="#candidate-heading">Browse painted candidates</a>}
     </header>
     {failed && <p className="mockup-status" role="status">Turf failed to load or a painted layer is unavailable. Reload this page to retry.</p>}
@@ -247,7 +253,7 @@ export function StadiumMockup() {
               const position = camera.project({ x: player.x + .5, y: player.y + .5 });
               const body = resolvePlayerArt(player, { end: camera.end, topDown: overhead, colors: colorPair[player.role] })?.body;
               if (!position || !body) return null;
-              const scale = position.pixelsPerSquare * 1.08 / 64;
+              const scale = position.pixelsPerSquare * MOCKUP_PLAYER_WIDTH_IN_SQUARES / 64;
               const anchor = playerArtPlacement(body, overhead).anchor;
               return <img key={player.id} className="mockup-player" data-player-id={player.id} data-roster={player.art.rosterId}
                 data-center-x={position.x} data-center-y={position.y} src={body.url} alt={player.role + ' player ' + player.number}
