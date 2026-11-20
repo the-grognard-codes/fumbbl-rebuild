@@ -13,6 +13,8 @@ import cutoutUrl from '../../assets/game/references/stadiums/scale-studies/mask-
 import cutoutMaterialUrl from '../../assets/game/references/stadiums/scale-studies/mask-first-sideline.cutout.materials.png';
 import rearUrl from '../../assets/game/references/stadiums/scale-studies/mask-first-sideline.rear.png';
 import paintedUrl from '../../assets/game/references/stadiums/scale-studies/painted-terrace.webp';
+import bowlUrl from '../../assets/game/references/stadiums/scale-studies/stepped-bowl.webp';
+import { bowl, drawBowl } from './stadium-bowl-study.ts';
 import './stadium-scale-studies.css';
 
 const crop = { x: 0, y: 544, width: 416, height: 352 };
@@ -76,15 +78,15 @@ async function loadStand(sourceUrl: string, materialsUrl: string) {
 }
 
 async function loadArtwork() {
-  const [gatehouse, stand, cutout, painted, rear] = await Promise.all([
+  const [gatehouse, stand, cutout, painted, rear, bowlArt] = await Promise.all([
     loadStadiumMockupPainting(), loadStand(standUrl, materialUrl), loadStand(cutoutUrl, cutoutMaterialUrl),
-    loadImage(paintedUrl), loadImage(rearUrl),
+    loadImage(paintedUrl), loadImage(rearUrl), loadImage(bowlUrl),
   ]);
   if (painted.naturalWidth !== touchline || painted.naturalHeight !== crop.height)
     throw Error('Invalid painted terrace study dimensions');
   if (rear.naturalWidth !== touchline - standSize.width || rear.naturalHeight !== standSize.height)
     throw Error('Invalid rear terrace study dimensions');
-  return { gatehouse, stand, cutout, painted, rear };
+  return { gatehouse, stand, cutout, painted, rear, bowlArt };
 }
 type StudyArtwork = Awaited<ReturnType<typeof loadArtwork>>;
 
@@ -114,19 +116,22 @@ function drawCrop(context: CanvasRenderingContext2D, gatehouse: HTMLCanvasElemen
   drawGrid(context);
 }
 
-function StudyPlayers({ scale, pair }: { scale: number; pair: Record<'home' | 'away', TeamColors> }) {
+function StudyPlayers({ scale, pair, frame = crop, originX = touchline, originY = pitch.y - crop.y }: {
+  scale: number; pair: Record<'home' | 'away', TeamColors>; frame?: { width: number; height: number };
+  originX?: number; originY?: number;
+}) {
   return players.map(player => {
     const body = resolvePlayerArt(player, { colors: pair[player.role], end: 'home', topDown: true })?.body;
     if (!body) return null;
     const size = pixelsPerSquare * MOCKUP_PLAYER_WIDTH_IN_SQUARES / 64 * scale;
-    const x = touchline + (player.y + .5) * pixelsPerSquare;
-    const y = pitch.y - crop.y + (player.x + .5) * pixelsPerSquare;
+    const x = originX + (player.y + .5) * pixelsPerSquare;
+    const y = originY + (player.x + .5) * pixelsPerSquare;
     const { shadowAnchor: feet } = playerArtPlacement(body, true);
     return <img className="scale-study-player" key={player.id} src={body.url} alt={player.name}
       data-player-id={player.id} data-roster={player.art.rosterId}
       data-foot-x={x} data-foot-y={y} data-anchor-x={feet.x} data-anchor-y={feet.y}
-      style={{ left: `${(x - feet.x * size) / crop.width * 100}%`, top: `${(y - feet.y * size) / crop.height * 100}%`,
-        width: `${body.width * size / crop.width * 100}%`, height: `${body.height * size / crop.height * 100}%` }}/>;
+      style={{ left: `${(x - feet.x * size) / frame.width * 100}%`, top: `${(y - feet.y * size) / frame.height * 100}%`,
+        width: `${body.width * size / frame.width * 100}%`, height: `${body.height * size / frame.height * 100}%` }}/>;
   });
 }
 
@@ -137,6 +142,8 @@ export function StadiumScaleStudies() {
   const [artwork, setArtwork] = useState<StudyArtwork>();
   const [failed, setFailed] = useState(false);
   const crops = useRef<(HTMLCanvasElement | null)[]>([]);
+  const wholeBowl = useRef<HTMLCanvasElement>(null);
+  const bowlDetail = useRef<HTMLCanvasElement>(null);
   const isolatedStand = useRef<HTMLCanvasElement>(null);
   const pair = mockupColorPair(colors);
 
@@ -184,6 +191,15 @@ export function StadiumScaleStudies() {
       standSize.width, standSize.height), 0, 0);
   }, [artwork, colors, standLayer]);
 
+  useLayoutEffect(() => {
+    const canvas = wholeBowl.current;
+    const full = canvas?.getContext('2d');
+    const detail = bowlDetail.current?.getContext('2d');
+    if (!canvas || !full || !detail || !artwork) return;
+    drawBowl(full, artwork.bowlArt);
+    detail.drawImage(canvas, 0, bowl.pitchY + crop.y - pitch.y, crop.width, crop.height, 0, 0, crop.width, crop.height);
+  }, [artwork]);
+
   return <main className="stadium-mockup scale-studies">
     <header className="scale-study-header">
       <a href="?">Back to Gatehouse gallery</a>
@@ -199,7 +215,21 @@ export function StadiumScaleStudies() {
       </label>
       <a href="#stand-edges">Inspect stand edges</a>
     </div>
-    <p>The painted terrace crowd keeps its original colours. The kit selection applies to players in all four studies.</p>
+    <section id="stepped-bowl" aria-labelledby="bowl-heading">
+      <h2 id="bowl-heading">E · Stepped Gatehouse bowl</h2>
+      <p>A 1½-square dirt apron surrounds the pitch. Compare the front row with the touchline blitzer at 125%.</p>
+      <div className="scale-study-crop bowl-detail">
+        <canvas ref={bowlDetail} width={crop.width} height={crop.height} aria-label="Native-scale west terrace and shaggy touchline"/>
+        {artwork && <StudyPlayers scale={1.25} pair={pair} originX={bowl.pitchX}/>}
+      </div>
+      <details><summary>View the whole bowl</summary>
+        <div className="scale-study-crop">
+          <canvas ref={wholeBowl} width={bowl.width} height={bowl.height} aria-label="Four terraces and the southern gate"/>
+          {artwork && <StudyPlayers scale={1.25} pair={pair} frame={bowl} originX={bowl.pitchX} originY={bowl.pitchY}/>}
+        </div>
+      </details>
+    </section>
+    <p>The painted crowds in D and E have fixed colours. Kit changes apply to players in every study.</p>
     {failed && <p className="mockup-status" role="alert">The study artwork failed to load. Reload the page to retry.</p>}
     {!artwork && !failed && <p role="status">Loading study artwork…</p>}
     <div className="scale-study-comparisons" data-ready={Boolean(artwork)}>

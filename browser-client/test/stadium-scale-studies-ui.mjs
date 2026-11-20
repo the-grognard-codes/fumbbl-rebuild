@@ -35,13 +35,39 @@ try {
 
   async function settleSprites() {
     await page.waitForFunction(() => {
-      const sprites = [...document.querySelectorAll('.scale-study-player')];
+      const sprites = [...document.querySelectorAll('.scale-study-comparisons .scale-study-player')];
       return sprites.length === 28 && sprites.every(sprite => sprite.src.startsWith('data:') && sprite.complete);
     });
     await sprites.evaluateAll(images => Promise.all(images.map(image => image.decode())));
   }
 
   await settleSprites();
+  const newStudy = page.locator('#stepped-bowl');
+  await newStudy.locator('summary').click();
+  const fullBowl = newStudy.locator('details canvas');
+  assert.deepEqual(await fullBowl.evaluate(c => [c.width, c.height]), [790, 1188]);
+  const fringe = await fullBowl.evaluate(canvas => {
+    const pixels = canvas.getContext('2d').getImageData(0, 0, canvas.width, canvas.height).data;
+    const sides = [[156,169,0,1,-1,0,832], [635,169,0,1,1,0,832],
+      [156,169,1,0,0,-1,480], [156,1000,1,0,0,1,480]];
+    return sides.map(([x,y,alongX,alongY,outX,outY,length]) => {
+      const depths = [];
+      for (let i = 1; i < length - 1; i++) {
+        let depth = 0;
+        for (let step = 1; step <= 48; step++) {
+          const offset = 4 * ((y + i * alongY + step * outY) * canvas.width + x + i * alongX + step * outX);
+          if (pixels[offset + 1] <= pixels[offset]) break;
+          depth++;
+        }
+        depths.push(depth);
+      }
+      return [Math.min(...depths), Math.max(...depths)];
+    });
+  });
+  for (const [min, max] of fringe) assert.ok(min >= 2 && max <= 7 && max - min >= 3);
+  await newStudy.screenshot({ path: resolve(output, 'stepped-bowl.png') });
+  await newStudy.locator('.bowl-detail').screenshot({ path: resolve(output, 'stepped-bowl-detail.png') });
+  await newStudy.locator('summary').click();
   const geometry = await comparisons.locator('figure').evaluateAll(figures => figures.map(figure => {
     const crop = figure.querySelector('.scale-study-crop').getBoundingClientRect();
     return {

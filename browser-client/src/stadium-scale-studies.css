@@ -52,3 +52,6 @@
 @media (max-width: 680px) {
   .scale-study-comparisons { grid-template-columns: minmax(0, 416px); }
 }
+
+.bowl-detail { max-width: 416px; }
+#stepped-bowl summary { cursor: pointer; padding: 12px 0; }
