@@ -20,7 +20,7 @@ import java.util.List;
 import java.util.Properties;
 import java.util.Scanner;
 import java.util.Set;
-/** Explicit marker-5 through marker-8 bootstrap for the isolated acceptance profile. */
+/** Explicit marker-5 through marker-10 bootstrap for the isolated acceptance profile. */
 public final class LocalAcceptanceBootstrap {
 	private static final Set<String> MARKER5_TABLES = new HashSet<>(Arrays.asList(
 		"ffb_local_schema", "ffb_saved_teams", "ffb_prepared_matches", "ffb_match_recovery"));
@@ -53,7 +53,7 @@ public final class LocalAcceptanceBootstrap {
 		manager.setDbPassword(password);
 		manager.setDbType("mariadb");
 		bootstrap(manager);
-		System.out.println("Acceptance database schema verified at marker 9; no records were imported.");
+		System.out.println("Acceptance database schema verified at marker 10; no records were imported.");
 	}
 
 	static void validateBootstrapProfile(Properties properties) {
@@ -74,7 +74,7 @@ public final class LocalAcceptanceBootstrap {
 			tables = tableNames(manager);
 		}
 		int version = schemaVersion(manager);
-		if (version == 9) {
+		if (version == 10) {
 			requireInventory(tables, MARKER9_TABLES);
 			schema.initialize(manager);
 			try (Connection connection = manager.openDbConnection()) { new Marker6Schema().ensureCurrentMatchIndex(connection); connection.commit(); }
@@ -128,7 +128,17 @@ public final class LocalAcceptanceBootstrap {
 			}
 			version = 9;
 		}
-		if (version != 9) throw new SQLException("Acceptance bootstrap accepts only empty or marker-5-through-9 databases");
+		if (version == 9) {
+			requireInventory(tableNames(manager), MARKER9_TABLES);
+			try (Connection connection = manager.openDbConnection(); Statement statement = connection.createStatement()) {
+				schema.verifyRecovery(connection, true, false);
+				new Marker6Schema().verifyRecoveryJournal(connection);
+				executeResource(statement, "/local-schema/010-computer-job-availability.sql");
+				connection.commit();
+			}
+			version = 10;
+		}
+		if (version != 10) throw new SQLException("Acceptance bootstrap accepts only empty or marker-5-through-10 databases");
 		tables = tableNames(manager);
 		requireInventory(tables, MARKER9_TABLES);
 		schema.initialize(manager);

@@ -34,12 +34,15 @@ final class BogrukEngineFixture {
 	private final Random dice;
 
 	BogrukEngineFixture(String homeRoster, String awayRoster, long seed) throws Exception {
-		this(homeRoster, awayRoster, seed, "Acceptance ");
+		this(homeRoster, awayRoster, seed, "00000000-0000-0000-0000-000000000021");
 	}
 
-	BogrukEngineFixture(String homeRoster, String awayRoster, long seed, String teamPrefix) throws Exception {
+	BogrukEngineFixture(String homeRoster, String awayRoster, long seed, String id) throws Exception {
+		this(homeRoster, awayRoster, seed, id, "Acceptance ");
+	}
+
+	BogrukEngineFixture(String homeRoster, String awayRoster, long seed, String id, String teamPrefix) throws Exception {
 		ComputerOpponentService computers = new ComputerOpponentService(null);
-		String id = "00000000-0000-0000-0000-000000000021";
 		FrozenTeam home = frozen(homeRoster, "home", "00000000-0000-0000-0000-000000000011", teamPrefix);
 		FrozenTeam away = frozen(awayRoster, "away", "00000000-0000-0000-0000-000000000012", teamPrefix)
 			.copyForMatch(computers.cloneTeamId(id, ComputerOpponentService.BOGRUK_ID), "away", ComputerOpponentService.BOGRUK_TEAM_NAME);
@@ -59,14 +62,42 @@ final class BogrukEngineFixture {
 		when(server.getDebugLog()).thenReturn(mock(DebugLog.class));
 		when(server.getCommunication()).thenReturn(mock(ServerCommunication.class));
 		dice = new Random(seed);
-		session = new SetupSession(server, document, -2, true, true, true, true, true, true);
-		session.recordPlayerActivity(System.currentTimeMillis());
+		session = SetupSession.startRecoverable(server, document, -2, true, true);
+		session.recordPlayerActivity("home", System.currentTimeMillis());
 		pinDice();
 	}
 
 	void restore() throws Exception {
 		session = new SetupSession(server, document, session.recoveryArtifact());
 		pinDice();
+	}
+
+	/** Drives committed native decisions without adding staged placement requests. */
+	JsonObject recordedDecision(JsonObject view, String requestId, int sequence) {
+		JsonObject request = new JsonObject().add("version", 1).add("type", "setup").add("requestId", requestId)
+			.add("matchId", document.matchId).add("expectedRevision", view.getInt("revision", -1));
+		if (!view.get("prompt").isNull()) {
+			JsonObject prompt = view.get("prompt").asObject();
+			return request.add("operation", "choice").add("promptId", prompt.get("id"))
+				.add("optionId", prompt.get("options").asArray().get(0));
+		}
+		if ("SETUP".equals(view.getString("phase", null))) return request.add("operation", "confirm");
+
+		JsonObject action = view.get("actions").asArray().get(0).asObject();
+		for (JsonValue option : view.get("actions").asArray()) {
+			JsonObject candidate = option.asObject();
+			String kind = candidate.getString("kind", "");
+			String id = candidate.getString("id", "");
+			if (id.endsWith(":decline-event") || id.endsWith(":end-event")
+				|| id.endsWith(":confirm-solid-defence") || kind.equals("endTurn") && sequence % 16 == 0) {
+				action = candidate;
+				break;
+			}
+			JsonValue target = candidate.get("target");
+			if (kind.equals("select") && target != null && target.isObject()
+				&& !view.get("activePlayerId").equals(target.asObject().get("playerId"))) action = candidate;
+		}
+		return request.add("operation", "action").add("actionId", action.get("id"));
 	}
 
 	private void pinDice() throws Exception {

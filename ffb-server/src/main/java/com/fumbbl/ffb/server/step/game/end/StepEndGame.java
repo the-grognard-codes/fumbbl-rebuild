@@ -43,6 +43,7 @@ public final class StepEndGame extends AbstractStep {
 		Game game = getGameState().getGame();
 		if (game.getFinished() == null) {
 			game.setFinished(new Date());
+			getGameState().observeMatchFinished();
 			getGameState().setStatus(GameStatus.FINISHED);
 			getGameState().getStepStack().clear(); // clean up after ourselves
 			IDialogParameter gameStatistics = new DialogParameterFactory().createDialogParameter(DialogId.GAME_STATISTICS);

@@ -66,7 +66,7 @@ No single match, however large, can make the game server unavailable to other ma
 
 ## Validation
 - Focused server tests and `mvn clean install`.
-- An opt-in memory probe under `-Xmx768m` with a 45 MB artifact.
+- An opt-in memory probe under `-Xmx768m` with a committed staged-runtime history and a warm engine.
 
 ## Completion Notes
 - Unit, browser and game-server build tests should be performed after code changes are complete.
@@ -76,7 +76,7 @@ No single match, however large, can make the game server unavailable to other ma
 
 The initial one-slot/32 MiB implementation was rejected in review and replaced.
 The final policy preserves 32 slots, uses weighted LRU cache admission and a
-49.45 MiB decoded / 45.45 MiB append limit at the deployed heap. Size termination
+44 MiB decoded / 40 MiB append limit at the deployed heap. Size termination
 records the current score and leaves the active set. The OOM tracker is advisory,
 uses a bounded maintenance-thread handoff, requires evidence from the prior
 run's exact heap-dump file and delays automatic reloads for at most thirty
@@ -92,9 +92,9 @@ point, persisted across restarts until absolute expiry or selective admin clear;
 one shared working allowance with idle/terminal eviction preference; and cached,
 neutral system attribution for size stops.
 
-The size-limit result is retained under a **merge hold**: #556 must first land
-staged placement **including setup adjustment limits**, and #558 must land its
-computer/kick-off guards. Rebase onto integrated main, recalibrate limits after
-per-placement history removal, then run a three-hour soak with several concurrent
-matches. The earlier twenty-minute soak does not satisfy that acceptance check.
-Issue #554 remains open pending this integrated evidence.
+#574, #558 and #575 have landed. After #559, #543 and #541 are integrated and
+tested, combine their heads on a disposable branch based on main. Run the
+three-hour soak there at `-Xmx768m` with several concurrent matches, including
+computer matches. Record the exact head SHA of each PR and keep #554 open until
+the acceptance evidence is recorded.
+[November 20 integration instructions](https://github.com/the-grognard-codes/moles-under-the-pitch/pull/559#issuecomment-7031175823)

@@ -31,6 +31,7 @@ import java.util.Collections;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.atomic.AtomicLong;
 
 import org.eclipse.jetty.ee8.websocket.api.RemoteEndpoint;
@@ -364,12 +365,12 @@ class BrowserV2AdapterTest {
 		V2MatchAccess access = mock(V2MatchAccess.class);
 		when(access.require(home, ApplicationScope.PLAYER)).thenReturn(home);
 		V2PreparationService preparation = mock(V2PreparationService.class);
-		when(preparation.activeComputerMatches()).thenReturn(java.util.Collections.singletonList(MATCH));
+		when(preparation.activeComputerMatches()).thenReturn(new V2PreparationService.ComputerInventory(List.of(MATCH), true));
 		when(preparation.isComputerMatch(MATCH)).thenReturn(true);
-		when(preparation.hasComputerMembership(MATCH)).thenReturn(true);
+		when(preparation.computerMembershipRole(MATCH)).thenReturn("away");
 		SetupApplication setup = mock(SetupApplication.class);
-		when(setup.handleComputerWithOutcome(any(JsonObject.class))).thenAnswer(call -> {
-			JsonObject request = call.getArgument(0);
+		when(setup.handleComputerWithOutcome(eq("away"), any(JsonObject.class))).thenAnswer(call -> {
+			JsonObject request = call.getArgument(1);
 			return outcome(new JsonObject().add("type", "setupState").add("requestId", request.getString("requestId", null))
 				.add("code", "ACCEPTED").add("duplicate", false)
 				.add("state", new JsonObject().add("matchId", MATCH).add("callerRole", "away")), false);
@@ -395,6 +396,7 @@ class BrowserV2AdapterTest {
 		assertEquals("AUTHENTICATION_FAILED", code(dispatcher, 0));
 		assertEquals("ACCEPTED", code(dispatcher, 1));
 		assertEquals("READY", code(dispatcher, 2));
+		assertNull(JsonObject.readFrom(dispatcher.messages.get(2)).get("inventoryPending"));
 		assertEquals("computerJobs", JsonObject.readFrom(dispatcher.messages.get(3)).getString("type", null));
 		assertEquals(MATCH, JsonObject.readFrom(dispatcher.messages.get(3)).get("matches").asArray().get(0).asString());
 		assertEquals("READY", code(player, 3));
@@ -414,23 +416,143 @@ class BrowserV2AdapterTest {
 		when(access.require(home, ApplicationScope.PLAYER)).thenReturn(home);
 		when(access.playerRole(home, MATCH)).thenReturn("home");
 		V2PreparationService preparation = mock(V2PreparationService.class);
+		when(preparation.activeComputerMatches()).thenReturn(new V2PreparationService.ComputerInventory(List.of(), true));
 		when(preparation.isComputerMatch(MATCH)).thenReturn(true);
-		when(preparation.hasComputerMembership(MATCH)).thenReturn(true);
+		when(preparation.computerMembershipRole(MATCH)).thenReturn("away");
 		SetupApplication setup = mock(SetupApplication.class);
 		when(setup.activate(eq("home"), any(String.class))).thenAnswer(call -> preparedResponse());
+		when(setup.handleWithOutcome(eq("home"), any(JsonObject.class))).thenAnswer(call -> {
+			JsonObject request = call.getArgument(1);
+			return outcome(new JsonObject().add("type", "setupState").add("requestId", request.getString("requestId", null))
+				.add("code", "ACCEPTED").add("duplicate", false).add("state", new JsonObject().add("matchId", MATCH)
+					.add("callerRole", "home").add("revision", 7)), !"load".equals(request.getString("operation", null)));
+		});
+		when(setup.handleComputerWithOutcome(eq("away"), any(JsonObject.class))).thenAnswer(call -> {
+			JsonObject request = call.getArgument(1);
+			return outcome(new JsonObject().add("type", "setupState").add("requestId", request.getString("requestId", null))
+				.add("code", "ACCEPTED").add("duplicate", false).add("state", new JsonObject().add("matchId", MATCH)
+					.add("callerRole", "away").add("revision", 8)), true);
+		});
+		JsonObject reactionExpired = new JsonObject().add("matchId", MATCH).add("callerRole", "home").add("revision", 9);
+		JsonObject proposalExpired = new JsonObject(reactionExpired).add("saveResume", new JsonObject().add("status", "ACTIVE"));
+		when(setup.expireDecisions()).thenReturn(
+			Map.of(MATCH, new SetupApplication.DeadlinePublication(reactionExpired, false, Optional.empty())),
+			Map.of(MATCH, new SetupApplication.DeadlinePublication(proposalExpired, true, Optional.empty())));
 		BrowserV2Adapter adapter = new BrowserV2Adapter(bearer -> home, access, setup,
 			mock(MatchService.class), preparation, mock(BrowserSavedTeamJson.class),
 			new com.fumbbl.ffb.server.match.ComputerOpponentService(SERVICE_HASH));
-		Connection player = new Connection(), dispatcher = new Connection();
+		Connection player = new Connection(), dispatcher = new Connection(), worker = new Connection();
 		adapter.receive(player, authenticate("player-auth", "human").toString());
 		adapter.receive(dispatcher, request("authenticateComputer", "service-auth").add("serviceToken", SERVICE_TOKEN).toString());
-		adapter.receive(dispatcher, request("computer", "register").add("operation", "register").toString());
+		adapter.receive(dispatcher, request("computer", "register").add("operation", "register").add("watchChanges", true).toString());
+		JsonObject snapshot = JsonObject.readFrom(dispatcher.messages.get(1));
+		assertEquals("computerJobs", snapshot.getString("type", null));
+		assertEquals("register", snapshot.getString("requestId", null));
+		assertEquals(0, snapshot.get("matches").asArray().size());
+		assertEquals("READY", code(dispatcher, 2));
+		assertNull(JsonObject.readFrom(dispatcher.messages.get(2)).get("inventoryPending"), "Only suspension-aware dispatchers see the backlog flag");
 		adapter.receive(player, request("preparedMatch", "activate").add("operation", "activate")
 			.add("matchId", MATCH).toString());
 		assertEquals("ACCEPTED", code(player, 1));
-		assertEquals("computerJobs", JsonObject.readFrom(dispatcher.messages.get(2)).getString("type", null));
-		assertEquals(MATCH, JsonObject.readFrom(dispatcher.messages.get(2)).get("matches").asArray().get(0).asString());
+		JsonObject activation = JsonObject.readFrom(dispatcher.messages.get(3));
+		assertEquals("computerJobs", activation.getString("type", null));
+		assertTrue(activation.get("requestId").isNull());
+		assertEquals(MATCH, activation.get("matches").asArray().get(0).asString());
+		adapter.receive(player, setup("load").toString());
+		assertEquals(4, dispatcher.messages.size(), "A human load does not wake the dispatcher by itself");
+		adapter.receive(player, setup("choice").set("operation", "choice").add("expectedRevision", 6)
+			.add("promptId", "coin").add("optionId", "heads").toString());
+		assertEquals(new JsonObject().add("type", "computerJobChanged").add("requestId", JsonValue.NULL)
+			.add("matchId", MATCH).add("revision", 7).add("saveResumeChanged", false).add("version", 2), JsonObject.readFrom(dispatcher.messages.get(4)));
+
+		adapter.receive(worker, request("authenticateComputer", "worker-auth").add("serviceToken", SERVICE_TOKEN).toString());
+		adapter.receive(worker, setup("worker-choice").set("operation", "choice").add("expectedRevision", 7)
+			.add("promptId", "coin").add("optionId", "heads").toString());
+		assertEquals(5, dispatcher.messages.size(), "An acknowledged computer move does not wake its dispatcher");
+		adapter.expireDecisions();
+		assertEquals(9, JsonObject.readFrom(dispatcher.messages.get(5)).getInt("revision", -1));
+		assertFalse(JsonObject.readFrom(dispatcher.messages.get(5)).getBoolean("saveResumeChanged", true));
+		adapter.expireDecisions();
+		JsonObject sameRevision = JsonObject.readFrom(dispatcher.messages.get(6));
+		assertEquals(9, sameRevision.getInt("revision", -1));
+		assertTrue(sameRevision.getBoolean("saveResumeChanged", false), "Proposal expiry wakes a worker parked at the same revision");
+
+		for (String operation : List.of("saveRequest", "saveAccept", "saveReject", "saveCancel",
+				"resumeRequest", "resumeAccept", "resumeReject", "resumeCancel")) {
+			adapter.receive(player, setup(operation).set("operation", operation).toString());
+			assertTrue(JsonObject.readFrom(dispatcher.messages.getLast()).getBoolean("saveResumeChanged", false), operation);
+		}
+		for (String operation : List.of("saveSomethingElse", "resumeSomethingElse", "concede")) {
+			adapter.receive(player, setup(operation).set("operation", operation).toString());
+			assertFalse(JsonObject.readFrom(dispatcher.messages.getLast()).getBoolean("saveResumeChanged", true), operation);
+		}
+
+		JsonObject abandoned = new JsonObject().add("matchId", MATCH).add("revision", 9)
+			.add("saveResume", new JsonObject().add("status", "ABANDONED"));
+		when(setup.expireDecisions()).thenReturn(Map.of(MATCH, new SetupApplication.DeadlinePublication(
+			new JsonObject(abandoned).add("callerRole", "home"), false, Optional.of(new JsonObject(abandoned).add("callerRole", "away")))), Map.of());
+		adapter.expireDecisions();
+		assertEquals(new JsonObject().add("type", "computerJobEnded").add("requestId", JsonValue.NULL)
+			.add("matchId", MATCH).add("version", 2), JsonObject.readFrom(dispatcher.messages.getLast()));
+		int messagesAfterAbandonment = dispatcher.messages.size();
+		adapter.expireDecisions();
+		assertEquals(messagesAfterAbandonment, dispatcher.messages.size());
 	}
+
+	@Test void suspensionRetiresTheJobUntilAHumanProposesResume() throws Exception {
+		AuthenticatedPrincipal home = principal(FIRST, ApplicationScope.PLAYER);
+		V2MatchAccess access = mock(V2MatchAccess.class);
+		when(access.require(home, ApplicationScope.PLAYER)).thenReturn(home);
+		when(access.playerRole(home, MATCH)).thenReturn("home");
+		V2PreparationService preparation = mock(V2PreparationService.class);
+		when(preparation.isComputerMatch(MATCH)).thenReturn(true);
+		when(preparation.computerMembershipRole(MATCH)).thenReturn("away");
+		when(preparation.activeComputerMatches()).thenReturn(new V2PreparationService.ComputerInventory(List.of(MATCH), true),
+			new V2PreparationService.ComputerInventory(List.of(), false));
+		SetupApplication setup = mock(SetupApplication.class);
+		when(setup.handleComputerWithOutcome(eq("away"), any(JsonObject.class))).thenAnswer(call ->
+			savedSetupOutcome(call.getArgument(1), "away", "SUSPENDED"));
+		when(setup.handleWithOutcome(eq("home"), any(JsonObject.class))).thenAnswer(call ->
+			savedSetupOutcome(call.getArgument(1), "home", "RESUME_PENDING"));
+		BrowserV2Adapter adapter = new BrowserV2Adapter(bearer -> home, access, setup,
+			mock(MatchService.class), preparation, mock(BrowserSavedTeamJson.class), new ComputerOpponentService(SERVICE_HASH));
+		Connection player = new Connection(), dispatcher = new Connection(), worker = new Connection();
+		adapter.receive(player, authenticate("player-auth", "human").toString());
+		for (Connection service : List.of(dispatcher, worker))
+			adapter.receive(service, request("authenticateComputer", "service-auth").add("serviceToken", SERVICE_TOKEN).toString());
+		adapter.receive(dispatcher, request("computer", "register").add("operation", "register")
+			.add("watchChanges", true).add("watchSuspension", true).toString());
+		JsonObject ready = JsonObject.readFrom(dispatcher.messages.getLast());
+		assertEquals("register", ready.getString("requestId", null));
+		assertEquals("READY", ready.getString("code", null));
+		assertTrue(ready.getBoolean("inventoryPending", false));
+
+		adapter.receive(worker, setup("accept-save").set("operation", "saveAccept").toString());
+		assertEquals(new JsonObject().add("type", "computerJobSuspended").add("requestId", JsonValue.NULL)
+			.add("matchId", MATCH).add("version", 2), JsonObject.readFrom(dispatcher.messages.getLast()));
+		int afterSuspend = dispatcher.messages.size();
+		adapter.receive(worker, setup("load-saved").toString());
+		assertEquals(afterSuspend, dispatcher.messages.size(), "The suspended job stops receiving change notices");
+		adapter.receive(dispatcher, request("computer", "refresh").add("operation", "register")
+			.add("watchChanges", true).add("watchSuspension", true).toString());
+		assertTrue(JsonObject.readFrom(dispatcher.messages.get(afterSuspend)).get("matches").asArray().isEmpty());
+		assertNull(JsonObject.readFrom(dispatcher.messages.getLast()).get("inventoryPending"));
+
+		adapter.receive(player, setup("request-resume").set("operation", "resumeRequest").toString());
+		JsonObject availability = JsonObject.readFrom(dispatcher.messages.get(dispatcher.messages.size() - 2));
+		assertEquals("computerJobs", availability.getString("type", null));
+		assertTrue(availability.get("requestId").isNull());
+		assertEquals(MATCH, availability.get("matches").asArray().get(0).asString());
+		assertTrue(JsonObject.readFrom(dispatcher.messages.getLast()).getBoolean("saveResumeChanged", false));
+	}
+
+	private SetupApplication.HandleOutcome savedSetupOutcome(JsonObject request, String role, String status) {
+		JsonObject state = new JsonObject().add("matchId", MATCH).add("callerRole", role).add("revision", 7)
+			.add("saveResume", new JsonObject().add("status", status));
+		return outcome(new JsonObject().add("type", "setupState").add("requestId", request.getString("requestId", null))
+			.add("code", "ACCEPTED").add("duplicate", false).add("state", state), true);
+	}
+
 	@Test void completedParticipantResultUsesV2EnvelopeAndSpectatorScopeCannotRead() throws Exception {
 		AuthenticatedPrincipal player = principal(FIRST, ApplicationScope.PLAYER);
 		AuthenticatedPrincipal spectator = principal(SECOND, ApplicationScope.SPECTATOR);
@@ -965,6 +1087,115 @@ class BrowserV2AdapterTest {
 		adapter.receive(player, setup("again").set("operation", "saveCancel").toString());
 		assertEquals(3, viewer.messages.size());
 		assertEquals(4, other.messages.size());
+	}
+
+	@Test void deniedWatchRemovesSpectatorBeforeTheNextStagedUpdate() throws Exception {
+		AuthenticatedPrincipal actor = principal(FIRST, ApplicationScope.PLAYER);
+		AuthenticatedPrincipal spectator = principal(SECOND, ApplicationScope.SPECTATOR);
+		MatchMembershipRepository memberships = mock(MatchMembershipRepository.class);
+		when(memberships.find(MATCH, FIRST)).thenReturn(new MatchMembership(MATCH, FIRST, "home"));
+		when(memberships.isActive(MATCH)).thenReturn(true);
+		V2PrincipalDirectory directory = mock(V2PrincipalDirectory.class);
+		when(directory.reauthorize(any())).thenAnswer(call -> call.getArgument(0));
+		V2MatchAccess access = new V2MatchAccess(memberships, directory, Clock.systemUTC());
+		SetupApplication setup = stagedSetup();
+		when(setup.spectatorView(MATCH)).thenReturn(new JsonObject().add("matchId", MATCH));
+		BrowserV2Adapter adapter = adapter(bearer -> "actor".equals(bearer) ? actor : spectator, access, setup);
+		Connection source = new Connection(), viewer = new Connection();
+		adapter.receive(source, authenticate("actor-auth", "actor").toString());
+		adapter.receive(viewer, authenticate("viewer-auth", "spectator").toString());
+		adapter.receive(viewer, request("watch", "subscribe").add("matchId", MATCH).toString());
+		assertEquals("ACCEPTED", code(viewer, 1));
+
+		adapter.receive(viewer, setup("player-only").toString());
+		assertEquals("AUTHORIZATION", code(viewer, 2));
+		sendPlacement(adapter, source, "placement-before-denial");
+		assertEquals("stagedPlacement", JsonObject.readFrom(viewer.messages.get(3)).getString("type", null));
+
+		when(directory.reauthorize(spectator)).thenReturn(principal(SECOND, ApplicationScope.PLAYER));
+		adapter.receive(viewer, request("watch", "denied-watch").add("matchId", MATCH).toString());
+		assertEquals("AUTHORIZATION", code(viewer, 4));
+		sendPlacement(adapter, source, "placement-after-denial");
+		assertEquals(5, viewer.messages.size());
+		assertEquals("ACCEPTED", code(source, 2));
+	}
+
+	@Test void missingPlayerMembershipRemovesOnlyTheMatchingEnrollment() throws Exception {
+		AuthenticatedPrincipal actor = principal(FIRST, ApplicationScope.PLAYER);
+		AuthenticatedPrincipal player = principal(SECOND, ApplicationScope.PLAYER);
+		MatchMembershipRepository memberships = mock(MatchMembershipRepository.class);
+		when(memberships.find(MATCH, FIRST)).thenReturn(new MatchMembership(MATCH, FIRST, "home"));
+		when(memberships.find(MATCH, SECOND)).thenReturn(new MatchMembership(MATCH, SECOND, "away"));
+		V2PrincipalDirectory directory = mock(V2PrincipalDirectory.class);
+		when(directory.reauthorize(any())).thenAnswer(call -> call.getArgument(0));
+		V2MatchAccess access = new V2MatchAccess(memberships, directory, Clock.systemUTC());
+		BrowserV2Adapter adapter = adapter(bearer -> "actor".equals(bearer) ? actor : player, access, stagedSetup());
+		Connection source = new Connection(), viewer = new Connection();
+		adapter.receive(source, authenticate("actor-auth", "actor").toString());
+		adapter.receive(viewer, authenticate("viewer-auth", "player").toString());
+		adapter.receive(viewer, setup("subscribe").toString());
+		assertEquals("ACCEPTED", code(viewer, 1));
+
+		adapter.receive(viewer, setup("unrelated-match").set("matchId", FIRST).toString());
+		assertEquals("NOT_FOUND", code(viewer, 2));
+		doThrow(new SQLException("Unavailable")).when(memberships).find(MATCH, SECOND);
+		adapter.receive(viewer, setup("transient").toString());
+		assertEquals("PERSISTENCE_FAILED", code(viewer, 3));
+		sendPlacement(adapter, source, "placement-before-removal");
+		assertEquals("stagedPlacement", JsonObject.readFrom(viewer.messages.get(4)).getString("type", null));
+
+		doReturn(null).when(memberships).find(MATCH, SECOND);
+		adapter.receive(viewer, setup("removed-membership").toString());
+		assertEquals("NOT_FOUND", code(viewer, 5));
+		sendPlacement(adapter, source, "placement-after-removal");
+		assertEquals(6, viewer.messages.size());
+		assertEquals("ACCEPTED", code(source, 2));
+	}
+
+	@Test void deniedPlayerScopeRemovesEnrollmentBeforeTheNextStagedUpdate() throws Exception {
+		AuthenticatedPrincipal actor = principal(FIRST, ApplicationScope.PLAYER);
+		AuthenticatedPrincipal player = principal(SECOND, ApplicationScope.PLAYER);
+		MatchMembershipRepository memberships = mock(MatchMembershipRepository.class);
+		when(memberships.find(MATCH, FIRST)).thenReturn(new MatchMembership(MATCH, FIRST, "home"));
+		when(memberships.find(MATCH, SECOND)).thenReturn(new MatchMembership(MATCH, SECOND, "away"));
+		V2PrincipalDirectory directory = mock(V2PrincipalDirectory.class);
+		when(directory.reauthorize(any())).thenAnswer(call -> call.getArgument(0));
+		V2MatchAccess access = new V2MatchAccess(memberships, directory, Clock.systemUTC());
+		BrowserV2Adapter adapter = adapter(bearer -> "actor".equals(bearer) ? actor : player, access, stagedSetup());
+		Connection source = new Connection(), viewer = new Connection();
+		adapter.receive(source, authenticate("actor-auth", "actor").toString());
+		adapter.receive(viewer, authenticate("viewer-auth", "player").toString());
+		adapter.receive(viewer, setup("subscribe").toString());
+		assertEquals("ACCEPTED", code(viewer, 1));
+
+		when(directory.reauthorize(player)).thenReturn(principal(SECOND, ApplicationScope.SPECTATOR));
+		adapter.receive(viewer, setup("denied-scope").toString());
+		assertEquals("AUTHORIZATION", code(viewer, 2));
+		sendPlacement(adapter, source, "placement-after-denial");
+		assertEquals(3, viewer.messages.size());
+		assertEquals("ACCEPTED", code(source, 1));
+	}
+
+	private SetupApplication stagedSetup() throws SQLException {
+		SetupApplication setup = mock(SetupApplication.class);
+		when(setup.handleWithOutcome(any(String.class), any(JsonObject.class))).thenAnswer(call -> {
+			JsonObject request = call.getArgument(1);
+			SetupApplication.HandleOutcome change = outcome(new JsonObject().add("type", "setupState")
+				.add("code", "ACCEPTED").add("duplicate", false).add("state", new JsonObject().add("matchId", MATCH)), false);
+			if ("place".equals(request.getString("operation", ""))) {
+				when(change.staged()).thenReturn(true);
+				when(change.placement()).thenReturn(new JsonObject().add("version", 2).add("type", "stagedPlacement")
+					.add("code", "ACCEPTED").add("requestId", JsonValue.NULL).add("matchId", MATCH)
+					.add("baseRevision", 3).add("stageSeq", 1).add("players", new JsonArray()));
+			}
+			return change;
+		});
+		return setup;
+	}
+
+	private void sendPlacement(BrowserV2Adapter adapter, Connection source, String requestId) {
+		adapter.receive(source, setup(requestId).set("operation", "place").add("expectedRevision", 3)
+			.add("playerId", "p1").add("to", new JsonObject().add("x", 8).add("y", 7)).toString());
 	}
 
 	private JsonObject preparedResponse() { return new JsonObject().add("type", "preparedMatch").add("code", "ACCEPTED").add("document", new JsonObject().add("matchId", MATCH)); }

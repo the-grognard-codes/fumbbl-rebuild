@@ -5,9 +5,10 @@ PR: [#559](https://github.com/the-grognard-codes/fumbbl-rebuild/pull/559).
 Branch: `codex/554-match-memory-isolation`; base: `33d95b7c6`.
 Date: 2026-11-15; follow-up review: 2026-11-16 UTC.
 
-**Merge held:** #556 must include staged placement and its setup adjustment limit;
-#558 must land, followed by rebase, recalibration and the integrated three-hour
-concurrent soak. Issue #554 remains open. See the second review response below.
+**Acceptance pending.** The November 20 integration brings #574, #558 and #575
+into this branch. The three-hour concurrent soak will run with #543 and #541 on
+a disposable branch. Record all three PR head SHAs and keep #554 open until the
+evidence is recorded. [Integration instructions](https://github.com/the-grognard-codes/moles-under-the-pitch/pull/559#issuecomment-7031175823)
 
 ## Result
 
@@ -26,8 +27,8 @@ Eviction preserves durable recovery and bounded completion-retry metadata;
 retrying a detached terminal result still verifies its identity against any
 stored completion. Definitive completion rejection releases its engine.
 
-At the deployed **768 MiB heap**, the shared policy permits **49.45 MiB decoded**,
-with a **45.45 MiB append threshold** and a 4 MiB reserve. It ends a match at its
+At the deployed **768 MiB heap**, the post-placement policy permits **44 MiB
+decoded** with a **40 MiB append threshold** and a 4 MiB reserve. It ends a match at its
 current score, clears any pending reaction, checkpoints the terminal state and
 records the result. The match leaves the active set. The existing transcript
 decision records the reason; fresh wire projections expose it on completed
@@ -39,14 +40,28 @@ Recovery and completed-result serialization share one bounded canonical writer.
 Restore takes ownership of private transcript records and shares immutable
 snapshots with replay where their semantic contents match. Older differing
 projections remain unchanged. Public transcript pages still copy their data.
-Stored schema versions, checksum encoding, replay ordering and recovery without
-command execution remain intact. `stopReason` is a wire-only extension and is
+Staged checkpoint version 7, schema v10 computer scheduling, checksum encoding,
+and replay ordering remain intact. Recovery does not replay engine commands.
+Cold computer projection, legacy inventory classification and timer maintenance
+share size and quarantine admission. Timer retries preserve an uncommitted
+human decision clock while its durable generation is current. `stopReason` is a wire-only extension and is
 not inserted into stored replay or recovery projections.
 
 See [heap evidence and policy](match-memory-isolation-heap.md) for the histogram,
 ownership investigation, formula and measured headroom.
 
-## Owner review response
+## November 20 integration checks
+
+- 125 focused server tests passed at 768 MiB, including cold computer and
+  inventory decode refusal, a quarantined timer tick, checkpoint retry and
+  journal compaction at decoded admission.
+- The staged native probe recovered a 9,433,372-byte Unicode checkpoint plus
+  journal with a 4,296,598-byte warm engine still resident. The
+  restore/serialize/terminal pipeline took 1,797 ms in that run.
+- The production browser build, 564 browser tests and Chromium reconnect
+  checks passed.
+
+## November 15 owner review response
 
 | Finding | Correction |
 | --- | --- |
@@ -227,9 +242,11 @@ node tools/dev-local.mjs --restart --quick
 
 The opt-in native memory test is `MatchMemoryWorkloadTest`. Set
 `MATCH_MEMORY_WORKLOAD` to a local JSON output path and pass
-`-DargLine=-Xmx768m` to pinned Maven. Default target is 45 MiB with a 760-decision
-warm engine. `MATCH_MEMORY_RESIDENT_DECISIONS=450` retains a smaller admitted
-engine; `MATCH_MEMORY_WORKLOAD_MIB=48` exercises the upper decoded boundary.
+`-DargLine=-Xmx768m` to pinned Maven. The staged workload defaults to an 8 MiB
+checkpoint built from committed native decisions plus a 100-decision warm
+engine. It exercises a checkpoint and journal tail, native restoration and
+terminal result serialization. Set `MATCH_MEMORY_WORKLOAD_MIB` to adjust the
+checkpoint target.
 These test processes require no database or Firebase credentials. The local
 soak uses the existing signed-in browser profile and normal application flow.
 
@@ -261,10 +278,8 @@ let a leading coach inflate history into a forced victory.
   Recovery and browser transcript validation accept that specific terminal reason;
   the match log describes the server limit without blaming either coach.
 
-The integrated **three-hour, several-concurrent-match soak remains required** after
-#556/#558 and rebase. The earlier twenty-minute run is not that acceptance test.
-Recalibrate decoded/append limits against placement histories after #556 removes
-per-placement snapshots. Issue #554 remains open until that evidence is recorded.
+The November 20 integration supersedes this review's merge procedure. The
+integrated three-hour soak remains the acceptance test.
 
 ### Follow-up validation
 

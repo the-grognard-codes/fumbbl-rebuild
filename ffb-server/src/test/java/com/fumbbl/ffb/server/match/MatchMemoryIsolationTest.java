@@ -38,7 +38,9 @@ class MatchMemoryIsolationTest {
 	@Test void deploymentHeapPreservesTheDocumentedActivationCeiling() {
 		MatchMemoryBudget budget = new MatchMemoryBudget(768 * MIB);
 		assertEquals(32, budget.residentLimit());
-		assertEquals(544 * MIB / 11, budget.decodedLimit());
+		assertEquals(44 * MIB, budget.decodedLimit());
+		assertEquals(40 * MIB, budget.appendLimit());
+		assertEquals(160 * MIB / 11, new MatchMemoryBudget(256 * MIB).decodedLimit());
 		assertEquals(budget.decodedLimit() - 4 * MIB, budget.appendLimit());
 		assertTrue(budget.admitsResidents(budget.residentBytes(budget.decodedLimit()), budget.decodedLimit()));
 		assertFalse(budget.admitsResidents(480 * MIB, 45 * MIB));
@@ -75,22 +77,11 @@ class MatchMemoryIsolationTest {
 		JsonObject response = application.handle("home", load(fixture.document.matchId));
 		JsonObject view = response.get("state").asObject();
 		int sequence = 0;
-		while (!"SETUP".equals(view.getString("phase", null))) {
-			JsonObject prompt = view.get("prompt").asObject();
-			JsonObject request = load(fixture.document.matchId).set("operation", "choice").set("requestId", "choice-" + sequence++)
-				.add("expectedRevision", view.getInt("revision", -1)).add("promptId", prompt.get("id"))
-				.add("optionId", "coin".equals(prompt.getString("kind", null)) ? "heads" : "receive");
+		for (; sequence < 160 && !"FULL_TIME".equals(view.getString("phase", null)); sequence++) {
+			JsonObject request = fixture.recordedDecision(view, "growth-" + sequence, sequence);
 			response = application.handle(view.getString("actor", null), request);
-			assertEquals("ACCEPTED", response.getString("code", null)); view = response.get("state").asObject();
-		}
-		for (; sequence < 200 && !"FULL_TIME".equals(view.getString("phase", null)); sequence++) {
-			String actor = view.getString("actor", null), player = null;
-			for (JsonValue item : view.get("players").asArray())
-				if (actor.equals(item.asObject().getString("role", null))) { player = item.asObject().getString("id", null); break; }
-			JsonObject request = load(fixture.document.matchId).set("operation", "place").set("requestId", "growth-" + sequence)
-				.add("expectedRevision", view.getInt("revision", -1)).add("playerId", player).add("to", JsonValue.NULL);
-			response = application.handle(actor, request);
-			assertEquals("ACCEPTED", response.getString("code", null)); view = response.get("state").asObject();
+			assertEquals("ACCEPTED", response.getString("code", null), request::toString);
+			view = response.get("state").asObject();
 		}
 		assertTrue(sequence > 10);
 		assertEquals("FULL_TIME", view.getString("phase", null));

@@ -20,8 +20,9 @@ final class RecoveryJournal {
 	Cursor cursor(RecoveryRepository.Record record, SetupSession session) {
 		JsonObject envelope = envelope(record.json, RecoveryArtifactJson.MAX_CHECKPOINT_BYTES);
 		JsonObject payload = envelope.get("payload").asObject();
+		long storedBytes = record.storedCheckpointBytes == 0 ? bytes(record.json) : record.storedCheckpointBytes + record.journalBytes;
 		return new Cursor(counts(payload), signature(payload), record.journalHash == null
-			? envelope.getString("sha256", null) : record.journalHash, record.journalEntries, record.journalBytes, bytes(record.json),
+			? envelope.getString("sha256", null) : record.journalHash, record.journalEntries, record.journalBytes, storedBytes,
 			session == null ? -1 : session.recoveryNativeEpoch());
 	}
 
@@ -62,7 +63,8 @@ final class RecoveryJournal {
 				|| generation - checkpointGeneration != entries.size()) throw new IllegalArgumentException("Journal boundary");
 			JsonObject base = envelope(checkpoint, RecoveryArtifactJson.MAX_CHECKPOINT_BYTES), payload = base.get("payload").asObject();
 			String hash = base.getString("sha256", null);
-			if (entries.isEmpty()) return new RecoveryRepository.Record(id, generation, checkpoint, hash, 0, 0);
+			long checkpointBytes = bytes(checkpoint);
+			if (entries.isEmpty()) return new RecoveryRepository.Record(id, generation, checkpoint, hash, 0, 0, checkpointBytes);
 			// Reassembly owns the parsed payload. Do not retain the entire source string/tree
 			// while allocating its replacement, especially when one Unicode value makes it UTF-16.
 			base = null; checkpoint = null;
@@ -71,10 +73,9 @@ final class RecoveryJournal {
 				journalBytes += bytes(record.json);
 				if (journalBytes > COMPACT_BYTES || record.generation != ++expected || !id.equals(record.matchId))
 					throw new IllegalArgumentException("Journal sequence");
-				JsonObject saved = envelope(record.json, MAX_ENTRY_BYTES), entry = saved.get("payload").asObject();
-				if (entry.size() != 7 || entry.getInt("journalVersion", -1) != 1
-					|| !id.equals(entry.getString("matchId", null)) || entry.getLong("generation", -1) != expected
-					|| !hash.equals(entry.getString("previous", null))
+				JsonObject saved = envelope(record.json, MAX_ENTRY_BYTES);
+				JsonObject entry = entryPayload(saved, id, expected);
+				if (!hash.equals(entry.getString("previous", null))
 					|| !Arrays.equals(counts(payload), counts(entry.get("from").asArray())))
 					throw new IllegalArgumentException("Journal chain");
 				JsonObject tail = entry.get("state").asObject();
@@ -84,8 +85,20 @@ final class RecoveryJournal {
 				hash = saved.getString("sha256", null);
 			}
 			String json = new RecoveryArtifactJson().encodeCanonicalCheckpoint(payload).envelope();
-			return new RecoveryRepository.Record(id, generation, json, hash, entries.size(), journalBytes);
+			return new RecoveryRepository.Record(id, generation, json, hash, entries.size(), journalBytes, checkpointBytes);
 		} catch (RuntimeException corrupt) { throw new MatchService.Failure("RECOVERY_CORRUPT"); }
+	}
+
+	JsonObject readHeadState(String json, String id, long generation) {
+		return entryPayload(envelope(json, MAX_ENTRY_BYTES), id, generation).get("state").asObject();
+	}
+
+	private JsonObject entryPayload(JsonObject envelope, String id, long generation) {
+		JsonObject entry = envelope.get("payload").asObject();
+		if (entry.size() != 7 || entry.getInt("journalVersion", -1) != 1
+			|| !id.equals(entry.getString("matchId", null)) || entry.getLong("generation", -1) != generation)
+			throw new IllegalArgumentException("Invalid journal entry");
+		return entry;
 	}
 
 	private JsonObject combine(JsonObject before, JsonObject tail) {

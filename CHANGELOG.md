@@ -2,9 +2,29 @@
 
 ## Unreleased
 
-- Match-memory recovery pauses now cover coach and observer reconnects after OOM; safety tracking never waits on disk, and server size stops have neutral replay attribution. Size-limit results remain blocked on staged placement and adjustment limits (#556) and kick-off guards (#558).
+- Match-memory recovery pauses now cover coach and observer reconnects after OOM; safety tracking never waits on disk, and server size stops have neutral replay attribution.
 
 - End size-limited matches at their current score with a recorded result, evict cold checkpointed engines according to actual history size while preserving the 32-slot ceiling, and briefly pause automatic reloads only after confirmed heap exhaustion.
+
+- Park computer coaches while they wait for a human turn, wake them on match changes, and release their engine after 30 idle minutes. Active computer matches expire after one hour waiting for a human decision. Mutually saved matches keep their 30-day retention and release their computer slot until resume.
+
+- Open match tabs show when the server timer abandons a match and disable play on that match.
+
+- Repair stale or missing GitHub App CLI credentials from the token cache and retry interrupted token refreshes.
+
+- Show opposing threat markings for the inspected Charge player after the server accepts their selection.
+
+- Prepare Firebase deploy authentication for repository renames using immutable GitHub IDs. Add an authentication-only check for production and preserve historical links on the Development page.
+
+- Broadcast setup and kick-off adjustments live and save the final formation at confirmation. Coaches and spectators see participants highlighted as they are selected or deselected for Solid Defence, Quick Snap and Charge. After reconnect, clients ignore delayed adjustments that no longer fit the current stage. Both coaches can still propose a save while adjustments are pending. Setup allows 100 adjustments per stage and kick-off events allow 50. Live recovery now requires checkpoint version 7 (r5.4). Older checkpoints return `RECOVERY_UNSUPPORTED`.
+
+- Animate touchdowns, turnovers, turn starts, all 11 kickoff results, weather, half-time, and the end of a match, including concessions. Touchdown splashes name the scorer. Touchdown, half-time, and final splashes show both teams' scores side by side.
+
+- Keep the pitch dimmed between consecutive splashes. Turnovers last two seconds at normal speed, and splash timings scale with replay speed. Game Settings lets you choose which splashes to show or keep them visible until dismissed. Reduced motion replaces the larger movements with fades.
+
+- Clear consumed reroll dialogs for native callers and engine harnesses without configured skill preferences, including the stale Bone Head choice reproduced by the seeded harness. Configured browser sessions already received this cleanup.
+
+- Limit each kick-off selection or placement stage to 50 adjustments for every coach; reject extra edits without ending the event, preserve confirmation after reverting an illegal final formation, and let the computer coach finish Solid Defence and Charge without retained plans. Offer Solid Defence placements and swaps only for selected players, including during interrupted stages. End runaway turns with match-specific diagnostics.
 
 - Reject checkpoint diagnostics with missing fixture files and accept the zero-decision baseline regardless of fixture order.
 

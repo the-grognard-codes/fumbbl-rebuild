@@ -47,9 +47,11 @@ public final class BrowserV2Runtime {
 		SavedTeamService teams = new SavedTeamService(new JdbcSavedTeamRepository(connections::open, true), catalog);
 		MatchMemoryBudget memoryBudget = new MatchMemoryBudget();
 		MatchService matches = new MatchService(new JdbcMatchRepository(connections::open, memoryBudget), teams, catalog);
-		// New activations use r4.1 checkpoints. Existing r2.2/r2.3 checkpoints restore under their recorded runtime.
-		SetupApplication setup = new SetupApplication(server, matches, new JdbcRecoveryRepository(connections::open, true, memoryBudget),
-			true, clock, true, memoryBudget, server.getMatchSafety());
+		// Live recovery uses staged-placement checkpoints and schema v10 computer scheduling.
+		JdbcRecoveryRepository recovery = new JdbcRecoveryRepository(connections::open, true, true,
+			memoryBudget, server.getMatchSafety());
+		SetupApplication setup = new SetupApplication(server, matches, recovery, true, clock, true,
+			memoryBudget, server.getMatchSafety());
 		setup.configureStorageAdmission(connections::requireAvailable);
 		SkillUsePreferenceService skillUsePreferences = new SkillUsePreferenceService(
 			new JdbcSkillUsePreferenceRepository(connections::open), new JdbcMatchMembershipRepository(connections::open));
@@ -67,7 +69,7 @@ public final class BrowserV2Runtime {
 			computerTokenHash = System.getenv("FFB_COMPUTER_SERVICE_TOKEN_SHA256");
 		ComputerOpponentService computers = new ComputerOpponentService(computerTokenHash);
 		BrowserV2Adapter adapter = new BrowserV2Adapter(verifier, access,
-			setup, matches, new V2PreparationService(connections::open, teams, catalog, clock, computers),
+			setup, matches, new V2PreparationService(connections::open, teams, catalog, clock, computers, recovery),
 			new BrowserSavedTeamJson(teams, true), computers);
 		adapter.configureSkillUsePreferences(skillUsePreferences);
 		adapter.configureDiagnostics(policy.diagnosticsAllowed());

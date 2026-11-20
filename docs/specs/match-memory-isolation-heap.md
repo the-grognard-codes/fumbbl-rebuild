@@ -90,14 +90,24 @@ The same policy instance is injected into the application and both repositories.
 ```text
 available = heap * 3/4                       # reserve 1/4 for shared services
 baseline = 32 * 1 MiB
-perMatchDecoded = min(64 MiB, (available - baseline) / 11)
+perMatchDecoded = min(44 MiB, (available - baseline) / 11)
 appendThreshold = perMatchDecoded - min(4 MiB, perMatchDecoded / 8)
 residentCharge(bytes) = max(1 MiB, 4 * bytes)
 sharedWorkingAllowance = 7 * largest admitted decoded history
 admit = sum(all resident charges, including incoming) + sharedWorkingAllowance <= available
 ```
 
-At `-Xmx768m`, these give **49.45 MiB decoded** and **45.45 MiB at append**.
+At `-Xmx768m`, the post-placement policy allows **44 MiB decoded** and
+**40 MiB at append**. The largest reported completed recovery envelope after
+#574 was 32,550,261 bytes (31.04 MiB) with mocked communications. The 40 MiB
+threshold leaves 8.96 MiB of observed headroom and reserves another 4 MiB for
+terminal growth. The decoded limit applies both to the sum of the stored
+checkpoint and journal and to the reconstructed envelope. If another journal
+entry would exceed the decoded limit, the write compacts into a full checkpoint.
+The bounded native-capture sample reached 16,187,741 bytes at full time. The
+authenticated sample stopped before full time. These measurements guide the
+limits pending the concurrent soak. See
+[staged-placement measurements](staged-placements-outcome.md).
 The serial worker reserves one shared workspace, rather than one per match or
 checkpoint. Stable/shrinking checkpoints reuse admission; only growth or a cold
 load needs readmission. Before decoding a stored record, durable terminal/idle
@@ -114,9 +124,9 @@ Both factors include native state and history; the working allowance additionall
 covers parsing, serialization and storage buffers. Actual heap use remains
 sensitive to history shape and other shared services.
 
-Normal completed artifacts reported in #554 were 23-28 MB. The append
-threshold is about 47.7 MB, roughly 1.7 times the reported upper normal size. Real eleven-player
-out-and-back setup decisions produced the following probes under `-Xmx768m`:
+Before staged placements, normal completed artifacts reported in #554 were
+23-28 MB and the policy used 49.45 MiB decoded and 45.45 MiB at append.
+Eleven-player out-and-back setup decisions produced the following historical probes under `-Xmx768m`:
 
 | Final Unicode workload | Recovery bytes | Result |
 | --- | ---: | --- |
@@ -149,10 +159,8 @@ still took about 9.8 seconds. Serialization latency remains #548.
 
 ## Snapshot decision and compatibility
 
-Keep existing full snapshots and all recovery/transcript versions readable
-within the admission budget. No format is retired or rewritten, and recovery
-never reruns game commands. Removing full snapshots for ordinary actions is an
-explicit handoff to [#548](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/548).
-Staged setup/kick-off placements remain
-[#556](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/556), following
-the decision in #555. Neither is required for the immediate isolation guard.
+Staged setup and kick-off placements (#574) require live checkpoint version 7.
+The memory policy preserves that format and the completed result and transcript
+formats. Recovery assembles the stored history without rerunning commands.
+Removing full snapshots for ordinary actions remains
+[#548](https://github.com/the-grognard-codes/moles-under-the-pitch/issues/548).

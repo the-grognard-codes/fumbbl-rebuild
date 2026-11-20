@@ -37,10 +37,38 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.startsWith;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 class V2PreparationServiceTest {
+	@Test void legacyClassificationRuntimeFailureKeepsRegistrationAvailableAndRetriesLater() throws Exception {
+		String matchId = "00000000-0000-0000-0000-000000000021";
+		Connection connection = mock(Connection.class);
+		PreparedStatement snapshot = mock(PreparedStatement.class);
+		ResultSet rows = mock(ResultSet.class);
+		when(connection.prepareStatement(startsWith("SELECT p.match_id"))).thenReturn(snapshot);
+		when(snapshot.executeQuery()).thenReturn(rows);
+		when(rows.next()).thenReturn(true, false, true, false, true, false);
+		when(rows.getString(1)).thenReturn(matchId);
+		when(rows.getString(2)).thenReturn("away");
+		when(rows.getLong(4)).thenReturn(1L);
+		when(rows.wasNull()).thenReturn(true);
+		String documentQuery = "SELECT document_json FROM ffb_prepared_matches WHERE match_id=? AND document_version=3";
+		when(connection.prepareStatement(documentQuery)).thenThrow(new IllegalStateException("Injected classification failure"),
+			new MatchService.Failure("SNAPSHOT_UNSUPPORTED"));
+		Clock clock = mock(Clock.class);
+		when(clock.millis()).thenReturn(1_000L, 2_000L, 301_000L);
+		V2PreparationService service = new V2PreparationService(() -> connection, null, null, clock);
+
+		V2PreparationService.ComputerInventory available = new V2PreparationService.ComputerInventory(List.of(matchId), false);
+		assertEquals(available, service.activeComputerMatches());
+		assertEquals(available, service.activeComputerMatches());
+		verify(connection).prepareStatement(documentQuery);
+		assertEquals(available, service.activeComputerMatches());
+		verify(connection, times(2)).prepareStatement(documentQuery);
+	}
+
 	@Test void definiteAdmissionRefusalsStayDistinctFromCleanupUncertaintyForEveryPreparationEntry() {
 		String account = "00000000-0000-0000-0000-000000000001", match = "00000000-0000-0000-0000-000000000002";
 		for (SQLException failure : new SQLException[] {new JdbcConnections.NotStarted(), new JdbcConnections.CommitNotStarted(),
@@ -154,6 +182,32 @@ class V2PreparationServiceTest {
 		assertEquals("Bugman's Best", document.get("away").asObject().getString("teamName", null));
 	}
 
+	@Test void rejectsAComputerMatchWithTheSameFrozenCloneIdentityInBothSeats() throws Exception {
+		Connection connection = connection(false);
+		RosterCatalog catalog = new RosterCatalog();
+		String account = "00000000-0000-0000-0000-000000000001";
+		String requestId = "ambiguous-clone";
+		String matchId = UUID.nameUUIDFromBytes(("v2-prepared-match\n" + account + "\n" + requestId)
+			.getBytes(StandardCharsets.UTF_8)).toString();
+		String cloneId = new ComputerOpponentService(null).cloneTeamId(matchId);
+		MemoryTeams repository = new MemoryTeams();
+		SavedTeamService teams = new SavedTeamService(repository, catalog);
+		String seed = teams.create(account, "seed", namedDraft(catalog)).document.teamId;
+		SavedTeamRepository.Record source = repository.find(account, seed);
+		JsonObject imported = JsonObject.readFrom(source.json).set("teamId", cloneId);
+		imported.get("draft").asObject().set("teamName", ComputerOpponentService.BUGMAN_TEAM_NAME);
+		repository.insert(new SavedTeamRepository.Record(cloneId, account, 1, source.catalogVersion, imported.toString()));
+		V2PreparationService service = new V2PreparationService(() -> connection, teams, catalog, Clock.systemUTC());
+		JsonObject request = new JsonObject().add("version", 1).add("type", "preparedMatch")
+			.add("operation", "createComputer").add("requestId", requestId)
+			.add("teamId", cloneId).add("expectedDocumentVersion", 1)
+			.add("computerId", ComputerOpponentService.BUGMAN_ID)
+			.add("computerTeamId", seed).add("expectedComputerDocumentVersion", 1);
+
+		assertEquals("INCOMPATIBLE_TEAM", service.handle(account, request).getString("code", null));
+		verify(connection, never()).prepareStatement(startsWith("INSERT INTO ffb_prepared_matches"));
+	}
+
 	@Test void completedCompressedComputerMatchRemainsAuthorizedAndLeavesActiveJobQueue() throws Exception {
 		RosterCatalog catalog = new RosterCatalog();
 		String matchId = "00000000-0000-0000-0000-000000000021";
@@ -192,8 +246,9 @@ class V2PreparationServiceTest {
 			String sql = call.getArgument(0);
 			PreparedStatement query = mock(PreparedStatement.class);
 			ResultSet rows = mock(ResultSet.class);
-			if (sql.startsWith("SELECT 1 FROM ffb_v2_match_members")) {
+			if (sql.startsWith("SELECT role FROM ffb_v2_match_members")) {
 				when(rows.next()).thenReturn(true);
+				when(rows.getString(1)).thenReturn("away");
 			} else if (sql.startsWith("SELECT document_version,document_json FROM ffb_prepared_matches")) {
 				documentReads.incrementAndGet();
 				when(rows.next()).thenReturn(true); when(rows.getInt(1)).thenReturn(4); when(rows.getString(2)).thenReturn(storedDocument);
@@ -203,12 +258,14 @@ class V2PreparationServiceTest {
 		});
 		V2PreparationService service = new V2PreparationService(() -> connection, null, catalog, Clock.systemUTC(), computers);
 		assertTrue(service.isComputerMatch(matchId));
-		assertTrue(service.activeComputerMatches().isEmpty(), "a completed match is no longer an active computer job");
+		assertEquals(new V2PreparationService.ComputerInventory(List.of(), false), service.activeComputerMatches(),
+			"a completed match is no longer an active computer job");
 		assertEquals(1, documentReads.get(), "historical completed rows must be filtered before document decode");
-		verify(connection).prepareStatement(eq("SELECT p.match_id FROM ffb_prepared_matches p "
-			+ "JOIN ffb_v2_match_members away ON away.matchid=p.match_id AND away.account_id=? AND away.role='away' "
-			+ "JOIN ffb_v2_match_members home ON home.matchid=p.match_id AND home.role='home' "
-			+ "WHERE p.document_version=3 ORDER BY p.match_id"));
+		verify(connection).prepareStatement(eq("SELECT p.match_id,computer.role,r.computer_work_until_epoch_ms,r.generation FROM ffb_prepared_matches p "
+			+ "JOIN ffb_v2_match_members computer ON computer.matchid=p.match_id AND computer.account_id=? "
+			+ "JOIN ffb_v2_match_members opponent ON opponent.matchid=p.match_id AND opponent.role<>computer.role "
+			+ "JOIN ffb_match_recovery r ON r.matchid=p.match_id "
+			+ "WHERE p.document_version=3 AND (r.computer_work_until_epoch_ms>? OR r.computer_work_until_epoch_ms IS NULL) ORDER BY p.match_id"));
 	}
 
 	@Test void randomCoachKeepsStoredMembershipAndCloneIdentifiers() {

@@ -7,6 +7,8 @@ import com.fumbbl.ffb.FieldCoordinate;
 import com.fumbbl.ffb.PlayerAction;
 import com.fumbbl.ffb.PlayerState;
 import com.fumbbl.ffb.TurnMode;
+import com.fumbbl.ffb.Weather;
+import com.fumbbl.ffb.kickoff.bb2025.KickoffResult;
 import com.fumbbl.ffb.mechanics.PassResult;
 import com.fumbbl.ffb.model.Game;
 import com.fumbbl.ffb.model.Player;
@@ -33,6 +35,7 @@ import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class MatchAnnouncementPresentationTest {
@@ -40,10 +43,10 @@ class MatchAnnouncementPresentationTest {
         SetupSessionMovementTest.Fixture fixture = fixture();
         JsonObject ready = fixture.advanceToTurn();
         List<JsonObject> initial = allEvents(fixture.session);
-        assertEquals(1, initial.size(), initial.toString());
-        assertEquals("turnStart", initial.getFirst().getString("kind", null));
+        assertEquals(List.of("weather", "kickoff", "turnStart"), initial.stream().map(e -> e.getString("kind", null)).toList());
+        assertEquals("turnStart", initial.getLast().getString("kind", null));
         Game game = state(fixture.session).getGame();
-        assertEquals(game.getTurnData().getTurnNr(), initial.getFirst().getInt("turn", -1));
+        assertEquals(game.getTurnData().getTurnNr(), initial.getLast().getInt("turn", -1));
         SetupSession recovered = new SetupSession(fixture.server, fixture.document, fixture.session.recoveryArtifact());
         int from = ready.getInt("revision", -1) + 1;
         JsonObject request = fixture.request("action", "finish-turn", ready).add("actionId", action(ready, "endTurn").get("id"));
@@ -172,7 +175,7 @@ class MatchAnnouncementPresentationTest {
         restored.end(game, null, true);
         JsonObject quiet = new JsonObject().add("commandNr", 43);
         restored.decorate(List.of(quiet));
-        assertTrue(events(new JsonArray().add(quiet)).isEmpty());
+        assertEquals("halfTime", events(new JsonArray().add(quiet)).getFirst().getString("kind", null));
     }
 
     @Test void rerolledPickupSuccessAndDeclinedPickupFailureRemainDistinctAcrossRecovery() throws Exception {
@@ -254,11 +257,183 @@ class MatchAnnouncementPresentationTest {
         JsonObject finalTurn = new JsonObject().add("commandNr", 2);
         presentation.decorate(List.of(finalTurn));
         List<JsonObject> events = events(new JsonArray().add(finalTurn));
-        assertEquals(1, events.size());
+        assertEquals(2, events.size());
+        assertEquals("halfTime", events.getLast().getString("kind", null));
         assertEquals("turnover", events.getFirst().getString("kind", null));
         assertEquals("A rules-triggered turnover ended the turn.", events.getFirst().getString("reason", null));
     }
 
+    @Test void everyKickoffWaitsForPlayableTurnAndSurvivesRecovery() throws Exception {
+        SetupSessionMovementTest.Fixture fixture = fixture();
+        fixture.advanceToTurn();
+        Game game = state(fixture.session).getGame();
+        JsonArray contracts = new JsonArray();
+        for (KickoffResult result : KickoffResult.values()) {
+            MatchAnnouncementPresentation presentation = new MatchAnnouncementPresentation();
+            game.setTurnMode(TurnMode.KICKOFF);
+            presentation.kickoff(game, result);
+            game.getFieldModel().setWeather(Weather.POURING_RAIN);
+            if (result == KickoffResult.WEATHER_CHANGE) presentation.weather(game);
+            for (TurnMode mode : new TurnMode[] {TurnMode.SETUP, TurnMode.KICKOFF, TurnMode.QUICK_SNAP, TurnMode.BLITZ}) {
+                game.setTurnMode(mode);
+                presentation.playable(game);
+                JsonObject quiet = new JsonObject().add("commandNr", 1);
+                presentation.decorate(List.of(quiet));
+                assertTrue(events(new JsonArray().add(quiet)).isEmpty());
+            }
+            MatchAnnouncementPresentation recovered = new MatchAnnouncementPresentation();
+            recovered.restore(JsonObject.readFrom(presentation.checkpoint().toString()));
+            game.setTurnMode(TurnMode.REGULAR);
+            recovered.playable(game);
+            recovered.playable(game);
+            JsonObject sync = new JsonObject().add("commandNr", 2);
+            recovered.decorate(List.of(sync));
+            List<JsonObject> actual = events(new JsonArray().add(sync));
+            assertEquals(result == KickoffResult.WEATHER_CHANGE
+                ? List.of("kickoff", "weather", "turnStart") : List.of("kickoff", "turnStart"),
+                actual.stream().map(e -> e.getString("kind", null)).toList());
+            assertEquals(result.getName(), actual.getFirst().getString("headline", null));
+            assertEquals(result.getDescription(), actual.getFirst().getString("reason", null));
+            contracts.add(actual.getFirst());
+        }
+        MatchAnnouncementPresentation presentation = new MatchAnnouncementPresentation();
+        for (Weather weather : Weather.values()) {
+            game.getFieldModel().setWeather(weather);
+            presentation.weather(game);
+            presentation.weather(game);
+            JsonObject sync = new JsonObject().add("commandNr", 3);
+            presentation.decorate(List.of(sync));
+            List<JsonObject> actual = events(new JsonArray().add(sync));
+            if (weather == Weather.INTRO) assertTrue(actual.isEmpty());
+            else {
+                assertEquals(1, actual.size());
+                assertEquals(weather.getName(), actual.getFirst().getString("headline", null));
+                contracts.add(actual.getFirst());
+            }
+        }
+        Files.writeString(Path.of("target/match-splash-events.json"), contracts.toString());
+        Path browserFixture = Path.of("../browser-client/test/fixtures/match-splash-events.json");
+        assertEquals(contracts, JsonArray.readFrom(Files.readString(browserFixture)),
+            "Refresh the committed browser fixture from ffb-server/target/match-splash-events.json");
+    }
+
+    @Test void kickoffAttributionUsesTheKickingAndReceivingSides() throws Exception {
+        for (KickoffResult result : List.of(KickoffResult.QUICK_SNAP, KickoffResult.HIGH_KICK, KickoffResult.CHARGE)) {
+            List<String> kickers = new ArrayList<>();
+            for (String receiveOption : List.of("receive", "kick")) {
+                SetupSessionMovementTest.Fixture fixture = fixture();
+                GameState engine = state(fixture.session);
+                int firstDie = result == KickoffResult.HIGH_KICK ? 2 : 4;
+                int secondDie = result == KickoffResult.CHARGE ? 6 : result == KickoffResult.QUICK_SNAP ? 5 : 3;
+                JsonObject turn = fixture.advanceToTurn(receiveOption, view -> {
+                    JsonArray actions = view.get("actions").asArray();
+                    JsonObject first = actions.get(0).asObject();
+                    if ("kickoff".equals(first.getString("kind", null))) {
+                        String kicker = first.getString("actor", null);
+                        kickers.add(kicker);
+                        String target = "home".equals(kicker) ? ":kick-19-7" : ":kick-6-7";
+                        forceGeneral(engine, 1, 1, firstDie, secondDie, 1);
+                        for (JsonValue offered : actions) {
+                            JsonObject candidate = offered.asObject();
+                            if (candidate.getString("id", "").endsWith(target)) return candidate;
+                        }
+                        throw new AssertionError("Missing kickoff target " + target);
+                    }
+                    for (JsonValue offered : actions) {
+                        JsonObject candidate = offered.asObject();
+                        String id = candidate.getString("id", "");
+                        if (id.endsWith(":decline-event") || id.endsWith(":end-event")) return candidate;
+                    }
+                    return first;
+                });
+                JsonObject kickoff = allEvents(fixture.session).stream().filter(event -> "kickoff".equals(event.getString("kind", null)))
+                    .findFirst().orElseThrow();
+                assertEquals(result.name(), kickoff.getString("code", null));
+                String kicking = kickers.getLast();
+                String receiving = "home".equals(kicking) ? "away" : "home";
+                assertEquals(receiving, turn.getString("actor", null));
+                assertEquals(result == KickoffResult.CHARGE ? kicking : receiving, kickoff.getString("team", null), result.name());
+                assertTrue(kickoff.getBoolean("teamSpecific", false));
+            }
+            assertEquals(List.of("away", "home"), kickers.stream().sorted().toList());
+        }
+    }
+
+    @Test void unchangedKickoffWeatherStillCarriesTheEngineLabel() throws Exception {
+        SetupSessionMovementTest.Fixture fixture = fixture();
+        fixture.advanceToTurn();
+        Game game = state(fixture.session).getGame();
+        MatchAnnouncementPresentation presentation = new MatchAnnouncementPresentation();
+        game.getFieldModel().setWeather(Weather.NICE);
+        presentation.weather(game);
+        presentation.recorded();
+        game.setTurnMode(TurnMode.KICKOFF);
+        presentation.kickoff(game, KickoffResult.WEATHER_CHANGE);
+        presentation.weather(game);
+        game.setTurnMode(TurnMode.REGULAR);
+        presentation.playable(game);
+        JsonObject sync = new JsonObject().add("commandNr", 1);
+        presentation.decorate(List.of(sync));
+        List<JsonObject> facts = events(new JsonArray().add(sync));
+        assertEquals(List.of("kickoff", "turnStart"), facts.stream().map(e -> e.getString("kind", null)).toList());
+        assertEquals(Weather.NICE.getName(), facts.getFirst().get("weather").asObject().getString("headline", null));
+    }
+
+    @Test void restoresAFullMatchCheckpointWithLegacyAnnouncementFields() throws Exception {
+        SetupSessionMovementTest.Fixture fixture = fixture();
+        fixture.advanceToTurn();
+        JsonObject payload = fixture.session.orderedRecoveryPayload();
+        JsonObject announcements = payload.get("matchAnnouncements").asObject();
+        JsonValue lastTurn = announcements.get("lastTurn");
+        announcements.remove("lastWeather").remove("pendingKickoff").remove("deferredWeather");
+        String artifact = new RecoveryArtifactJson().encodeCheckpoint(payload).envelope();
+
+        SetupSession restored = new SetupSession(fixture.server, fixture.document, artifact);
+        assertEquals(fixture.session.revision(), restored.revision());
+        JsonObject currentAnnouncements = restored.orderedRecoveryPayload().get("matchAnnouncements").asObject();
+        assertEquals(lastTurn, currentAnnouncements.get("lastTurn"));
+        assertEquals(JsonValue.NULL, currentAnnouncements.get("lastWeather"));
+        assertEquals(JsonValue.NULL, currentAnnouncements.get("pendingKickoff"));
+        assertEquals(JsonValue.NULL, currentAnnouncements.get("deferredWeather"));
+    }
+
+    @Test void rejectsCheckpointsMissingRequiredFields() {
+        MatchAnnouncementPresentation presentation = new MatchAnnouncementPresentation();
+        JsonObject incomplete = presentation.checkpoint().remove("lastWeather");
+        assertThrows(IllegalArgumentException.class, () -> presentation.restore(incomplete));
+        JsonObject malformed = presentation.checkpoint().remove("lastWeather").add("wrongField", JsonValue.NULL);
+        assertThrows(IllegalArgumentException.class, () -> presentation.restore(malformed));
+    }
+
+    @Test void halfEndingTouchdownPrecedesHalfTimeAndConcessionIsLast() throws Exception {
+        SetupSessionMovementTest.Fixture fixture = fixture();
+        fixture.advanceToTurn();
+        Game game = state(fixture.session).getGame();
+        MatchAnnouncementPresentation presentation = new MatchAnnouncementPresentation();
+        game.setHalf(1);
+        presentation.end(game, game.getTeamHome().getPlayers()[0], true);
+        JsonObject sync = new JsonObject().add("commandNr", 4);
+        presentation.decorate(List.of(sync));
+        assertEquals(List.of("touchdown", "halfTime"), events(new JsonArray().add(sync)).stream().map(e -> e.getString("kind", null)).toList());
+        game.setHalf(2);
+        presentation.end(game, game.getTeamAway().getPlayers()[0], true);
+        game.getGameResult().getTeamResultHome().setConceded(true);
+        presentation.finished(game);
+        JsonObject end = new JsonObject().add("commandNr", 5);
+        presentation.decorate(List.of(end));
+        List<JsonObject> actual = events(new JsonArray().add(end));
+        assertEquals(List.of("touchdown", "fullTime"), actual.stream().map(e -> e.getString("kind", null)).toList());
+        assertEquals("MATCH CONCEDED", actual.getLast().getString("headline", null));
+        assertEquals("away", actual.getLast().getString("team", null));
+        Player<?> scorer = game.getTeamAway().getPlayers()[0];
+        assertEquals(new JsonObject().add("name", scorer.getName()).add("number", scorer.getNr()), actual.getFirst().get("scorer"));
+
+        game.getGameResult().getTeamResultHome().setConceded(false);
+        presentation.finished(game);
+        JsonObject finish = new JsonObject().add("commandNr", 6);
+        presentation.decorate(List.of(finish));
+        assertEquals("END OF MATCH", events(new JsonArray().add(finish)).getFirst().getString("headline", null));
+    }
     private void forceGeneral(GameState state, int... values) {
         List<DiceCategory> dice = new ArrayList<>();
         for (int value : values) {

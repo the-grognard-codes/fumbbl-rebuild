@@ -33,11 +33,15 @@ A coach's view of the pitch from their own end toward the opposing half. Opposin
 **Top-down view**:
 A view of the pitch directly from above, used to inspect crowded positions while retaining the same square and player identities.
 
+**Staged placement**:
+A player position change during setup or a kick-off event that every viewer sees live, but that is not recorded until the coach confirms the stage. Recovery and replay ignore it.
+_Avoid_: Provisional move (which names client-side movement forecasts)
+
 **Match checkpoint**:
-The durable state from which an unfinished match can resume at its last accepted decision.
+The durable state from which an unfinished match can resume at its last accepted decision. Staged placements are not part of it.
 
 **Match transcript**:
-The ordered, durable record of accepted decisions, revealed outcomes, board checkpoints, and chat for one match.
+The ordered, durable record of accepted decisions, revealed outcomes, board checkpoints, and chat for one match. A confirmed setup or kick-off event appears as its final positions.
 
 **Match replay**:
 A read-only view reconstructed from stored transcript records and board checkpoints after a match finishes.

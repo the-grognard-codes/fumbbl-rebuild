@@ -29,7 +29,18 @@ public class SetupMechanic extends com.fumbbl.ffb.server.mechanic.SetupMechanic 
 
 	@Override
 	public boolean checkSetup(GameState pGameState, boolean pHomeTeam, int additionalSwarmers) {
-		if (pGameState == null) {
+		List<String> errors = setupErrors(pGameState, pHomeTeam, additionalSwarmers);
+		if (errors.isEmpty()) return true;
+		Game game = pGameState.getGame();
+		Team team = pHomeTeam ? game.getTeamHome() : game.getTeamAway();
+		UtilServerDialog.showDialog(pGameState,
+			new DialogSetupErrorParameter(team.getId(), errors.toArray(new String[0])), false);
+		return false;
+	}
+
+	@Override
+	public List<String> setupErrors(GameState gameState, boolean homeTeam, int additionalSwarmers) {
+		if (gameState == null) {
 			throw new IllegalArgumentException("Parameter gameState must not be null.");
 		}
 		int swarmersOnField = 0;
@@ -38,9 +49,9 @@ public class SetupMechanic extends com.fumbbl.ffb.server.mechanic.SetupMechanic 
 		int playersInLowerWideZone = 0;
 		int playersOnLos = 0;
 		int availablePlayers = 0;
-		Game game = pGameState.getGame();
+		Game game = gameState.getGame();
 		List<String> messageList = new ArrayList<>();
-		Team team = pHomeTeam ? game.getTeamHome() : game.getTeamAway();
+		Team team = homeTeam ? game.getTeamHome() : game.getTeamAway();
 		boolean mustFieldCaptain = false;
 		for (Player<?> player : team.getPlayers()) {
 			PlayerState playerState = game.getFieldModel().getPlayerState(player);
@@ -49,24 +60,24 @@ public class SetupMechanic extends com.fumbbl.ffb.server.mechanic.SetupMechanic 
 				availablePlayers++;
 			}
 			FieldCoordinate playerCoordinate = game.getFieldModel().getPlayerCoordinate(player);
-			if ((pHomeTeam && FieldCoordinateBounds.HALF_HOME.isInBounds(playerCoordinate))
-					|| (!pHomeTeam && FieldCoordinateBounds.HALF_AWAY.isInBounds(playerCoordinate))) {
+			if ((homeTeam && FieldCoordinateBounds.HALF_HOME.isInBounds(playerCoordinate))
+					|| (!homeTeam && FieldCoordinateBounds.HALF_AWAY.isInBounds(playerCoordinate))) {
 				if (player.getPosition().getKeywords().contains(Keyword.LINEMAN)) {
 					swarmersOnField++;
 				} else {
 					playersOnField++;
 				}
 			}
-			if ((pHomeTeam && FieldCoordinateBounds.UPPER_WIDE_ZONE_HOME.isInBounds(playerCoordinate))
-					|| (!pHomeTeam && FieldCoordinateBounds.UPPER_WIDE_ZONE_AWAY.isInBounds(playerCoordinate))) {
+			if ((homeTeam && FieldCoordinateBounds.UPPER_WIDE_ZONE_HOME.isInBounds(playerCoordinate))
+					|| (!homeTeam && FieldCoordinateBounds.UPPER_WIDE_ZONE_AWAY.isInBounds(playerCoordinate))) {
 				playersInUpperWideZone++;
 			}
-			if ((pHomeTeam && FieldCoordinateBounds.LOWER_WIDE_ZONE_HOME.isInBounds(playerCoordinate))
-					|| (!pHomeTeam && FieldCoordinateBounds.LOWER_WIDE_ZONE_AWAY.isInBounds(playerCoordinate))) {
+			if ((homeTeam && FieldCoordinateBounds.LOWER_WIDE_ZONE_HOME.isInBounds(playerCoordinate))
+					|| (!homeTeam && FieldCoordinateBounds.LOWER_WIDE_ZONE_AWAY.isInBounds(playerCoordinate))) {
 				playersInLowerWideZone++;
 			}
-			if ((pHomeTeam && FieldCoordinateBounds.LOS_HOME.isInBounds(playerCoordinate))
-					|| (!pHomeTeam && FieldCoordinateBounds.LOS_AWAY.isInBounds(playerCoordinate))) {
+			if ((homeTeam && FieldCoordinateBounds.LOS_HOME.isInBounds(playerCoordinate))
+					|| (!homeTeam && FieldCoordinateBounds.LOS_AWAY.isInBounds(playerCoordinate))) {
 				playersOnLos++;
 			}
 
@@ -117,13 +128,7 @@ public class SetupMechanic extends com.fumbbl.ffb.server.mechanic.SetupMechanic 
 			messageList.add("Your Team Captain is in reserves.");
 		}
 
-		if (!messageList.isEmpty()) {
-			UtilServerDialog.showDialog(pGameState,
-					new DialogSetupErrorParameter(team.getId(), messageList.toArray(new String[0])), false);
-			return false;
-		} else {
-			return true;
-		}
+		return messageList;
 	}
 
 	@Override

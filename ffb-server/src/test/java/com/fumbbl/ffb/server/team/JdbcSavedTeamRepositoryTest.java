@@ -91,7 +91,7 @@ class JdbcSavedTeamRepositoryTest {
 	}
 	@Test
 	void accountCreatesAndUpdatesSupportNamedTeamSkillPreferenceAndJournalSchemas() throws Exception {
-		for (int version : new int[] { 7, 8, 9 }) {
+		for (int version : new int[] { 7, 8, 9, 10 }) {
 			for (boolean insert : new boolean[] { true, false }) {
 				setup(); repository = new JdbcSavedTeamRepository(() -> connection, true);
 				ResultSet rows = mock(ResultSet.class); when(statement.executeQuery()).thenReturn(rows);
@@ -107,7 +107,7 @@ class JdbcSavedTeamRepositoryTest {
 		for (boolean accounts : new boolean[] { true, false }) {
 			setup(); repository = new JdbcSavedTeamRepository(() -> connection, accounts);
 			ResultSet rows = mock(ResultSet.class); when(statement.executeQuery()).thenReturn(rows);
-			when(rows.next()).thenReturn(true); when(rows.getInt(1)).thenReturn(accounts ? 10 : 9);
+			when(rows.next()).thenReturn(true); when(rows.getInt(1)).thenReturn(accounts ? 11 : 10);
 			assertThrows(SQLException.class, () -> repository.insert(record));
 			verify(statement, never()).executeUpdate(); verify(connection).rollback();
 		}

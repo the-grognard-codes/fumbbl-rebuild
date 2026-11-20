@@ -42,6 +42,37 @@ class JdbcRecoveryRepositoryTest {
 			verify(codec, never()).decode(anyString());
 		}
 	}
+	@Test void legacyComputerBackfillRefusesOversizedCheckpointsAndJournalHeadsBeforeDecode() throws Exception {
+		MatchMemoryBudget budget = new MatchMemoryBudget(64L * 1024 * 1024);
+		JdbcRecoveryRepository bounded = new JdbcRecoveryRepository(() -> connection, true, true, budget,
+			new MatchSafetyJournal(MatchSafetyJournal.Tracking.DISABLED));
+		String oversized = new JsonObject().add("$codec", "ffb-match-gzip-json").add("version", 1)
+			.add("decodedBytes", budget.decodedLimit() + 1).add("payload", "invalid-base64!").toString();
+		ResultSet rows = mock(ResultSet.class);
+		when(statement.executeQuery()).thenReturn(rows);
+		when(rows.next()).thenReturn(true);
+		when(rows.getLong(1)).thenReturn(1L, 2L);
+		when(rows.getLong(2)).thenReturn(1L);
+		when(rows.getString(3)).thenReturn(oversized);
+
+		for (int generation : new int[] {1, 2}) {
+			assertEquals("MATCH_SIZE_LIMIT",
+				assertThrows(MatchService.Failure.class, () -> bounded.readLegacyComputerWork("match")).code,
+				"generation " + generation);
+		}
+	}
+
+	@Test void legacyComputerBackfillSkipsQuarantinedMatchesBeforeReadingStorage() throws Exception {
+		MatchSafetyJournal safety = mock(MatchSafetyJournal.class);
+		doThrow(new MatchService.Failure("MATCH_QUARANTINED")).when(safety).requireAutomaticAvailable("match");
+		JdbcRecoveryRepository bounded = new JdbcRecoveryRepository(() -> connection, true, true, new MatchMemoryBudget(), safety);
+
+		assertEquals("MATCH_QUARANTINED",
+			assertThrows(MatchService.Failure.class, () -> bounded.readLegacyComputerWork("match")).code);
+		verify(connection, never()).prepareStatement(anyString());
+		verify(statement, never()).executeQuery();
+	}
+
 	@Test void refusedCommitRemainsDefiniteBeforeAnyCommitIo() throws Exception {
 		when(statement.executeUpdate()).thenReturn(1);
 		doThrow(new com.fumbbl.ffb.server.db.JdbcConnections.CommitNotStarted()).when(connection).commit();
@@ -135,7 +166,7 @@ class JdbcRecoveryRepositoryTest {
 	}
 
 	@Test void initialCheckpointsRejectUnsupportedSchemasBeforeWriting() throws Exception {
-		for (int version : new int[] { 4, 10 }) {
+		for (int version : new int[] { 4, 11 }) {
 			setup(); when(schema.getInt(1)).thenReturn(version);
 			assertThrows(SQLException.class, () -> repository.save(record(1), 0));
 			verify(statement, never()).executeUpdate(); verify(connection, never()).commit(); verify(connection).rollback();

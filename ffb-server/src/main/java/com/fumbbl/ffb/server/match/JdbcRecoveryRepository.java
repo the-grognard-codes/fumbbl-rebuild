@@ -3,11 +3,15 @@ package com.fumbbl.ffb.server.match;
 import com.fumbbl.ffb.server.db.JdbcConnections.CommitNotStarted;
 import com.fumbbl.ffb.server.local.BrowserRequestTiming;
 
+import com.eclipsesource.json.JsonObject;
+import com.eclipsesource.json.JsonValue;
+
 import java.nio.charset.StandardCharsets;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Types;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
@@ -22,17 +26,30 @@ public final class JdbcRecoveryRepository implements RecoveryRepository {
 	private final Connections connections;
 	private final BoundedJsonStorageCodec codec;
 	private final MatchMemoryBudget memoryBudget;
+	private final MatchSafetyJournal safety;
 	public static final int MAX_RETAINED_RECORDS = 1024;
 	private final int retainedLimit;
 	private final boolean journalEnabled;
+	private final boolean computerScheduling;
 
 	public JdbcRecoveryRepository(Connections connections) { this(connections, MAX_RETAINED_RECORDS); }
 	public JdbcRecoveryRepository(Connections connections, boolean journalEnabled) {
-		this(connections, journalEnabled, new MatchMemoryBudget());
+		this(connections, journalEnabled, false);
 	}
+
+	public JdbcRecoveryRepository(Connections connections, boolean journalEnabled, boolean computerScheduling) {
+		this(connections, journalEnabled, computerScheduling, new MatchMemoryBudget(),
+			new MatchSafetyJournal(MatchSafetyJournal.Tracking.DISABLED));
+	}
+
 	public JdbcRecoveryRepository(Connections connections, boolean journalEnabled, MatchMemoryBudget memoryBudget) {
+		this(connections, journalEnabled, false, memoryBudget, new MatchSafetyJournal(MatchSafetyJournal.Tracking.DISABLED));
+	}
+
+	public JdbcRecoveryRepository(Connections connections, boolean journalEnabled, boolean computerScheduling,
+		MatchMemoryBudget memoryBudget, MatchSafetyJournal safety) {
 		this(connections, MAX_RETAINED_RECORDS, new BoundedJsonStorageCodec(BoundedJsonStorageCodec.RECOVERY_ENCODED_LIMIT,
-			BoundedJsonStorageCodec.RECOVERY_DECODED_LIMIT), journalEnabled, memoryBudget);
+			BoundedJsonStorageCodec.RECOVERY_DECODED_LIMIT), journalEnabled, computerScheduling, memoryBudget, safety);
 	}
 
 	public JdbcRecoveryRepository(Connections connections, int retainedLimit) {
@@ -47,11 +64,22 @@ public final class JdbcRecoveryRepository implements RecoveryRepository {
 	JdbcRecoveryRepository(Connections connections, int retainedLimit, BoundedJsonStorageCodec codec, boolean journalEnabled) {
 		this(connections, retainedLimit, codec, journalEnabled, new MatchMemoryBudget());
 	}
-	JdbcRecoveryRepository(Connections connections, int retainedLimit, BoundedJsonStorageCodec codec, boolean journalEnabled, MatchMemoryBudget memoryBudget) {
+
+	JdbcRecoveryRepository(Connections connections, int retainedLimit, BoundedJsonStorageCodec codec, boolean journalEnabled,
+		MatchMemoryBudget memoryBudget) {
+		this(connections, retainedLimit, codec, journalEnabled, false, memoryBudget,
+			new MatchSafetyJournal(MatchSafetyJournal.Tracking.DISABLED));
+	}
+
+	private JdbcRecoveryRepository(Connections connections, int retainedLimit, BoundedJsonStorageCodec codec,
+		boolean journalEnabled, boolean computerScheduling, MatchMemoryBudget memoryBudget, MatchSafetyJournal safety) {
 		if (retainedLimit < 1 || retainedLimit > MAX_RETAINED_RECORDS) throw new IllegalArgumentException("Invalid recovery retention limit");
+		if (computerScheduling && !journalEnabled) throw new IllegalArgumentException("Computer scheduling requires recovery journals");
 		this.connections = connections; this.retainedLimit = retainedLimit; this.codec = codec;
 		this.memoryBudget = memoryBudget;
+		this.safety = safety;
 		this.journalEnabled = journalEnabled;
+		this.computerScheduling = computerScheduling;
 	}
 	@Override public boolean supportsJournal() { return journalEnabled; }
 
@@ -227,18 +255,24 @@ public final class JdbcRecoveryRepository implements RecoveryRepository {
 				if (expectedGeneration == 0) {
 					reserveRetention(record.matchId, connection);
 					try (PreparedStatement statement = connection.prepareStatement(
-						journalEnabled ? "INSERT INTO ffb_match_recovery(matchid,generation,artifact_json,checkpoint_generation) VALUES (?,?,?,?)"
+						computerScheduling ? "INSERT INTO ffb_match_recovery(matchid,generation,artifact_json,checkpoint_generation,computer_work_until_epoch_ms) VALUES (?,?,?,?,?)"
+							: journalEnabled ? "INSERT INTO ffb_match_recovery(matchid,generation,artifact_json,checkpoint_generation) VALUES (?,?,?,?)"
 							: "INSERT INTO ffb_match_recovery(matchid,generation,artifact_json) VALUES (?,?,?)")) {
 						statement.setString(1, record.matchId); statement.setLong(2, 1); statement.setString(3, storedJson);
 						if (journalEnabled) statement.setLong(4, 1);
+						if (computerScheduling) bindComputerWork(statement, 5, record);
 						count = executeWrite(statement);
 					}
 				} else {
 					try (PreparedStatement statement = connection.prepareStatement(
-						journalEnabled ? "UPDATE ffb_match_recovery SET generation=?,artifact_json=?,checkpoint_generation=? WHERE matchid=? AND generation=?"
+						computerScheduling ? "UPDATE ffb_match_recovery SET generation=?,artifact_json=?,checkpoint_generation=?,computer_work_until_epoch_ms=? WHERE matchid=? AND generation=?"
+							: journalEnabled ? "UPDATE ffb_match_recovery SET generation=?,artifact_json=?,checkpoint_generation=? WHERE matchid=? AND generation=?"
 							: "UPDATE ffb_match_recovery SET generation=?,artifact_json=? WHERE matchid=? AND generation=?")) {
 						statement.setLong(1, expectedGeneration + 1); statement.setString(2, storedJson);
-						if (journalEnabled) {
+						if (computerScheduling) {
+							statement.setLong(3, record.generation); bindComputerWork(statement, 4, record);
+							statement.setString(5, record.matchId); statement.setLong(6, expectedGeneration);
+						} else if (journalEnabled) {
 							statement.setLong(3, record.generation); statement.setString(4, record.matchId); statement.setLong(5, expectedGeneration);
 						} else { statement.setString(3, record.matchId); statement.setLong(4, expectedGeneration); }
 						count = executeWrite(statement);
@@ -277,9 +311,13 @@ public final class JdbcRecoveryRepository implements RecoveryRepository {
 			Connection connection = openConnection()) {
 			connection.setAutoCommit(false);
 			try {
-				try (PreparedStatement update = connection.prepareStatement(
-					"UPDATE ffb_match_recovery SET generation=? WHERE matchid=? AND generation=? AND generation-checkpoint_generation<32")) {
-					update.setLong(1, record.generation); update.setString(2, record.matchId); update.setLong(3, expectedGeneration);
+				try (PreparedStatement update = connection.prepareStatement("UPDATE ffb_match_recovery SET generation=?"
+					+ (computerScheduling ? ",computer_work_until_epoch_ms=?" : "")
+					+ " WHERE matchid=? AND generation=? AND generation-checkpoint_generation<32")) {
+					update.setLong(1, record.generation);
+					if (computerScheduling) {
+						bindComputerWork(update, 2, record); update.setString(3, record.matchId); update.setLong(4, expectedGeneration);
+					} else { update.setString(2, record.matchId); update.setLong(3, expectedGeneration); }
 					int count = executeWrite(update);
 					if (count == 0) { rollback(connection); return false; }
 					if (count != 1) throw new SQLException("Unexpected recovery journal write count");
@@ -304,6 +342,74 @@ public final class JdbcRecoveryRepository implements RecoveryRepository {
 		} catch (SQLException failure) { if (commitAttempted && !(failure instanceof CommitNotStarted)) throw new OutcomeUnknown(record, failure); throw failure; }
 	}
 
+	private void bindComputerWork(PreparedStatement statement, int index, Record record) throws SQLException {
+		if (record.computerWorkUntil == null) statement.setNull(index, Types.BIGINT);
+		else statement.setLong(index, record.computerWorkUntil);
+	}
+
+	record LegacyComputerWork(String matchId, long generation, long workUntil) { }
+
+	void beginLegacyComputerClassification(String matchId) {
+		safety.requireAutomaticAvailable(matchId);
+		safety.beginTask(matchId);
+	}
+
+	String decodeLegacyComputerDocument(String matchId, BoundedJsonStorageCodec documentCodec, String stored) {
+		return documentCodec.decodeForActivation(stored, memoryBudget, matchId);
+	}
+
+	/** Reads a single pre-migration head. A scheduled load still validates the full history. */
+	LegacyComputerWork readLegacyComputerWork(String matchId) throws SQLException {
+		safety.requireAutomaticAvailable(matchId);
+		long generation;
+		boolean journalHead;
+		String stored;
+		try (Connection connection = openConnection(); PreparedStatement query = connection.prepareStatement(
+			"SELECT r.generation,r.checkpoint_generation,CASE WHEN r.generation=r.checkpoint_generation "
+				+ "THEN r.artifact_json ELSE j.record_json END "
+				+ "FROM ffb_match_recovery r LEFT JOIN ffb_match_recovery_journal j ON j.matchid=r.matchid AND j.generation=r.generation "
+				+ "WHERE r.matchid=? AND r.computer_work_until_epoch_ms IS NULL")) {
+			query.setString(1, matchId);
+			try (BrowserRequestTiming.Scope read = timing.span(BrowserRequestTiming.Phase.DB_READ); ResultSet rows = query.executeQuery()) {
+				if (!rows.next()) return null;
+				generation = rows.getLong(1);
+				journalHead = generation != rows.getLong(2);
+				stored = rows.getString(3);
+			}
+		}
+		BoundedJsonStorageCodec decoder = journalHead
+			? new BoundedJsonStorageCodec(RecoveryJournal.MAX_ENTRY_BYTES, RecoveryJournal.MAX_ENTRY_BYTES) : codec;
+		RecoveryCheckpoint checkpoints = new RecoveryCheckpoint();
+		String json = decoder.decodeForActivation(stored, memoryBudget, matchId);
+		JsonObject payload;
+		if (journalHead) {
+			payload = new RecoveryJournal().readHeadState(json, matchId, generation);
+			checkpoints.requireSupported(payload);
+		} else payload = checkpoints.validate(json).payload();
+		if (!matchId.equals(payload.getString("matchId", null))) throw new IllegalArgumentException("Invalid checkpoint match");
+		JsonValue saved = payload.get("saveResume");
+		long workUntil = saved == null || saved.isNull() || payload.getBoolean("pendingTerminal", false)
+			? Long.MAX_VALUE : new SetupSession.SaveResumeState(saved.asObject()).computerWorkUntil();
+		return new LegacyComputerWork(matchId, generation, workUntil);
+	}
+
+	boolean backfillComputerWork(LegacyComputerWork work) throws SQLException {
+		try (Connection connection = openConnection()) {
+			connection.setAutoCommit(false);
+			try (PreparedStatement update = connection.prepareStatement(
+				"UPDATE ffb_match_recovery SET computer_work_until_epoch_ms=? WHERE matchid=? AND generation=? "
+					+ "AND computer_work_until_epoch_ms IS NULL")) {
+				update.setLong(1, work.workUntil()); update.setString(2, work.matchId()); update.setLong(3, work.generation());
+				boolean updated = executeWrite(update) == 1;
+				commit(connection);
+				return updated;
+			} catch (SQLException | RuntimeException failure) {
+				try { rollback(connection); } catch (SQLException cleanup) { failure.addSuppressed(cleanup); }
+				throw failure;
+			}
+		}
+	}
+
 	private void reserveRetention(String matchId, Connection connection) throws SQLException {
 		// Serialize only new-record admission, including across JVMs. Existing checkpoints
 		// must remain writable even when all retained slots are occupied.
@@ -311,7 +417,8 @@ public final class JdbcRecoveryRepository implements RecoveryRepository {
 			BrowserRequestTiming.Scope read = timing.span(BrowserRequestTiming.Phase.DB_READ); ResultSet rows = lock.executeQuery()) {
 			if (!rows.next()) throw new SQLException("Recovery schema unavailable");
 			int version = rows.getInt(1);
-			if (version < 5 || version > 9 || journalEnabled && version != 9) throw new SQLException("Recovery schema unavailable");
+			if (version < 5 || version > 10 || journalEnabled && version < 9 || computerScheduling && version != 10)
+				throw new SQLException("Recovery schema unavailable");
 		}
 		try (PreparedStatement count = connection.prepareStatement(
 			"SELECT COUNT(*),COUNT(CASE WHEN matchid=? THEN 1 END) FROM ffb_match_recovery")) {

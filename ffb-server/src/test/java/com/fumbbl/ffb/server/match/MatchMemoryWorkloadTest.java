@@ -1,7 +1,6 @@
 package com.fumbbl.ffb.server.match;
 
 import com.eclipsesource.json.JsonObject;
-import com.eclipsesource.json.JsonValue;
 
 import java.lang.management.ManagementFactory;
 import java.util.List;
@@ -20,35 +19,23 @@ import static org.mockito.Mockito.clearInvocations;
 class MatchMemoryWorkloadTest {
 	@Test void longHistoryRestoresAndSerializesWithinTheDeploymentHeap() throws Exception {
 		assertTrue(Runtime.getRuntime().maxMemory() <= 800L * 1024 * 1024, "Run with -Xmx768m");
-		BogrukEngineFixture fixture = new BogrukEngineFixture("human", "orc", 554, "Unicode “Home” 🦔 ");
+		BogrukEngineFixture fixture = new BogrukEngineFixture("human", "orc", 554, "00000000-0000-0000-0000-000000000021", "Unicode “Home” 🦔 ");
 		JsonObject view = fixture.reply("home").get("state").asObject();
-		int target = Integer.parseInt(System.getenv().getOrDefault("MATCH_MEMORY_WORKLOAD_MIB", "45"));
+		int target = Integer.parseInt(System.getenv().getOrDefault("MATCH_MEMORY_WORKLOAD_MIB", "8"));
 		int decisions = 0;
-		while (!"SETUP".equals(view.getString("phase", null))) {
-			JsonObject prompt = view.get("prompt").asObject();
-			view = accepted(fixture.session.apply(view.getString("actor", null), request(fixture, view, "choice", decisions++)
-				.add("promptId", prompt.get("id")).add("optionId", "coin".equals(prompt.getString("kind", null)) ? "heads" : "receive")));
-		}
-		String role = view.getString("actor", null), player = null;
-		for (JsonValue item : view.get("players").asArray())
-			if (role.equals(item.asObject().getString("role", null))) { player = item.asObject().getString("id", null); break; }
 		String artifact = null;
-		for (; decisions < 2400; decisions++) {
-			view = accepted(fixture.session.apply(role, request(fixture, view, "place", decisions)
-				.add("playerId", player).add("to", new JsonObject().add("x", "home".equals(role) ? 3 : 20).add("y", decisions % 2 + 5))));
-			if (decisions % 50 == 0) {
-				clearInvocations(fixture.server, fixture.server.getCommunication(), fixture.server.getDebugLog());
+		for (; decisions < 480 && !"FULL_TIME".equals(view.getString("phase", null)); decisions++) {
+			view = advance(fixture, view, decisions);
+			if (decisions % 25 == 0 && fixture.session.recoveryBytes() >= target * 1024L * 1024) {
 				artifact = fixture.session.recoveryArtifact();
-				System.out.println("MATCH_MEMORY_GROW decisions=" + decisions + " bytes=" + artifact.length());
-				if (artifact.length() >= target * 1024 * 1024) break;
+				break;
 			}
 		}
-		assertTrue(artifact != null && artifact.length() >= target * 1024 * 1024);
+		assertTrue(artifact != null, "Native decisions must reach the requested recovery size before full time");
 		assertTrue(new Utf8Size().bytes(artifact) < new MatchMemoryBudget().decodedLimit(), "History must fit below the decoded limit");
 		RecoveryJournal journal = new RecoveryJournal();
 		RecoveryJournal.Cursor cursor = journal.cursor(new RecoveryRepository.Record(fixture.document.matchId, 1, artifact), fixture.session);
-		view = accepted(fixture.session.apply(role, request(fixture, view, "place", decisions + 1)
-			.add("playerId", player).add("to", JsonValue.NULL)));
+		view = advance(fixture, view, ++decisions);
 		RecoveryJournal.Change change = journal.change(fixture.session, cursor, 1);
 		assertTrue(!change.compact, "Probe must exercise checkpoint-plus-journal reassembly");
 		String expected = new JsonDigest().sha256(fixture.session.recoveryArtifact());
@@ -58,7 +45,7 @@ class MatchMemoryWorkloadTest {
 		int revision = view.getInt("revision", -1);
 		fixture.session = null;
 		clearInvocations(fixture.server, fixture.server.getCommunication(), fixture.server.getDebugLog());
-		SetupSession resident = target <= 45 ? warmResident() : null;
+		SetupSession resident = warmResident();
 		long residentBytes = resident == null ? 0 : resident.recoveryBytes();
 		MatchMemoryBudget budget = new MatchMemoryBudget();
 		long incoming = codec.decodedBytes(stored) + new Utf8Size().bytes(change.json);
@@ -80,7 +67,7 @@ class MatchMemoryWorkloadTest {
 		restored.endForSizeLimit(System.currentTimeMillis());
 		assertTrue(restored.endedForSizeLimit());
 		assertTrue(restored.completedMatch().json().length() < CompletedMatch.MAX_BYTES);
-		if (resident != null) assertTrue(resident.revision() >= 400, "The warm engine stays live throughout the incoming recovery");
+		if (resident != null) assertTrue(resident.revision() >= 100, "The warm engine stays live throughout the incoming recovery");
 		long elapsedMillis = (System.nanoTime() - started) / 1_000_000;
 		System.gc();
 		JsonObject report = new JsonObject().add("maxHeapBytes", Runtime.getRuntime().maxMemory())
@@ -96,26 +83,16 @@ class MatchMemoryWorkloadTest {
 	private SetupSession warmResident() throws Exception {
 		BogrukEngineFixture fixture = new BogrukEngineFixture("human", "orc", 555);
 		JsonObject view = fixture.reply("home").get("state").asObject();
-		int sequence = 0;
-		while (!"SETUP".equals(view.getString("phase", null))) {
-			JsonObject prompt = view.get("prompt").asObject();
-			view = accepted(fixture.session.apply(view.getString("actor", null), request(fixture, view, "choice", sequence++)
-				.add("promptId", prompt.get("id")).add("optionId", "coin".equals(prompt.getString("kind", null)) ? "heads" : "receive")));
-		}
-		String role = view.getString("actor", null), player = null;
-		for (JsonValue value : view.get("players").asArray())
-			if (role.equals(value.asObject().getString("role", null))) { player = value.asObject().getString("id", null); break; }
-		int residentDecisions = Integer.parseInt(System.getenv().getOrDefault("MATCH_MEMORY_RESIDENT_DECISIONS", "760"));
-		while (sequence < residentDecisions) {
-			view = accepted(fixture.session.apply(role, request(fixture, view, "place", sequence++)
-				.add("playerId", player).add("to", JsonValue.NULL)));
-		}
-		clearInvocations(fixture.server, fixture.server.getCommunication(), fixture.server.getDebugLog());
+		for (int sequence = 0; sequence < 100; sequence++) view = advance(fixture, view, sequence);
 		return fixture.session;
 	}
-	private JsonObject request(BogrukEngineFixture fixture, JsonObject view, String operation, int sequence) {
-		return new JsonObject().add("version", 1).add("type", "setup").add("operation", operation).add("requestId", "memory-" + sequence)
-			.add("matchId", fixture.document.matchId).add("expectedRevision", view.getInt("revision", -1));
+
+	private JsonObject advance(BogrukEngineFixture fixture, JsonObject view, int sequence) {
+		JsonObject request = fixture.recordedDecision(view, "memory-" + sequence, sequence);
+		JsonObject response = fixture.session.apply(view.getString("actor", null), request);
+		clearInvocations(fixture.server, fixture.server.getCommunication(), fixture.server.getDebugLog());
+		assertEquals("ACCEPTED", response.getString("code", null), request::toString);
+		return accepted(response);
 	}
 	private JsonObject accepted(JsonObject response) { assertEquals("ACCEPTED", response.getString("code", null)); return response.get("state").asObject(); }
 	private long usedHeap() { return Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory(); }

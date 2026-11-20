@@ -18,28 +18,37 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.time.Clock;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Base64;
+import java.util.Comparator;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
-import java.util.ArrayList;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 
 /** V2 account membership and bearer-invitation preparation over immutable R2 match documents. */
 public final class V2PreparationService {
 	private static final long INVITATION_LIFETIME_MS = 60L * 60L * 1000L;
+	private static final int LEGACY_BACKFILL_LIMIT = 4;
+	private static final long LEGACY_CLASSIFICATION_RETRY_MILLIS = 5 * 60_000L;
 	public interface Connections { Connection open() throws SQLException; }
 	private final Connections connections;
 	private final SavedTeamService teams;
 	private final RosterCatalog catalog;
 	private final Clock clock;
 	private final ComputerOpponentService computers;
+	private final JdbcRecoveryRepository recovery;
 	private final MatchJson json = new MatchJson();
 	private final BoundedJsonStorageCodec storageCodec = new BoundedJsonStorageCodec(
 		BoundedJsonStorageCodec.PREPARED_ENCODED_LIMIT, BoundedJsonStorageCodec.PREPARED_DECODED_LIMIT);
 	private final SecureRandom random = new SecureRandom();
+	private String lastLegacyComputerMatch = "";
+	private JdbcRecoveryRepository.LegacyComputerWork pendingLegacyComputerWork;
+	private final Map<String, LegacyRetry> legacyRetries = new LinkedHashMap<>();
 
 	public V2PreparationService(Connections connections, SavedTeamService teams, RosterCatalog catalog, Clock clock) {
 		this(connections, teams, catalog, clock, new ComputerOpponentService(null));
@@ -47,7 +56,13 @@ public final class V2PreparationService {
 
 	public V2PreparationService(Connections connections, SavedTeamService teams, RosterCatalog catalog, Clock clock,
 		ComputerOpponentService computers) {
+		this(connections, teams, catalog, clock, computers, new JdbcRecoveryRepository(connections::open, true, true));
+	}
+
+	public V2PreparationService(Connections connections, SavedTeamService teams, RosterCatalog catalog, Clock clock,
+		ComputerOpponentService computers, JdbcRecoveryRepository recovery) {
 		this.connections = connections; this.teams = teams; this.catalog = catalog; this.clock = clock; this.computers = computers;
+		this.recovery = recovery;
 	}
 
 	public JsonObject handle(String accountId, JsonObject request) {
@@ -75,39 +90,132 @@ public final class V2PreparationService {
 	public boolean isComputerMatch(String matchId) throws SQLException {
 		if (matchId == null || !matchId.matches("[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}")) return false;
 		try (Connection connection = connections.open()) {
-			if (!member(connection, matchId, computers.memberId(), "away")) return false;
+			String role = computerMembershipRole(connection, matchId);
+			if (role == null) return false;
 			MatchDocument document = document(connection, matchId, false);
-			return document != null && computers.coach(document) != null;
+			return document != null && verifiedComputerRole(document, role);
 		}
 	}
 
 	/** Setup validates the frozen computer coach after the registered service membership check. */
-	public boolean hasComputerMembership(String matchId) throws SQLException {
-		if (matchId == null || !matchId.matches("[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}")) return false;
+	public String computerMembershipRole(String matchId) throws SQLException {
+		if (matchId == null || !matchId.matches("[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}")) return null;
 		try (Connection connection = connections.open()) {
-			return member(connection, matchId, computers.memberId(), "away");
+			return computerMembershipRole(connection, matchId);
 		}
 	}
 
+	private String computerMembershipRole(Connection connection, String matchId) throws SQLException {
+		try (PreparedStatement query = connection.prepareStatement(
+			"SELECT role FROM ffb_v2_match_members WHERE matchid=? AND account_id=?")) {
+			query.setString(1, matchId);
+			query.setString(2, computers.memberId());
+			try (ResultSet rows = query.executeQuery()) {
+				return rows.next() ? rows.getString(1) : null;
+			}
+		}
+	}
+
+	private boolean verifiedComputerRole(MatchDocument document, String role) {
+		MatchDocument.Member computer = computers.member(document);
+		return computer != null && computer.role.equals(role);
+	}
+
+	public record ComputerInventory(List<String> matches, boolean inventoryPending) {
+		public ComputerInventory { matches = List.copyOf(matches); }
+	}
+
+	private record LegacyCandidate(String matchId, String role, long generation) { }
+	private record LegacyRetry(long generation, long retryAt) { }
+
 	/** Active jobs are replayed when the independent computer process reconnects. */
-	public List<String> activeComputerMatches() throws SQLException {
-		List<String> result = new ArrayList<>();
+	public ComputerInventory activeComputerMatches() throws SQLException {
+		Set<String> result = new LinkedHashSet<>();
+		Set<String> unclassified = new HashSet<>();
+		List<LegacyCandidate> legacy = new ArrayList<>();
+		long now = clock.millis();
+		persistLegacyComputerWork();
 		try (Connection connection = connections.open(); PreparedStatement query = connection.prepareStatement(
-			"SELECT p.match_id FROM ffb_prepared_matches p "
-				+ "JOIN ffb_v2_match_members away ON away.matchid=p.match_id AND away.account_id=? AND away.role='away' "
-				+ "JOIN ffb_v2_match_members home ON home.matchid=p.match_id AND home.role='home' "
-				+ "WHERE p.document_version=3 ORDER BY p.match_id")) {
+			"SELECT p.match_id,computer.role,r.computer_work_until_epoch_ms,r.generation FROM ffb_prepared_matches p "
+				+ "JOIN ffb_v2_match_members computer ON computer.matchid=p.match_id AND computer.account_id=? "
+				+ "JOIN ffb_v2_match_members opponent ON opponent.matchid=p.match_id AND opponent.role<>computer.role "
+				+ "JOIN ffb_match_recovery r ON r.matchid=p.match_id "
+				+ "WHERE p.document_version=3 AND (r.computer_work_until_epoch_ms>? OR r.computer_work_until_epoch_ms IS NULL) ORDER BY p.match_id")) {
 			query.setString(1, computers.memberId());
+			query.setLong(2, now);
 			try (ResultSet rows = query.executeQuery()) {
 				while (rows.next()) {
 					String id = rows.getString(1);
-					MatchDocument document = document(connection, id, false);
-					if (document != null && document.lifecycle == MatchDocument.Lifecycle.ACTIVATED
-						&& computers.coach(document) != null) result.add(id);
+					// Version 3 is activated. Membership is checked again against the frozen seat on load.
+					result.add(id);
+					rows.getLong(3);
+					if (!rows.wasNull()) continue;
+					unclassified.add(id);
+					long generation = rows.getLong(4);
+					LegacyRetry retry = legacyRetries.get(id);
+					if (retry == null || generation != retry.generation() || now >= retry.retryAt())
+						legacy.add(new LegacyCandidate(id, rows.getString(2), generation));
 				}
 			}
 		}
-		return result;
+		legacyRetries.keySet().retainAll(unclassified);
+		// Use the snapshot for every dispatcher. Only a successful CAS can remove a legacy job from it.
+		legacy.sort(Comparator.comparing(candidate -> candidate.matchId().compareTo(lastLegacyComputerMatch) <= 0));
+		int limit = Math.min(LEGACY_BACKFILL_LIMIT, legacy.size());
+		boolean deferred = legacy.size() > limit;
+		for (int index = 0; index < limit && pendingLegacyComputerWork == null; index++) {
+			LegacyCandidate candidate = legacy.get(index);
+			lastLegacyComputerMatch = candidate.matchId();
+			JdbcRecoveryRepository.LegacyComputerWork work;
+			try {
+				work = classifyLegacyComputerWork(candidate);
+			} catch (SQLException unavailable) {
+				deferred = true;
+				new MatchPersistenceLog().rejected("computer-inventory-backfill", candidate.matchId(), null, unavailable);
+				break;
+			} catch (RuntimeException invalid) {
+				// Leave the job eligible while the normal recovery path handles the authoritative load.
+				legacyRetries.put(candidate.matchId(), new LegacyRetry(candidate.generation(), now + LEGACY_CLASSIFICATION_RETRY_MILLIS));
+				new MatchPersistenceLog().coldComputerLoadFallback("computer-inventory-backfill", candidate.matchId(), invalid);
+				continue;
+			}
+			legacyRetries.remove(candidate.matchId());
+			pendingLegacyComputerWork = work;
+			if (!persistLegacyComputerWork()) deferred = true;
+			else if (work.workUntil() <= now) result.remove(candidate.matchId());
+		}
+		return new ComputerInventory(List.copyOf(result), deferred || pendingLegacyComputerWork != null);
+	}
+
+	private JdbcRecoveryRepository.LegacyComputerWork classifyLegacyComputerWork(LegacyCandidate candidate)
+		throws SQLException {
+		String id = candidate.matchId();
+		recovery.beginLegacyComputerClassification(id);
+		// A match can complete between inventory and classification. Read only the active version.
+		try (Connection connection = connections.open(); PreparedStatement query = connection.prepareStatement(
+			"SELECT document_json FROM ffb_prepared_matches WHERE match_id=? AND document_version=3")) {
+			query.setString(1, id);
+			try (ResultSet rows = query.executeQuery()) {
+				if (!rows.next() || !verifiedComputerRole(json.decode(
+					recovery.decodeLegacyComputerDocument(id, storageCodec, rows.getString(1)), 3), candidate.role()))
+					return new JdbcRecoveryRepository.LegacyComputerWork(id, candidate.generation(), 0);
+			}
+		}
+		return recovery.readLegacyComputerWork(candidate.matchId());
+	}
+
+	private boolean persistLegacyComputerWork() {
+		JdbcRecoveryRepository.LegacyComputerWork work = pendingLegacyComputerWork;
+		if (work == null) return false;
+		try {
+			boolean updated = recovery.backfillComputerWork(work);
+			pendingLegacyComputerWork = null;
+			return updated;
+		} catch (SQLException unavailable) {
+			// Keep only the bounded metadata so a subsequent refresh can retry with a fresh JDBC budget.
+			new MatchPersistenceLog().rejected("computer-inventory-backfill", work.matchId(), null, unavailable);
+			return false;
+		}
 	}
 
 	/** A disconnect tracker must grant this permission; clients cannot express it through {@link #handle}. */
@@ -217,6 +325,7 @@ public final class V2PreparationService {
 				MatchDocument created = new MatchDocument(matchId, 2, "away", MatchDocument.Lifecycle.AWAITING_SETUP,
 					new MatchDocument.Member("home", "home", home), new MatchDocument.Member("away", "away", away), history)
 					.withComputer(computers.identity(matchId, computerId));
+				if (computers.member(created) != created.away) throw new Failure("INCOMPATIBLE_TEAM");
 				insertDocument(connection, created);
 				insertMember(connection, matchId, accountId, "home");
 				insertMember(connection, matchId, computers.memberId(), "away");
