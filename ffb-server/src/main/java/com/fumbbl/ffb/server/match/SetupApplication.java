@@ -151,7 +151,8 @@ public final class SetupApplication {
 	public JsonObject lifecycleMetrics() {
 		return new JsonObject().add("residentSessions", sessions.size()).add("residentLimit", memoryBudget.residentLimit())
 			.add("decodedMatchLimitBytes", memoryBudget.decodedLimit()).add("appendMatchLimitBytes", memoryBudget.appendLimit())
-			.add("retainedBudgetBytes", otherResidentBytes(null))
+			.add("retainedBudgetBytes", memoryBudget.retainedBytes(residentSizes.values(), detachedSlots(null)))
+			.add("workingReserveBytes", memoryBudget.sharedWorkingBytes(residentSizes.values()))
 			.add("memoryEvictions", memoryEvictions)
 			.add("terminalCompletionReleases", terminalCompletionReleases)
 			.add("pendingTimerRestores", pendingTimerRestores.size()).add("pendingActivations", pendingActivations.size()).add("completedReleases", completedReleases)
@@ -469,17 +470,16 @@ public final class SetupApplication {
 	}
 
 	private boolean fitsResidentBudget(String id, MatchMemoryBudget.ResidentSize size) {
-		long largest = residentSizes.entrySet().stream().filter(entry -> !entry.getKey().equals(id))
-			.mapToLong(entry -> entry.getValue().decodedBytes()).max().orElse(0);
-		return memoryBudget.admitsResidents(otherResidentBytes(id) + size.retainedBytes(),
-			Math.max(largest, size.decodedBytes()));
+		List<MatchMemoryBudget.ResidentSize> sizes = new ArrayList<>(residentSizes.size() + 1);
+		residentSizes.forEach((matchId, current) -> {
+			if (!matchId.equals(id)) sizes.add(current);
+		});
+		sizes.add(size);
+		return memoryBudget.admitsResidents(sizes, detachedSlots(id));
 	}
 
-	private long otherResidentBytes(String id) {
-		return residentSizes.entrySet().stream().filter(entry -> !entry.getKey().equals(id))
-			.mapToLong(entry -> entry.getValue().retainedBytes()).sum()
-			+ retainedIds().stream().filter(key -> !key.equals(id) && !sessions.containsKey(key))
-				.mapToLong(key -> memoryBudget.residentBytes(0)).sum();
+	private long detachedSlots(String id) {
+		return retainedIds().stream().filter(key -> !key.equals(id) && !sessions.containsKey(key)).count();
 	}
 
 	private Set<String> retainedIds() {

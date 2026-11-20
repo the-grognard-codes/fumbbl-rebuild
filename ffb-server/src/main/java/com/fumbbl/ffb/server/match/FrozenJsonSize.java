@@ -1,6 +1,6 @@
 package com.fumbbl.ffb.server.match;
 
-/** Retained size of a frozen JSON string and its entry in a history list on the server JDK. */
+/** Frozen JSON size on the server JDK with its default compact strings and compressed references. */
 final class FrozenJsonSize {
 	private static final int STRING_BYTES = 24;
 	private static final int ARRAY_HEADER_BYTES = 16;

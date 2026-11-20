@@ -1,5 +1,7 @@
 package com.fumbbl.ffb.server.match;
 
+import java.util.Collection;
+
 /** Heap policy: the activation ceiling is fixed; actual histories determine cache admission. */
 public final class MatchMemoryBudget {
 	private static final long MIB = 1024 * 1024;
@@ -7,6 +9,7 @@ public final class MatchMemoryBudget {
 	private static final long STAGED_DECODED_LIMIT = 44 * MIB;
 	private static final int ACTIVATION_LIMIT = 32;
 	private static final int RETAINED_FACTOR = 4;
+	// Peak model includes both the resident and the memory used to materialize its history.
 	private static final int WORKING_FACTOR = 11;
 	private final long availableBytes;
 	private final int decodedLimit;
@@ -25,9 +28,9 @@ public final class MatchMemoryBudget {
 	public int decodedLimit() { return decodedLimit; }
 	public int appendLimit() { return decodedLimit - appendReserve(); }
 	int appendReserve() { return Math.min(RecoveryJournal.MAX_ENTRY_BYTES, decodedLimit / 8); }
-	long residentBytes(long decodedBytes) { return Math.max(MIB, decodedBytes * RETAINED_FACTOR); }
-
 	record ResidentSize(long decodedBytes, long retainedBytes) {
+		long workingBytes() { return Math.max(0, decodedBytes * WORKING_FACTOR - retainedBytes); }
+
 		boolean growsFrom(ResidentSize previous) {
 			return previous == null || decodedBytes > previous.decodedBytes || retainedBytes > previous.retainedBytes;
 		}
@@ -37,10 +40,17 @@ public final class MatchMemoryBudget {
 		long expandedBytes = Math.max(0, decodedBytes - frozenDecodedBytes);
 		return new ResidentSize(decodedBytes, Math.max(MIB, expandedBytes * RETAINED_FACTOR + frozenRetainedBytes));
 	}
-	/** One workspace shared by the serial engine worker, sized for the largest admitted history. */
-	long sharedWorkingBytes(long largestDecodedBytes) { return largestDecodedBytes * (WORKING_FACTOR - RETAINED_FACTOR); }
-	boolean admitsResidents(long residentBytes, long largestDecodedBytes) {
-		return residentBytes + sharedWorkingBytes(largestDecodedBytes) <= availableBytes;
+	/** The serial engine worker can materialize one history at a time. */
+	long sharedWorkingBytes(Collection<ResidentSize> residents) {
+		return residents.stream().mapToLong(ResidentSize::workingBytes).max().orElse(0);
+	}
+
+	long retainedBytes(Collection<ResidentSize> residents, long detachedSlots) {
+		return residents.stream().mapToLong(ResidentSize::retainedBytes).sum() + detachedSlots * MIB;
+	}
+
+	boolean admitsResidents(Collection<ResidentSize> residents, long detachedSlots) {
+		return retainedBytes(residents, detachedSlots) + sharedWorkingBytes(residents) <= availableBytes;
 	}
 	/** @throws MatchService.Failure with MATCH_SIZE_LIMIT before any oversized decoded allocation. */
 	void requireDecodedBytes(long bytes) {

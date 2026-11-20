@@ -9,11 +9,13 @@ import com.fumbbl.ffb.server.FantasyFootballServer;
 import com.fumbbl.ffb.server.GameState;
 import com.fumbbl.ffb.util.UtilBox;
 
+import com.eclipsesource.json.JsonArray;
 import com.eclipsesource.json.JsonObject;
 import com.eclipsesource.json.JsonValue;
 
 import java.io.IOException;
 import java.lang.management.ManagementFactory;
+import java.lang.management.MemoryMXBean;
 import java.lang.ref.WeakReference;
 import java.lang.reflect.Field;
 import java.nio.file.Files;
@@ -25,10 +27,14 @@ import java.time.ZoneId;
 import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
+import java.util.concurrent.Callable;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.locks.LockSupport;
 
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.clearInvocations;
@@ -45,6 +51,7 @@ public final class SessionRetentionMemoryProbe {
 	public static void main(String[] arguments) throws Exception {
 		Path checkpoints = Path.of(arguments[1]);
 		if ("sequence".equals(arguments[0])) { sequence(checkpoints); return; }
+		if ("materialization".equals(arguments[0])) { materialization(checkpoints); return; }
 		long baseline = used();
 		Resident resident = lateResident(checkpoints.resolve("resident.json"));
 		int revision = resident.session.revision();
@@ -68,6 +75,8 @@ public final class SessionRetentionMemoryProbe {
 		for (int index = 0; index < 8; index++) residents.add(lateResident(checkpoints.resolve("resident-" + index + ".json")));
 		long retained = used() - baseline;
 		if (retained > 256L * 1024 * 1024) throw new AssertionError("Eight-session retained heap exceeds 256 MiB: " + retained);
+		long workspace = residents.stream().mapToLong(resident ->
+			resident.application.lifecycleMetrics().getLong("workingReserveBytes", 0)).max().orElseThrow();
 		List<WeakReference<Object>> parts = new ArrayList<>();
 		List<SetupApplication> applications = new ArrayList<>();
 		List<WeakReference<SetupSession>> references = new ArrayList<>();
@@ -89,7 +98,138 @@ public final class SessionRetentionMemoryProbe {
 			|| applications.stream().anyMatch(application -> application.lifecycleMetrics().getInt("residentSessions", -1) != 0))
 			throw new AssertionError("Sequential applications retained released late sessions");
 		System.out.println("retention-passed mode=sequence sessions=8 placementsEach=" + PLACEMENTS + " retainedBytes=" + retained
-			+ " afterReleaseBytes=" + (used() - baseline));
+			+ " workingReserveBytes=" + workspace + " afterReleaseBytes=" + (used() - baseline));
+	}
+
+	private static void materialization(Path checkpoints) throws Exception {
+		long startup = used();
+		MatchMemoryBudget budget = new MatchMemoryBudget();
+		long target = budget.appendLimit() * 95L / 100;
+		Map<String, ProbeRecovery> stored = new LinkedHashMap<>();
+		Map<String, MatchService.Result> documents = new LinkedHashMap<>();
+		BogrukEngineFixture large = materializationFixture(0);
+		String largestId = large.document.matchId;
+		register(checkpoints, stored, documents, large, expandedCheckpoint(large.session, target));
+		for (int index = 1; index < 8; index++)
+			register(checkpoints, stored, documents, materializationFixture(index), null);
+
+		MatchService matches = mock(MatchService.class);
+		when(matches.loadForSetup(anyString(), anyString())).thenAnswer(call -> documents.get(call.getArgument(1)));
+		when(matches.load(anyString(), anyString())).thenAnswer(call -> documents.get(call.getArgument(1)));
+		RecoveryRepository recovery = new RecoveryRepository() {
+			@Override public Record find(String id) throws SQLException { return stored.get(id).find(id); }
+			@Override public boolean save(Record record, long expected) throws SQLException {
+				return stored.get(record.matchId).save(record, expected);
+			}
+		};
+		SetupApplication application = new SetupApplication(large.server, matches, recovery, true, Clock.systemUTC(), true);
+		for (String id : stored.keySet()) accepted(application.handle(HUMAN, load(id)));
+		SetupSession session = (SetupSession) map(application, "sessions").get(largestId);
+		long decodedBytes = session.recoveryBytes();
+		long frozenDecodedBytes = session.frozenHistoryDecodedBytes();
+		if (decodedBytes < target || decodedBytes >= budget.appendLimit() || frozenDecodedBytes * 4 < decodedBytes * 3)
+			throw new AssertionError("Expected a near-limit frozen history, decoded=" + decodedBytes + " frozen=" + frozenDecodedBytes);
+		if (application.lifecycleMetrics().getInt("residentSessions", -1) != 8)
+			throw new AssertionError("Expected eight residents before materializing the history");
+
+		int revision = session.revision();
+		HeapPeak checkpoint = observeHeap(() ->
+			application.sendChat(largestId, "00000000-0000-0000-0000-000000000777", HUMAN,
+				"materialization-chat", "Exercise the full checkpoint"));
+		if (stored.get(largestId).generation != 2 || application.lifecycleMetrics().getInt("residentSessions", -1) != 8)
+			throw new AssertionError("Full checkpoint did not commit with all eight residents");
+		JsonObject metrics = application.lifecycleMetrics();
+		long retained = metrics.getLong("retainedBudgetBytes", -1);
+		long workspace = metrics.getLong("workingReserveBytes", -1);
+
+		JsonObject concession = load(largestId).set("operation", "concede")
+			.set("requestId", "materialization-concession").add("expectedRevision", revision);
+		accepted(session.apply(HUMAN, concession));
+		if (!session.isComplete()) throw new AssertionError("Native concession did not complete");
+		HeapPeak completion = observeHeap(() -> accepted(application.handle(HUMAN, load(largestId))));
+		if (application.lifecycleMetrics().getInt("residentSessions", -1) != 7)
+			throw new AssertionError("Completion did not release exactly the terminal resident");
+
+		long totalBudget = retained + workspace;
+		System.out.println("retention-passed mode=materialization residents=8 revision=" + revision
+			+ " decodedBytes=" + decodedBytes + " frozenDecodedBytes=" + frozenDecodedBytes
+			+ " startupHeapBytes=" + startup + " retainedBudgetBytes=" + retained + " workingReserveBytes=" + workspace
+			+ " checkpointBeforeBytes=" + checkpoint.beforeBytes() + " checkpointPeakBytes=" + checkpoint.peakBytes()
+			+ " checkpointWithinBudget=" + (checkpoint.peakBytes() - startup <= totalBudget)
+			+ " completionBeforeBytes=" + completion.beforeBytes() + " completionPeakBytes=" + completion.peakBytes()
+			+ " completionWithinBudget=" + (completion.peakBytes() - startup <= totalBudget));
+	}
+
+	private static BogrukEngineFixture materializationFixture(int index) throws Exception {
+		String id = "00000000-0000-0000-0000-%012d".formatted(index + 100);
+		BogrukEngineFixture fixture = new BogrukEngineFixture("human", "orc", 554, id);
+		JsonObject view = accepted(fixture.reply(HUMAN));
+		for (int decision = 0; decision < 96; decision++) {
+			JsonObject request = fixture.recordedDecision(view, "materialization-" + decision, decision);
+			view = accepted(fixture.session.apply(view.getString("actor", null), request));
+			clearInvocations(fixture.server, fixture.server.getCommunication(), fixture.server.getDebugLog());
+		}
+		return fixture;
+	}
+
+	/** Extend a native checkpoint with repeated board snapshots to isolate history expansion. */
+	private static String expandedCheckpoint(SetupSession session, long target) throws Exception {
+		long estimatedBytes = session.recoveryBytes();
+		JsonObject payload = session.recoveryCheckpointPayload();
+		JsonArray events = JsonArray.readFrom(payload.get("eventsJson").asString());
+		JsonArray records = payload.get("transcript").asObject().get("records").asArray();
+		int revision = session.revision();
+		JsonObject board = events.get(revision).asObject().get("state").asObject();
+		JsonObject recordTemplate = new JsonObject(records.get(revision).asObject()).set("kind", "SELECTION").set("native", new JsonArray());
+		Utf8Size size = new Utf8Size();
+		while (estimatedBytes < target) {
+			JsonObject snapshot = new JsonObject(board).set("revision", ++revision);
+			JsonObject event = new JsonObject().add("revision", revision).add("kind", "SELECTION").add("state", snapshot);
+			JsonObject record = new JsonObject(recordTemplate).set("index", revision).set("revision", revision).set("state", snapshot);
+			events.add(event);
+			records.add(record);
+			// Two array separators offset the two quotes around the standalone event string.
+			estimatedBytes += size.bytes(JsonValue.valueOf(event.toString()).toString()) + size.bytes(record.toString());
+		}
+		Field revisionField = SetupSession.class.getDeclaredField("revision");
+		revisionField.setAccessible(true);
+		revisionField.setInt(session, revision);
+		payload.set("revision", revision).set("eventsJson", events.toString())
+			.set("homeView", accepted(session.reply("load", "ACCEPTED", false, HUMAN)))
+			.set("awayView", accepted(session.reply("load", "ACCEPTED", false, COMPUTER)));
+		return new RecoveryArtifactJson().encodeCanonicalCheckpoint(payload).envelope();
+	}
+
+	private static void register(Path checkpoints, Map<String, ProbeRecovery> stored,
+		Map<String, MatchService.Result> documents, BogrukEngineFixture fixture, String artifact) throws IOException {
+		String id = fixture.document.matchId;
+		stored.put(id, new ProbeRecovery(checkpoints.resolve(id + ".json"), id, fixture.session.computerWorkUntil(),
+			artifact == null ? fixture.session.recoveryArtifact() : artifact));
+		documents.put(id, new MatchService.Result(fixture.document, false));
+		fixture.session = null;
+	}
+
+	private record HeapPeak(long beforeBytes, long peakBytes) { }
+
+	private static HeapPeak observeHeap(Callable<?> materialize) throws Exception {
+		long before = used();
+		MemoryMXBean memory = ManagementFactory.getMemoryMXBean();
+		AtomicLong peak = new AtomicLong(before);
+		AtomicBoolean measuring = new AtomicBoolean(true);
+		Thread sampler = Thread.ofPlatform().daemon().start(() -> {
+			while (measuring.get()) {
+				peak.accumulateAndGet(memory.getHeapMemoryUsage().getUsed(), Math::max);
+				LockSupport.parkNanos(1_000_000);
+			}
+		});
+		try {
+			materialize.call();
+			peak.accumulateAndGet(memory.getHeapMemoryUsage().getUsed(), Math::max);
+		} finally {
+			measuring.set(false);
+			sampler.join();
+		}
+		return new HeapPeak(before, peak.get());
 	}
 
 	private static List<WeakReference<Object>> retainedParts(SetupSession session) throws Exception {
@@ -142,7 +282,7 @@ public final class SessionRetentionMemoryProbe {
 		long charged = application.lifecycleMetrics().getLong("retainedBudgetBytes", -1);
 		long expected = new MatchMemoryBudget().residentSize(decodedBytes, session.frozenHistoryDecodedBytes(),
 			session.frozenHistoryRetainedBytes()).retainedBytes();
-		if (charged != expected || charged >= new MatchMemoryBudget().residentBytes(decodedBytes))
+		if (charged != expected || charged >= new MatchMemoryBudget().residentSize(decodedBytes, 0, 0).retainedBytes())
 			throw new AssertionError("Resident budget did not account for frozen history: " + charged + " expected=" + expected);
 		clearInvocations(fixture.server);
 		return new Resident(application, resident, matches, fixture.server, now, id);
@@ -277,10 +417,14 @@ public final class SessionRetentionMemoryProbe {
 		private long computerWorkUntil;
 
 		ProbeRecovery(Path path, SetupSession session) throws IOException {
+			this(path, session.spectatorView().getString("matchId", null), session.computerWorkUntil(), session.recoveryArtifact());
+		}
+
+		ProbeRecovery(Path path, String id, long computerWorkUntil, String artifact) throws IOException {
 			this.path = path;
-			this.id = session.spectatorView().getString("matchId", null);
-			computerWorkUntil = session.computerWorkUntil();
-			Files.writeString(path, session.recoveryArtifact());
+			this.id = id;
+			this.computerWorkUntil = computerWorkUntil;
+			Files.writeString(path, artifact);
 		}
 
 		@Override public Record find(String matchId) throws SQLException {

@@ -119,8 +119,8 @@ mvn -pl ffb-server -am -Dtest=SessionRetentionMemoryTest -Dsurefire.failIfNoSpec
 ```
 
 Without that environment variable, plain `mvn test` skips this class before
-launching any of its three child JVMs. The launcher chooses `java.exe` on Windows
-and `java` elsewhere.
+launching any child JVMs. The launcher chooses `java.exe` on Windows and
+`java` elsewhere.
 
 To reproduce the original baseline, take the two SessionRetentionMemory
 test/probe files from `b7f1df32e`, compile them against the original baseline
@@ -215,3 +215,61 @@ completion and abandonment through real activation. Run with
 `-Xmx768m`, record each PR head SHA, and measure retained heap per resident
 and after completion, abandonment and idle eviction. Use those observations
 to assess the 32-resident cap.
+
+## Shared workspace fix
+
+Admission adds the resident charges and one shared workspace. Each
+resident's workspace is its 11× decoded peak allowance less the heap
+already charged to that resident. The server reserves the largest
+workspace across the cache and the candidate. A restore still charges
+the expanded size before reconstruction. `retainedBudgetBytes` and
+`workingReserveBytes` report the two terms separately.
+
+On `465da238c`, the checkpoint growth regression accepted the mutation
+with zero evictions. The existing residents and the growing candidate
+totaled 276 MiB retained. The fixed 280 MiB workspace estimate fit them
+inside the 576 MiB budget. Expanding the frozen history needs a modeled
+396 MiB workspace, so the corrected admission evicts one unpinned engine.
+
+The frozen storage estimate uses the pinned server JDK's default compact
+strings and compressed references.
+
+### Peak materialization at 768 MiB
+
+The opt-in probe extends a real native checkpoint with repeated board
+snapshots to exercise the history shape at a controlled size. Its restored
+revision 871 checkpoint was 38.01 MiB decoded, including 37.82 MiB of frozen
+replay and transcript content. Seven other native engines shared the same
+application. A chat write committed a full disk-backed checkpoint. A native
+concession then materialized and validated the completed result.
+
+| Operation | Process heap before | Sampled process peak | Peak above startup |
+| --- | ---: | ---: | ---: |
+| Full checkpoint | 128.22 MiB | 566.01 MiB | 557.32 MiB |
+| Completed result | 136.44 MiB | 641.10 MiB | 632.41 MiB |
+
+The application charged 65.03 MiB retained and 382.15 MiB shared workspace
+for 447.18 MiB total. Both sampled peaks above the 8.69 MiB startup baseline
+exceeded that total and stayed within the 768 MiB JVM cap. The sampled
+process heap includes test infrastructure and allocations awaiting GC.
+
+Result validation now compares the already parsed transcript records with
+the replay. It still validates the transcript and avoids building another
+expanded graph for the comparison. In paired Serial GC diagnostic runs, the
+highest occupancy after a full collection during result creation dropped
+from 598 MiB to 457 MiB. With the cleanup, sampled occupancy still exceeded
+the modeled budget. The evidence does not support lowering the 11× factor.
+
+The 450-placement rerun retained 27.03 MiB for one resident before native
+concession, 27.04 MiB for one resident before idle eviction, and 64.64 MiB
+for eight residents. The eight-resident process retained 20.63 MiB above
+startup after release. Projecting those staged fixtures to 32 gives
+258.57 MiB retained plus one 7.38 MiB workspace, or 265.94 MiB above
+startup. The workspace term uses the largest observed fixture reserve.
+The near-limit probe represents a different history shape. Production
+capacity remains subject to the combined soak.
+
+The final focused run passed 88 tests with the opt-in gate enabled,
+including all four probe modes. The full Maven clean install passed
+with the default gate. Across all modules, 1,253 tests passed and 26
+were skipped.

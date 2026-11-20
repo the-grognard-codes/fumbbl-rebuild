@@ -293,9 +293,9 @@ public final class MatchJson {
 			JsonObject terminal = events.get(events.size() - 1).asObject().get("state").asObject();
 			if (prior != finalRevision || !"FULL_TIME".equals(events.get(events.size() - 1).asObject().getString("kind", null)) || !"FULL_TIME".equals(terminal.getString("phase", null)) || terminal.getInt("homeScore", -1) != home || terminal.getInt("awayScore", -1) != away) throw new IllegalArgumentException();
 			if (format == 2 || format == 3) {
-				MatchTranscript transcript = new MatchTranscript(artifact.get("transcript").asObject());
-				if (transcript.size() != events.size()) throw new IllegalArgumentException();
-				JsonArray records = transcript.json().get("records").asArray();
+				JsonObject transcript = artifact.get("transcript").asObject();
+				if (new MatchTranscript(transcript).size() != events.size()) throw new IllegalArgumentException();
+				JsonArray records = transcript.get("records").asArray();
 				for (int index = 0; index < records.size(); index++) {
 					JsonObject record = records.get(index).asObject();
 					JsonObject event = events.get(index).asObject();

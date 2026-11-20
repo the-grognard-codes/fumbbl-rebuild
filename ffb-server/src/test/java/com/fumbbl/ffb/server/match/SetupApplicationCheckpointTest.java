@@ -882,7 +882,34 @@ class SetupApplicationCheckpointTest {
 			when(session.frozenHistoryDecodedBytes()).thenReturn(2 * mib);
 			when(session.frozenHistoryRetainedBytes()).thenReturn(3 * mib / 2);
 			assertEquals("ACCEPTED", fixture.application.handle("home", request("frozen-growth")).getString("code", null));
-			assertEquals(11 * mib / 2, fixture.application.lifecycleMetrics().getLong("retainedBudgetBytes", -1));
+			JsonObject metrics = fixture.application.lifecycleMetrics();
+			assertEquals(11 * mib / 2, metrics.getLong("retainedBudgetBytes", -1));
+			assertEquals(55 * mib / 2, metrics.getLong("workingReserveBytes", -1));
+		}
+	}
+
+	@Test void checkpointGrowthEvictsAnUnpinnedEngineToReserveSpaceForFrozenHistoryExpansion() throws Exception {
+		long mib = 1024L * 1024;
+		try (Fixture fixture = new Fixture(new MatchMemoryBudget(768 * mib))) {
+			assertEquals("ACCEPTED", fixture.application.handle("home", load()).getString("code", null));
+			String frozen = "00000000-0000-0000-0000-000000000001";
+			String older = "00000000-0000-0000-0000-000000000002";
+			SetupSession protectedEngine = mock(SetupSession.class);
+			when(protectedEngine.hasPendingReactiveDecision()).thenReturn(true);
+			fixture.<SetupSession>map("sessions").put(frozen, protectedEngine);
+			fixture.<SetupSession>map("sessions").put(older, mock(SetupSession.class));
+			fixture.<MatchMemoryBudget.ResidentSize>map("residentSizes").put(frozen,
+				fixture.memoryBudget.residentSize(40 * mib, 39 * mib, 40 * mib));
+			fixture.rememberSize(older, 28 * mib);
+			for (String id : List.of(frozen, older)) {
+				fixture.<Long>map("lastAccess").put(id, NOW - 1000);
+				fixture.<byte[]>map("committedFingerprints").put(id, new byte[32]);
+			}
+			when(fixture.session().recoveryBytes()).thenReturn(30 * mib);
+
+			// Retained charges total 276 MiB. A fixed 280 MiB reserve fits; the required 396 MiB does not.
+			assertEquals("ACCEPTED", fixture.application.handle("home", request("reserve-frozen-workspace")).getString("code", null));
+			assertEquals(1, fixture.application.lifecycleMetrics().getLong("memoryEvictions", -1));
 		}
 	}
 

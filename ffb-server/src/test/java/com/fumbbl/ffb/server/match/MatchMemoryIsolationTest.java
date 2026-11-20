@@ -13,6 +13,7 @@ import java.time.Duration;
 import java.time.Instant;
 import java.time.ZoneOffset;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CountDownLatch;
@@ -42,9 +43,13 @@ class MatchMemoryIsolationTest {
 		assertEquals(40 * MIB, budget.appendLimit());
 		assertEquals(160 * MIB / 11, new MatchMemoryBudget(256 * MIB).decodedLimit());
 		assertEquals(budget.decodedLimit() - 4 * MIB, budget.appendLimit());
-		assertTrue(budget.admitsResidents(budget.residentBytes(budget.decodedLimit()), budget.decodedLimit()));
-		assertFalse(budget.admitsResidents(480 * MIB, 45 * MIB));
-		assertFalse(budget.admitsResidents(budget.residentBytes(22 * MIB) + budget.residentBytes(45 * MIB), 45 * MIB));
+		MatchMemoryBudget.ResidentSize atLimit = budget.residentSize(budget.decodedLimit(), 0, 0);
+		MatchMemoryBudget.ResidentSize large = budget.residentSize(45 * MIB, 0, 0);
+		MatchMemoryBudget.ResidentSize medium = budget.residentSize(75 * MIB / 2, 0, 0);
+		assertEquals(7L * budget.decodedLimit(), budget.sharedWorkingBytes(List.of(atLimit)));
+		assertTrue(budget.admitsResidents(List.of(atLimit), 0));
+		assertFalse(budget.admitsResidents(List.of(large, medium, medium), 0));
+		assertFalse(budget.admitsResidents(List.of(large, budget.residentSize(22 * MIB, 0, 0)), 0));
 		assertThrows(IllegalArgumentException.class, () -> new MatchMemoryBudget(63 * MIB));
 	}
 
