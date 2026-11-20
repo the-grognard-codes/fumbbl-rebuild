@@ -2,103 +2,210 @@
   {
     "id": "a",
     "label": "A \u00b7 Open row",
-    "height": 19,
-    "pitch": 23,
+    "height": 38,
+    "pitch": 15,
+    "spacing": {
+      "min": 15,
+      "max": 22
+    },
     "seats": [
       {
-        "x": 42,
+        "x": 19,
+        "y": 28,
         "pose": "seated-fist",
+        "support": "rear-bench",
+        "origin": {
+          "x": 1,
+          "y": -9
+        },
+        "height": 37,
         "stance": "seated",
-        "height": 18,
-        "neutral": false,
-        "y": 20
+        "knee": {
+          "x": 29,
+          "y": 26
+        },
+        "benchWidth": 9,
+        "thighSpan": 10,
+        "neutral": false
       },
       {
-        "x": 41,
-        "pose": "seated-tankard",
-        "stance": "seated",
-        "height": 19,
-        "neutral": true,
-        "y": 43
-      },
-      {
-        "x": 43,
+        "x": 38,
+        "y": 50,
         "pose": "seated-folded",
+        "support": "inner-bench",
+        "origin": {
+          "x": 20,
+          "y": 13
+        },
+        "height": 37,
         "stance": "seated",
-        "height": 18,
-        "neutral": false,
-        "y": 66
+        "knee": {
+          "x": 48,
+          "y": 48
+        },
+        "benchWidth": 10,
+        "thighSpan": 10,
+        "neutral": false
+      },
+      {
+        "x": 19,
+        "y": 65,
+        "pose": "seated-tankard",
+        "support": "rear-bench",
+        "origin": {
+          "x": 2,
+          "y": 28
+        },
+        "height": 38,
+        "stance": "seated",
+        "knee": {
+          "x": 29,
+          "y": 63
+        },
+        "benchWidth": 9,
+        "thighSpan": 10,
+        "neutral": true
       }
     ],
-    "overlapPixels": 0,
-    "railOverlapPixels": 9
+    "overlapPixels": 5,
+    "railOverlapPixels": 0
   },
   {
     "id": "b",
     "label": "B \u00b7 Balanced row",
-    "height": 25,
-    "pitch": 21,
+    "height": 43,
+    "pitch": 16,
+    "spacing": {
+      "min": 16,
+      "max": 16
+    },
     "seats": [
       {
-        "x": 41,
-        "pose": "standing-fist",
-        "stance": "standing",
-        "height": 25,
-        "neutral": false,
-        "y": 26
-      },
-      {
-        "x": 42,
+        "x": 38,
+        "y": 30,
         "pose": "seated-food",
+        "support": "inner-bench",
+        "origin": {
+          "x": 21,
+          "y": -6
+        },
+        "height": 37,
         "stance": "seated",
-        "height": 21,
-        "neutral": false,
-        "y": 47
+        "knee": {
+          "x": 48,
+          "y": 28
+        },
+        "benchWidth": 10,
+        "thighSpan": 10,
+        "neutral": false
       },
       {
-        "x": 43,
+        "x": 19,
+        "y": 46,
+        "pose": "standing-fist",
+        "support": "rear-bench",
+        "origin": {
+          "x": -2,
+          "y": 1
+        },
+        "height": 43,
+        "stance": "standing",
+        "otherSole": {
+          "x": 27,
+          "y": 46
+        },
+        "neutral": false
+      },
+      {
+        "x": 38,
+        "y": 62,
         "pose": "seated-tankard",
+        "support": "inner-bench",
+        "origin": {
+          "x": 21,
+          "y": 25
+        },
+        "height": 38,
         "stance": "seated",
-        "height": 22,
-        "neutral": true,
-        "y": 68
+        "knee": {
+          "x": 48,
+          "y": 60
+        },
+        "benchWidth": 10,
+        "thighSpan": 10,
+        "neutral": true
       }
     ],
-    "overlapPixels": 0,
-    "railOverlapPixels": 11
+    "overlapPixels": 22,
+    "railOverlapPixels": 0
   },
   {
     "id": "c",
     "label": "C \u00b7 Close row",
-    "height": 28,
-    "pitch": 19,
+    "height": 43,
+    "pitch": 10,
+    "spacing": {
+      "min": 10,
+      "max": 10
+    },
     "seats": [
       {
-        "x": 28,
+        "x": 19,
+        "y": 44,
         "pose": "standing-fist",
+        "support": "rear-bench",
+        "origin": {
+          "x": -2,
+          "y": -1
+        },
+        "height": 43,
         "stance": "standing",
-        "height": 28,
-        "neutral": false,
-        "y": 28
+        "otherSole": {
+          "x": 27,
+          "y": 44
+        },
+        "neutral": false
       },
       {
-        "x": 39,
-        "pose": "seated-bottle",
-        "stance": "seated",
-        "height": 24,
-        "neutral": false,
-        "y": 47
-      },
-      {
-        "x": 52,
+        "x": 38,
+        "y": 54,
         "pose": "seated-tankard",
+        "support": "inner-bench",
+        "origin": {
+          "x": 21,
+          "y": 17
+        },
+        "height": 38,
         "stance": "seated",
-        "height": 25,
-        "neutral": true,
-        "y": 66
+        "knee": {
+          "x": 48,
+          "y": 52
+        },
+        "benchWidth": 10,
+        "thighSpan": 10,
+        "neutral": true
+      },
+      {
+        "x": 19,
+        "y": 64,
+        "pose": "seated-bottle",
+        "support": "rear-bench",
+        "origin": {
+          "x": 2,
+          "y": 26
+        },
+        "height": 36,
+        "stance": "seated",
+        "knee": {
+          "x": 29,
+          "y": 61
+        },
+        "benchWidth": 9,
+        "thighSpan": 10,
+        "neutral": false
       }
     ],
-    "overlapPixels": 6,
-    "railOverlapPixels": 12
+    "overlapPixels": 55,
+    "railOverlapPixels": 0
   }
 ]

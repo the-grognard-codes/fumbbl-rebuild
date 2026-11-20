@@ -10,12 +10,16 @@ const captures = process.env.STADIUM_MOCKUP_OUTPUT || resolve(root, '../.tools/s
 const artwork = resolve(root, '../assets/game/references/stadiums/scale-studies');
 const studies = JSON.parse(await readFile(resolve(artwork, 'bay-six/seats.json'), 'utf8'));
 const atlasPng = await readFile(resolve(artwork, 'bay-six/supporters.png'), 'base64');
+const landmarks = JSON.parse(await readFile(resolve(artwork, 'bay-six/pose-landmarks.json'), 'utf8'));
 const poseColumns = ['seated-fist', 'seated-tankard', 'seated-bottle', 'seated-food', 'standing-fist', 'seated-folded'];
-const poseCaptions = [
-  ['Seated · Raised fist', 'Seated · Tankard', 'Seated · Folded arms'],
-  ['Standing · Raised fist', 'Seated · Eating', 'Seated · Tankard'],
-  ['Standing · Raised fist', 'Seated · Bottle', 'Seated · Tankard'],
-];
+const poseCaptions = {
+  'seated-fist': 'Seated · Raised fist',
+  'seated-tankard': 'Seated · Tankard',
+  'seated-bottle': 'Seated · Bottle',
+  'seated-food': 'Seated · Eating',
+  'standing-fist': 'Standing · Raised fist',
+  'seated-folded': 'Seated · Folded arms',
+};
 const layout = JSON.parse(await readFile(resolve(artwork, 'empty-seating.json'), 'utf8'));
 const bay = layout.bays.find(({ id }) => id === 6);
 await mkdir(captures, { recursive: true });
@@ -45,7 +49,9 @@ try {
   const original = await canvas.evaluate(c => c.toDataURL());
 
   const bayDraws = [];
-  for (const [row, { id, label, seats }] of studies.entries()) {
+  for (const { id, label, seats, spacing } of studies) {
+    const nativeGaps = seats.slice(1).map((seat, index) => Math.abs(seat.y - seats[index].y));
+    assert.deepEqual(spacing, { min: Math.min(...nativeGaps), max: Math.max(...nativeGaps) });
     await select.selectOption(id);
     await page.getByLabel('Gatehouse stadium with ' + label + ' in west bay 6').waitFor();
     const [crowdPng, railPng] = await Promise.all(['.png', '-rail.png'].map(suffix =>
@@ -93,10 +99,20 @@ try {
     await page.getByText('Inspect full poses', { exact: true }).press('Enter');
     const poses = review.getByRole('list', { name: 'Supporters in bay order' });
     await poses.waitFor();
-    assert.deepEqual(await poses.locator('figcaption').allTextContents(), poseCaptions[row]);
-    assert.ok(await review.getByText(row === 0 ? /3 seated$/ : /2 seated, 1 standing$/).isVisible());
-    await poses.evaluate(async (list, { atlasPng, crowdPng, row, seats, bay }) => {
-      const size = 32;
+    assert.deepEqual(await poses.locator('figcaption').allTextContents(), seats.map(({ pose }) => poseCaptions[pose]));
+    const countLabel = seats.every(({ stance }) => stance === 'seated') ? /3 seated$/ : /2 seated, 1 standing$/;
+    assert.ok(await review.getByText(countLabel).isVisible());
+    const spacingLabel = spacing.min === spacing.max ? String(spacing.min) : `${spacing.min}–${spacing.max}`;
+    assert.ok(await review.getByText(spacingLabel + ' px contact spacing', { exact: false }).isVisible());
+    for (const { pose, origin, knee, x, y } of seats) {
+      const local = landmarks[pose];
+      assert.deepEqual([x - origin.x, y - origin.y], local.contact, id + ' registers ' + pose + ' at its contact');
+      assert.deepEqual(knee ? [knee.x - origin.x, knee.y - origin.y] : undefined, local.knee,
+        id + ' preserves the authored knee position for ' + pose);
+    }
+    await poses.evaluate(async (list, { atlasPng, crowdPng, seats, bay }) => {
+      const size = 48;
+      const factor = 2;
       async function decode(bytes) {
         const img = new Image();
         img.src = 'data:image/png;base64,' + bytes;
@@ -110,51 +126,49 @@ try {
         return canvas.getContext('2d');
       }
       const [atlas, crowd] = await Promise.all([decode(atlasPng), decode(crowdPng)]);
+      if (atlas.width !== size * 6 || atlas.height !== size) throw Error('Expected one shared six-pose atlas row');
       const source = surface(atlas.width, atlas.height);
       source.drawImage(atlas, 0, 0);
       const assembled = surface(bay.width, bay.height);
       const canvases = list.querySelectorAll('canvas');
       if (canvases.length !== seats.length) throw Error('Missing isolated pose');
-      for (const [index, { x, y, column }] of seats.entries()) {
-        const native = source.getImageData(column * size, row * size, size, size).data;
+      for (const [index, { origin, column }] of seats.entries()) {
+        const native = source.getImageData(column * size, 0, size, size).data;
         const zoom = canvases[index];
-        if (zoom.width !== size * 3 || zoom.height !== size * 3) throw Error('Expected a 3× isolated pose');
+        if (zoom.width !== size * factor || zoom.height !== size * factor) throw Error('Expected a 2× isolated pose');
         const pixels = zoom.getContext('2d').getImageData(0, 0, zoom.width, zoom.height).data;
-        let bottom = -1;
-        for (let sy = 0; sy < size; sy++) {
-          for (let sx = 0; sx < size; sx++) {
-            const sample = (sy * size + sx) * 4;
-            if (native[sample + 3]) bottom = sy;
-            for (let yy = 0; yy < 3; yy++) {
-              for (let xx = 0; xx < 3; xx++) {
-                const target = ((sy * 3 + yy) * zoom.width + sx * 3 + xx) * 4;
-                if (native.subarray(sample, sample + 4).some((value, channel) => value !== pixels[target + channel])) {
-                  throw Error('Isolated pose ' + index + ' differs from its original atlas cell');
-                }
-              }
+        for (let y = 0; y < zoom.height; y++) {
+          for (let x = 0; x < zoom.width; x++) {
+            const sample = (Math.floor(y / factor) * size + Math.floor(x / factor)) * 4;
+            const target = (y * zoom.width + x) * 4;
+            if (native.subarray(sample, sample + 4).some((value, channel) => value !== pixels[target + channel])) {
+              throw Error('Isolated pose ' + index + ' differs from its original atlas cell');
             }
           }
         }
-        if (bottom < 0) throw Error('Empty isolated pose');
-        assembled.drawImage(atlas, column * size, row * size, size, size, x - size / 2, y - bottom, size, size);
+        if (!native.some((channel, index) => index % 4 === 3 && channel > 0)) throw Error('Empty isolated pose');
+        assembled.drawImage(atlas, column * size, 0, size, size, origin.x, origin.y, size, size);
       }
       const expected = surface(bay.width, bay.height);
       expected.drawImage(crowd, 0, 0);
       if (assembled.canvas.toDataURL() !== expected.canvas.toDataURL()) {
         throw Error('Isolated pose colours or alignment differ from the assembled bay crowd');
       }
-    }, { atlasPng, crowdPng, row, seats: seats.map(seat => ({ ...seat, column: poseColumns.indexOf(seat.pose) })), bay });
+    }, { atlasPng, crowdPng, seats: seats.map(seat => ({ ...seat, column: poseColumns.indexOf(seat.pose) })), bay });
     await review.getByRole('heading', { name: 'West bay 6' }).click();
     await review.screenshot({ path: resolve(captures, 'west-bay-six-' + id + '-poses.png') });
 
     await rail.uncheck();
     assert.equal(await bayDraw(), expectedBay.withoutRail);
     await markers.check();
+    assert.ok(await review.getByText('mark hip or boot contact.', { exact: false }).isVisible());
     assert.equal(await canvas.evaluate((c, { bay, seats }) => {
       const context = c.getContext('2d');
-      return seats.every(({ x, y }) =>
-        context.getImageData(bay.x + x, bay.y + y, 1, 1).data.join(',') === '128,245,255,255');
-    }, { bay, seats }), true, id + ' shows each seat marker at its exported coordinates');
+      const color = ({ x, y }) => context.getImageData(bay.x + x, bay.y + y, 1, 1).data.join(',');
+      return seats.every(seat => color(seat) === '128,245,255,255' &&
+        (!seat.knee || color(seat.knee) === '255,225,123,255'));
+    }, { bay, seats }), true, id + ' marks each contact and seated knee at its exported coordinates');
+    await review.screenshot({ path: resolve(captures, 'west-bay-six-' + id + '-contacts.png') });
     assert.equal(await native.evaluate(async (c, original) => {
       const full = document.querySelector('canvas[data-ready="true"]');
       const zoom = document.querySelector('canvas[aria-labelledby="bay-six-zoom"]');

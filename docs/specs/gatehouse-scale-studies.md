@@ -2,17 +2,17 @@
 
 ## West bay 6 · Supporter scale review
 
-The three gallery views put full-body supporters in the same small west stand with a blitzer on the nearest pitch square for scale. The seated figures have bent knees and boots extending toward the field. Each row has two supporters in team colours and a tankard drinker in fixed grey and brown.
+All three layouts use the same supporter scale. The two intact bench tops measure 9 and 10 native pixels across. Each seated hip rests at the back of its plank, with the near knee 10 px toward the pitch and the boots hanging past the front. A standing supporter places both soles on one plank. The blitzer on the nearest pitch square provides a second scale reference.
 
-![Three rows in the same stand, each beside the same blitzer](../../assets/game/references/stadiums/scale-studies/bay-six/comparison.webp)
+![Three seating arrangements at game scale above enlarged views of hip, boot and knee placement](../../assets/game/references/stadiums/scale-studies/bay-six/comparison.webp)
 
-| Gallery view | Tallest pose | Seat spacing | Poses from top to bottom |
-| --- | ---: | ---: | --- |
-| A · Open row | 19 px | 23 px | Seated cheer, raised tankard, folded arms. The gaps expose all three silhouettes. |
-| B · Balanced row | 25 px | 21 px | Standing cheer, seated dwarf eating, seated tankard drinker. |
-| C · Close row | 28 px | 19 px | Standing cheer, seated bottle holder, seated tankard drinker. The staggered figures overlap at six native pixels. |
+| Gallery view | Arrangement | Vertical spacing between contacts |
+| --- | --- | ---: |
+| A · Open row | Three seated fans spread across both benches | 15–22 px |
+| B · Balanced row | Two seated fans on the inner bench and one standing on the rear bench | 16 px |
+| C · Close row | Two seated fans and a standing fan clustered across the benches | 10 px |
 
-Open `/stadium-mockup` and use **Gallery view** to switch rows. Compare each at native size and 4×, or scroll down to see the whole pitch. **Seat markers** shows the three anchors, and **Front rail** toggles the timber in front of the nearest boots. Open **Inspect full poses** to see the complete source figures, including pixels hidden by a neighbour or the rail.
+Open `/stadium-mockup` and use **Gallery view** to switch rows. Compare each at native size and 4×, or scroll down to see the whole pitch. Enable **Seat markers** to see hip or boot contacts in cyan and seated knees in gold. Toggle **Front rail** to expose the timber. **Inspect full poses** shows the complete figures before overlap.
 
 ## Empty Gatehouse
 

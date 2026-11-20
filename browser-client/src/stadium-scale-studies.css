@@ -57,6 +57,9 @@
 .bay-six-toolbar p { margin: 0; font-size: .9375rem; }
 .bay-six-toolbar label { min-height: 32px; cursor: pointer; }
 .bay-six-toolbar input { width: auto; margin: 0; accent-color: #f0ca7b; }
+.bay-six-review .bay-six-marker-key { margin-top: 0; font-size: .875rem; }
+.bay-six-marker-key span:first-child { color: #80f5ff; }
+.bay-six-marker-key span:last-child { color: #ffe17b; }
 .bay-six-crops {
   display: grid;
   grid-template-columns: max-content minmax(0, 1fr);

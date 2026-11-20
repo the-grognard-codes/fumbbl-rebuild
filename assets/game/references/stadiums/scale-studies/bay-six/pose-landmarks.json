@@ -1,0 +1,8 @@
+{
+  "seated-fist":    { "contact": [18, 37], "knee": [28, 35] },
+  "seated-tankard": { "contact": [17, 37], "knee": [27, 35] },
+  "seated-bottle":  { "contact": [17, 38], "knee": [27, 35] },
+  "seated-food":    { "contact": [17, 36], "knee": [27, 34] },
+  "standing-fist":  { "contact": [21, 45], "otherSole": [29, 45] },
+  "seated-folded":  { "contact": [18, 37], "knee": [28, 35] }
+}
