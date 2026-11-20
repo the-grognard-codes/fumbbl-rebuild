@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Record GitHub App token expiry in UTC, so gh refreshes tokens on time instead of failing with Bad credentials, and add a setup script for running Codex as the app on another machine.
+
 - Repair stale or missing GitHub App CLI credentials from the token cache and retry interrupted token refreshes.
 
 - Show opposing threat markings for the inspected Charge player after the server accepts their selection.

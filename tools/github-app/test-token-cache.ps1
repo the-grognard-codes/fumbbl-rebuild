@@ -14,7 +14,8 @@ function Invoke-RestMethod([string]$Method, [uri]$Uri, [hashtable]$Headers, $Bod
 		'GET /repos/fixture-owner/fixture-repo/installation' { return @{ id = 1 } }
 		'POST /app/installations/1/access_tokens' {
 			Start-Sleep -Milliseconds $mockGitHub.mintDelay
-			return @{ token = $mockGitHub.mintedToken; expires_at = [DateTimeOffset]::UtcNow.AddHours(1).ToString('o') }
+			# The real Invoke-RestMethod turns the API's ISO 8601 string into a UTC DateTime.
+			return @{ token = $mockGitHub.mintedToken; expires_at = [DateTime]::UtcNow.AddHours(1) }
 		}
 		'GET /app' { return @{ slug = 'fixture-app' } }
 		'GET /users/fixture-app%5Bbot%5D' {
@@ -59,6 +60,8 @@ try {
 	Assert-Result ($originalHosts.Contains($mockGitHub.mintedToken)) 'Initial mint installs the token for gh'
 
 	$cache = Get-Content -Raw -LiteralPath $cachePath | ConvertFrom-Json
+	$cachedLifetime = [DateTimeOffset]$cache.expiresAt - [DateTimeOffset]::UtcNow
+	Assert-Result ($cachedLifetime -gt [TimeSpan]::FromMinutes(55) -and $cachedLifetime -le [TimeSpan]::FromHours(1)) 'The cache records the token expiry in UTC'
 	$cache.expiresAt = [DateTimeOffset]::UtcNow.AddMinutes(-1).ToString('o')
 	$cache | ConvertTo-Json | Set-Content -LiteralPath $cachePath
 	$expiredCache = Get-Content -Raw -LiteralPath $cachePath
