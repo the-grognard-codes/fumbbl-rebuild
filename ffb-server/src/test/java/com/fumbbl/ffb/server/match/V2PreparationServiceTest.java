@@ -37,10 +37,38 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.startsWith;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 class V2PreparationServiceTest {
+	@Test void legacyClassificationRuntimeFailureKeepsRegistrationAvailableAndRetriesLater() throws Exception {
+		String matchId = "00000000-0000-0000-0000-000000000021";
+		Connection connection = mock(Connection.class);
+		PreparedStatement snapshot = mock(PreparedStatement.class);
+		ResultSet rows = mock(ResultSet.class);
+		when(connection.prepareStatement(startsWith("SELECT p.match_id"))).thenReturn(snapshot);
+		when(snapshot.executeQuery()).thenReturn(rows);
+		when(rows.next()).thenReturn(true, false, true, false, true, false);
+		when(rows.getString(1)).thenReturn(matchId);
+		when(rows.getString(2)).thenReturn("away");
+		when(rows.getLong(4)).thenReturn(1L);
+		when(rows.wasNull()).thenReturn(true);
+		String documentQuery = "SELECT document_version,document_json FROM ffb_prepared_matches WHERE match_id=?";
+		when(connection.prepareStatement(documentQuery)).thenThrow(new IllegalStateException("Injected classification failure"),
+			new MatchService.Failure("SNAPSHOT_UNSUPPORTED"));
+		Clock clock = mock(Clock.class);
+		when(clock.millis()).thenReturn(1_000L, 2_000L, 301_000L);
+		V2PreparationService service = new V2PreparationService(() -> connection, null, null, clock);
+
+		V2PreparationService.ComputerInventory available = new V2PreparationService.ComputerInventory(List.of(matchId), false);
+		assertEquals(available, service.activeComputerMatches());
+		assertEquals(available, service.activeComputerMatches());
+		verify(connection).prepareStatement(documentQuery);
+		assertEquals(available, service.activeComputerMatches());
+		verify(connection, times(2)).prepareStatement(documentQuery);
+	}
+
 	@Test void definiteAdmissionRefusalsStayDistinctFromCleanupUncertaintyForEveryPreparationEntry() {
 		String account = "00000000-0000-0000-0000-000000000001", match = "00000000-0000-0000-0000-000000000002";
 		for (SQLException failure : new SQLException[] {new JdbcConnections.NotStarted(), new JdbcConnections.CommitNotStarted(),

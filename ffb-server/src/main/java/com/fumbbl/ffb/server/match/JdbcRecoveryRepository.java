@@ -323,10 +323,9 @@ public final class JdbcRecoveryRepository implements RecoveryRepository {
 	}
 
 	record LegacyComputerWork(String matchId, long generation, long workUntil) { }
-	private static final long UNREADABLE_LEGACY_WORK_MILLIS = 5 * 60_000L;
 
 	/** Reads a single pre-migration head. A scheduled load still validates the full history. */
-	LegacyComputerWork readLegacyComputerWork(String matchId, long now) throws SQLException {
+	LegacyComputerWork readLegacyComputerWork(String matchId) throws SQLException {
 		long generation;
 		boolean journalHead;
 		String stored;
@@ -343,26 +342,19 @@ public final class JdbcRecoveryRepository implements RecoveryRepository {
 				stored = rows.getString(3);
 			}
 		}
-		long workUntil;
-		try {
-			BoundedJsonStorageCodec decoder = journalHead
-				? new BoundedJsonStorageCodec(RecoveryJournal.MAX_ENTRY_BYTES, RecoveryJournal.MAX_ENTRY_BYTES) : codec;
-			RecoveryCheckpoint checkpoints = new RecoveryCheckpoint();
-			String json = decoder.decode(stored);
-			JsonObject payload;
-			if (journalHead) {
-				payload = new RecoveryJournal().readHeadState(json, matchId, generation);
-				checkpoints.requireSupported(payload);
-			} else payload = checkpoints.validate(json).payload();
-			if (!matchId.equals(payload.getString("matchId", null))) throw new IllegalArgumentException("Invalid checkpoint match");
-			JsonValue saved = payload.get("saveResume");
-			workUntil = saved == null || saved.isNull() || payload.getBoolean("pendingTerminal", false)
-				? Long.MAX_VALUE : new SetupSession.SaveResumeState(saved.asObject()).computerWorkUntil();
-		} catch (RuntimeException invalid) {
-			new MatchPersistenceLog().coldComputerLoadFallback("computer-inventory-backfill", matchId, invalid);
-			// Give normal recovery time to report the failure without permanently advertising a broken head.
-			workUntil = now + UNREADABLE_LEGACY_WORK_MILLIS;
-		}
+		BoundedJsonStorageCodec decoder = journalHead
+			? new BoundedJsonStorageCodec(RecoveryJournal.MAX_ENTRY_BYTES, RecoveryJournal.MAX_ENTRY_BYTES) : codec;
+		RecoveryCheckpoint checkpoints = new RecoveryCheckpoint();
+		String json = decoder.decode(stored);
+		JsonObject payload;
+		if (journalHead) {
+			payload = new RecoveryJournal().readHeadState(json, matchId, generation);
+			checkpoints.requireSupported(payload);
+		} else payload = checkpoints.validate(json).payload();
+		if (!matchId.equals(payload.getString("matchId", null))) throw new IllegalArgumentException("Invalid checkpoint match");
+		JsonValue saved = payload.get("saveResume");
+		long workUntil = saved == null || saved.isNull() || payload.getBoolean("pendingTerminal", false)
+			? Long.MAX_VALUE : new SetupSession.SaveResumeState(saved.asObject()).computerWorkUntil();
 		return new LegacyComputerWork(matchId, generation, workUntil);
 	}
 

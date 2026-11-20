@@ -26,6 +26,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -194,11 +195,11 @@ class RecoveryJournalMariaDbTest {
 				"A lost CAS and jobs beyond the backfill limit are still included in the registration snapshot");
 			assertFalse(compete.get());
 			assertEquals("3", scalar(connections, "SELECT COUNT(*) FROM ffb_match_recovery WHERE computer_work_until_epoch_ms=0"));
-			assertEquals("1", scalar(connections, "SELECT COUNT(*) FROM ffb_match_recovery WHERE computer_work_until_epoch_ms IS NULL"));
+			assertEquals("2", scalar(connections, "SELECT COUNT(*) FROM ffb_match_recovery WHERE computer_work_until_epoch_ms IS NULL"));
 			V2PreparationService restartedInventory = new V2PreparationService(connections::open, null, null, beforeResume, computers);
 			assertEquals(new V2PreparationService.ComputerInventory(List.of(corruptId, activeId), false), restartedInventory.activeComputerMatches(),
 				"The next inventory observes the winning CAS and classifies the remaining head");
-			assertEquals(Long.toString(beforeResume.millis() + 5 * 60_000L), scalar(connections,
+			assertNull(scalar(connections,
 				"SELECT computer_work_until_epoch_ms FROM ffb_match_recovery WHERE matchid='" + corruptId + "'"));
 			assertEquals(List.of(corruptId, activeId), inventory.activeComputerMatches().matches());
 			RecoveryRepository.CorruptRecord failure = assertThrows(RecoveryRepository.CorruptRecord.class,
@@ -217,15 +218,15 @@ class RecoveryJournalMariaDbTest {
 			assertTrue(repository.append(pendingResume, 2));
 			assertEquals(List.of(id, corruptId, activeId), restartedInventory.activeComputerMatches().matches());
 			Clock atExpiry = Clock.fixed(Instant.ofEpochMilli(resume.getLong("expiresAt", -1)), ZoneOffset.UTC);
-			assertEquals(List.of(activeId), new V2PreparationService(connections::open, null, null, atExpiry, computers).activeComputerMatches().matches(),
-				"The expired resume and unreadable legacy head leave the inventory");
+			assertEquals(List.of(corruptId, activeId), new V2PreparationService(connections::open, null, null, atExpiry, computers).activeComputerMatches().matches(),
+				"A failed legacy classification must not drop the job while it waits for a normal worker load");
 
 			SetupSession recovered = new SetupSession(engine.server, engine.document, repository.find(id).json);
 			JsonObject resumed = consent(recovered, "away", "resumeAccept", "accept-resume",
 				resume.getString("proposalId", null), now + 22);
 			assertEquals("ACTIVE", resumed.getString("status", null));
 			assertTrue(repository.save(new RecoveryRepository.Record(id, 4, recovered.recoveryArtifact(), recovered.computerWorkUntil()), 3));
-			assertEquals(List.of(id, activeId), new V2PreparationService(connections::open, null, null, atExpiry, computers).activeComputerMatches().matches());
+			assertEquals(List.of(id, corruptId, activeId), new V2PreparationService(connections::open, null, null, atExpiry, computers).activeComputerMatches().matches());
 		} finally {
 			try (Connection connection = connections.open(); Statement sql = connection.createStatement()) {
 				for (String table : new String[] {"ffb_match_recovery_journal", "ffb_match_recovery", "ffb_local_schema",

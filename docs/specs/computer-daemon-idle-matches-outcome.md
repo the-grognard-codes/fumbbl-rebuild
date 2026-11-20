@@ -43,7 +43,7 @@ The dispatcher reads the idle revision after child IPC has drained. A reconnect 
 
 ## Third-round review of `c0df23e34`
 
-The backfill logs an unreadable legacy head and advertises it for five minutes so the worker can report the recovery error. The MariaDB regression covers that window, a lost backfill write, a mismatched computer seat, and legacy jobs beyond the batch limit. The transport regression verifies that a saved job uses no worker slot and that Bogruk accepts a resume proposed during a dispatcher disconnect before the five-minute window expires.
+The backfill logs classification failures and leaves legacy jobs eligible with unknown availability. A five-minute cooldown bounds retries for the same generation. The MariaDB regression covers availability past that interval, a lost backfill write, a mismatched computer seat, and legacy jobs beyond the batch limit. The transport regression verifies that a saved job uses no worker slot and that Bogruk accepts a resume proposed during a dispatcher disconnect before the five-minute window expires.
 
 The isolated server was stopped while migration 010 was applied to a backed-up marker-9 database. The ten active legacy matches began with unclassified availability. Backfill classified seven as eligible and excluded three with zero availability. The two completed rows remained unclassified and outside the inventory. The first worker runs exposed an additional recovery incompatibility from the announcement changes merged from main. The previous five-field announcement checkpoint now restores with empty kickoff and weather state. A read-only recovery check restored all ten legacy matches with this fix.
 

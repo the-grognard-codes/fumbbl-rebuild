@@ -32,8 +32,9 @@ dispatcher registration. The column records the availability of the same
 committed generation as the full checkpoint or journal append. The recovery
 artifact remains authoritative. Existing marker-9 rows start with a null
 value and are advertised while awaiting classification. Registration classifies
-up to four legacy heads at a time under the generation check. An unreadable or
-unsupported legacy head stays eligible for five minutes so normal recovery
-can report the failure. Schema migration preserves the match checkpoint's
-format version. Both the native restore and the computer's stored-view path
+up to four legacy heads at a time under the generation check. A classification
+failure leaves availability unknown and the job eligible for normal recovery.
+The server waits five minutes before rechecking the same generation. Schema
+migration preserves the match checkpoint's format version. Both the native
+restore and the computer's stored-view path
 require recovery version 7. See the [migration and rollback procedure](../operations/recovery-journal-schema.md).

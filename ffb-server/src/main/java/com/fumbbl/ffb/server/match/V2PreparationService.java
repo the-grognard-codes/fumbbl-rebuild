@@ -34,6 +34,7 @@ import java.util.UUID;
 public final class V2PreparationService {
 	private static final long INVITATION_LIFETIME_MS = 60L * 60L * 1000L;
 	private static final int LEGACY_BACKFILL_LIMIT = 4;
+	private static final long LEGACY_CLASSIFICATION_RETRY_MILLIS = 5 * 60_000L;
 	public interface Connections { Connection open() throws SQLException; }
 	private final Connections connections;
 	private final SavedTeamService teams;
@@ -47,6 +48,7 @@ public final class V2PreparationService {
 	private final SecureRandom random = new SecureRandom();
 	private String lastLegacyComputerMatch = "";
 	private JdbcRecoveryRepository.LegacyComputerWork pendingLegacyComputerWork;
+	private final Map<String, LegacyRetry> legacyRetries = new LinkedHashMap<>();
 
 	public V2PreparationService(Connections connections, SavedTeamService teams, RosterCatalog catalog, Clock clock) {
 		this(connections, teams, catalog, clock, new ComputerOpponentService(null));
@@ -119,10 +121,12 @@ public final class V2PreparationService {
 	}
 
 	private record LegacyCandidate(String matchId, String role, long generation) { }
+	private record LegacyRetry(long generation, long retryAt) { }
 
 	/** Active jobs are replayed when the independent computer process reconnects. */
 	public ComputerInventory activeComputerMatches() throws SQLException {
 		Set<String> result = new LinkedHashSet<>();
+		Set<String> unclassified = new HashSet<>();
 		List<LegacyCandidate> legacy = new ArrayList<>();
 		long now = clock.millis();
 		persistLegacyComputerWork();
@@ -140,10 +144,16 @@ public final class V2PreparationService {
 					// Version 3 is activated. Membership is checked again against the frozen seat on load.
 					result.add(id);
 					rows.getLong(3);
-					if (rows.wasNull()) legacy.add(new LegacyCandidate(id, rows.getString(2), rows.getLong(4)));
+					if (!rows.wasNull()) continue;
+					unclassified.add(id);
+					long generation = rows.getLong(4);
+					LegacyRetry retry = legacyRetries.get(id);
+					if (retry == null || generation != retry.generation() || now >= retry.retryAt())
+						legacy.add(new LegacyCandidate(id, rows.getString(2), generation));
 				}
 			}
 		}
+		legacyRetries.keySet().retainAll(unclassified);
 		// Use the snapshot for every dispatcher. Only a successful CAS can remove a legacy job from it.
 		legacy.sort(Comparator.comparing(candidate -> candidate.matchId().compareTo(lastLegacyComputerMatch) <= 0));
 		int limit = Math.min(LEGACY_BACKFILL_LIMIT, legacy.size());
@@ -151,21 +161,28 @@ public final class V2PreparationService {
 		for (int index = 0; index < limit && pendingLegacyComputerWork == null; index++) {
 			LegacyCandidate candidate = legacy.get(index);
 			lastLegacyComputerMatch = candidate.matchId();
+			JdbcRecoveryRepository.LegacyComputerWork work;
 			try {
-				JdbcRecoveryRepository.LegacyComputerWork work = classifyLegacyComputerWork(candidate, now);
-				pendingLegacyComputerWork = work;
-				if (!persistLegacyComputerWork()) deferred = true;
-				else if (work.workUntil() <= now) result.remove(candidate.matchId());
+				work = classifyLegacyComputerWork(candidate);
 			} catch (SQLException unavailable) {
 				deferred = true;
 				new MatchPersistenceLog().rejected("computer-inventory-backfill", candidate.matchId(), null, unavailable);
 				break;
+			} catch (RuntimeException invalid) {
+				// Leave the job eligible while the normal recovery path handles the authoritative load.
+				legacyRetries.put(candidate.matchId(), new LegacyRetry(candidate.generation(), now + LEGACY_CLASSIFICATION_RETRY_MILLIS));
+				new MatchPersistenceLog().coldComputerLoadFallback("computer-inventory-backfill", candidate.matchId(), invalid);
+				continue;
 			}
+			legacyRetries.remove(candidate.matchId());
+			pendingLegacyComputerWork = work;
+			if (!persistLegacyComputerWork()) deferred = true;
+			else if (work.workUntil() <= now) result.remove(candidate.matchId());
 		}
 		return new ComputerInventory(List.copyOf(result), deferred || pendingLegacyComputerWork != null);
 	}
 
-	private JdbcRecoveryRepository.LegacyComputerWork classifyLegacyComputerWork(LegacyCandidate candidate, long now)
+	private JdbcRecoveryRepository.LegacyComputerWork classifyLegacyComputerWork(LegacyCandidate candidate)
 		throws SQLException {
 		try (Connection connection = connections.open()) {
 			MatchDocument document = document(connection, candidate.matchId(), false);
@@ -173,11 +190,8 @@ public final class V2PreparationService {
 				|| !verifiedComputerRole(document, candidate.role())) {
 				return new JdbcRecoveryRepository.LegacyComputerWork(candidate.matchId(), candidate.generation(), 0);
 			}
-		} catch (IllegalArgumentException invalid) {
-			new MatchPersistenceLog().coldComputerLoadFallback("computer-inventory-backfill", candidate.matchId(), invalid);
-			return new JdbcRecoveryRepository.LegacyComputerWork(candidate.matchId(), candidate.generation(), 0);
 		}
-		return recovery.readLegacyComputerWork(candidate.matchId(), now);
+		return recovery.readLegacyComputerWork(candidate.matchId());
 	}
 
 	private boolean persistLegacyComputerWork() {
