@@ -2,7 +2,7 @@
 
 ## Unreleased
 
-- The Gatehouse gallery now has eight supporters in ten poses. The 75% west bay leaves the seat directly above the standing handbell ringer open. At full attendance the ringer sits in the same spot. **Inspect all 10 poses** shows the full roster at pixel zoom.
+- The Gatehouse gallery now has eight supporters in ten poses, with boot leather ranging from charcoal and weathered grey to walnut and saddle brown. The 75% west bay leaves the seat directly above the standing handbell ringer open. At full attendance the ringer sits in the same spot. **Inspect all 10 poses** shows the full roster at pixel zoom.
 
 - Animate touchdowns, turnovers, turn starts, all 11 kickoff results, weather, half-time, and the end of a match, including concessions. Touchdown splashes name the scorer. Touchdown, half-time, and final splashes show both teams' scores side by side.
 
