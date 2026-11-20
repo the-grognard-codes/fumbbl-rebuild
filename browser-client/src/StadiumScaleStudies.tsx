@@ -1,124 +1,68 @@
-import { useEffect, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
-import { gatehouseClothOverlay, loadGatehouseArtwork, type GatehouseArtwork } from './gatehouse-artwork.ts';
-import { playerArtPlacement, resolvePlayerArt } from './player-art.ts';
-import {
-  MOCKUP_COLOR_PRESETS, MOCKUP_PLAYER_WIDTH_IN_SQUARES, STILL_LAYOUT, mockupColorPair,
-  type MockupColorPreset, type MockupPlayer,
-} from './stadium-mockup.ts';
-import { teamColorArt } from './team-color-art.ts';
-import type { TeamColors } from './team-colors.ts';
-import inwardBowlUrl from '../../assets/game/references/stadiums/scale-studies/gatehouse-inward.webp';
-import materialMaskUrl from '../../assets/game/references/stadiums/scale-studies/gatehouse-materials.png';
+import { useEffect, useRef, useState } from 'react';
+import architectureUrl from '../../assets/game/references/stadiums/scale-studies/empty-gatehouse.webp';
+import seatingUrl from '../../assets/game/references/stadiums/scale-studies/empty-seating.png';
 import { bowl, drawBowlGround } from './stadium-bowl-study.ts';
 import './stadium-mockup.css';
 import './stadium-scale-studies.css';
 
-const crop = { x: 0, y: 544, width: 416, height: 352 };
-const { pitch, pixelsPerSquare } = STILL_LAYOUT;
-const westBowlCrop = { ...crop, y: bowl.pitchY + crop.y - pitch.y };
-const inwardViews = {
-  full: { label: 'Whole bowl', x: 0, y: 0, width: bowl.width, height: bowl.height },
-  south: { label: 'South gate', x: 80, y: 888, width: 630, height: 300 },
-  east: { label: 'East away terrace', x: 490, y: 198, width: 300, height: 714 },
-  north: { label: 'North banners', x: 60, y: 0, width: 670, height: 270 },
-  west: { label: 'West terrace with players', ...westBowlCrop },
-} as const;
-type InwardView = keyof typeof inwardViews;
-const touchline = pitch.x - crop.x;
-function studyPlayer(role: 'home' | 'away', number: number, x: number, y: number): MockupPlayer {
-  const art = role === 'home' ? { rosterId: 'human', positionId: 'blitzer' }
-    : { rosterId: 'orc', positionId: 'orc-blitzer' };
-  return { id: role + '-' + number, name: (role === 'home' ? 'Human' : 'Orc') + ' blitzer', number, slot: number,
-    role, x, y, state: 'standing', art };
+async function image(url: string) {
+  const result = new Image();
+  result.src = url;
+  await result.decode();
+  if (result.width !== bowl.width || result.height !== bowl.height) throw Error('Invalid Gatehouse layer dimensions');
+  return result;
 }
 
-const players = [studyPlayer('home', 1, 8, 0), ...[0, 1, 2].map(y => studyPlayer('away', y + 1, 12, y)),
-  ...[0, 1, 2].map(y => studyPlayer('home', y + 2, 13, y))];
-
-function gatehouseColorPair(preset: MockupColorPreset) {
-  const pair = mockupColorPair(preset);
-  return preset === 'defaults' ? { ...pair, away: { ...pair.away, secondary: 'ivory' } } : pair;
-}
-
-function StudyPlayers({ scale, pair, frame = crop, originX = touchline, originY = pitch.y - crop.y }: {
-  scale: number; pair: Record<'home' | 'away', TeamColors>; frame?: { width: number; height: number };
-  originX?: number; originY?: number;
-}) {
-  return players.map(player => {
-    const body = resolvePlayerArt(player, { colors: pair[player.role], end: 'home', topDown: true })?.body;
-    if (!body) return null;
-    const size = pixelsPerSquare * MOCKUP_PLAYER_WIDTH_IN_SQUARES / 64 * scale;
-    const x = originX + (player.y + .5) * pixelsPerSquare;
-    const y = originY + (player.x + .5) * pixelsPerSquare;
-    const { shadowAnchor: feet } = playerArtPlacement(body, true);
-    return <img className="scale-study-player" key={player.id} src={body.url} alt={player.name}
-      data-player-id={player.id} data-roster={player.art.rosterId}
-      data-foot-x={x} data-foot-y={y} data-anchor-x={feet.x} data-anchor-y={feet.y}
-      style={{ left: `${(x - feet.x * size) / frame.width * 100}%`, top: `${(y - feet.y * size) / frame.height * 100}%`,
-        width: `${body.width * size / frame.width * 100}%`, height: `${body.height * size / frame.height * 100}%` }}/>;
-  });
+async function loadLayers() {
+  const [stadium, seating] = await Promise.all([image(architectureUrl), image(seatingUrl)]);
+  const overlay = document.createElement('canvas');
+  overlay.width = bowl.width;
+  overlay.height = bowl.height;
+  const context = overlay.getContext('2d')!;
+  context.drawImage(seating, 0, 0);
+  const pixels = context.getImageData(0, 0, bowl.width, bowl.height);
+  for (let i = 0; i < pixels.data.length; i += 4) {
+    const bay = pixels.data[i];
+    const away = bay >= 8 && bay <= 11;
+    pixels.data.set(away ? [235, 132, 203, 145] : [64, 214, 195, 145], i);
+    if (!bay) pixels.data[i+3] = 0;
+  }
+  context.putImageData(pixels, 0, 0);
+  return { stadium, overlay };
 }
 
 export function StadiumScaleStudies() {
-  const [colors, setColors] = useState<MockupColorPreset>('defaults');
-  const [inwardView, setInwardView] = useState<InwardView>('full');
-  const [source, setSource] = useState<GatehouseArtwork>();
+  const [layers, setLayers] = useState<Awaited<ReturnType<typeof loadLayers>>>();
   const [failed, setFailed] = useState(false);
-  const inwardBowl = useRef<HTMLCanvasElement>(null);
-  const pair = useMemo(() => gatehouseColorPair(colors), [colors]);
-  const cloth = useMemo(() => source && gatehouseClothOverlay(source, pair), [source, pair]);
-  const inwardFrame = inwardViews[inwardView];
-
-  useSyncExternalStore(teamColorArt.subscribe, teamColorArt.snapshot);
+  const [masked, setMasked] = useState(false);
+  const canvas = useRef<HTMLCanvasElement>(null);
   useEffect(() => {
-    let disposed = false;
-    const release = teamColorArt.retain();
-    void teamColorArt.load('human');
-    void teamColorArt.load('orc');
-    document.title = 'Gatehouse stadium gallery';
-    loadGatehouseArtwork(inwardBowlUrl, materialMaskUrl).then(
-      assets => { if (!disposed) setSource(assets); },
-      () => { if (!disposed) setFailed(true); },
-    );
-    return () => { disposed = true; release(); };
+    let active = true;
+    document.title = 'Empty Gatehouse stadium';
+    loadLayers().then(value => { if (active) setLayers(value); }, () => { if (active) setFailed(true); });
+    return () => { active = false; };
   }, []);
-
-  useLayoutEffect(() => {
-    const context = inwardBowl.current?.getContext('2d');
-    if (!context || !source || !cloth) return;
-    context.imageSmoothingEnabled = false;
-    context.save();
-    context.translate(-inwardFrame.x, -inwardFrame.y);
+  useEffect(() => {
+    const context = canvas.current?.getContext('2d');
+    if (!context || !layers) return;
     drawBowlGround(context, true);
-    context.drawImage(source.image, 0, 0);
-    context.drawImage(cloth, 0, 0);
-    context.restore();
-  }, [source, cloth, inwardFrame]);
+    context.drawImage(layers.stadium, 0, 0);
+    if (masked) context.drawImage(layers.overlay, 0, 0);
+  }, [layers, masked]);
 
   return <main className="stadium-mockup scale-studies">
-    {failed && <p className="mockup-status" role="alert">The study artwork failed to load. Reload the page to retry.</p>}
-    {!source && !failed && <p role="status">Loading study artwork…</p>}
-    <section id="inward-bowl" aria-labelledby="inward-bowl-heading">
-      <h1 id="inward-bowl-heading">Gatehouse stadium</h1>
-      <div className="mockup-controls scale-study-controls">
-        <label>Kit colours
-          <select value={colors} onChange={event => setColors(event.target.value as MockupColorPreset)}>
-            {MOCKUP_COLOR_PRESETS.map(value => <option key={value}>{value}</option>)}
-          </select>
-        </label>
-        <label>Bowl view
-          <select value={inwardView} onChange={event => setInwardView(event.target.value as InwardView)}>
-            {Object.entries(inwardViews).map(([value, { label }]) => <option key={value} value={value}>{label}</option>)}
-          </select>
-        </label>
-      </div>
-      <div className="scale-study-crop" style={{ maxWidth: inwardFrame.width }}
-        data-view={inwardView} data-ready={Boolean(source)}>
-        <canvas key={inwardView} ref={inwardBowl} width={inwardFrame.width} height={inwardFrame.height}
-          role="img" aria-label={inwardFrame.label + ' at native scale'}/>
-        {source && (inwardView === 'full' || inwardView === 'west') && <StudyPlayers scale={1.25} pair={pair}
-          frame={inwardFrame} originX={bowl.pitchX - inwardFrame.x} originY={bowl.pitchY - inwardFrame.y}/>}
-      </div>
-    </section>
+    <h1>Gatehouse stadium</h1>
+    <label className="mockup-controls">Gallery view
+      <select value={masked ? 'masks' : 'empty'} onChange={e => setMasked(e.target.value === 'masks')}>
+        <option value="empty">Empty stadium</option>
+        <option value="masks">Show seating masks</option>
+      </select>
+    </label>
+    {masked && <p>Teal marks home seating. Pink marks the east away stand.</p>}
+    {failed && <p role="alert">The stadium artwork could not be loaded.</p>}
+    <div className="scale-study-crop" style={{maxWidth: bowl.width}}>
+      <canvas ref={canvas} width={bowl.width} height={bowl.height} data-ready={Boolean(layers)}
+        aria-label={masked ? 'Gatehouse seating masks' : 'Empty Gatehouse stadium'}/>
+    </div>
   </main>;
 }

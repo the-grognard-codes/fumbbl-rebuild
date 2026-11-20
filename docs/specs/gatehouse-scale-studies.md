@@ -1,6 +1,13 @@
 # Gatehouse scale and colour studies
 
-The gallery now shows only the inward-facing Gatehouse bowl (Study F). Earlier studies below record the design history.
+## Current approval round · Empty Gatehouse
+
+Open the development gallery at /stadium-mockup. **Empty stadium** shows the timber terraces, access stairs, torch bowls, sideline benches and south gate in the reference palette. **Show seating masks** identifies 15 bays. Teal marks home seating, and pink identifies the four bays on the east side. Each bay has its own integer ID in the native mask. This round is for reviewing seat boundaries, stair landings and entrances before placing any spectators.
+
+![Empty Gatehouse and its seating bays](../../assets/game/references/stadiums/scale-studies/empty-gallery.webp)
+
+## Earlier gallery rounds
+
 
 Open `/stadium-mockup` in the development gallery. From `browser-client`, run `npm run dev:stadium` and use the address printed by Vite.
 

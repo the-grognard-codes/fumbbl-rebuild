@@ -9,7 +9,7 @@ export const bowl = {
   width: west + openingWidth + 106, height: north + openingHeight + 139,
   pitchX: west + apron, pitchY: north + apron,
 };
-const turf = '#60784b';
+const turf = '#737c43';
 const gateCenter = Math.floor(bowl.width / 2);
 
 // Repeat the seating bays at native scale. Keep the central gate and all four corners unique.
@@ -42,7 +42,7 @@ export function drawBowlGround(context: CanvasRenderingContext2D, fillExterior =
   const groundY = fillExterior ? 0 : north;
   const groundWidth = fillExterior ? bowl.width : openingWidth;
   const groundHeight = fillExterior ? bowl.height : openingHeight;
-  context.fillStyle = '#9b754e';
+  context.fillStyle = '#ac7949';
   context.fillRect(groundX, groundY, groundWidth, groundHeight);
 
   const { pitchX: px, pitchY: py } = bowl;
@@ -54,11 +54,11 @@ export function drawBowlGround(context: CanvasRenderingContext2D, fillExterior =
     const spread = Math.min(34, 24 + Math.floor(distance / 4));
     const left = gateCenter - spread - next(5);
     const right = gateCenter + spread + next(5);
-    context.fillStyle = '#a17a51';
+    context.fillStyle = '#ae7b4b';
     context.fillRect(left, y, right - left, 1);
-    context.fillStyle = '#a77d52';
+    context.fillStyle = '#ba844f';
     context.fillRect(left + 4, y, right - left - 8, 1);
-    context.fillStyle = '#ac8053';
+    context.fillStyle = '#c18c54';
     context.fillRect(left + 9, y, right - left - 18, 1);
   }
 
@@ -83,10 +83,10 @@ export function drawBowlGround(context: CanvasRenderingContext2D, fillExterior =
       for (let pos = 0; pos < length;) {
         const run = Math.min(length - pos, 2 + next(9));
         const growth = 2 + next(5);
-        context.fillStyle = pos % 3 ? turf : '#5c7347';
+        context.fillStyle = pos % 3 ? turf : '#6f7841';
         if (horizontal) context.fillRect(px + pos, far ? py + pitch.height : py - growth, run, growth);
         else context.fillRect(far ? px + pitch.width : px - growth, py + pos, growth, run);
-        context.fillStyle = '#6d8152';
+        context.fillStyle = '#828a4e';
         if (horizontal) context.fillRect(px + pos, far ? py + pitch.height + growth - 1 : py - growth - 1, 1, 2);
         else context.fillRect(far ? px + pitch.width + growth - 1 : px - growth - 1, py + pos, 2, 1);
         pos += run;
@@ -94,10 +94,10 @@ export function drawBowlGround(context: CanvasRenderingContext2D, fillExterior =
     }
   }
   for (let i = 0; i < 4600; i++) {
-    context.fillStyle = i % 2 ? '#657d4f' : '#597345';
+    context.fillStyle = i % 2 ? '#768046' : '#707940';
     context.fillRect(px + next(pitch.width - 3), py + next(pitch.height - 2), 1 + next(3), 1);
   }
-  context.fillStyle = '#71845a';
+  context.fillStyle = '#838a56';
   for (let x = square; x < pitch.width; x += square) context.fillRect(px + x, py, 1, pitch.height);
   for (let y = square; y < pitch.height; y += square) context.fillRect(px, py + y, pitch.width, 1);
   context.strokeStyle = '#c6c7a2';
