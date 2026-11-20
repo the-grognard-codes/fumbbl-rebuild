@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Keep active matches resident during result reads and computer inventory checks. Recovery timers back off under pressure and resume when quarantine expires. If a decision exceeds the recovery limit, end the match at its last recorded score.
+
 - Match-memory recovery pauses now cover coach and observer reconnects after OOM; safety tracking never waits on disk, and server size stops have neutral replay attribution.
 
 - End size-limited matches at their current score with a recorded result, evict cold checkpointed engines according to actual history size while preserving the 32-slot ceiling, and briefly pause automatic reloads only after confirmed heap exhaustion.

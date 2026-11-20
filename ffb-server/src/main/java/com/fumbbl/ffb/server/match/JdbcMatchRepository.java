@@ -38,7 +38,7 @@ public final class JdbcMatchRepository implements MatchRepository {
 			"SELECT match_id,document_version,document_json FROM ffb_prepared_matches WHERE match_id=?")) {
 			query.setString(1, id);
 			try (ResultSet rows = query.executeQuery()) {
-				return rows.next() ? new Record(rows.getString(1), rows.getInt(2), codec.decodeForActivation(rows.getString(3), memoryBudget, id)) : null;
+				return rows.next() ? new Record(rows.getString(1), rows.getInt(2), codec.decodeForActivation(rows.getString(3), memoryBudget)) : null;
 			}
 		}
 	}

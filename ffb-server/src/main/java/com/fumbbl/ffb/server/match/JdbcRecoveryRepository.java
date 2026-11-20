@@ -18,6 +18,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.LongConsumer;
 
 /** Dedicated short transactions for recovery artifacts. */
 public final class JdbcRecoveryRepository implements RecoveryRepository {
@@ -85,12 +86,22 @@ public final class JdbcRecoveryRepository implements RecoveryRepository {
 
 	@Override
 	public Record find(String matchId) throws SQLException {
-		if (journalEnabled) return findJournal(matchId);
+		return findForRestore(matchId, bytes -> { });
+	}
+
+	@Override
+	public Record findForRestore(String matchId, LongConsumer admitDecoded) throws SQLException {
+		if (journalEnabled) return findJournal(matchId, admitDecoded);
 		try (Connection connection = openConnection(); PreparedStatement query = connection.prepareStatement(
 			"SELECT matchid,generation,artifact_json FROM ffb_match_recovery WHERE matchid=?")) {
 			query.setString(1, matchId);
 			try (BrowserRequestTiming.Scope read = timing.span(BrowserRequestTiming.Phase.DB_READ); ResultSet rows = query.executeQuery()) {
-				return rows.next() ? new Record(rows.getString(1), rows.getLong(2), codec.decodeForActivation(rows.getString(3), memoryBudget, matchId)) : null;
+				if (!rows.next()) return null;
+				String stored = rows.getString(3);
+				long bytes = codec.decodedBytes(stored);
+				memoryBudget.requireDecodedBytes(bytes);
+				admitDecoded.accept(bytes);
+				return new Record(rows.getString(1), rows.getLong(2), codec.decode(stored));
 			}
 		}
 	}
@@ -175,7 +186,7 @@ public final class JdbcRecoveryRepository implements RecoveryRepository {
 		return result;
 	}
 
-	private Record findJournal(String id) throws SQLException {
+	private Record findJournal(String id, LongConsumer admitDecoded) throws SQLException {
 		long generation = 0;
 		long checkpointGeneration;
 		String checkpoint;
@@ -214,7 +225,8 @@ public final class JdbcRecoveryRepository implements RecoveryRepository {
 			BoundedJsonStorageCodec journalCodec = new BoundedJsonStorageCodec(RecoveryJournal.MAX_ENTRY_BYTES, RecoveryJournal.MAX_ENTRY_BYTES);
 			long decodedBytes = codec.decodedBytes(checkpoint);
 			for (Record entry : entries) decodedBytes += journalCodec.decodedBytes(entry.json);
-			memoryBudget.beforeLoad(id, decodedBytes);
+			memoryBudget.requireDecodedBytes(decodedBytes);
+			admitDecoded.accept(decodedBytes);
 			for (int index = 0; index < entries.size(); index++) {
 				Record entry = entries.get(index);
 				entries.set(index, new Record(id, entry.generation, journalCodec.decode(entry.json)));
@@ -354,8 +366,8 @@ public final class JdbcRecoveryRepository implements RecoveryRepository {
 		safety.beginTask(matchId);
 	}
 
-	String decodeLegacyComputerDocument(String matchId, BoundedJsonStorageCodec documentCodec, String stored) {
-		return documentCodec.decodeForActivation(stored, memoryBudget, matchId);
+	String decodeLegacyComputerDocument(BoundedJsonStorageCodec documentCodec, String stored) {
+		return documentCodec.decodeForActivation(stored, memoryBudget);
 	}
 
 	/** Reads a single pre-migration head. A scheduled load still validates the full history. */
@@ -380,7 +392,7 @@ public final class JdbcRecoveryRepository implements RecoveryRepository {
 		BoundedJsonStorageCodec decoder = journalHead
 			? new BoundedJsonStorageCodec(RecoveryJournal.MAX_ENTRY_BYTES, RecoveryJournal.MAX_ENTRY_BYTES) : codec;
 		RecoveryCheckpoint checkpoints = new RecoveryCheckpoint();
-		String json = decoder.decodeForActivation(stored, memoryBudget, matchId);
+		String json = decoder.decodeForActivation(stored, memoryBudget);
 		JsonObject payload;
 		if (journalHead) {
 			payload = new RecoveryJournal().readHeadState(json, matchId, generation);

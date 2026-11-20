@@ -42,6 +42,32 @@ class JdbcRecoveryRepositoryTest {
 			verify(codec, never()).decode(anyString());
 		}
 	}
+	@Test void nativeRestoreAdmissionRunsBeforeDecodingEitherStorageFormat() throws Exception {
+		MatchMemoryBudget budget = new MatchMemoryBudget(768L * 1024 * 1024);
+		long declaredBytes = 5 * 1024 * 1024;
+		String stored = new JsonObject().add("$codec", "ffb-match-gzip-json").add("version", 1)
+			.add("decodedBytes", declaredBytes).add("payload", "invalid-base64!").toString();
+		for (boolean journal : new boolean[] {false, true}) {
+			BoundedJsonStorageCodec codec = org.mockito.Mockito.spy(new BoundedJsonStorageCodec(
+				BoundedJsonStorageCodec.RECOVERY_ENCODED_LIMIT, BoundedJsonStorageCodec.RECOVERY_DECODED_LIMIT));
+			JdbcRecoveryRepository repository = new JdbcRecoveryRepository(() -> connection, 1024, codec, journal, budget);
+			ResultSet row = mock(ResultSet.class), journalRows = mock(ResultSet.class);
+			when(row.next()).thenReturn(true, false);
+			when(row.getLong(1)).thenReturn(1L);
+			when(row.getLong(2)).thenReturn(1L);
+			when(row.getString(3)).thenReturn(stored);
+			when(statement.executeQuery()).thenReturn(row, journalRows);
+
+			MatchService.Failure failure = assertThrows(MatchService.Failure.class, () ->
+				repository.findForRestore("match", bytes -> {
+					assertEquals(declaredBytes, bytes);
+					throw new MatchService.Failure("ACTIVATION_LIMIT");
+				}));
+			assertEquals("ACTIVATION_LIMIT", failure.code);
+			verify(codec, never()).decode(anyString());
+		}
+	}
+
 	@Test void legacyComputerBackfillRefusesOversizedCheckpointsAndJournalHeadsBeforeDecode() throws Exception {
 		MatchMemoryBudget budget = new MatchMemoryBudget(64L * 1024 * 1024);
 		JdbcRecoveryRepository bounded = new JdbcRecoveryRepository(() -> connection, true, true, budget,

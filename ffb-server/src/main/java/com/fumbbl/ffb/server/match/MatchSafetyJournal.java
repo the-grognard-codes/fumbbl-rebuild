@@ -101,8 +101,12 @@ public final class MatchSafetyJournal implements AutoCloseable {
 	 * @throws MatchService.Failure with MATCH_QUARANTINED for an OOM-suspect automatic reload.
 	 */
 	public void requireAutomaticAvailable(String matchId) {
-		if (automaticBlocks.getOrDefault(matchId, 0L) > clock.millis())
-			throw new MatchService.Failure(MatchStopReason.MATCH_QUARANTINED.name());
+		if (quarantineUntil(matchId) > 0) throw new MatchService.Failure(MatchStopReason.MATCH_QUARANTINED.name());
+	}
+
+	long quarantineUntil(String matchId) {
+		long expiry = automaticBlocks.getOrDefault(matchId, 0L);
+		return expiry > clock.millis() ? expiry : 0;
 	}
 
 	private void submit(Set<String> ids) {

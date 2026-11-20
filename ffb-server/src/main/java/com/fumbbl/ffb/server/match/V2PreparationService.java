@@ -197,7 +197,7 @@ public final class V2PreparationService {
 			query.setString(1, id);
 			try (ResultSet rows = query.executeQuery()) {
 				if (!rows.next() || !verifiedComputerRole(json.decode(
-					recovery.decodeLegacyComputerDocument(id, storageCodec, rows.getString(1)), 3), candidate.role()))
+					recovery.decodeLegacyComputerDocument(storageCodec, rows.getString(1)), 3), candidate.role()))
 					return new JdbcRecoveryRepository.LegacyComputerWork(id, candidate.generation(), 0);
 			}
 		}

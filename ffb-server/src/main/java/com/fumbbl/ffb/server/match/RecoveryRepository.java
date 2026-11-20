@@ -3,9 +3,15 @@ package com.fumbbl.ffb.server.match;
 import java.sql.SQLException;
 import java.util.List;
 import java.util.Map;
+import java.util.function.LongConsumer;
 
 public interface RecoveryRepository {
 	Record find(String matchId) throws SQLException;
+
+	/** A durable engine restore can reserve memory before a storage provider decodes the artifact. */
+	default Record findForRestore(String matchId, LongConsumer admitDecoded) throws SQLException {
+		return find(matchId);
+	}
 	/** In-memory implementations may use find; JDBC overrides with a fixed query bound. */
 	default Map<String, Record> findAll(List<String> ids, LobbyReadBudget budget) throws SQLException {
 		return new LobbyReadBatch().read(ids, budget, this::find, record -> record.json);

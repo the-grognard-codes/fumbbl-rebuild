@@ -376,7 +376,7 @@ class ReactiveSkillDecisionTest {
         }
         AtomicReference<RecoveryRepository.Record> durable = new AtomicReference<>(
             new RecoveryRepository.Record(id, 1, fixture.session.recoveryArtifact()));
-        RecoveryRepository recovery = mock(RecoveryRepository.class);
+        RecoveryRepository recovery = mock(RecoveryRepository.class, org.mockito.Mockito.CALLS_REAL_METHODS);
         when(recovery.find(id)).thenAnswer(call -> durable.get());
         when(recovery.save(any(RecoveryRepository.Record.class), anyLong())).thenAnswer(call -> {
             durable.set(call.getArgument(0));

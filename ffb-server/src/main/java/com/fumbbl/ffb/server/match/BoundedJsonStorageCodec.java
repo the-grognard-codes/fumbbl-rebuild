@@ -64,13 +64,9 @@ final class BoundedJsonStorageCodec {
 		try (BrowserRequestTiming.Scope ignored = timing.span(BrowserRequestTiming.Phase.STORAGE_DECODE)) { return decodeMeasured(stored); }
 	}
 
-	/** Recovery admission precedes UTF-8, base64, inflation and native restoration allocations. */
+	/** Checks the stored decoded size before inflating the artifact. */
 	String decodeForActivation(String stored, MatchMemoryBudget budget) {
 		budget.requireDecodedBytes(decodedBytes(stored));
-		return decode(stored);
-	}
-	String decodeForActivation(String stored, MatchMemoryBudget budget, String id) {
-		budget.beforeLoad(id, decodedBytes(stored));
 		return decode(stored);
 	}
 

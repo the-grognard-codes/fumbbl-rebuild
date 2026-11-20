@@ -13,6 +13,9 @@ import org.mockito.MockedConstruction;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.SQLNonTransientConnectionException;
 import java.time.Clock;
@@ -569,6 +572,128 @@ class SetupApplicationCheckpointTest {
 		}
 	}
 
+	@Test void aPreparedDocumentReadCannotEvictAResidentEngine() throws Exception {
+		try (Fixture fixture = new Fixture(new MatchMemoryBudget(128L * 1024 * 1024))) {
+			for (int index = 1; index <= 3; index++) {
+				String id = "00000000-0000-0000-0000-%012d".formatted(index);
+				fixture.<SetupSession>map("sessions").put(id, mock(SetupSession.class));
+				fixture.<Long>map("lastAccess").put(id, NOW);
+				fixture.<Long>map("residentDecodedBytes").put(id, 5L * 1024 * 1024);
+				fixture.<byte[]>map("committedFingerprints").put(id, new byte[32]);
+			}
+			Connection connection = mock(Connection.class);
+			PreparedStatement query = mock(PreparedStatement.class);
+			ResultSet rows = mock(ResultSet.class);
+			when(connection.prepareStatement(anyString())).thenReturn(query);
+			when(query.executeQuery()).thenReturn(rows);
+			when(rows.next()).thenReturn(true);
+			when(rows.getString(1)).thenReturn(MATCH);
+			String document = "{\"content\":\"" + "a".repeat(5 * 1024 * 1024) + "\"}";
+			when(rows.getString(3)).thenReturn(document);
+
+			assertEquals(document, new JdbcMatchRepository(() -> connection, fixture.memoryBudget).find(MATCH).json);
+			assertEquals(3, fixture.mapSize("sessions"));
+			assertEquals(0, fixture.application.lifecycleMetrics().getInt("memoryEvictions", -1));
+		}
+	}
+
+	@Test void detachedTimerDoublesItsRetryDelayAfterRepeatedStorageRefusals() throws Exception {
+		try (Fixture fixture = new Fixture()) {
+			fixture.<SetupApplication.TimerRestore>map("pendingTimerRestores")
+				.put(MATCH, new SetupApplication.TimerRestore(NOW, true, -1, -1));
+			when(fixture.matches.loadForSetup("home", MATCH)).thenThrow(new SQLException("temporarily unavailable"));
+
+			fixture.application.expireDecisions();
+			fixture.time.set(NOW + 1_000);
+			fixture.application.expireDecisions();
+			fixture.time.set(NOW + 2_000);
+			fixture.application.expireDecisions();
+			verify(fixture.matches, times(2)).loadForSetup("home", MATCH);
+			fixture.time.set(NOW + 3_000);
+			fixture.application.expireDecisions();
+			verify(fixture.matches, times(3)).loadForSetup("home", MATCH);
+		}
+	}
+
+	@Test void restoringATimerDoesNotResetBackoffWhenItsCheckpointStillFails() throws Exception {
+		try (Fixture fixture = new Fixture()) {
+			Map<String, SetupApplication.TimerRestore> retries = fixture.map("pendingTimerRestores");
+			retries.put(MATCH, new SetupApplication.TimerRestore(NOW, true, -1, -1));
+			fixture.restoringReaction = true;
+			fixture.failure = "PERSISTENCE_FAILED";
+
+			fixture.application.expireDecisions();
+			assertEquals(NOW + 1_000, retries.get(MATCH).retryAt());
+			fixture.time.set(NOW + 1_000);
+			fixture.application.expireDecisions();
+			assertEquals(NOW + 3_000, retries.get(MATCH).retryAt());
+			assertEquals("before", fixture.durable.get().json);
+		}
+	}
+
+	@Test void aQuarantinedDetachedTimerKeepsOwnershipUntilTheBlockExpires() throws Exception {
+		AtomicLong now = new AtomicLong(NOW);
+		Clock safetyClock = mock(Clock.class);
+		when(safetyClock.millis()).thenAnswer(call -> now.get());
+		MatchSafetyJournal.StateStore store = mock(MatchSafetyJournal.StateStore.class);
+		long expiry = NOW + 30 * 60_000;
+		when(store.read()).thenReturn(new MatchSafetyJournal.State("prior", 0, "", 0, java.util.Set.of(), Map.of(MATCH, expiry)));
+		try (MatchSafetyJournal safety = new MatchSafetyJournal(store, null, safetyClock);
+			Fixture fixture = new Fixture(new MatchMemoryBudget(), safety)) {
+			fixture.<SetupApplication.TimerRestore>map("pendingTimerRestores")
+				.put(MATCH, new SetupApplication.TimerRestore(NOW, true, -1, -1));
+			fixture.application.expireDecisions();
+			assertEquals(1, fixture.mapSize("pendingTimerRestores"));
+			fixture.time.set(expiry - 1);
+			now.set(expiry - 1);
+			fixture.application.expireDecisions();
+			verify(fixture.recovery, never()).find(MATCH);
+			fixture.time.set(expiry);
+			now.set(expiry);
+			fixture.restoringReaction = true;
+			assertTrue(fixture.application.expireDecisions().containsKey(MATCH));
+			assertEquals("expiry-committed", fixture.durable.get().json);
+			assertEquals(0, fixture.mapSize("pendingTimerRestores"));
+		}
+	}
+
+	@Test void aDecisionThatOvershootsTheDecodeLimitFinishesFromTheCommittedState() throws Exception {
+		try (Fixture fixture = new Fixture(new MatchMemoryBudget(128L * 1024 * 1024))) {
+			assertEquals("ACCEPTED", fixture.application.handle("home", load()).getString("code", null));
+			SetupSession oversized = fixture.session();
+			when(oversized.recoveryBytes()).thenAnswer(call -> fixture.artifact.get().startsWith("after:")
+				? fixture.memoryBudget.decodedLimit() + 1L : 6L);
+			fixture.stopOnRestore = true;
+
+			SetupApplication.HandleOutcome stopped = fixture.application.handleWithOutcome("home", request("overflow"));
+			assertEquals("MATCH_SIZE_LIMIT", stopped.response().getString("code", null));
+			assertTrue(stopped.publish());
+			assertEquals("FULL_TIME", stopped.response().get("state").asObject().getString("phase", null));
+			assertEquals("before:terminal", fixture.durable.get().json);
+			assertEquals(5, fixture.durable.get().generation);
+		}
+	}
+
+	@Test void anOversizedTimerMutationPublishesTheCommittedScoreAndQueuesTheResult() throws Exception {
+		try (Fixture fixture = new Fixture(new MatchMemoryBudget(128L * 1024 * 1024))) {
+			fixture.application.handle("home", load());
+			SetupSession oversized = fixture.session();
+			when(oversized.checkpointOwner()).thenReturn("home");
+			when(oversized.reactiveDecisionDue(NOW)).thenReturn(true);
+			when(oversized.expireReactiveDecision(NOW)).thenAnswer(call -> {
+				fixture.artifact.set("after:expiry");
+				return true;
+			});
+			when(oversized.recoveryBytes()).thenReturn(fixture.memoryBudget.decodedLimit() + 1L);
+			fixture.stopOnRestore = true;
+
+			SetupApplication.DeadlinePublication stopped = fixture.application.expireDecisions().get(MATCH);
+			assertEquals("FULL_TIME", stopped.state().getString("phase", null));
+			assertEquals("before:terminal", fixture.durable.get().json);
+			assertEquals(1, fixture.mapSize("pendingCompletions"));
+		}
+	}
+
 	@Test void pressureRejectedTimerRestoresAndExpiresAutomaticallyOnALaterTick() throws Exception {
 		try (Fixture fixture = new Fixture(new MatchMemoryBudget(128L * 1024 * 1024))) {
 			fixture.application.handle("home", load());
@@ -776,7 +901,7 @@ class SetupApplicationCheckpointTest {
 	private static final class Fixture implements AutoCloseable {
 		final FantasyFootballServer server = mock(FantasyFootballServer.class);
 		final MatchService matches = mock(MatchService.class);
-		final RecoveryRepository recovery = mock(RecoveryRepository.class);
+		final RecoveryRepository recovery = mock(RecoveryRepository.class, org.mockito.Mockito.CALLS_REAL_METHODS);
 		final AtomicReference<RecoveryRepository.Record> durable = new AtomicReference<>(new RecoveryRepository.Record(MATCH, 4, "before"));
 		final AtomicReference<String> artifact = new AtomicReference<>();
 		final AtomicInteger executed = new AtomicInteger();
@@ -793,8 +918,14 @@ class SetupApplicationCheckpointTest {
 		final AtomicLong time = new AtomicLong(NOW);
 		final Clock clock = mock(Clock.class);
 		final MatchMemoryBudget memoryBudget;
+		final MatchSafetyJournal safety;
+		boolean stopOnRestore;
 		Fixture() throws Exception { this(new MatchMemoryBudget()); }
 		Fixture(MatchMemoryBudget memoryBudget) throws Exception {
+			this(memoryBudget, new MatchSafetyJournal(MatchSafetyJournal.Tracking.DISABLED));
+		}
+		Fixture(MatchMemoryBudget memoryBudget, MatchSafetyJournal safety) throws Exception {
+			this.safety = safety;
 			this.memoryBudget = memoryBudget;
 			when(clock.millis()).thenAnswer(call -> time.get());
 			MatchDocument document = new MatchDocument(MATCH, 3, "away", MatchDocument.Lifecycle.ACTIVATED,
@@ -827,9 +958,18 @@ class SetupApplicationCheckpointTest {
 					when(session.recoveryBytes()).thenReturn(5L * 1024 * 1024);
 					when(session.expireReactiveDecision(anyLong())).thenAnswer(call -> { artifact.set("expiry-committed"); pending.set(false); return true; });
 				}
-				when(session.isComplete()).thenAnswer(call -> restoringTerminal);
+				if (stopOnRestore) {
+					when(session.isComplete()).thenAnswer(call -> artifact.get().endsWith(":terminal"));
+					when(session.endedForSizeLimit()).thenAnswer(call -> artifact.get().endsWith(":terminal"));
+					when(session.recoveryBytes()).thenAnswer(call -> (long) artifact.get().length());
+					doAnswer(call -> { artifact.set(artifact.get() + ":terminal"); return null; }).when(session).endForSizeLimit(anyLong());
+				} else when(session.isComplete()).thenAnswer(call -> restoringTerminal);
 				when(session.recoveryArtifact()).thenAnswer(call -> artifact.get());
-				when(session.reply(anyString(), anyString(), anyBoolean(), anyString())).thenReturn(reply(false));
+				when(session.reply(anyString(), anyString(), anyBoolean(), anyString())).thenAnswer(call -> {
+					JsonObject response = reply(false).set("code", (String) call.getArgument(1));
+					if (session.isComplete()) response.get("state").asObject().add("phase", "FULL_TIME");
+					return response;
+				});
 				when(session.decorateSaveResume(any(JsonObject.class))).thenAnswer(call -> call.getArgument(0));
 				when(session.apply(eq("home"), any(JsonObject.class), eq(NOW))).thenAnswer(call -> {
 					String target = "after:" + ((JsonObject) call.getArgument(1)).getString("requestId", "");
@@ -840,7 +980,7 @@ class SetupApplicationCheckpointTest {
 			});
 			application = newApplication();
 		}
-		SetupApplication newApplication() { return new SetupApplication(server, matches, recovery, false, clock, false, memoryBudget); }
+		SetupApplication newApplication() { return new SetupApplication(server, matches, recovery, false, clock, false, memoryBudget, safety); }
 		@SuppressWarnings("unchecked") <T> Map<String, T> map(String name) throws Exception { Field field = SetupApplication.class.getDeclaredField(name); field.setAccessible(true); return (Map<String, T>) field.get(application); }
 		SetupSession session() { return construction.constructed().get(construction.constructed().size() - 1); }
 		int mapSize(String name) throws Exception { Field field = SetupApplication.class.getDeclaredField(name); field.setAccessible(true); return ((Map<?, ?>) field.get(application)).size(); }

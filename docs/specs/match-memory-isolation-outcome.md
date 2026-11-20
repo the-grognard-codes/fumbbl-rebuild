@@ -61,6 +61,25 @@ ownership investigation, formula and measured headroom.
 - The production browser build, 564 browser tests and Chromium reconnect
   checks passed.
 
+## November 20 soak review corrections
+
+Prepared documents, completed results, inventory and cold computer projections
+retain their decoded size bounds without evicting engines. Dedicated native
+restores check the resident budget before decompression. A cold computer load
+that needs an engine admits the already decoded checkpoint before reconstruction.
+Timer retries double from one second to one minute on repeated failures and keep
+their deadline ownership until quarantine expires.
+
+If a decision or a resulting terminal checkpoint exceeds the decoded limit,
+discard the oversized continuation. Restore the last committed generation and
+record a neutral size stop there. A generation check protects concurrent
+updates, and a refused or uncertain write reconciles through durable recovery.
+The rejected decision carries the committed terminal state to the coach. The
+computer worker treats that state as completion.
+
+The final focused Java run passed 217 tests. Both MariaDB journal tests, 67
+computer-player tests and the Chromium reconnect checks also passed.
+
 ## November 15 owner review response
 
 | Finding | Correction |

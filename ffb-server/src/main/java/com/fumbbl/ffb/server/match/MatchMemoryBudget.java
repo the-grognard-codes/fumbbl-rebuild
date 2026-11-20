@@ -1,7 +1,5 @@
 package com.fumbbl.ffb.server.match;
 
-import java.util.function.BiConsumer;
-
 /** Heap policy: the activation ceiling is fixed; actual histories determine cache admission. */
 public final class MatchMemoryBudget {
 	private static final long MIB = 1024 * 1024;
@@ -12,7 +10,6 @@ public final class MatchMemoryBudget {
 	private static final int WORKING_FACTOR = 11;
 	private final long availableBytes;
 	private final int decodedLimit;
-	private BiConsumer<String, Long> admission = (id, bytes) -> { };
 
 	public MatchMemoryBudget() { this(Runtime.getRuntime().maxMemory()); }
 
@@ -34,10 +31,6 @@ public final class MatchMemoryBudget {
 	boolean admitsResidents(long residentBytes, long largestDecodedBytes) {
 		return residentBytes + sharedWorkingBytes(largestDecodedBytes) <= availableBytes;
 	}
-	void configureAdmission(BiConsumer<String, Long> admission) { this.admission = admission; }
-	/** @throws MatchService.Failure for over-budget records or exhausted resident admission. */
-	void beforeLoad(String id, long decodedBytes) { requireDecodedBytes(decodedBytes); admission.accept(id, decodedBytes); }
-
 	/** @throws MatchService.Failure with MATCH_SIZE_LIMIT before any oversized decoded allocation. */
 	void requireDecodedBytes(long bytes) {
 		if (bytes > decodedLimit) throw new MatchService.Failure("MATCH_SIZE_LIMIT");
