@@ -1,4 +1,5 @@
-import { useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
+import { gatehouseClothOverlay, loadGatehouseArtwork, type GatehouseArtwork } from './gatehouse-artwork.ts';
 import { playerArtPlacement, resolvePlayerArt } from './player-art.ts';
 import {
   MOCKUP_COLOR_PRESETS, MOCKUP_PLAYER_WIDTH_IN_SQUARES, STILL_LAYOUT, mockupColorPair,
@@ -7,6 +8,7 @@ import {
 import { teamColorArt } from './team-color-art.ts';
 import type { TeamColors } from './team-colors.ts';
 import inwardBowlUrl from '../../assets/game/references/stadiums/scale-studies/gatehouse-inward.webp';
+import materialMaskUrl from '../../assets/game/references/stadiums/scale-studies/gatehouse-materials.png';
 import { bowl, drawBowlGround } from './stadium-bowl-study.ts';
 import './stadium-mockup.css';
 import './stadium-scale-studies.css';
@@ -33,12 +35,9 @@ function studyPlayer(role: 'home' | 'away', number: number, x: number, y: number
 const players = [studyPlayer('home', 1, 8, 0), ...[0, 1, 2].map(y => studyPlayer('away', y + 1, 12, y)),
   ...[0, 1, 2].map(y => studyPlayer('home', y + 2, 13, y))];
 
-async function loadImage(url: string): Promise<HTMLImageElement> {
-  const image = new Image();
-  image.src = url;
-  await image.decode();
-  if (image.naturalWidth !== bowl.width || image.naturalHeight !== bowl.height) throw Error('Invalid bowl dimensions');
-  return image;
+function gatehouseColorPair(preset: MockupColorPreset) {
+  const pair = mockupColorPair(preset);
+  return preset === 'defaults' ? { ...pair, away: { ...pair.away, secondary: 'ivory' } } : pair;
 }
 
 function StudyPlayers({ scale, pair, frame = crop, originX = touchline, originY = pitch.y - crop.y }: {
@@ -63,10 +62,11 @@ function StudyPlayers({ scale, pair, frame = crop, originX = touchline, originY 
 export function StadiumScaleStudies() {
   const [colors, setColors] = useState<MockupColorPreset>('defaults');
   const [inwardView, setInwardView] = useState<InwardView>('full');
-  const [artwork, setArtwork] = useState<HTMLImageElement>();
+  const [source, setSource] = useState<GatehouseArtwork>();
   const [failed, setFailed] = useState(false);
   const inwardBowl = useRef<HTMLCanvasElement>(null);
-  const pair = mockupColorPair(colors);
+  const pair = useMemo(() => gatehouseColorPair(colors), [colors]);
+  const cloth = useMemo(() => source && gatehouseClothOverlay(source, pair), [source, pair]);
   const inwardFrame = inwardViews[inwardView];
 
   useSyncExternalStore(teamColorArt.subscribe, teamColorArt.snapshot);
@@ -76,8 +76,8 @@ export function StadiumScaleStudies() {
     void teamColorArt.load('human');
     void teamColorArt.load('orc');
     document.title = 'Gatehouse stadium gallery';
-    loadImage(inwardBowlUrl).then(
-      assets => { if (!disposed) setArtwork(assets); },
+    loadGatehouseArtwork(inwardBowlUrl, materialMaskUrl).then(
+      assets => { if (!disposed) setSource(assets); },
       () => { if (!disposed) setFailed(true); },
     );
     return () => { disposed = true; release(); };
@@ -85,18 +85,19 @@ export function StadiumScaleStudies() {
 
   useLayoutEffect(() => {
     const context = inwardBowl.current?.getContext('2d');
-    if (!context || !artwork) return;
+    if (!context || !source || !cloth) return;
     context.imageSmoothingEnabled = false;
     context.save();
     context.translate(-inwardFrame.x, -inwardFrame.y);
     drawBowlGround(context, true);
-    context.drawImage(artwork, 0, 0);
+    context.drawImage(source.image, 0, 0);
+    context.drawImage(cloth, 0, 0);
     context.restore();
-  }, [artwork, inwardFrame]);
+  }, [source, cloth, inwardFrame]);
 
   return <main className="stadium-mockup scale-studies">
     {failed && <p className="mockup-status" role="alert">The study artwork failed to load. Reload the page to retry.</p>}
-    {!artwork && !failed && <p role="status">Loading study artwork…</p>}
+    {!source && !failed && <p role="status">Loading study artwork…</p>}
     <section id="inward-bowl" aria-labelledby="inward-bowl-heading">
       <h1 id="inward-bowl-heading">Gatehouse stadium</h1>
       <div className="mockup-controls scale-study-controls">
@@ -112,10 +113,10 @@ export function StadiumScaleStudies() {
         </label>
       </div>
       <div className="scale-study-crop" style={{ maxWidth: inwardFrame.width }}
-        data-view={inwardView} data-ready={Boolean(artwork)}>
+        data-view={inwardView} data-ready={Boolean(source)}>
         <canvas key={inwardView} ref={inwardBowl} width={inwardFrame.width} height={inwardFrame.height}
           role="img" aria-label={inwardFrame.label + ' at native scale'}/>
-        {artwork && (inwardView === 'full' || inwardView === 'west') && <StudyPlayers scale={1.25} pair={pair}
+        {source && (inwardView === 'full' || inwardView === 'west') && <StudyPlayers scale={1.25} pair={pair}
           frame={inwardFrame} originX={bowl.pitchX - inwardFrame.x} originY={bowl.pitchY - inwardFrame.y}/>}
       </div>
     </section>

@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Connect the Gatehouse gallery’s south gate to the pitch with a worn track. Supporters now cheer, drink and eat in the stands, and kit changes recolour their team clothing and banners.
+
 - Animate touchdowns, turnovers, turn starts, all 11 kickoff results, weather, half-time, and the end of a match, including concessions. Touchdown splashes name the scorer. Touchdown, half-time, and final splashes show both teams' scores side by side.
 
 - Keep the pitch dimmed between consecutive splashes. Turnovers last two seconds at normal speed, and splash timings scale with replay speed. Game Settings lets you choose which splashes to show or keep them visible until dismissed. Reduced motion replaces the larger movements with fades.

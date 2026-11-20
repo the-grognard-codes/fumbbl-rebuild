@@ -14,11 +14,11 @@ import {
 import concept from '../../assets/game/references/stadiums/concept-round-3/01-old-world-classic-human-home.webp';
 import './stadium-mockup.css';
 
-const candidateFiles = import.meta.glob('../../assets/game/references/stadiums/round-four/candidate-*.png',
+const candidateFiles = import.meta.glob('../../assets/game/references/stadiums/round-four/candidate-*.{png,webp}',
   { eager: true, query: '?url', import: 'default' }) as Record<string, string>;
 const candidates = Object.entries(candidateFiles).sort().map(([path, url]) => ({
   url,
-  label: 'Candidate ' + path.slice(path.lastIndexOf('-') + 1, -4),
+  label: 'Candidate ' + path.slice(path.lastIndexOf('-') + 1, path.lastIndexOf('.')),
 }));
 const approvedCandidate = candidates.find(({ label }) => label === 'Candidate 02');
 const defaultCandidate = approvedCandidate ?? candidates[0];
