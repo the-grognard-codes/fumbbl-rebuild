@@ -3,6 +3,7 @@ import architectureUrl from '../../assets/game/references/stadiums/scale-studies
 import seatingUrl from '../../assets/game/references/stadiums/scale-studies/empty-seating.png';
 import seatingLayout from '../../assets/game/references/stadiums/scale-studies/empty-seating.json';
 import benchLayout from '../../assets/game/references/stadiums/scale-studies/gatehouse-benches.json';
+import poseColumns from '../../assets/game/references/stadiums/scale-studies/bay-six/poses.json';
 import seatingStudies from '../../assets/game/references/stadiums/scale-studies/bay-six/seats.json';
 import { playerArtPlacement, resolvePlayerArt } from './player-art.ts';
 import { bowl, drawBowlGround } from './stadium-bowl-study.ts';
@@ -19,14 +20,6 @@ const studyImages = import.meta.glob<string>('../../assets/game/references/stadi
 const studyImageRoot = '../../assets/game/references/stadiums/scale-studies/bay-six/';
 const poseCellSize = 48;
 const poseZoomSize = poseCellSize * 2;
-const poseColumns = [
-  ['seated-fist', 'Raised fist'],
-  ['seated-tankard', 'Tankard'],
-  ['seated-bottle', 'Bottle'],
-  ['seated-food', 'Eating'],
-  ['standing-fist', 'Raised fist'],
-  ['seated-folded', 'Folded arms'],
-];
 const benchColors = [
   [202, 145, 254],
   [170, 235, 108],
@@ -166,10 +159,10 @@ function drawCrop(target: HTMLCanvasElement | null, source: HTMLCanvasElement) {
   context.drawImage(source, crop.x, crop.y, crop.width, crop.height, 0, 0, target.width, target.height);
 }
 
-function SupporterPose({ atlas, seat }: { atlas: HTMLImageElement; seat: Seat }) {
+function SupporterPose({ atlas, pose, neutral }: { atlas: HTMLImageElement; pose: string; neutral?: boolean }) {
   const canvas = useRef<HTMLCanvasElement>(null);
-  const column = poseColumns.findIndex(([pose]) => pose === seat.pose);
-  const row = seat.neutral ? poseCellSize : 0;
+  const column = poseColumns.findIndex(({ id }) => id === pose);
+  const row = neutral ? poseCellSize : 0;
   useLayoutEffect(() => {
     const context = canvas.current?.getContext('2d');
     if (!context) return;
@@ -181,7 +174,8 @@ function SupporterPose({ atlas, seat }: { atlas: HTMLImageElement; seat: Seat })
   return <li>
     <figure>
       <canvas ref={canvas} width={poseZoomSize} height={poseZoomSize} aria-hidden="true"/>
-      <figcaption>{seat.stance === 'standing' ? 'Standing' : 'Seated'} · {poseColumns[column][1]} · {seat.neutral ? 'Neutral kit' : 'Home kit'}</figcaption>
+      <figcaption>{pose.startsWith('standing-') ? 'Standing' : 'Seated'} · {poseColumns[column].label}
+        {neutral !== undefined && (neutral ? ' · Neutral kit' : ' · Home kit')}</figcaption>
     </figure>
   </li>;
 }
@@ -283,7 +277,13 @@ export function StadiumScaleStudies() {
       {layers && <details className="bay-six-poses" key={study.id}>
         <summary>Inspect full poses</summary>
         <ol role="list" aria-label="Supporters in bay order">
-          {study.seats.map(seat => <SupporterPose key={seatKey(seat)} atlas={layers.atlas} seat={seat}/>)}
+          {study.seats.map(seat => <SupporterPose key={seatKey(seat)} atlas={layers.atlas} pose={seat.pose} neutral={seat.neutral}/>)}
+        </ol>
+      </details>}
+      {layers && <details className="bay-six-poses bay-six-roster">
+        <summary>Inspect all {poseColumns.length} poses</summary>
+        <ol role="list" aria-label="Full supporter roster">
+          {poseColumns.map(({ id }) => <SupporterPose key={id} atlas={layers.atlas} pose={id}/>)}
         </ol>
       </details>}
     </section>}

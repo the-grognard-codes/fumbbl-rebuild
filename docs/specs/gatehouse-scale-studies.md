@@ -4,7 +4,9 @@
 
 The gallery opens at 75% attendance with nine supporters in west bay 6, three each on the wall, rear and inner benches. On each bench the occupied hip or boot contacts are 18–23 native pixels apart. The wall-side supporters perch toward the front of their plank, leaving room for their backs inside the bay. The nearby blitzer gives a game-scale reference.
 
-![West bay 6 at 75% attendance before and after opening the wall-side row, at 4× pixel zoom](../../assets/game/references/stadiums/scale-studies/bay-six/comparison.webp)
+The 75% section includes the seated clapping supporter on the inner bench and the standing handbell ringer on the rear bench. At full attendance, the moustached supporter with a pretzel takes the seat just north of the clapping supporter. The ringer also has a seated pose. In the preview below the three complexions range from light olive-brown through warm medium brown to deep brown. Faces, hands, food and brass keep their colours across kits.
+
+![New supporter poses at 3× pixel zoom, from left to right: seated with a pretzel, seated clapping, seated with a handbell and standing with a handbell](../../assets/game/references/stadiums/scale-studies/bay-six/roster-preview.webp)
 
 | Gallery view | Occupied seats | Seated | Standing | Neutral clothing |
 | --- | ---: | ---: | ---: | ---: |
@@ -12,7 +14,7 @@ The gallery opens at 75% attendance with nine supporters in west bay 6, three ea
 | B · 75% full | 9 of 12 | 8 | 1 | 3 |
 | C · 50% full | 6 of 12 | 5 | 1 | 2 |
 
-Open `/stadium-mockup` and use **Gallery view** to change attendance. Returning fans keep the same seats, gestures and clothes. Compare the views at native size and 4×, or scroll down to see the whole pitch. **Seat markers** shows empty places as grey squares, hip or boot contacts as cyan crosses and seated knees as gold dots. **Inspect full poses** shows each figure in its assigned kit before overlap.
+Open `/stadium-mockup` and use **Gallery view** to change attendance. Returning fans keep the same seats, gestures and clothes. Compare the views at native size and 4×, or scroll down to see the whole pitch. **Seat markers** shows empty places as grey squares, hip or boot contacts as cyan crosses and seated knees as gold dots. **Inspect full poses** shows each occupied seat in its assigned kit before overlap. **Inspect all 10 poses** shows all eight supporters, including both stances for the cheering supporter and the handbell ringer.
 
 Turn off **Front rail** to inspect how each plank covers the back of a seated calf. This detail from the bench-fit proof shows the effect on the folded-arms pose.
 

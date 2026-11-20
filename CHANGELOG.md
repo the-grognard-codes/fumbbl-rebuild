@@ -2,7 +2,7 @@
 
 ## Unreleased
 
-- The Gatehouse gallery opens at 75% attendance, with nine supporters spread over three benches in west bay 6. Compare full and half attendance or enable **Seat markers** to inspect the vacancies at native size or 4× zoom.
+- The Gatehouse gallery now has eight supporters in ten poses. The 75% west-bay preview features a clapping supporter and a standing handbell ringer. At full attendance, a third newcomer brings a pretzel. **Inspect all 10 poses** shows the full roster at pixel zoom.
 
 - Animate touchdowns, turnovers, turn starts, all 11 kickoff results, weather, half-time, and the end of a match, including concessions. Touchdown splashes name the scorer. Touchdown, half-time, and final splashes show both teams' scores side by side.
 

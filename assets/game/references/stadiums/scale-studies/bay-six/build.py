@@ -10,8 +10,7 @@ HERE = Path(__file__).resolve().parent
 ART = HERE.parent
 CELL_SIZE = 48
 BAY_ID = 6
-COLUMNS = ("seated-fist", "seated-tankard", "seated-bottle", "seated-food",
-           "standing-fist", "seated-folded")
+COLUMNS = tuple(pose["id"] for pose in json.loads((HERE / "poses.json").read_text(encoding="utf-8")))
 spec = spec_from_file_location("seat_fit", ART / "build-empty-seating.py")
 fit = module_from_spec(spec)
 spec.loader.exec_module(fit)
@@ -35,10 +34,10 @@ SEAT_PLAN = (
     Seat("rear-bench", 19, 30, "seated-fist", False, 75),
     Seat("rear-bench", 19, 40, "seated-tankard", True, 100),
     Seat("rear-bench", 19, 48, "seated-food", True, 50),
-    Seat("rear-bench", 19, 71, "standing-fist", False, 50),
+    Seat("rear-bench", 21, 71, "standing-bell", False, 50),
     Seat("inner-bench", 38, 29, "seated-tankard", True, 50),
-    Seat("inner-bench", 38, 37, "seated-bottle", False, 100),
-    Seat("inner-bench", 38, 48, "seated-folded", False, 75),
+    Seat("inner-bench", 38, 37, "seated-pretzel", False, 100),
+    Seat("inner-bench", 38, 48, "seated-clap", False, 75),
     Seat("inner-bench", 38, 66, "seated-bottle", False, 50),
 )
 STUDIES = [
@@ -198,7 +197,7 @@ def build_study(mask, bay, atlas, palette, landmarks, study, planks):
     for support in {seat["support"] for seat in seats}:
         row = sorted((seat for seat in seats if seat["support"] == support), key=lambda seat: seat["y"])
         for north, south in zip(row, row[1:]):
-            # The cheering supporter has both a seated and a standing pose.
+            # Compare the supporter even if their stance or kit changes.
             if north["pose"].split("-", 1)[1] == south["pose"].split("-", 1)[1]:
                 raise ValueError(f"{label} repeats adjacent supporters on {support}")
             gaps.append(south["y"] - north["y"])
@@ -239,7 +238,9 @@ def build():
     landmarks = json.loads((HERE / "pose-landmarks.json").read_text())
     with Image.open(HERE / "supporters.png") as atlas:
         if atlas.mode != "P" or atlas.size != (CELL_SIZE * len(COLUMNS), CELL_SIZE):
-            raise ValueError("Supporter sheet must be an indexed row of six 48 px cells")
+            raise ValueError(f"Supporter sheet must be an indexed row of {len(COLUMNS)} {CELL_SIZE} px cells")
+        if set(landmarks) != set(COLUMNS) or len(set(COLUMNS)) != len(COLUMNS):
+            raise ValueError("Each atlas column needs a unique pose and its own landmarks")
         studies = [build_study(mask, bay, atlas, palette, landmarks, study, supports[BAY_ID]) for study in STUDIES]
         kits = Image.new("RGBA", (atlas.width, 2 * CELL_SIZE))
         for row, neutral in enumerate((False, True)):

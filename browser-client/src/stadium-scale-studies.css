@@ -86,6 +86,7 @@
 .bay-six-poses { margin-top: 12px; }
 .bay-six-poses summary { width: max-content; padding: 6px 0; color: #c1e9ff; cursor: pointer; }
 .bay-six-poses ol { display: flex; flex-wrap: wrap; gap: 12px; margin: 8px 0 0; padding: 0; list-style: none; }
+.bay-six-roster ol { max-width: 684px; }
 .bay-six-poses figure { width: 104px; margin: 0; }
 .bay-six-poses canvas {
   display: block;

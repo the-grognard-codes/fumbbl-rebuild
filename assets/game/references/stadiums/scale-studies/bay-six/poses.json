@@ -1,0 +1,12 @@
+[
+  { "id": "seated-fist", "label": "Raised fist" },
+  { "id": "seated-tankard", "label": "Tankard" },
+  { "id": "seated-bottle", "label": "Bottle" },
+  { "id": "seated-food", "label": "Eating" },
+  { "id": "standing-fist", "label": "Raised fist" },
+  { "id": "seated-folded", "label": "Folded arms" },
+  { "id": "seated-pretzel", "label": "Pretzel" },
+  { "id": "seated-clap", "label": "Clapping" },
+  { "id": "seated-bell", "label": "Handbell" },
+  { "id": "standing-bell", "label": "Handbell" }
+]

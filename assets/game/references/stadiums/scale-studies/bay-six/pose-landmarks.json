@@ -4,5 +4,9 @@
   "seated-bottle":  { "contact": [17, 38], "knee": [27, 35], "behindSeat": [[22, 39, 2, 7]] },
   "seated-food":    { "contact": [17, 36], "knee": [27, 34], "behindSeat": [[21, 37, 3, 9]] },
   "standing-fist":  { "contact": [21, 45], "otherSole": [29, 45] },
-  "seated-folded":  { "contact": [18, 37], "knee": [28, 35], "behindSeat": [[23, 38, 3, 8]] }
+  "seated-folded":  { "contact": [18, 37], "knee": [28, 35], "behindSeat": [[23, 38, 3, 8]] },
+  "seated-pretzel": {"contact": [19, 37], "knee": [29, 35], "behindSeat": [[22, 38, 3, 8]]},
+  "seated-clap": {"contact": [20, 38], "knee": [30, 36], "behindSeat": [[23, 39, 2, 7]]},
+  "seated-bell": {"contact": [19, 37], "knee": [29, 34], "behindSeat": [[23, 38, 2, 8]]},
+  "standing-bell": {"contact": [17, 45], "otherSole": [23, 45]}
 }

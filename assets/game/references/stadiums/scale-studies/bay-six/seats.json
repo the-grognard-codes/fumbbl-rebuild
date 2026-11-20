@@ -73,18 +73,18 @@
       {
         "x": 38,
         "y": 37,
-        "pose": "seated-bottle",
+        "pose": "seated-pretzel",
         "support": "inner-bench",
         "origin": {
-          "x": 21,
-          "y": -1
+          "x": 19,
+          "y": 0
         },
-        "height": 36,
+        "height": 37,
         "plankId": 63,
         "stance": "seated",
         "knee": {
           "x": 48,
-          "y": 34
+          "y": 35
         },
         "benchWidth": 10,
         "thighSpan": 10,
@@ -133,13 +133,13 @@
       {
         "x": 38,
         "y": 48,
-        "pose": "seated-folded",
+        "pose": "seated-clap",
         "support": "inner-bench",
         "origin": {
-          "x": 20,
-          "y": 11
+          "x": 18,
+          "y": 10
         },
-        "height": 37,
+        "height": 35,
         "plankId": 63,
         "stance": "seated",
         "knee": {
@@ -191,12 +191,12 @@
         "neutral": false
       },
       {
-        "x": 19,
+        "x": 21,
         "y": 71,
-        "pose": "standing-fist",
+        "pose": "standing-bell",
         "support": "rear-bench",
         "origin": {
-          "x": -2,
+          "x": 4,
           "y": 26
         },
         "height": 43,
@@ -249,7 +249,7 @@
         "neutral": false
       }
     ],
-    "overlapPixels": 1974,
+    "overlapPixels": 1969,
     "railOverlapPixels": 0
   },
   {
@@ -346,13 +346,13 @@
       {
         "x": 38,
         "y": 48,
-        "pose": "seated-folded",
+        "pose": "seated-clap",
         "support": "inner-bench",
         "origin": {
-          "x": 20,
-          "y": 11
+          "x": 18,
+          "y": 10
         },
-        "height": 37,
+        "height": 35,
         "plankId": 63,
         "stance": "seated",
         "knee": {
@@ -384,12 +384,12 @@
         "neutral": true
       },
       {
-        "x": 19,
+        "x": 21,
         "y": 71,
-        "pose": "standing-fist",
+        "pose": "standing-bell",
         "support": "rear-bench",
         "origin": {
-          "x": -2,
+          "x": 4,
           "y": 26
         },
         "height": 43,
@@ -442,7 +442,7 @@
         "neutral": false
       }
     ],
-    "overlapPixels": 1316,
+    "overlapPixels": 1329,
     "railOverlapPixels": 0
   },
   {
@@ -517,12 +517,12 @@
         "neutral": true
       },
       {
-        "x": 19,
+        "x": 21,
         "y": 71,
-        "pose": "standing-fist",
+        "pose": "standing-bell",
         "support": "rear-bench",
         "origin": {
-          "x": -2,
+          "x": 4,
           "y": 26
         },
         "height": 43,
@@ -575,7 +575,7 @@
         "neutral": false
       }
     ],
-    "overlapPixels": 532,
+    "overlapPixels": 558,
     "railOverlapPixels": 0
   }
 ]

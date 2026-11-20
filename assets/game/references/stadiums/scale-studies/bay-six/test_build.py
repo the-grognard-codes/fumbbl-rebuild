@@ -30,6 +30,36 @@ class BaySixPlacementTest(unittest.TestCase):
         cell = build.CELL_SIZE
         return self.atlas.crop((col * cell, 0, (col + 1) * cell, cell)).convert("RGBA").getchannel("A")
 
+    def test_new_supporters_can_use_either_kit_and_fit_the_rear_bench(self):
+        # One cheek and one hand per pose must stay on the fixed palette.
+        skin_samples = {
+            "seated-pretzel": ((22, 17), (23, 26)),
+            "seated-clap": ((23, 18), (27, 24)),
+            "seated-bell": ((22, 14), (29, 24)),
+            "standing-bell": ((22, 8), (31, 15)),
+        }
+        self.assertEqual(len(build.COLUMNS), 10)
+        self.assertEqual(len({pose.split("-", 1)[1] for pose in build.COLUMNS}), 8)
+        self.assertEqual(self.atlas.size, (10 * build.CELL_SIZE, build.CELL_SIZE))
+        for pose, samples in skin_samples.items():
+            with self.subTest(pose=pose):
+                x = build.COLUMNS.index(pose) * build.CELL_SIZE
+                source = self.atlas.crop((x, 0, x + build.CELL_SIZE, build.CELL_SIZE))
+                home = build.spectator(self.atlas, pose, build.kit_ramps(self.palette, False))
+                neutral = build.spectator(self.atlas, pose, build.kit_ramps(self.palette, True))
+                indices = source.tobytes()
+                self.assertTrue(any(1 <= index <= 16 for index in indices))
+                self.assertTrue(any(17 <= index <= 32 for index in indices))
+                for point in samples:
+                    self.assertGreater(source.getpixel(point), 32)
+                for index, fixed, home_color, neutral_color in zip(
+                        indices, source.convert("RGBA").get_flattened_data(),
+                        home.get_flattened_data(), neutral.get_flattened_data(), strict=True):
+                    if not 1 <= index <= 32:
+                        self.assertEqual((home_color, neutral_color), (fixed, fixed))
+                _, origin = build.place_pose(home, pose, "rear-bench", 19, 50, self.landmarks[pose], self.planks)
+                self.assertTrue(build.checked_pixels(home, origin, self.mask, self.bay, pose))
+
     def test_hips_knees_and_boot_soles_land_on_the_measured_benches(self):
         measured_edges = {"wall-bench": (0, 9), "rear-bench": (19, 27), "inner-bench": (38, 47)}
         for study in self.studies:
