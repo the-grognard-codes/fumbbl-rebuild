@@ -24,6 +24,81 @@ import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 class JdbcRecoveryRepositoryTest {
+	@Test void oversizedCheckpointIsRefusedBeforeDecodeOnBothRepositoryLoadPaths() throws Exception {
+		String oversized = new JsonObject().add("$codec", "ffb-match-gzip-json").add("version", 1)
+			.add("decodedBytes", 65 * 1024 * 1024).add("payload", "invalid-base64!").toString();
+		for (boolean journal : new boolean[] {false, true}) {
+			BoundedJsonStorageCodec codec = org.mockito.Mockito.spy(new BoundedJsonStorageCodec(
+				BoundedJsonStorageCodec.RECOVERY_ENCODED_LIMIT, BoundedJsonStorageCodec.RECOVERY_DECODED_LIMIT));
+			JdbcRecoveryRepository bounded = new JdbcRecoveryRepository(() -> connection, 1024, codec, journal);
+			ResultSet checkpoint = mock(ResultSet.class), entries = mock(ResultSet.class);
+			when(checkpoint.next()).thenReturn(true, false);
+			when(checkpoint.getLong(1)).thenReturn(1L);
+			when(checkpoint.getLong(2)).thenReturn(1L);
+			when(checkpoint.getString(1)).thenReturn("match");
+			when(checkpoint.getString(3)).thenReturn(oversized);
+			when(statement.executeQuery()).thenReturn(checkpoint, entries);
+			assertEquals("MATCH_SIZE_LIMIT", assertThrows(MatchService.Failure.class, () -> bounded.find("match")).code);
+			verify(codec, never()).decode(anyString());
+		}
+	}
+	@Test void nativeRestoreAdmissionRunsBeforeDecodingEitherStorageFormat() throws Exception {
+		MatchMemoryBudget budget = new MatchMemoryBudget(768L * 1024 * 1024);
+		long declaredBytes = 5 * 1024 * 1024;
+		String stored = new JsonObject().add("$codec", "ffb-match-gzip-json").add("version", 1)
+			.add("decodedBytes", declaredBytes).add("payload", "invalid-base64!").toString();
+		for (boolean journal : new boolean[] {false, true}) {
+			BoundedJsonStorageCodec codec = org.mockito.Mockito.spy(new BoundedJsonStorageCodec(
+				BoundedJsonStorageCodec.RECOVERY_ENCODED_LIMIT, BoundedJsonStorageCodec.RECOVERY_DECODED_LIMIT));
+			JdbcRecoveryRepository repository = new JdbcRecoveryRepository(() -> connection, 1024, codec, journal, budget);
+			ResultSet row = mock(ResultSet.class), journalRows = mock(ResultSet.class);
+			when(row.next()).thenReturn(true, false);
+			when(row.getLong(1)).thenReturn(1L);
+			when(row.getLong(2)).thenReturn(1L);
+			when(row.getString(3)).thenReturn(stored);
+			when(statement.executeQuery()).thenReturn(row, journalRows);
+
+			MatchService.Failure failure = assertThrows(MatchService.Failure.class, () ->
+				repository.findForRestore("match", bytes -> {
+					assertEquals(declaredBytes, bytes);
+					throw new MatchService.Failure("ACTIVATION_LIMIT");
+				}));
+			assertEquals("ACTIVATION_LIMIT", failure.code);
+			verify(codec, never()).decode(anyString());
+		}
+	}
+
+	@Test void legacyComputerBackfillRefusesOversizedCheckpointsAndJournalHeadsBeforeDecode() throws Exception {
+		MatchMemoryBudget budget = new MatchMemoryBudget(64L * 1024 * 1024);
+		JdbcRecoveryRepository bounded = new JdbcRecoveryRepository(() -> connection, true, true, budget,
+			new MatchSafetyJournal(MatchSafetyJournal.Tracking.DISABLED));
+		String oversized = new JsonObject().add("$codec", "ffb-match-gzip-json").add("version", 1)
+			.add("decodedBytes", budget.decodedLimit() + 1).add("payload", "invalid-base64!").toString();
+		ResultSet rows = mock(ResultSet.class);
+		when(statement.executeQuery()).thenReturn(rows);
+		when(rows.next()).thenReturn(true);
+		when(rows.getLong(1)).thenReturn(1L, 2L);
+		when(rows.getLong(2)).thenReturn(1L);
+		when(rows.getString(3)).thenReturn(oversized);
+
+		for (int generation : new int[] {1, 2}) {
+			assertEquals("MATCH_SIZE_LIMIT",
+				assertThrows(MatchService.Failure.class, () -> bounded.readLegacyComputerWork("match")).code,
+				"generation " + generation);
+		}
+	}
+
+	@Test void legacyComputerBackfillSkipsQuarantinedMatchesBeforeReadingStorage() throws Exception {
+		MatchSafetyJournal safety = mock(MatchSafetyJournal.class);
+		doThrow(new MatchService.Failure("MATCH_QUARANTINED")).when(safety).requireAutomaticAvailable("match");
+		JdbcRecoveryRepository bounded = new JdbcRecoveryRepository(() -> connection, true, true, new MatchMemoryBudget(), safety);
+
+		assertEquals("MATCH_QUARANTINED",
+			assertThrows(MatchService.Failure.class, () -> bounded.readLegacyComputerWork("match")).code);
+		verify(connection, never()).prepareStatement(anyString());
+		verify(statement, never()).executeQuery();
+	}
+
 	@Test void refusedCommitRemainsDefiniteBeforeAnyCommitIo() throws Exception {
 		when(statement.executeUpdate()).thenReturn(1);
 		doThrow(new com.fumbbl.ffb.server.db.JdbcConnections.CommitNotStarted()).when(connection).commit();

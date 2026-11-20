@@ -165,9 +165,18 @@ function receive(raw) {
   if (message.type !== 'setupState' || (message.requestId !== null && message.requestId !== pending?.requestId && message.requestId !== loadId)) return;
   if (message.code === 'MATCH_ABANDONED') { abandon(); return; }
   if (typeof message.code !== 'string' || typeof message.duplicate !== 'boolean'
-    || (message.code === 'ACCEPTED' && !message.state)
-    || (message.requestId === null && message.code !== 'ACCEPTED')) throw Error('Invalid setup response');
+    || (message.code === 'ACCEPTED' && !message.state)) throw Error('Invalid setup response');
+  // The stop notice can arrive ahead of the authoritative terminal publication.
+  if (message.requestId === null && message.code === 'MATCH_SIZE_LIMIT' && message.state === null) return;
+  if (message.requestId === null && message.code !== 'ACCEPTED') throw Error('Invalid setup response');
   if (message.state) applyState(message.state);
+  if (message.state?.stopReason === 'MATCH_SIZE_LIMIT' && state?.phase === 'FULL_TIME' && state.stopReason === 'MATCH_SIZE_LIMIT') {
+    pending = null;
+    loadId = null;
+    sentAt = 0;
+    decide();
+    return;
+  }
   if (message.requestId === pending?.requestId) {
     const old = pending;
     pending = null;

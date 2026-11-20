@@ -56,6 +56,7 @@ import com.fumbbl.ffb.server.team.bb2025.TeamFormations;
 import com.fumbbl.ffb.server.util.UtilSkillBehaviours;
 import com.fumbbl.ffb.util.UtilBox;
 
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
@@ -104,11 +105,16 @@ public final class SetupSession {
 	private int revision;
 	private int drive = 1;
 	private int replayBytes;
-	private final JsonArray events = new JsonArray();
+	private long escapedReplayBytes;
+	private long frozenReplayBytes;
+	private int measuredHistory;
+	private long historyBytes;
+	private final List<String> events = new ArrayList<>();
 	private final DecisionLimit decisionLimit = new DecisionLimit();
 	private final MatchDocument document;
 	private final MatchDocument.Member computerMember;
 	private boolean failed;
+	private boolean endedForSizeLimit;
 	private RecoveryDice recoveryDice;
 	private SaveResumeState saveResumeState;
 	private ComputerPolicyState computerPolicy;
@@ -334,7 +340,9 @@ public final class SetupSession {
 				JsonObject entry = item.asObject();
 				if (entry.get("setupErrors") == null) exactRecovery(entry, "key", "fingerprint", "code");
 				else exactRecovery(entry, "key", "fingerprint", "code", "setupErrors");
-				if (!entry.get("key").asString().matches("(home|away)\\n[A-Za-z0-9_-]{1,100}")
+				if (!(entry.get("key").asString().matches("(home|away)\\n[A-Za-z0-9_-]{1,100}")
+					|| entry.get("key").asString().matches("system\\nserver-size-limit-[0-9]+-[0-9]+")
+						&& entry.getString("fingerprint", "").equals(canonical(new JsonObject().add("operation", "sizeLimit").add("reason", MatchStopReason.MATCH_SIZE_LIMIT.name()))))
 					|| !("ACCEPTED".equals(entry.getString("code", null)) || "ILLEGAL_SETUP".equals(entry.getString("code", null))))
 					throw new IllegalArgumentException("Invalid recovery request history");
 				JsonArray setupErrors = entry.get("setupErrors") == null ? null : entry.get("setupErrors").asArray();
@@ -345,13 +353,13 @@ public final class SetupSession {
 				if (history.put(entry.get("key").asString(), new Record(entry.get("fingerprint").asString(), entry.get("code").asString(), setupErrors)) != null)
 					throw new IllegalArgumentException("Duplicate recovery history");
 			}
+			endedForSizeLimit = isComplete() && history.values().stream().anyMatch(record -> record.fingerprint.equals(
+				canonical(new JsonObject().add("operation", "sizeLimit").add("reason", MatchStopReason.MATCH_SIZE_LIMIT.name()))));
 			if (history.size() > 8192) throw new IllegalArgumentException("Recovery history limit");
 			for (JsonValue selection : payload.get("kickoffSelection").asArray()) kickoffSelection.add(selection.asString());
-			for (JsonValue event : JsonArray.readFrom(payload.get("eventsJson").asString())) {
-				events.add(event);
-				replayBytes += event.toString().getBytes(java.nio.charset.StandardCharsets.UTF_8).length;
-			}
-            restoreDecisionLimit();
+			JsonArray replayEvents = JsonArray.readFrom(payload.get("eventsJson").asString());
+			for (JsonValue event : replayEvents) freezeEvent(event);
+			restoreDecisionLimit(replayEvents);
 			if (replayBytes > MAX_MATCH_ARTIFACT_BYTES || events.size() != revision + 1
 				|| payload.get("pendingTerminal").asBoolean() != isComplete()) throw new IllegalArgumentException("Recovery event boundary");
 			if (saveResume) saveResumeState = new SaveResumeState(payload.get("saveResume").asObject());
@@ -392,8 +400,35 @@ public final class SetupSession {
 	}
 
 	public String recoveryArtifact() {
-		return new RecoveryArtifactJson().encodeCheckpoint(orderedRecoveryPayload()).envelope();
+		return new RecoveryArtifactJson().encodeCanonicalCheckpoint(recoveryCheckpointPayload()).envelope();
 	}
+	JsonObject recoveryCheckpointPayload() { return recoveryPayload(null); }
+
+	/** End an exhibition at its current score, without attributing a concession to either coach. */
+	void endForSizeLimit(long now) {
+		if (isComplete()) return;
+		if (staging != null) staging.finish(SetupStaging.StageEnd.DISCARD);
+		String role = "system";
+		Game game = state.getGame();
+		game.setDialogParameter(null);
+		pendingRoute = null; pendingActivation = null; confirmedKickoff = null; kickoffSelection.clear();
+		state.getStepStack().clear();
+		SequenceGeneratorFactory factory = game.getFactory(FactoryType.Factory.SEQUENCE_GENERATOR);
+		((EndGame) factory.forName(SequenceGenerator.Type.EndGame.name())).pushSequence(new EndGame.SequenceParams(state, true));
+		state.startNextStep();
+		if (!isComplete()) throw new IllegalStateException("Size-limit termination did not complete");
+		revision++;
+		refreshReaction(now);
+		endedForSizeLimit = true;
+		JsonObject decision = new JsonObject().add("operation", "sizeLimit").add("reason", MatchStopReason.MATCH_SIZE_LIMIT.name());
+		int suffix = 0;
+		String key;
+		do { key = role + "\nserver-size-limit-" + revision + "-" + suffix++; } while (history.containsKey(key));
+		history.put(key, new Record(canonical(decision), "ACCEPTED"));
+		recordEvent("FULL_TIME", role, decision);
+	}
+
+	boolean endedForSizeLimit() { return endedForSizeLimit; }
 
 	JsonObject orderedRecoveryPayload() { return ordered(recoveryPayload(null)).asObject(); }
 
@@ -405,16 +440,54 @@ public final class SetupSession {
 	int revision() { return revision; }
 	long recoveryNativeEpoch() { return state.getGameLog().recoveryEpoch(); }
 
+	/** Exact decoded envelope size using cached history lengths and a bounded current-state projection. */
+	long recoveryBytes() {
+		if (recoveryDice == null) return artifactBytes();
+		int[] counts = recoveryJournalCounts();
+		JsonObject metadata = recoveryPayload(counts);
+		int index = 0;
+		for (Map.Entry<String, Record> item : history.entrySet()) {
+			if (index++ < measuredHistory) continue;
+			historyBytes += new Utf8Size().bytes(recoveryRequest(item.getKey(), item.getValue()).toString());
+		}
+		measuredHistory = history.size();
+		long bytes = new Utf8Size().bytes(metadata.toString()) + historyBytes + Math.max(0, history.size() - 1)
+			+ frozenHistoryDecodedBytes() + state.getGameLog().recoveryJsonBytes();
+		// Empty arrays/string brackets are already present in metadata; only their contents were added.
+		return bytes + RecoveryArtifactJson.ENVELOPE_BYTES;
+	}
+
+	private void freezeEvent(JsonValue event) {
+		String json = event.toString();
+		events.add(json);
+		replayBytes += new Utf8Size().bytes(json);
+		escapedReplayBytes += new Utf8Size().bytes(JsonValue.valueOf(json).toString()) - 2;
+		frozenReplayBytes += new FrozenJsonSize().retainedBytes(json);
+	}
+
+	long frozenHistoryDecodedBytes() {
+		long bytes = escapedReplayBytes + Math.max(0, events.size() - 1);
+		if (transcriptV2) bytes += transcript.bytes() + Math.max(0, transcript.size() - 1);
+		return bytes;
+	}
+
+	long frozenHistoryRetainedBytes() {
+		return frozenReplayBytes + (transcriptV2 ? transcript.frozenBytes() : 0);
+	}
+
+	private JsonObject recoveryRequest(String key, Record entry) {
+		JsonObject saved = new JsonObject().add("key", key).add("fingerprint", entry.fingerprint).add("code", entry.code);
+		if (entry.setupErrors != null) saved.add("setupErrors", entry.setupErrors);
+		return saved;
+	}
+
 	private JsonObject recoveryPayload(int[] from) {
 		if (recoveryDice == null) throw new IllegalStateException("Legacy lifetime cannot be upgraded");
 		JsonArray requests = new JsonArray(), selections = new JsonArray();
 		int requestIndex = 0;
 		for (Map.Entry<String, Record> item : history.entrySet()) {
 			if (from != null && requestIndex++ < from[0]) continue;
-			String key = item.getKey(); Record entry = item.getValue();
-			JsonObject saved = new JsonObject().add("key", key).add("fingerprint", entry.fingerprint).add("code", entry.code);
-			if (entry.setupErrors != null) saved.add("setupErrors", entry.setupErrors);
-			requests.add(saved);
+			requests.add(recoveryRequest(item.getKey(), item.getValue()));
 		}
 		kickoffSelection.forEach(selections::add);
 		JsonObject rolls = new JsonObject();
@@ -446,9 +519,8 @@ public final class SetupSession {
 	}
 
 	private String recoveryEvents(int from) {
-		JsonArray selected = new JsonArray();
-		for (int index = from; index < events.size(); index++) selected.add(events.get(index));
-		return selected.toString();
+		// Frozen event strings avoid retaining a separate object graph for every historical board.
+		return "[" + String.join(",", events.subList(from, events.size())) + "]";
 	}
 
 	private JsonObject frozen() {
@@ -578,6 +650,8 @@ public final class SetupSession {
 		refreshHumanDecisionClock(!computerMemberIs(role), now);
 	}
 
+	long humanDecisionSince() { return saveResumeState == null ? -1 : saveResumeState.humanDecisionSince; }
+
 	boolean initializeHumanDecisionClock(long now) {
 		if (!saveResume || computerMember == null) return false;
 		long previous = saveResumeState.humanDecisionSince;
@@ -673,7 +747,7 @@ public final class SetupSession {
 	private void requestProposal(String role, String requestId, String intent, long now) {
 		if (saveResumeState.proposal != null) throw new MatchService.Failure("SAVE_PROPOSAL_PENDING");
 		String proposalId = java.util.UUID.nameUUIDFromBytes((matchId + "\n" + role + "\n" + requestId + "\n" + intent)
-			.getBytes(java.nio.charset.StandardCharsets.UTF_8)).toString();
+			.getBytes(StandardCharsets.UTF_8)).toString();
 		saveResumeState.proposal = new Proposal(proposalId, intent, role, revision, now, now + SaveResumeState.PROPOSAL_MILLIS);
 		refreshHumanActivity(role, now);
 	}
@@ -1048,6 +1122,7 @@ public final class SetupSession {
 	private JsonObject reply(String requestId, String code, boolean duplicate, String role, JsonArray setupErrors) {
 		JsonObject response = new SetupStateReply().create(requestId, failed ? "SESSION_UNAVAILABLE" : code,
 			!failed && duplicate, failed ? JsonValue.NULL : liveView(role));
+		if (!failed && endedForSizeLimit()) response.get("state").asObject().add("stopReason", MatchStopReason.MATCH_SIZE_LIMIT.name());
 		if (!failed && "ILLEGAL_SETUP".equals(code) && setupErrors != null) response.add("setupErrors", setupErrors);
 		return response;
 	}
@@ -1415,6 +1490,8 @@ public final class SetupSession {
 			.add("turnTimeStarted", state.getTurnTimeStarted()).add("turnTime", state.getGame().getTurnTime()).toString();
 	}
 
+	boolean hasPendingReactiveDecision() { return reactiveDecision.pending(); }
+
 	/** Executed only on the communication worker, using the same command and checkpoint path as coach input. */
 	public boolean expireReactiveDecision(long now) {
 		if (failed || isComplete() || saveResume && (saveResumeState.suspended() || saveResumeState.abandoned)) return false;
@@ -1490,7 +1567,7 @@ public final class SetupSession {
     }
 
     /** Rebuild derived accounting after the durable event history is installed. */
-    void restoreDecisionLimit() { decisionLimit.restore(events); }
+    void restoreDecisionLimit(JsonArray replayEvents) { decisionLimit.restore(replayEvents); }
 
     private void recordEvent(String kind, String role, JsonValue decision) { recordEvent(kind, role, decision, null); }
 
@@ -1502,8 +1579,7 @@ public final class SetupSession {
         snapshot.remove("movementForecast"); // Available actions are absent from frozen replay snapshots.
         snapshot.remove("blockPreview"); // Proposals are never part of recorded replay presentation.
         JsonObject event = new JsonObject().add("revision", revision).add("kind", kind).add("state", snapshot);
-        replayBytes += event.toString().getBytes(java.nio.charset.StandardCharsets.UTF_8).length;
-        events.add(event);
+        freezeEvent(event);
         decisionLimit.recorded(kind, snapshot);
         if (transcriptV2) {
             NativeOutcomeCapture.Capture capture = new NativeOutcomeCapture().since(state.getGameLog(), transcript.nativeCursor(), rollPresentation);
@@ -1529,7 +1605,7 @@ public final class SetupSession {
             .add("catalogVersion", document.home.team.catalogVersion).add("presetId", document.home.team.presetId)
             .add("presetVersion", document.home.team.presetVersion).add("matchId", matchId)
             .add("homeScore", homeScore()).add("awayScore", awayScore()).add("finalRevision", revision)
-            .add("events", events);
+            .add("events", JsonArray.readFrom(recoveryEvents(0)));
 		if (transcriptV2) result.add("transcript", transcript.json());
 		if (chatV1) result.add("chat", chat.json());
         return new CompletedMatch(result, document);
@@ -1552,7 +1628,7 @@ public final class SetupSession {
 	private long artifactBytes() {
 		long total = replayBytes;
 		if (transcriptV2) total += transcript.bytes();
-		if (chatV1) total += chat.json().toString().getBytes(java.nio.charset.StandardCharsets.UTF_8).length;
+		if (chatV1) total += chat.json().toString().getBytes(StandardCharsets.UTF_8).length;
 		return total;
 	}
 	/** A revision-bound forecast; neither the engine nor the checkpoint is changed. */

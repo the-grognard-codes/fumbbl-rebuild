@@ -4,7 +4,6 @@ import com.eclipsesource.json.JsonArray;
 import com.eclipsesource.json.JsonObject;
 import com.eclipsesource.json.JsonValue;
 
-import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.List;
 
@@ -21,8 +20,9 @@ final class RecoveryJournal {
 	Cursor cursor(RecoveryRepository.Record record, SetupSession session) {
 		JsonObject envelope = envelope(record.json, RecoveryArtifactJson.MAX_CHECKPOINT_BYTES);
 		JsonObject payload = envelope.get("payload").asObject();
+		long storedBytes = record.storedCheckpointBytes == 0 ? bytes(record.json) : record.storedCheckpointBytes + record.journalBytes;
 		return new Cursor(counts(payload), signature(payload), record.journalHash == null
-			? envelope.getString("sha256", null) : record.journalHash, record.journalEntries, record.journalBytes, bytes(record.json),
+			? envelope.getString("sha256", null) : record.journalHash, record.journalEntries, record.journalBytes, storedBytes,
 			session == null ? -1 : session.recoveryNativeEpoch());
 	}
 
@@ -63,6 +63,11 @@ final class RecoveryJournal {
 				|| generation - checkpointGeneration != entries.size()) throw new IllegalArgumentException("Journal boundary");
 			JsonObject base = envelope(checkpoint, RecoveryArtifactJson.MAX_CHECKPOINT_BYTES), payload = base.get("payload").asObject();
 			String hash = base.getString("sha256", null);
+			long checkpointBytes = bytes(checkpoint);
+			if (entries.isEmpty()) return new RecoveryRepository.Record(id, generation, checkpoint, hash, 0, 0, checkpointBytes);
+			// Reassembly owns the parsed payload. Do not retain the entire source string/tree
+			// while allocating its replacement, especially when one Unicode value makes it UTF-16.
+			base = null; checkpoint = null;
 			long expected = checkpointGeneration, journalBytes = 0;
 			for (RecoveryRepository.Record record : entries) {
 				journalBytes += bytes(record.json);
@@ -79,8 +84,8 @@ final class RecoveryJournal {
 				if (!Arrays.equals(counts(payload), counts(entry.get("to").asArray()))) throw new IllegalArgumentException("Journal counts");
 				hash = saved.getString("sha256", null);
 			}
-			String json = entries.isEmpty() ? checkpoint : new RecoveryArtifactJson().encodeCheckpoint(ordered(payload).asObject()).envelope();
-			return new RecoveryRepository.Record(id, generation, json, hash, entries.size(), journalBytes);
+			String json = new RecoveryArtifactJson().encodeCanonicalCheckpoint(payload).envelope();
+			return new RecoveryRepository.Record(id, generation, json, hash, entries.size(), journalBytes, checkpointBytes);
 		} catch (RuntimeException corrupt) { throw new MatchService.Failure("RECOVERY_CORRUPT"); }
 	}
 
@@ -99,7 +104,7 @@ final class RecoveryJournal {
 	private JsonObject combine(JsonObject before, JsonObject tail) {
 		JsonObject result = new JsonObject(tail);
 		result.set("history", concat(before.get("history").asArray(), tail.get("history").asArray()));
-		result.set("eventsJson", concat(JsonArray.readFrom(before.getString("eventsJson", null)), JsonArray.readFrom(tail.getString("eventsJson", null))).toString());
+		result.set("eventsJson", new JsonArrayText().concat(before.getString("eventsJson", null), tail.getString("eventsJson", null)));
 		JsonObject nativeState = new JsonObject(tail.get("native").asObject());
 		nativeState.set("gameLog", new JsonObject().add("commandArray", concat(commands(before), commands(tail))));
 		result.set("native", nativeState);
@@ -124,7 +129,7 @@ final class RecoveryJournal {
 		return object;
 	}
 	private int[] counts(JsonObject payload) {
-		return new int[] {payload.get("history").asArray().size(), JsonArray.readFrom(payload.getString("eventsJson", null)).size(), commands(payload).size(),
+		return new int[] {payload.get("history").asArray().size(), new JsonArrayText().count(payload.getString("eventsJson", null)), commands(payload).size(),
 			payload.get("transcript") == null ? 0 : payload.get("transcript").asObject().get("records").asArray().size()};
 	}
 	private JsonArray commands(JsonObject payload) { return payload.get("native").asObject().get("gameLog").asObject().get("commandArray").asArray(); }
@@ -134,7 +139,7 @@ final class RecoveryJournal {
 	}
 	private JsonArray numbers(int[] values) { JsonArray result = new JsonArray(); for (int value : values) result.add(value); return result; }
 	private JsonArray concat(JsonArray before, JsonArray after) { JsonArray result = new JsonArray(); for (JsonValue value : before) result.add(value); for (JsonValue value : after) result.add(value); return result; }
-	private int bytes(String text) { return text.getBytes(StandardCharsets.UTF_8).length; }
+	private int bytes(String text) { return Math.toIntExact(new Utf8Size().bytes(text)); }
 	private JsonValue ordered(JsonValue value) {
 		if (value.isObject()) { JsonObject result = new JsonObject(); value.asObject().names().stream().sorted().forEach(name -> result.add(name, ordered(value.asObject().get(name)))); return result; }
 		if (value.isArray()) { JsonArray result = new JsonArray(); for (JsonValue item : value.asArray()) result.add(ordered(item)); return result; } return value;

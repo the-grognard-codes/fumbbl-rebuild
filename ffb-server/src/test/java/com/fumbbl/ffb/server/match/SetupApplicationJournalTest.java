@@ -28,6 +28,21 @@ class SetupApplicationJournalTest {
 		assertEquals(1, exercise(true).get("values").asObject().getInt("checkpointPath", -1));
 	}
 
+	@Test void aJournalAppendThatWouldExceedTheDecodedReadLimitCompactsInstead() throws Exception {
+		Fixture fixture = new Fixture(true);
+		MatchMemoryBudget budget = new MatchMemoryBudget();
+		RecoveryRepository.Record original = fixture.recovery.record;
+		// A reconstructed head can be much smaller than the stored checkpoint it replaced.
+		fixture.recovery.record = new RecoveryRepository.Record(original.matchId, original.generation, original.json,
+			null, 0, 0, budget.decodedLimit());
+		JsonObject ready = fixture.load();
+
+		JsonObject response = fixture.application().handle(ready.getString("actor", null), fixture.endTurn(ready));
+		assertEquals("ACCEPTED", response.getString("code", null));
+		assertEquals(1, fixture.recovery.saves);
+		assertEquals(0, fixture.recovery.appends);
+	}
+
 	@Test void fullCheckpointFallbackIsNotReportedAsJournalCompaction() throws Exception {
 		assertEquals(3, exercise(false).get("values").asObject().getInt("checkpointPath", -1));
 	}
@@ -38,7 +53,7 @@ class SetupApplicationJournalTest {
 			RecoveryRepository.Record original = fixture.recovery.record;
 			// Start from the journal's compaction threshold without generating 31 extra turns.
 			fixture.recovery.record = new RecoveryRepository.Record(original.matchId, original.generation, original.json,
-				null, RecoveryJournal.MAX_ENTRIES - 1, 0);
+				null, RecoveryJournal.MAX_ENTRIES - 1, 0, new Utf8Size().bytes(original.json));
 			RecoveryRepository.Record before = fixture.recovery.record;
 			JsonObject ready = fixture.load();
 			JsonObject request = fixture.endTurn(ready);

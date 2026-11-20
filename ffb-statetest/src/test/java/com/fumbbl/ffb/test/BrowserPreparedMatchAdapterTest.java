@@ -240,9 +240,10 @@ class BrowserPreparedMatchAdapterTest {
             GameState engine = (GameState) field(session, "state");
             // A test-only terminal fixture isolates persistence and delivery from the separate native full-match characterization.
             engine.getGame().setFinished(new java.util.Date()); engine.getGame().setTurnMode(com.fumbbl.ffb.TurnMode.END_GAME);
-            com.eclipsesource.json.JsonArray events = (com.eclipsesource.json.JsonArray) field(session, "events");
-            JsonObject last = events.get(events.size() - 1).asObject();
+            @SuppressWarnings("unchecked") List<String> events = (List<String>) field(session, "events");
+            JsonObject last = JsonObject.readFrom(events.get(events.size() - 1));
             last.set("kind", "FULL_TIME").set("state", session.reply("test", "ACCEPTED", false, "home").get("state").asObject().set("prompt", com.eclipsesource.json.JsonValue.NULL));
+            events.set(events.size() - 1, last.toString());
             home.clear(); away.clear();
             adapter.receive(ac, choice.toString());
             assertEquals(unknown ? "MATCH_OUTCOME_UNKNOWN" : "PERSISTENCE_FAILED", JsonObject.readFrom(away.get(0)).getString("code", null));

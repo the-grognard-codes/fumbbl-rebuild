@@ -54,7 +54,7 @@ class V2PreparationServiceTest {
 		when(rows.getString(2)).thenReturn("away");
 		when(rows.getLong(4)).thenReturn(1L);
 		when(rows.wasNull()).thenReturn(true);
-		String documentQuery = "SELECT document_version,document_json FROM ffb_prepared_matches WHERE match_id=?";
+		String documentQuery = "SELECT document_json FROM ffb_prepared_matches WHERE match_id=? AND document_version=3";
 		when(connection.prepareStatement(documentQuery)).thenThrow(new IllegalStateException("Injected classification failure"),
 			new MatchService.Failure("SNAPSHOT_UNSUPPORTED"));
 		Clock clock = mock(Clock.class);

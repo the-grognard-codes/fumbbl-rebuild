@@ -89,7 +89,7 @@ class RetainedConcessionTest {
             envelope.set("sha256", digest(payload.toString()));
             AtomicReference<RecoveryRepository.Record> stored = new AtomicReference<>(new RecoveryRepository.Record(fixture.document.matchId, 1, envelope.toString()));
             AtomicReference<MatchDocument> document = new AtomicReference<>(fixture.document);
-            RecoveryRepository recovery = mock(RecoveryRepository.class);
+            RecoveryRepository recovery = mock(RecoveryRepository.class, org.mockito.Mockito.CALLS_REAL_METHODS);
             when(recovery.find(fixture.document.matchId)).thenAnswer(call -> stored.get());
             org.mockito.stubbing.Answer<Boolean> save = call -> {
                 RecoveryRepository.Record next = call.getArgument(0);
