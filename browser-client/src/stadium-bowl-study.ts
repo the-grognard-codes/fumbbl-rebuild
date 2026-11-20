@@ -26,7 +26,10 @@ export function drawBowl(context: CanvasRenderingContext2D, art: HTMLImageElemen
     }
     y += dh;
   }
+  drawBowlGround(context);
+}
 
+export function drawBowlGround(context: CanvasRenderingContext2D, fillExterior = false) {
   // One deterministic grain pattern for the packed earth and the untrimmed turf.
   let seed = 572;
   function next(limit: number) {
@@ -34,7 +37,8 @@ export function drawBowl(context: CanvasRenderingContext2D, art: HTMLImageElemen
     return Math.floor(seed / 4294967296 * limit);
   }
   context.fillStyle = '#95784f';
-  context.fillRect(west, north, openingWidth, openingHeight);
+  if (fillExterior) context.fillRect(0, 0, bowl.width, bowl.height);
+  else context.fillRect(west, north, openingWidth, openingHeight);
   for (let i = 0; i < 14000; i++) {
     context.fillStyle = i % 3 ? '#90754d' : '#9f8359';
     context.fillRect(west + next(openingWidth - 3), north + next(openingHeight - 2), 1 + next(3), 1 + next(2));

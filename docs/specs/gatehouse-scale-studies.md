@@ -35,3 +35,11 @@ The new painting uses raised stone rows, heraldic pennants, doublets, mail and l
 ![Study E native touchline](../../assets/game/references/stadiums/scale-studies/bowl-detail.webp)
 
 ![Study E full overhead bowl](../../assets/game/references/stadiums/scale-studies/bowl-overview.webp)
+
+### Study F · Inward-facing Gatehouse bowl
+
+The south supporters show their backs as they watch the pitch through the same overhead camera. The red-and-ivory away section occupies the east terrace, with cross-aisles descending through the seating bays toward the pitch. The other three terraces use home colours mixed with neutral clothing.
+
+The entire stadium surround is one newly drawn foreground with a transparent opening. Its pointed standards, stonework and braziers extend over the dirt on their own silhouettes. The west crop uses the same players, turf, grid and apron as E. The bowl view selector also has native-size crops for the south gate, east away terrace and north banners. The team colours in this painting are fixed. Study C contains the editable ramp and fixed-clothing proof.
+
+![Study F with the east away terrace and south gate](../../assets/game/references/stadiums/scale-studies/inward-overview.webp)

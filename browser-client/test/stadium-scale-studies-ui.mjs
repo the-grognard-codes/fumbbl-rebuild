@@ -13,6 +13,13 @@ await mkdir(output, { recursive: true });
 const server = await createServer({ root, server: { host: '127.0.0.1', port: 0 } });
 await server.listen();
 let browser;
+
+async function cropDigest(canvas, { x, y, width, height }) {
+  const pixels = canvas.getContext('2d').getImageData(x, y, width, height).data;
+  const hash = await crypto.subtle.digest('SHA-256', pixels);
+  return Array.from(new Uint8Array(hash));
+}
+
 try {
   browser = await chromium.launch({ executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH });
   const page = await browser.newPage({ viewport: { width: 1440, height: 1000 } });
@@ -42,9 +49,16 @@ try {
   }
 
   await settleSprites();
-  const newStudy = page.locator('#stepped-bowl');
-  await newStudy.locator('summary').click();
-  const fullBowl = newStudy.locator('details canvas');
+  const inwardStudy = page.locator('#inward-bowl');
+  const inwardCrop = inwardStudy.locator('.scale-study-crop[data-ready="true"]');
+  const inwardCanvas = inwardCrop.locator('canvas');
+  const bowlView = inwardStudy.getByLabel('Bowl view');
+  const steppedStudy = page.locator('#stepped-bowl');
+  assert.ok(await inwardStudy.evaluate(section =>
+    Boolean(section.compareDocumentPosition(document.querySelector('#stepped-bowl')) & Node.DOCUMENT_POSITION_FOLLOWING)));
+  assert.equal(await bowlView.inputValue(), 'full');
+  await steppedStudy.locator('summary').click();
+  const fullBowl = steppedStudy.locator('details canvas');
   assert.deepEqual(await fullBowl.evaluate(c => [c.width, c.height]), [790, 1188]);
   const fringe = await fullBowl.evaluate(canvas => {
     const pixels = canvas.getContext('2d').getImageData(0, 0, canvas.width, canvas.height).data;
@@ -65,9 +79,94 @@ try {
     });
   });
   for (const [min, max] of fringe) assert.ok(min >= 2 && max <= 7 && max - min >= 3);
-  await newStudy.screenshot({ path: resolve(output, 'stepped-bowl.png') });
-  await newStudy.locator('.bowl-detail').screenshot({ path: resolve(output, 'stepped-bowl-detail.png') });
-  await newStudy.locator('summary').click();
+
+  const foregroundSource = (await readFile(new URL('gatehouse-inward.webp', assets))).toString('base64');
+  const inwardPixels = await inwardCanvas.evaluate(async (canvas, source) => {
+    const image = new Image();
+    image.src = `data:image/webp;base64,${source}`;
+    await image.decode();
+    const { width, height } = canvas;
+    const buffer = document.createElement('canvas');
+    buffer.width = width;
+    buffer.height = height;
+    const context = buffer.getContext('2d');
+    context.drawImage(image, 0, 0);
+    const read = target => new Uint32Array(target.getContext('2d').getImageData(0, 0, width, height).data.buffer);
+    const foreground = new Uint32Array(context.getImageData(0, 0, width, height).data.buffer);
+    const rendered = read(canvas);
+    const stepped = read(document.querySelector('#stepped-bowl details canvas'));
+    const result = { opaque: 0, opaqueChanged: 0, exposedGround: 0, groundChanged: 0, opaqueInOpening: 0,
+      transparentRendered: 0 };
+    for (let i = 0; i < rendered.length; i++) {
+      const x = i % width;
+      const y = Math.floor(i / width);
+      const inOpening = x >= 108 && x < 684 && y >= 121 && y < 1049;
+      const alpha = foreground[i] >>> 24;
+      if (rendered[i] >>> 24 !== 255) result.transparentRendered++;
+      if (alpha === 255) {
+        result.opaque++;
+        if (inOpening) result.opaqueInOpening++;
+        if (foreground[i] !== rendered[i]) result.opaqueChanged++;
+      } else if (alpha === 0 && inOpening) {
+        result.exposedGround++;
+        if (stepped[i] !== rendered[i]) result.groundChanged++;
+      }
+    }
+    return result;
+  }, foregroundSource);
+  assert.ok(inwardPixels.opaque > 300_000);
+  assert.ok(inwardPixels.exposedGround >= 480 * 832);
+  assert.ok(inwardPixels.opaqueInOpening > 0);
+  assert.equal(inwardPixels.opaqueChanged, 0);
+  assert.equal(inwardPixels.groundChanged, 0);
+  assert.equal(inwardPixels.transparentRendered, 0);
+
+  const inwardViews = {
+    full: { x: 0, y: 0, width: 790, height: 1188 },
+    south: { x: 80, y: 888, width: 630, height: 300 },
+    east: { x: 490, y: 198, width: 300, height: 714 },
+    north: { x: 60, y: 0, width: 670, height: 270 },
+    west: { x: 0, y: 361, width: 416, height: 352 },
+  };
+  const expectedCrops = {};
+  for (const [view, frame] of Object.entries(inwardViews)) {
+    expectedCrops[view] = await inwardCanvas.evaluate(cropDigest, frame);
+  }
+  const inwardPlayers = {};
+  for (const [view, frame] of Object.entries(inwardViews)) {
+    await bowlView.selectOption(view);
+    assert.equal(await inwardCrop.getAttribute('data-view'), view);
+    assert.deepEqual(await inwardCanvas.evaluate(canvas => [canvas.width, canvas.height, canvas.clientWidth, canvas.clientHeight]),
+      [frame.width, frame.height, frame.width, frame.height]);
+    assert.deepEqual(await inwardCanvas.evaluate(cropDigest, { ...frame, x: 0, y: 0 }), expectedCrops[view]);
+    await inwardCrop.locator('img').evaluateAll(images => Promise.all(images.map(image => image.decode())));
+    inwardPlayers[view] = await inwardCrop.locator('img').evaluateAll((images, { x, y }) => images.map(image => {
+      const frameBounds = image.parentElement.getBoundingClientRect();
+      const sprite = image.getBoundingClientRect();
+      const { playerId, footX, footY, anchorX, anchorY } = image.dataset;
+      return {
+        id: playerId, width: sprite.width,
+        foot: [Number(footX) + x, Number(footY) + y],
+        drawnFoot: [x + sprite.x - frameBounds.x + sprite.width * Number(anchorX) / image.naturalWidth,
+          y + sprite.y - frameBounds.y + sprite.height * Number(anchorY) / image.naturalHeight],
+      };
+    }), frame);
+    await inwardCrop.screenshot({ path: resolve(output, `inward-bowl-${view}.png`) });
+  }
+  assert.equal(inwardPlayers.full.length, 7);
+  assert.equal(inwardPlayers.west.length, 7);
+  for (const view of ['south', 'east', 'north']) assert.equal(inwardPlayers[view].length, 0);
+  const pitchFeet = [[172, 441], [172, 569], [204, 569], [236, 569], [172, 601], [204, 601], [236, 601]];
+  for (const view of ['full', 'west']) {
+    assert.deepEqual(inwardPlayers[view].map(player => player.foot), pitchFeet);
+    for (const { foot, drawnFoot } of inwardPlayers[view]) {
+      assert.ok(foot.every((point, axis) => Math.abs(point - drawnFoot[axis]) < .05));
+    }
+  }
+  await bowlView.selectOption('full');
+  await steppedStudy.screenshot({ path: resolve(output, 'stepped-bowl.png') });
+  await steppedStudy.locator('.bowl-detail').screenshot({ path: resolve(output, 'stepped-bowl-detail.png') });
+  await steppedStudy.locator('summary').click();
   const geometry = await comparisons.locator('figure').evaluateAll(figures => figures.map(figure => {
     const crop = figure.querySelector('.scale-study-crop').getBoundingClientRect();
     return {
@@ -101,6 +200,9 @@ try {
     assert.ok(Math.abs(geometry[0].players[i].width * 1.25 - geometry[1].players[i].width) < .05);
     assert.equal(geometry[1].players[i].width, geometry[2].players[i].width);
     assert.equal(geometry[1].players[i].width, geometry[3].players[i].width);
+    for (const view of ['full', 'west']) {
+      assert.ok(Math.abs(geometry[1].players[i].width - inwardPlayers[view][i].width) < .05);
+    }
   }
 
   const backgroundChanges = await comparisons.locator('canvas').evaluateAll(([a, b, c, d]) => {
@@ -196,7 +298,8 @@ try {
   await page.getByRole('link', { name: 'Back to Gatehouse gallery' }).click();
   await page.getByRole('link', { name: 'Compare player scales' }).waitFor();
   assert.deepEqual(errors, []);
-  await writeFile(resolve(output, 'checks.json'), JSON.stringify({ geometry, backgroundChanges, paintedKitIndependent, edgeChecks }, null, 2));
+  await writeFile(resolve(output, 'checks.json'), JSON.stringify({ inwardPixels, inwardViews, inwardPlayers, geometry,
+    backgroundChanges, paintedKitIndependent, edgeChecks }, null, 2));
   assert.ok(backgroundChanges.painted > 40_000);
   assert.equal(paintedKitIndependent, true);
   console.log('Stadium scale studies passed. Evidence in ' + output);
