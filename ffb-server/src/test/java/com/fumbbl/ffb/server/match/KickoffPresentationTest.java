@@ -6,8 +6,8 @@ import com.fumbbl.ffb.dialog.DialogPlayerChoiceParameter;
 import com.fumbbl.ffb.model.Game;
 import com.fumbbl.ffb.model.Team;
 import com.fumbbl.ffb.server.GameState;
-import com.fumbbl.ffb.server.IServerJsonOption;
 import com.fumbbl.ffb.server.step.IStep;
+import com.fumbbl.ffb.server.step.KickoffAdjustmentBudget;
 import com.fumbbl.ffb.server.step.StepId;
 import com.fumbbl.ffb.server.step.StepStack;
 
@@ -16,13 +16,17 @@ import com.eclipsesource.json.JsonObject;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
+import java.util.List;
 
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.withSettings;
 
 class KickoffPresentationTest {
     private final GameState state = mock(GameState.class);
@@ -38,25 +42,23 @@ class KickoffPresentationTest {
     @Test void quickSnapUsesNativeCountsForReceivingActorIncludingAnInterruptedStep() {
         when(game.getTurnMode()).thenReturn(TurnMode.QUICK_SNAP);
         when(game.isHomePlaying()).thenReturn(false);
-        IStep kickoff = mock(IStep.class), interruption = mock(IStep.class);
+        IStep kickoff = mock(IStep.class, withSettings().extraInterfaces(KickoffAdjustmentBudget.class));
+        IStep interruption = mock(IStep.class);
+        when(((KickoffAdjustmentBudget) kickoff).completedParticipants()).thenReturn(2);
         when(kickoff.getId()).thenReturn(StepId.APPLY_KICKOFF_RESULT);
         when(interruption.getId()).thenReturn(StepId.APOTHECARY);
-        JsonObject nativeState = new JsonObject();
-        IServerJsonOption.NR_OF_PLAYERS_ALLOWED.addTo(nativeState, 5);
-        IServerJsonOption.NR_OF_PLAYERS.addTo(nativeState, 2);
-        IServerJsonOption.PLAYER_IDS_SELECTED.addTo(nativeState, new String[0]);
-        when(kickoff.toJsonValue()).thenReturn(nativeState);
+        when(((KickoffAdjustmentBudget) kickoff).allowedParticipants()).thenReturn(5);
+        when(((KickoffAdjustmentBudget) kickoff).selectedParticipantIds()).thenReturn(Collections.emptyList());
         when(state.getCurrentStep()).thenReturn(interruption);
         StepStack stack = new StepStack(state);
         stack.push(kickoff);
         when(state.getStepStack()).thenReturn(stack);
-        JsonObject before = JsonObject.readFrom(nativeState.toString());
         JsonObject result = presentation.project(state, Collections.emptySet());
         assertEquals("QUICK_SNAP", result.getString("event", null));
         assertEquals("away", result.getString("actor", null));
         assertEquals(5, result.getInt("allowed", -1));
         assertEquals(2, result.getInt("completed", -1));
-        assertEquals(before, nativeState);
+        verify(kickoff, never()).toJsonValue();
         assertEquals(kickoff, stack.peek());
     }
 
@@ -84,7 +86,8 @@ class KickoffPresentationTest {
 
     @Test void solidDefenceMovementUsesNativeSelectionDespiteRetainedChoiceDialog() {
         Team home = mock(Team.class);
-        IStep step = mock(IStep.class);
+        IStep step = mock(IStep.class, withSettings().extraInterfaces(KickoffAdjustmentBudget.class));
+        when(((KickoffAdjustmentBudget) step).completedParticipants()).thenReturn(2);
         when(state.getCurrentStep()).thenReturn(step);
         when(game.getTeamHome()).thenReturn(home);
         when(home.getId()).thenReturn("home-team");
@@ -92,15 +95,15 @@ class KickoffPresentationTest {
         when(game.getDialogParameter()).thenReturn(new DialogPlayerChoiceParameter("home-team", PlayerChoiceMode.SOLID_DEFENCE,
             new String[] { "one", "two", "three" }, null, 6, 0));
         when(step.getId()).thenReturn(StepId.APPLY_KICKOFF_RESULT);
-        JsonObject nativeState = new JsonObject();
-        IServerJsonOption.NR_OF_PLAYERS_ALLOWED.addTo(nativeState, 6);
-        IServerJsonOption.PLAYER_IDS_SELECTED.addTo(nativeState, new String[] { "one", "two", "three" });
-        when(step.toJsonValue()).thenReturn(nativeState);
+        when(((KickoffAdjustmentBudget) step).allowedParticipants()).thenReturn(6);
+        when(((KickoffAdjustmentBudget) step).selectedParticipantIds()).thenReturn(List.of("one", "two", "three"));
         when(game.getTurnMode()).thenReturn(TurnMode.KICKOFF);
         assertEquals("selection", presentation.project(state, Collections.singleton("one")).getString("stage", null));
         when(game.getTurnMode()).thenReturn(TurnMode.SOLID_DEFENCE);
         JsonObject movement = presentation.project(state, Collections.emptySet());
         assertEquals("movement", movement.getString("stage", null));
         assertEquals(3, movement.getInt("selected", -1));
+        assertEquals(2, movement.getInt("completed", -1));
+        verify(step, never()).toJsonValue();
     }
 }

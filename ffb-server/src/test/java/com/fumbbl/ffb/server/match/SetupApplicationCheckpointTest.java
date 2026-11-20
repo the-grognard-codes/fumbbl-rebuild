@@ -12,14 +12,21 @@ import org.junit.jupiter.api.Test;
 import org.mockito.MockedConstruction;
 
 import java.lang.reflect.Field;
+import java.lang.reflect.Method;
 import java.sql.SQLException;
+import java.sql.SQLNonTransientConnectionException;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneOffset;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.logging.Handler;
+import java.util.logging.LogRecord;
+import java.util.logging.Logger;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -31,6 +38,9 @@ import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.doCallRealMethod;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockConstruction;
 import static org.mockito.Mockito.never;
@@ -117,6 +127,29 @@ class SetupApplicationCheckpointTest {
 			verify(fixture.session(), times(2)).recoveryArtifact();
 			verify(fixture.recovery).save(any(RecoveryRepository.Record.class), eq(4L));
 			assertEquals(1, fixture.executed.get());
+		}
+	}
+
+	@Test void stagedRequestsSkipCheckpointUntilConfirmation() throws Exception {
+		try (Fixture fixture = new Fixture()) {
+			fixture.application.handle("home", load());
+			SetupSession session = fixture.session();
+			JsonObject stage = new JsonObject().add("type", "stagedPlacement").add("stageSeq", 1);
+			for (int i = 1; i <= 10; i++) {
+				JsonObject placement = request("placement-" + i).set("operation", "place").remove("actionId")
+					.add("playerId", "player").add("to", new JsonObject().add("x", 8).add("y", 7));
+				when(session.isStagedRequest(placement)).thenReturn(true);
+				when(session.stagedPlacement()).thenReturn(stage);
+				SetupApplication.HandleOutcome outcome = fixture.application.handleWithOutcome("home", placement);
+				assertEquals("ACCEPTED", outcome.response().getString("code", null));
+				assertSame(stage, outcome.placement());
+				assertFalse(outcome.publish());
+			}
+			verify(fixture.recovery, never()).save(any(RecoveryRepository.Record.class), anyLong());
+			verify(session, never()).recoveryArtifact();
+			assertTrue(fixture.application.handleWithOutcome("home", request("confirm").set("operation", "confirm").remove("actionId")).publish());
+			verify(fixture.recovery).save(any(RecoveryRepository.Record.class), eq(4L));
+			verify(session).recoveryArtifact();
 		}
 	}
 
@@ -290,6 +323,195 @@ class SetupApplicationCheckpointTest {
 		}
 	}
 
+
+	@Test void starvedTerminalRequestPublishesDurableStateAndReconcilesOnFreshTick() throws Exception {
+		try (Fixture fixture = new Fixture()) {
+			fixture.application.handle("home", load());
+			AtomicLong nanos = new AtomicLong();
+			BrowserRequestTiming timing = new BrowserRequestTiming();
+			when(fixture.session().isComplete()).thenAnswer(call -> fixture.executed.get() > 0);
+			when(fixture.session().checkpointOwner()).thenReturn("home");
+			fixture.beforeSave = () -> nanos.set(1_900_000_000L);
+			doAnswer(call -> {
+				if (timing.budget() != null && timing.budget().allowanceMillis(1000, JdbcConnections.WORK_RESERVE_MILLIS) == 0)
+					throw new JdbcConnections.NotStarted();
+				return null;
+			}).when(fixture.matches).completeLoaded(anyString(), any(MatchDocument.class), any());
+			AtomicReference<SetupApplication.HandleOutcome> outcome = new AtomicReference<>();
+			new CaptureRequestProbe().measure(request("final-action"), nanos::get, () -> {
+				outcome.set(fixture.application.handleWithOutcome("home", request("final-action")));
+				return outcome.get().response();
+			});
+			assertEquals("ACCEPTED", outcome.get().response().getString("code", null));
+			assertTrue(outcome.get().publish(), "The final checkpoint is durable even when the result write cannot start");
+			assertEquals("after:final-action", fixture.durable.get().json);
+			assertEquals(1, fixture.mapSize("pendingCompletions"));
+			assertEquals(1, new CaptureRequestProbe().within(() -> fixture.application.expireReactiveDecisions()).size());
+			assertEquals(0, fixture.mapSize("sessions"));
+			assertEquals(0, fixture.mapSize("pendingCompletions"));
+			assertEquals(1, fixture.executed.get(), "Reconciliation never repeats the native action");
+		}
+	}
+
+	@Test void terminalStoreFailuresPublishAndReconcileWithoutAnotherClientRequest() throws Exception {
+		for (Exception failure : new Exception[] { new SQLNonTransientConnectionException("connection reset", "08006"),
+			new MatchService.OutcomeUnknown(MATCH),
+			new MatchRepository.OutcomeUnknown(new MatchRepository.Record(MATCH, 4, "attempted"), new SQLException("unknown")) }) {
+			try (Fixture fixture = new Fixture()) {
+				fixture.application.handle("home", load());
+				when(fixture.session().isComplete()).thenAnswer(call -> fixture.executed.get() > 0);
+				when(fixture.session().checkpointOwner()).thenReturn("home");
+				AtomicInteger writes = new AtomicInteger();
+				doAnswer(call -> { if (writes.incrementAndGet() == 1) throw failure; return null; })
+					.when(fixture.matches).completeLoaded(anyString(), any(MatchDocument.class), any());
+				SetupApplication.HandleOutcome outcome = fixture.application.handleWithOutcome("home", request("final-store-failure"));
+				assertEquals("ACCEPTED", outcome.response().getString("code", null), failure.getClass().getSimpleName());
+				assertTrue(outcome.publish(), "A durable final checkpoint must be published despite a result-store failure");
+				assertEquals("after:final-store-failure", fixture.durable.get().json);
+				assertEquals(1, fixture.mapSize("sessions"));
+				assertEquals(1, fixture.mapSize("pendingCompletions"));
+				assertEquals(1, fixture.application.expireReactiveDecisions().size());
+				assertEquals(0, fixture.mapSize("sessions"));
+				assertEquals(0, fixture.mapSize("pendingCompletions"));
+				assertEquals(2, writes.get());
+				assertEquals(1, fixture.executed.get(), "Reconciliation must not repeat the native action");
+			}
+		}
+	}
+
+	@Test void deterministicCompletionFailuresReleaseWithoutRetryAndKeepPublishedFinalState() throws Exception {
+		for (boolean materializationFails : new boolean[] {true, false}) {
+			try (Fixture fixture = new Fixture(); CompletionLogs logs = new CompletionLogs()) {
+				fixture.application.handle("home", load());
+				terminalAction(fixture);
+				if (materializationFails) when(fixture.session().completedMatch()).thenThrow(new IllegalStateException("private invalid result"));
+				else doThrow(new IllegalArgumentException("private invalid result")).when(fixture.matches)
+					.completeLoaded(anyString(), any(MatchDocument.class), any());
+				SetupApplication.HandleOutcome outcome = fixture.application.handleWithOutcome("home", request("terminal-runtime"));
+				assertEquals("ACCEPTED", outcome.response().getString("code", null));
+				assertEquals("FULL_TIME", outcome.response().get("state").asObject().getString("phase", null));
+				assertTrue(outcome.publish(), "A deterministic result failure cannot undo the durable terminal action");
+				assertEquals("after:terminal-runtime", fixture.durable.get().json);
+				assertEquals(0, fixture.mapSize("sessions"), "A deterministic failure must release its activation slot");
+				assertEquals(0, fixture.mapSize("pendingCompletions"));
+			assertEquals(1, fixture.application.lifecycleMetrics().getLong("terminalCompletionReleases", 0));
+				for (int tick = 0; tick < 3; tick++) assertTrue(fixture.application.expireReactiveDecisions().isEmpty());
+				verify(fixture.session(), times(1)).completedMatch();
+				verify(fixture.matches, times(materializationFails ? 0 : 1)).completeLoaded(anyString(), any(MatchDocument.class), any());
+				assertEquals(1, logs.messages.stream().filter(line -> line.startsWith("COMPLETION_TERMINAL phase=completion ")).count());
+				assertTrue(logs.messages.stream().noneMatch(line -> line.contains("private invalid result")));
+			}
+		}
+	}
+
+	@Test void deterministicFailureOnDeferredAttemptStopsRetryingAndReleasesSession() throws Exception {
+		for (boolean rejected : new boolean[] {false, true}) {
+			try (Fixture fixture = new Fixture(); CompletionLogs logs = new CompletionLogs()) {
+				fixture.application.handle("home", load());
+				terminalAction(fixture);
+				AtomicInteger attempts = new AtomicInteger();
+				doAnswer(call -> {
+					if (attempts.incrementAndGet() == 1) throw new SQLException("connection reset", "08006");
+					if (rejected) throw new MatchService.Failure("COMPLETION_CONFLICT");
+					throw new NullPointerException("private invalid result");
+				}).when(fixture.matches).completeLoaded(anyString(), any(MatchDocument.class), any());
+				SetupApplication.HandleOutcome outcome = fixture.application.handleWithOutcome("home", request("terminal-runtime"));
+				assertTrue(outcome.publish());
+				assertEquals("FULL_TIME", outcome.response().get("state").asObject().getString("phase", null));
+				assertEquals(1, fixture.mapSize("pendingCompletions"));
+				assertTrue(fixture.application.expireReactiveDecisions().isEmpty(), "The already-published terminal state stays authoritative");
+				assertEquals(0, fixture.mapSize("sessions"));
+				assertEquals(0, fixture.mapSize("pendingCompletions"));
+				assertEquals(1, fixture.application.lifecycleMetrics().getLong("terminalCompletionReleases", 0));
+				for (int tick = 0; tick < 3; tick++) assertTrue(fixture.application.expireReactiveDecisions().isEmpty());
+				assertEquals(2, attempts.get(), "One recoverable failure and one terminal failure; no later attempts");
+				assertEquals("after:terminal-runtime", fixture.durable.get().json);
+				assertEquals(1, logs.messages.stream().filter(line -> rejected
+					? line.startsWith("COMPLETION_REJECTED failureCode=COMPLETION_CONFLICT ")
+					: line.startsWith("COMPLETION_TERMINAL phase=pending-completion ")).count());
+			}
+		}
+	}
+
+	private void terminalAction(Fixture fixture) throws Exception {
+		when(fixture.session().isComplete()).thenAnswer(call -> fixture.executed.get() > 0);
+		when(fixture.session().checkpointOwner()).thenReturn("home");
+		doAnswer(call -> {
+			fixture.executed.incrementAndGet();
+			fixture.artifact.set("after:terminal-runtime");
+			return reply(false).set("state", new JsonObject().add("phase", "FULL_TIME"));
+		}).when(fixture.session()).apply(eq("home"), any(JsonObject.class), eq(NOW));
+	}
+
+	private static final class CompletionLogs extends Handler implements AutoCloseable {
+		final List<String> messages = new ArrayList<>();
+		final Logger logger = Logger.getLogger("com.fumbbl.ffb.server.match.persistence");
+		CompletionLogs() { logger.addHandler(this); }
+		@Override public void publish(LogRecord record) { messages.add(record.getMessage()); }
+		@Override public void flush() { }
+		@Override public void close() { logger.removeHandler(this); }
+	}
+
+	@Test void conflictingStoredResultReturnsDefinitiveRejectionWithoutPublishing() throws Exception {
+		try (Fixture fixture = new Fixture(); CompletionLogs logs = new CompletionLogs()) {
+			fixture.application.handle("home", load());
+			when(fixture.session().isComplete()).thenAnswer(call -> fixture.executed.get() > 0);
+			CompletedMatch attempted = mock(CompletedMatch.class);
+			MatchDocument stored = fixture.matches.load("home", MATCH).document.completed(mock(CompletedMatch.class));
+			MatchService conflictCheck = mock(MatchService.class);
+			doCallRealMethod().when(conflictCheck).completeLoaded("home", stored, attempted);
+			doAnswer(call -> { conflictCheck.completeLoaded("home", stored, attempted); return null; })
+				.when(fixture.matches).completeLoaded(anyString(), any(MatchDocument.class), any());
+			SetupApplication.HandleOutcome outcome = fixture.application.handleWithOutcome("home", request("conflicting-result"));
+			assertEquals("COMPLETION_CONFLICT", outcome.response().getString("code", null));
+			assertFalse(outcome.publish());
+			assertTrue(logs.messages.stream().noneMatch(line -> line.startsWith("COMPLETION_TERMINAL")));
+			assertEquals(0, fixture.mapSize("pendingCompletions"));
+		}
+	}
+
+	@Test void deadlinePublishesTerminalCheckpointBeforeResultRetry() throws Exception {
+		try (Fixture fixture = new Fixture()) {
+			fixture.application.handle("home", load());
+			when(fixture.session().checkpointOwner()).thenReturn("home");
+			when(fixture.session().reactiveDecisionDue(NOW)).thenReturn(true);
+			when(fixture.session().isComplete()).thenAnswer(call -> "deadline-terminal".equals(fixture.artifact.get()));
+			when(fixture.session().expireReactiveDecision(NOW)).thenAnswer(call -> {
+				fixture.artifact.set("deadline-terminal"); return true;
+			});
+			assertEquals(1, fixture.application.expireReactiveDecisions().size(), "Both coaches must be notified on the expiry tick");
+			assertEquals("deadline-terminal", fixture.durable.get().json);
+			verify(fixture.matches, never()).completeLoaded(anyString(), any(MatchDocument.class), any());
+			assertEquals(1, fixture.application.expireReactiveDecisions().size());
+			assertEquals(0, fixture.mapSize("pendingCompletions"));
+		}
+	}
+
+	@Test void timerRecordsResidentAbandonmentWithoutAnotherClientRequest() throws Exception {
+		try (Fixture fixture = new Fixture()) {
+			fixture.application.handle("home", load());
+			when(fixture.session().checkpointOwner()).thenReturn("home");
+			when(fixture.session().abandonmentDue(NOW)).thenReturn(true);
+			when(fixture.session().abandonIfInactive(NOW)).thenAnswer(call -> {
+				fixture.artifact.set("abandoned"); return true;
+			});
+			fixture.application.expireReactiveDecisions();
+			assertEquals("abandoned", fixture.durable.get().json);
+			assertEquals(0, fixture.mapSize("sessions"));
+			verify(fixture.session(), never()).expireReactiveDecision(NOW);
+		}
+	}
+
+	@Test void missingResidentDropsPendingCompletionWithoutDatabaseAccess() throws Exception {
+		try (Fixture fixture = new Fixture()) {
+			Method queue = SetupApplication.class.getDeclaredMethod("queueCompletion", String.class);
+			queue.setAccessible(true); queue.invoke(fixture.application, MATCH);
+			fixture.application.expireReactiveDecisions();
+			assertEquals(0, fixture.mapSize("pendingCompletions"));
+			verify(fixture.matches, never()).loadForSetup(anyString(), anyString());
+		}
+	}
+
 	private JsonObject request(String id) { return new JsonObject().add("version", 1).add("type", "setup").add("operation", "action")
 		.add("requestId", id).add("matchId", MATCH).add("expectedRevision", 3).add("actionId", "server-action"); }
 	private JsonObject load() { return new JsonObject().add("version", 1).add("type", "setup").add("operation", "load").add("requestId", "load").add("matchId", MATCH); }
@@ -302,6 +524,7 @@ class SetupApplicationCheckpointTest {
 		final AtomicReference<RecoveryRepository.Record> durable = new AtomicReference<>(new RecoveryRepository.Record(MATCH, 4, "before"));
 		final AtomicReference<String> artifact = new AtomicReference<>();
 		final AtomicInteger executed = new AtomicInteger();
+		final MockedConstruction<RecoveryCheckpoint> validation;
 		final MockedConstruction<SetupSession> construction;
 		final SetupApplication application;
 		String failure;
@@ -325,8 +548,12 @@ class SetupApplicationCheckpointTest {
 				if ("MATCH_OUTCOME_UNKNOWN".equals(failure)) throw new RecoveryRepository.OutcomeUnknown(record, new SQLException("unknown"));
 				return true;
 			});
+			validation = mockConstruction(RecoveryCheckpoint.class, (checkpoint, context) ->
+				when(checkpoint.validate(anyString())).thenAnswer(call -> {
+					artifact.set(normalizedArtifact == null ? call.getArgument(0) : normalizedArtifact);
+					return mock(RecoveryCheckpoint.Validated.class);
+				}));
 			construction = mockConstruction(SetupSession.class, (session, context) -> {
-				artifact.set(normalizedArtifact == null ? (String) context.arguments().get(2) : normalizedArtifact);
 				when(session.recoveryArtifact()).thenAnswer(call -> artifact.get());
 				when(session.reply(anyString(), anyString(), anyBoolean(), anyString())).thenReturn(reply(false));
 				when(session.decorateSaveResume(any(JsonObject.class))).thenAnswer(call -> call.getArgument(0));
@@ -342,6 +569,9 @@ class SetupApplicationCheckpointTest {
 		SetupApplication newApplication() { return new SetupApplication(server, matches, recovery, false, Clock.fixed(Instant.ofEpochMilli(NOW), ZoneOffset.UTC)); }
 		SetupSession session() { return construction.constructed().get(construction.constructed().size() - 1); }
 		int mapSize(String name) throws Exception { Field field = SetupApplication.class.getDeclaredField(name); field.setAccessible(true); return ((Map<?, ?>) field.get(application)).size(); }
-		@Override public void close() { construction.close(); }
+		@Override public void close() {
+			construction.close();
+			validation.close();
+		}
 	}
 }

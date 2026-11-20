@@ -110,47 +110,211 @@ to release that project's site (normally `roles/firebasehosting.admin`), and
 grant only its matching WIF principal `roles/iam.workloadIdentityUser` on that
 account. Do not grant either deploy identity access to the other project.
 
-In each provider, restrict the GitHub OIDC trust to this repository and its
-matching GitHub environment. DEV must accept only the `development` environment
-on `main`; PROD must accept only the `production` environment for `moles-v*`
-tags. Use a full provider resource name containing the Google **project number**,
-not just a project ID.
+In each provider, use GitHub repository ID `1359398730` and owner ID `317211933`.
+DEV accepts the `development` environment on `main`. PROD accepts the `production`
+environment in the Deploy Firebase Hosting (PROD) workflow on `main` or an
+eligible `moles-v*` tag. The workflows take the full provider resource name with
+the Google project number.
 
-After the repository rename, both providers must trust
-`the-grognard-codes/fumbbl-rebuild`. In the DEV Google Cloud project, update the
-existing provider's `assertion.repository` condition and the deploy service
-account's `attribute.repository` principal to that value; remove the old
-repository principal after the new one is verified. The production provisioning
-script below handles the equivalent PROD change when its existing provider has
-the previously configured condition. Review any custom provider condition
-before changing it.
+### Migrate the existing DEV and PROD providers before the rename
 
-The existing GitHub `development` environment uses provider
-`projects/589432788264/locations/global/workloadIdentityPools/github-dev/providers/github-actions`
-and service account
-`firebase-hosting-deployer@dev-moles-under-the-pitch-org.iam.gserviceaccount.com`.
-The repository rename requires migrating the existing DEV provider. From Google
-Cloud Shell with access to the DEV project, run:
+Start this section after [#581](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/581)
+has merged and Cloud Shell has checked out that revision or a later `main`.
+The previous PROD provisioner ignores `--check` and writes IAM policy. Run the
+following as one command. The Git check and the DEV preflight both have to
+succeed before the PROD script runs.
 
 ```bash
-bash deployment/firebase/scripts/migrate-dev-wif-repository.sh --check
-bash deployment/firebase/scripts/migrate-dev-wif-repository.sh
+git cat-file -e HEAD:deployment/firebase/scripts/migrate-dev-wif-repository-id.sh &&
+  bash deployment/firebase/scripts/migrate-dev-wif-repository-id.sh --check &&
+  bash deployment/firebase/scripts/provision-prod-wif.sh --check
 ```
 
-The migration matches the reviewed DEV provider condition exactly, changes
-only its repository name, and adds the new repository principal to the DEV
-deploy account. It stops for review if the condition has changed.
-After a successful DEV deployment, remove the old repository principal if it
-is still present on the DEV deploy account:
+Use an administrator identity for each project. Confirm the existing deploy
+pools and service accounts. If `--check` plans fresh PROD provisioning, stop
+and confirm the project and provider before applying the migration.
+
+Save each provider's current mapping and condition and its deploy account's IAM
+policy outside the repository. In the same Cloud Shell session, define the
+following commands. The snapshots contain configuration and IAM members. Keep
+them in your private Cloud Shell home directory. Save the printed directory
+path for use if you resume in another session.
 
 ```bash
-gcloud iam service-accounts remove-iam-policy-binding \
-  firebase-hosting-deployer@dev-moles-under-the-pitch-org.iam.gserviceaccount.com \
-  --project=dev-moles-under-the-pitch-org \
-  --role=roles/iam.workloadIdentityUser \
-  --member='principalSet://iam.googleapis.com/projects/589432788264/locations/global/workloadIdentityPools/github-dev/attribute.repository/the-grognard-codes/fumbbl-rebuild-chatgpt' \
-  --condition=None
+snapshot_dir=$(mktemp -d "$HOME/firebase-wif-XXXXXX")
+printf '%s\n' "$snapshot_dir"
+
+select_wif() {
+  case "$1" in
+    dev) project=dev-moles-under-the-pitch-org; pool=github-dev ;;
+    prod) project=molesunderthepitch-dotorg; pool=github-prod ;;
+    *) echo 'Expected dev or prod.' >&2; return 2 ;;
+  esac
+  number=$(gcloud projects describe "$project" --format='value(projectNumber)') || return
+  [[ "$number" =~ ^[0-9]+$ ]] || return 1
+  deployer="firebase-hosting-deployer@$project.iam.gserviceaccount.com"
+  principal_prefix="principalSet://iam.googleapis.com/projects/$number/locations/global/workloadIdentityPools/$pool/attribute.repository"
+  provider_args=(--project="$project" --location=global --workload-identity-pool="$pool")
+}
+
+snapshot_wif() {
+  gcloud iam workload-identity-pools providers describe github-actions \
+    "${provider_args[@]}" --format=json > "$snapshot_dir/$pool.provider.json" || return
+  gcloud iam service-accounts get-iam-policy "$deployer" \
+    --project="$project" --format=json > "$snapshot_dir/$pool.iam.json"
+}
+
+legacy_wif_grants() {
+  local change=$1 policy_file member slug granted
+  case "$change" in
+    remove) policy_file="$snapshot_dir/$pool.current-iam.json"
+            gcloud iam service-accounts get-iam-policy "$deployer" \
+              --project="$project" --format=json > "$policy_file" || return ;;
+    add) policy_file="$snapshot_dir/$pool.iam.json" ;;
+    *) return 2 ;;
+  esac
+  for slug in fumbbl-rebuild fumbbl-rebuild-chatgpt; do
+    member="$principal_prefix/the-grognard-codes/$slug"
+    granted=$(jq -er --arg member "$member" '
+      select(type == "object" and ((.bindings // []) | type == "array"))
+      | any(.bindings[]?; .role == "roles/iam.workloadIdentityUser"
+        and .condition == null and any(.members[]?; . == $member))
+      | tostring' "$policy_file") || return
+    if [[ "$granted" == true ]]; then
+      gcloud iam service-accounts "$change-iam-policy-binding" "$deployer" \
+        --project="$project" --role=roles/iam.workloadIdentityUser \
+        --member="$member" --condition=None || return
+    fi
+  done
+}
+
+select_wif dev && snapshot_wif
+select_wif prod && snapshot_wif
 ```
+
+Inspect each snapshot for the reviewed provider configuration and the expected
+workload identity grants. Account for additional, conditional, or inherited
+grants that could let either workflow impersonate its deploy account before
+using the run as proof. Successful verification with both grants present can
+use the original binding. The ID-only proof is the fresh run after the
+name-based grants are removed and the IAM change has propagated.
+
+1. Apply DEV in Cloud Shell from merged main.
+
+   ```bash
+   bash deployment/firebase/scripts/migrate-dev-wif-repository-id.sh
+   ```
+
+   From the development checkout, explicitly dispatch DEV on a validated `main`
+   commit with the following command. Wait for the run to deploy successfully.
+
+   ```bash
+   node tools/deploy.mjs --environment dev-remote
+   ```
+
+   In Cloud Shell, remove the DEV name-based grants, allow
+   [IAM propagation](https://docs.cloud.google.com/iam/docs/access-change-propagation),
+   then run the same DEV dispatch again. Record the successful run link.
+
+   ```bash
+   select_wif dev && legacy_wif_grants remove
+   ```
+
+2. Create a protected verification tag from merged `main`. The PROD workflow
+   excludes `moles-v0-wif-check-*` tags from automatic publishing and rejects
+   them as release tags. The existing `moles-v*` tag protection and
+   `production` approval apply to this tag.
+
+   ```bash
+   git fetch origin main
+   verification_tag="moles-v0-wif-check-$(git rev-parse --short origin/main)"
+   git tag -a "$verification_tag" origin/main -m 'Verify PROD deployment identity'
+   git push origin "refs/tags/$verification_tag"
+   ```
+
+   Apply PROD separately in Cloud Shell.
+
+   ```bash
+   bash deployment/firebase/scripts/provision-prod-wif.sh
+   ```
+
+   Dispatch the PROD identity check from the verification tag and approve the
+   `production` environment. In the run, confirm that the `verify-identity`
+   job minted an access token by impersonating the deploy account.
+
+   ```bash
+   gh workflow run firebase-deploy-prod.yml --repo the-grognard-codes/fumbbl-rebuild \
+     --ref "$verification_tag" -F verify_only=true
+   ```
+
+   Remove the PROD name-based grants, allow IAM propagation, then dispatch
+   the same check again with a fresh workflow run. Record the successful run
+   link. This dispatch skips Firebase Hosting publication.
+
+   ```bash
+   select_wif prod && legacy_wif_grants remove
+   ```
+
+3. If either check fails before the rename, select the affected environment
+   with `select_wif dev` or `select_wif prod`. Validate the provider
+   snapshot, restore the name-based grants, then restore the original mapping
+   and condition together. Wait for propagation, check the affected
+   environment, and resolve the failure before repeating the migration.
+
+   ```bash
+   jq -e 'select((.attributeMapping | type == "object") and
+                 (.attributeCondition | type == "string" and length > 0))
+          | {"--attribute-mapping": .attributeMapping, "--attribute-condition": .attributeCondition}' \
+       "$snapshot_dir/$pool.provider.json" > "$snapshot_dir/$pool.rollback.json" &&
+     legacy_wif_grants add &&
+     gcloud iam workload-identity-pools providers update-oidc github-actions \
+       "${provider_args[@]}" --flags-file="$snapshot_dir/$pool.rollback.json"
+   ```
+
+4. Rename the repository on GitHub after both ID-only checks pass. Reserve
+   the old slug so it continues to redirect historical URLs. Update `origin`
+   in the main checkout and repeat both checks. Use the new repository slug
+   in the PROD dispatch. GitHub can change the OIDC subject format as part of
+   the rename. Record the two post-rename run links.
+
+   ```bash
+   git remote set-url origin https://github.com/the-grognard-codes/moles-under-the-pitch.git
+   git fetch origin
+   gh workflow run firebase-deploy-prod.yml --repo the-grognard-codes/moles-under-the-pitch \
+     --ref "$verification_tag" -F verify_only=true
+   ```
+
+### Switch live URLs and local checkout paths
+
+Once the new GitHub URL resolves, set `liveRepositoryUrl` to
+`renamedRepositoryUrl` in `site/scripts/render-updates.mjs`. Update the link to
+#389 on the Support page and the clone and remote URLs in the Windows and Ubuntu
+setup guides. Preserve the PR history in `site/updates.json` and its coverage
+for both URL formats. Regenerate and verify the Development page.
+
+```bash
+npm run updates:render --prefix site
+node site/scripts/render-updates.mjs --check
+npm test --prefix site
+```
+
+When moving the Windows checkout:
+
+1. Run `git worktree list --porcelain` and record the linked worktrees. Stop
+   tools using the old directory, then move the checkout and reopen it.
+2. In the new main checkout run `git worktree repair`. Pass the new absolute
+   paths for linked worktrees that moved with the main checkout. Git repairs
+   references to the main checkout for linked worktrees outside it as well.
+3. Update or stage both paths for the shared `.git` grant in `.codex/config.toml`
+   and refresh machine-local editor and agent settings as needed. Update the
+   Windows and Ubuntu setup examples and `tools/setup-ubuntu.sh` for their new
+   paths, including `~/src/moles-under-the-pitch` when moving a WSL checkout.
+4. Rerun `tools/bootstrap.ps1` for the moved Windows checkout. Verify `git status`
+   and `git rev-parse --git-common-dir` in the main checkout and linked
+   worktrees. Check that a linked worktree can write to its shared Git
+   directory, then retire any temporary old-path grant.
+
+### Set the GitHub environment inputs
 
 Set these GitHub *environment variables* separately in `development` and
 `production`:
@@ -186,12 +350,8 @@ Google Cloud Shell as a production-project administrator:
 bash deployment/firebase/scripts/provision-prod-wif.sh
 ```
 
-The script prints the two `GCP_*` values to add to GitHub's `production`
-environment. It creates missing resources and updates the prior repository
-condition on an existing provider. It stops for review if that provider has a
-different condition. After a successful PROD deployment with the new repository
-identity, remove the old repository principal from the production deploy
-service account.
+The script provisions missing PROD resources with ID-based trust. Run it with
+`--check` first to see the plan and the two GitHub environment values.
 
 ## Production release and rollback
 
@@ -211,8 +371,8 @@ is required before the deployment job can request `production` environment
 approval. After approval it rebuilds from that commit, deploys only to
 `molesunderthepitch-dotorg`, and records the tag and full commit in both the
 Firebase Hosting release message and GitHub job summary. A maintainer may use
-the workflow's manual dispatch only by naming an existing `moles-v*` tag; it
-does not permit an arbitrary branch or SHA.
+manual dispatch with an existing release tag to publish, or `verify_only` from a
+protected `moles-v0-wif-check-*` tag to test service-account impersonation.
 
 For an urgent static rollback, open the PROD Hosting site's **Release history**
 in the Firebase console, select the known-good release, and choose **Roll back**.

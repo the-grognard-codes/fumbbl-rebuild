@@ -51,6 +51,16 @@ public final class TeamFormations {
 		List<Integer> numbers = roster.stream().sorted(Comparator.comparingInt(player -> player.jerseyNumber > 0 ? player.jerseyNumber : player.slot))
 			.map(player -> player.jerseyNumber > 0 ? player.jerseyNumber : player.slot).distinct().limit(11).toList();
 		if (numbers.size() < 11) return new FormationSet(List.of(), List.of());
+		return defaultsForJerseys(numbers);
+	}
+
+	public Formation fallback(List<Integer> jerseys, boolean receiving) {
+		List<Integer> numbers = new ArrayList<>(jerseys.stream().distinct().sorted().limit(11).toList());
+		for (int number = 1; numbers.size() < 11; number++) if (!numbers.contains(number)) numbers.add(number);
+		return defaultsForJerseys(numbers).forReceiving(receiving).getFirst();
+	}
+
+	private FormationSet defaultsForJerseys(List<Integer> numbers) {
 		return new FormationSet(List.of(
 			diagram("5-4-2 Offense", numbers, new String[] {
 				"XXXXXA819BXXXXX", "XX24XXXXXXX53XX", "XXXXXXXXXXXXXXX", "XXXXXXXXXXXXXXX",

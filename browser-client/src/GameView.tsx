@@ -150,7 +150,7 @@ function GameViewContent({ view, connected, pending: requestPending, mutate, acc
   useEffect(() => () => { if (hoverTimer.current) clearTimeout(hoverTimer.current); }, []);
   const [x, setX] = useState(0); const [y, setY] = useState(0);
   const { pitchView, presentationRevision, provisionalActive, playbackActive, diceMoment, diceSnapshot, synchronizing, movementDuration, beginProvisional,
-    announcement, announcementExiting, announcementRate, dismissAnnouncement, holdAnnouncements } =
+    splash, announcement, announcementExiting } =
     usePitchPlayback(view, logRecords, hosted && connected && !logUnavailable, 1, 'live', requestPending);
   useDiagnosticPresentation(view.revision, pitchView.revision, playbackActive, synchronizing, !!announcement, !!requestPending, 'live', 1, view.matchId, presentationRevision, provisionalActive);
   const pending = requestPending || (playbackActive ? 'playback' : null);
@@ -183,11 +183,12 @@ function GameViewContent({ view, connected, pending: requestPending, mutate, acc
   const own = view.players.filter(player => player.role === view.callerRole) ?? [];
   const selectedPlayer = view.players.find(player => player.id === playerId);
   const saved = view.saveResume;
-  const suspended = saved?.status === 'SUSPENDED' || saved?.status === 'RESUME_PENDING';
-  const maySetup = connected && !pending && !suspended && view.phase === 'SETUP' && view.actor === view.callerRole;
+  const abandoned = saved?.status === 'ABANDONED';
+  const playBlocked = abandoned || saved?.status === 'SUSPENDED' || saved?.status === 'RESUME_PENDING';
+  const maySetup = connected && !pending && !playBlocked && view.phase === 'SETUP' && view.actor === view.callerRole;
   const availableActions = view.actions.filter(action => action.actor === view.callerRole
     && (!view.reaction || view.reaction.actor === view.callerRole));
-  const draggableIds = new Set(connected && !pending && !suspended && !playbackActive && hosted
+  const draggableIds = new Set(connected && !pending && !playBlocked && !playbackActive && hosted
     ? view.players.filter(player => canDragSetupPlayer(view, player, availableActions)).map(player => player.id) : []);
   const reserveDropIds = new Set([...draggableIds].filter(id => canDropSetupPlayer(view, id, null)));
   const pushChoices = hosted ? [...pitchPushChoices(view, availableActions), ...pitchHitAndRunChoices(view, availableActions)] : [];
@@ -209,7 +210,7 @@ function GameViewContent({ view, connected, pending: requestPending, mutate, acc
   // waypoints and the intermediate animated squares never request a new range.
   // During the other coach's turn, inspect only on an explicit selection at
   // this revision; a retained selection must not read every computer action.
-  const rangePlayerId = hosted && connected && !requestPending && !suspended && !playbackActive
+  const rangePlayerId = hosted && connected && !requestPending && !playBlocked && !playbackActive
     && pitchView.revision === view.revision && view.phase === 'PLAY' && !decision && !kickoffMovement
     && (view.actor === view.callerRole || rangeInspection?.playerId === playerId
       && rangeInspection.matchId === view.matchId && rangeInspection.revision === view.revision)
@@ -219,7 +220,8 @@ function GameViewContent({ view, connected, pending: requestPending, mutate, acc
   const originalRange = rangePlayerId && matchesMovementRange(movementRange, view, rangePlayerId) ? movementRange : null;
   const showConfirmation = view.phase === 'SETUP' ? view.actor === view.callerRole
     : (!!kickoff || !kickoffMovement && !hitAndRun && (!view.reaction || onTheBallMovement && !decision) && availableActions.length > 0);
-  const gameStep = currentGameStep(pitchView);
+  // Keep the old pitch step off-screen through the splash and its exit gap.
+  const gameStep = announcement || announcementExiting ? null : currentGameStep(pitchView);
   if (gameStep && kickoff && !playbackActive) gameStep.progress = `Selected ${kickoff.selected.length} of ${kickoff.maximum}${kickoff.decline ? ' (up to)' : ''}`;
   const pitchActions = (view.reaction ? availableActions : kickoffMovement ? view.actions.filter(action => action.actor === view.callerRole
     && (action.kind !== 'kickoffMove' || action.sourcePlayerId === playerId)) : view.actions)
@@ -234,9 +236,9 @@ function GameViewContent({ view, connected, pending: requestPending, mutate, acc
     && (activeMenuKey === 'hailMaryPass' || activeMenuKey === 'hailMaryBomb');
   const endTurnAction = availableActions.find(action => action.kind === 'endTurn');
   const showEndTurn = hosted && view.phase === 'PLAY' && view.actor === view.callerRole && !!endTurnAction && !kickoff && !kickoffMovement;
-  const canChoose = connected && !pending && !suspended;
+  const canChoose = connected && !pending && !playBlocked;
   const squarePassAvailable = movementFlow && canPlanSquarePass(view, availableActions, playerId);
-  useEffect(() => { setPassSquareMode(false); }, [playerId, view.matchId, view.activePlayerId, connected, suspended]);
+  useEffect(() => { setPassSquareMode(false); }, [playerId, view.matchId, view.activePlayerId, connected, playBlocked]);
   const canMove = canChoose && !decision && canPlanMovement(view, availableActions, playerId, 'move');
   const targetlessBlitz = view.activePlayerId === playerId && view.turnMode === 'SELECT_BLITZ_TARGET'
     && movementIntent?.kind === 'move';
@@ -256,8 +258,8 @@ function GameViewContent({ view, connected, pending: requestPending, mutate, acc
     if (movementFlow && canMove && !movementIntent)
       jumpRequest.current?.({playerId, kind:'move', targetPlayerId:null, waypoints:[]});
   }, [movementFlow, canMove, movementIntent, playerId, view.matchId, view.revision]);
-  useEffect(() => { setJumpMode(false); }, [playerId, connected, suspended, playbackActive]);
-  useEffect(() => { setSpecialMode(null); }, [playerId, connected, suspended, playbackActive]);
+  useEffect(() => { setJumpMode(false); }, [playerId, connected, playBlocked, playbackActive]);
+  useEffect(() => { setSpecialMode(null); }, [playerId, connected, playBlocked, playbackActive]);
   if (localJump) {
     const nativeJump = menuItems.findIndex(item => item.key === 'jump');
     if (nativeJump >= 0) menuItems.splice(nativeJump,1);
@@ -337,7 +339,7 @@ function GameViewContent({ view, connected, pending: requestPending, mutate, acc
   useEffect(() => {
     const intent = pendingPunt.current;
     if (!intent) return;
-    if (!connected || suspended || view.matchId !== intent.matchId || view.half !== intent.half
+    if (!connected || playBlocked || view.matchId !== intent.matchId || view.half !== intent.half
       || view.drive !== intent.drive) {
       pendingPunt.current = null; return;
     }
@@ -386,7 +388,7 @@ function GameViewContent({ view, connected, pending: requestPending, mutate, acc
     }
   }
   useLayoutEffect(() => confirmationGesture.reset(), [confirmationGesture, confirmationTarget, confirmationEnabled,
-    view.matchId, view.revision, view.actor, view.callerRole, connected, pending, suspended, playerId,
+    view.matchId, view.revision, view.actor, view.callerRole, connected, pending, playBlocked, playerId,
     movementIntent, pinnedAction?.id, routeMode, waypoints, jumpMode, specialMode, menuChoices]);
   const repeatTarget = (target: string, clickedAt?: number) => {
     if (jumpMode || target !== confirmationTarget) { confirmationGesture.reset(); return false; }
@@ -397,10 +399,10 @@ function GameViewContent({ view, connected, pending: requestPending, mutate, acc
   const selectingMultiple = activeMenuKey === 'multipleBlock' && multipleOptions.length > 0 && !decision;
   const multipleCandidates = new Set(view.blockPreview?.multiple?.filter(option => multipleOptions.some(action => action.id === option.actionId))
     .flatMap(option => option.context.blocks.map(block => block.targetPlayerId)) ?? []);
-  const potentialDice = connected && !requestPending && !suspended && !playbackActive && !decision
+  const potentialDice = connected && !requestPending && !playBlocked && !playbackActive && !decision
     ? potentialBlockDice(view, playerId, targetPlayerId, pinnedAction,
       movementReady && movementIntent?.kind === 'blitz' ? movementPlan : null) : null;
-  const proposedBlocks = connected && !requestPending && !suspended && !playbackActive && !decision
+  const proposedBlocks = connected && !requestPending && !playBlocked && !playbackActive && !decision
     ? proposedBlockContext(view, playerId, targetPlayerId, pinnedAction,
       movementReady && movementIntent?.kind === 'blitz' ? movementPlan : null) : null;
   useLayoutEffect(() => {
@@ -408,13 +410,13 @@ function GameViewContent({ view, connected, pending: requestPending, mutate, acc
     const caughtUp = pitchView.revision === view.revision && !playbackActive;
     const revealed = caughtUp && decision?.options.some(option => !!option.face)
       || (diceMoment?.revision ?? -1) > confirmedDice.revision && diceMoment?.faces.some(face => blockFaceLabel(face));
-    const stopped = !connected || suspended || confirmedDice.matchId !== view.matchId
+    const stopped = !connected || playBlocked || confirmedDice.matchId !== view.matchId
       || caughtUp && (view.phase !== 'PLAY' || !requestPending && confirmedDice.pendingSeen && !revealed
         && (view.revision === confirmedDice.revision
           || view.actor !== view.callerRole || view.activePlayerId !== confirmedDice.playerId));
     if (revealed || stopped) setConfirmedDice(null);
     else if (requestPending && !confirmedDice.pendingSeen) setConfirmedDice({ ...confirmedDice, pendingSeen: true });
-  }, [confirmedDice, requestPending, playbackActive, decision, diceMoment, connected, suspended,
+  }, [confirmedDice, requestPending, playbackActive, decision, diceMoment, connected, playBlocked,
     view.matchId, view.revision, view.phase, view.actor, view.callerRole, view.activePlayerId, pitchView.revision]);
   const retainConfirmedDice = () => {
     if (potentialDice || proposedBlocks) setConfirmedDice({ preview: potentialDice, context: proposedBlocks, matchId: view.matchId, playerId,
@@ -490,7 +492,13 @@ function GameViewContent({ view, connected, pending: requestPending, mutate, acc
     }
     if (routeMode && !movementFlow) { setRouteMode(false); updateWaypoints([]); }
     if (kickoff) {
-      if (canChoose && kickoff.players.some(player => player.id === id)) {
+      if (!canChoose) return;
+      const choice = kickoff.players.find(player => player.id === id);
+      if (choice && kickoff.batch) {
+        // Threat inspection follows the requested Charge player once the server includes them in the group.
+        if (view.kickoff?.event === 'CHARGE') setPlayerId(kickoff.selected.includes(id) ? '' : id);
+        mutate('action', { actionId: choice.action.id });
+      } else if (choice) {
         const selected = toggleKickoffPlayer(kickoffIds, id, kickoff.maximum);
         setKickoffIds(selected);
         setPlayerId(selected.includes(id) ? id : ''); setTargetFocus(selected.includes(id) ? 'player' : null);
@@ -758,7 +766,7 @@ function GameViewContent({ view, connected, pending: requestPending, mutate, acc
       mutate('place', { playerId: id, to: null });
   };
   useEffect(() => {
-    if (!solidDrop || view.revision <= solidDrop.revision || !connected || pending || suspended || playbackActive) return;
+    if (!solidDrop || view.revision <= solidDrop.revision || !connected || pending || playBlocked || playbackActive) return;
     const choice = solidDefenceDrop(view, availableActions, solidDrop.playerId, solidDrop.to);
     setSolidDrop(null);
     if (choice && !choice.selecting) mutate('action', { actionId: choice.action.id });
@@ -769,7 +777,7 @@ function GameViewContent({ view, connected, pending: requestPending, mutate, acc
     confirmationGesture.consume();
     if (kickoff?.confirm) {
       setPlayerId(''); setActionId(''); setTargetFocus(null); setSmartIntent(null);
-      mutate('action', { actionId: kickoff.confirm.id, ...(kickoff.batch ? { playerIds: kickoff.selected } : {}) });
+      mutate('action', { actionId: kickoff.confirm.id });
       return;
     }
     if (menuChoices.length || jumpMode) return;
@@ -827,7 +835,7 @@ function GameViewContent({ view, connected, pending: requestPending, mutate, acc
       return;
     }
     if (!smartIntent || ['planned', 'routing'].includes(smartIntent.stage) || view.revision <= smartIntent.revision
-      || !connected || pending || suspended || playbackActive || view.actor !== view.callerRole || decision) return;
+      || !connected || pending || playBlocked || playbackActive || view.actor !== view.callerRole || decision) return;
     if (view.activePlayerId !== smartIntent.playerId) { setSmartIntent(null); return; }
     const sendOffered = (action: typeof availableActions[number], stage: SmartIntent['stage'] | null) => {
       const key = `${view.revision}:${action.id}`;
@@ -985,7 +993,7 @@ function GameViewContent({ view, connected, pending: requestPending, mutate, acc
     {targetChoices.length > 0 && <div aria-label="Actions at selected target"><strong>At selected target</strong>{targetChoices.map(action =>
       <button key={action.id} type="button" className="secondary" aria-pressed={actionId === action.id}
         onPointerDown={() => selectServerAction(action.id)} onClick={() => selectServerAction(action.id)}
-        disabled={!connected || !!pending || suspended}>{action.label}</button>)}</div>}
+        disabled={!connected || !!pending || playBlocked}>{action.label}</button>)}</div>}
     <p>{pinnedAction ? `Pinned: ${pinnedAction.label}. Commit will send this server action.` : 'Select a server action, then Commit. Hover never sends an action.'}</p>
     {availableActions.length > 12 && <label>Find an action or target <input aria-label="Find an action or target" value={actionFilter} onChange={event => { setActionFilter(event.target.value); setActionId(''); }} placeholder="Player name, pass, or 8, 7" disabled={!connected || !!pending} /></label>}
     {actionFilter && <p>{matchingActions.length} matching actions</p>}
@@ -1005,7 +1013,7 @@ function GameViewContent({ view, connected, pending: requestPending, mutate, acc
     {saved.status === 'RESUME_PENDING' && <><p>Resume requested by {saved.proposer}; it expires at {new Date(saved.expiresAt!).toLocaleString()}.</p>{saved.proposer === view.callerRole
       ? <button type="button" className="secondary" onClick={() => mutate('resumeCancel', { proposalId: saved.proposalId })} disabled={!connected || !!pending}>Cancel resume request</button>
       : <><button type="button" onClick={() => mutate('resumeAccept', { proposalId: saved.proposalId })} disabled={!connected || !!pending}>Accept and resume match</button><button type="button" className="secondary" onClick={() => mutate('resumeReject', { proposalId: saved.proposalId })} disabled={!connected || !!pending}>Reject resume request</button></>}</>}
-    {saved.status === 'ABANDONED' && <p role="alert">This match is retained as abandoned after 30 days without a completed save/resume or play action.</p>}
+    {abandoned && <p>This match was abandoned and can no longer be resumed.</p>}
     </>}
   </section>;
   return (<section aria-label="Authoritative setup" className={hosted ? 'hosted-match coach-match' : undefined}
@@ -1039,7 +1047,7 @@ function GameViewContent({ view, connected, pending: requestPending, mutate, acc
         <strong>{gameStep.title}</strong><span>{gameStep.instruction}</span>{gameStep.progress && <small>{gameStep.progress}</small>}
       </div>}
       {hosted && setupErrors.length > 0 && <p className="setup-feedback" role="alert">{setupErrors.join(' · ')}</p>}
-      {!playbackActive && decision && !decision.circular && !['blockDie', 'rerollDie', 'proTestReroll', 'reroll', 'skill'].includes(decision.kind) && <MatchDecisionDialog key={decision.key} decision={decision} disabled={!connected || !!pending || suspended}
+      {!playbackActive && decision && !decision.circular && !['blockDie', 'rerollDie', 'proTestReroll', 'reroll', 'skill'].includes(decision.kind) && <MatchDecisionDialog key={decision.key} decision={decision} disabled={!connected || !!pending || playBlocked}
         players={view.players} activeX={view.players.find(player => player.id === view.activePlayerId)?.x ?? null}
         onChoice={optionId => { const prompt = view.prompt; if (canChoose && prompt?.actor === view.callerRole && prompt.options.some(option => option === optionId)) mutate('choice', { promptId: prompt.id, optionId }); }}
         onAction={id => { if (canChoose && availableActions.some(action => action.id === id)) mutate('action', { actionId: id }); }}/>}
@@ -1059,7 +1067,7 @@ function GameViewContent({ view, connected, pending: requestPending, mutate, acc
         {touchInput && confirmationTarget && <button type="button" className="secondary" disabled={!canChoose}
           onClick={cancelPlan}>Cancel plan</button>}
         {teammateProposal && <button type="button" className="secondary" disabled={!canChoose} onClick={cancelProposal}>Cancel teammate selection</button>}
-        {view.phase === 'SETUP' && !playbackActive && <SavedFormationButtons formations={view.savedFormations} disabled={!maySetup}
+        {view.phase === 'SETUP' && !playbackActive && <SavedFormationButtons formations={view.savedFormations} disabled={!maySetup || view.setupAdjustmentsExhausted === true}
           select={index => { setPlayerId(''); mutate('formation', { formationIndex: index }); }} />}
       </div>}
       {hosted && <div ref={commandBar} className="match-command-bar" aria-label="Current decision">
@@ -1133,8 +1141,8 @@ function GameViewContent({ view, connected, pending: requestPending, mutate, acc
       {!hosted && <p>Ball {view.ball ? `${view.ball.x}, ${view.ball.y}` : 'off pitch'} · active player {view.activePlayerId ?? 'none'}</p>}
       {hosted && <><div className="match-layout"><div className="match-board">
       <LivePitch view={pitchView} selectedId={kickoff && !kickoff.selected.includes(playerId) ? '' : playerId} selectedIds={kickoff?.selected ?? []} movementDuration={playbackActive ? movementDuration : 0}
-        splash={announcement ? { announcement, onDismiss: dismissAnnouncement, hold: holdAnnouncements, exiting: announcementExiting, rate: announcementRate } : undefined}
-        interactionBlocked={!connected || !!pending || suspended}
+        splash={splash}
+        interactionBlocked={!connected || !!pending || playBlocked}
         actions={playbackActive ? [] : pitchActions} pinnedAction={playbackActive ? undefined : pinnedAction}
         blockPreview={confirmedDice?.context ?? proposedBlocks}
         plannedTransfer={!playbackActive && movementReviewed && movementPlan && isBallTransfer(movementPlan.kind)
@@ -1143,7 +1151,7 @@ function GameViewContent({ view, connected, pending: requestPending, mutate, acc
         jumpOptions={jumpMode && canChoose && !decision && !playbackActive ? jumpOptions : null}
         potentialDice={confirmedDice?.preview ?? potentialDice} diceAwaiting={!!confirmedDice}
         movementRange={displayedRange}
-        threatPreferences={threatPreferences} allowThreats={connected && !requestPending && !suspended && !playbackActive
+        threatPreferences={threatPreferences} allowThreats={connected && !requestPending && !playBlocked && !playbackActive
           && pitchView.revision === view.revision && !decision}
           zoom={pitchZoom} onZoomChange={setPitchZoom} showToolbar={debugAvailable && debugOpen}
           debugOpen={debugAvailable && debugOpen} cameraControlsHost={debugCameraHost} cameraButtonsHost={cameraButtonsHost}
@@ -1157,7 +1165,7 @@ function GameViewContent({ view, connected, pending: requestPending, mutate, acc
           cancelProposal(); setPlayerId('');
         }}
         decision={!playbackActive && decision && (decision.circular || ['blockDie', 'rerollDie', 'proTestReroll', 'reroll', 'skill'].includes(decision.kind)) ? decision : null}
-        decisionDisabled={!connected || !!pending || suspended}
+        decisionDisabled={!connected || !!pending || playBlocked}
         onDecisionAction={id => { if (canChoose && availableActions.some(action => action.id === id)) mutate('action', { actionId: id }); }}
         pushChoices={canChoose && !playbackActive ? [...pushChoices, ...puntChoices] : []}
         onPushChoice={id => {
@@ -1170,6 +1178,7 @@ function GameViewContent({ view, connected, pending: requestPending, mutate, acc
       </div><LiveDugouts players={view.players} homeName={view.homeTeamName} awayName={view.awayTeamName} onSelect={selectPlayer} onFocusPlayer={focusPlayer} onBlurPlayer={blurPlayer}
         draggableIds={draggableIds} draggingPlayerId={draggingPlayerId} onStartDrag={setDraggingPlayerId} onEndDrag={() => setDraggingPlayerId('')} reserveDropIds={reserveDropIds} onDropReserve={dropReserve}/><aside className="match-side" aria-label="Match decisions and players">
         {matchControls?.error && <p role="alert">{matchControls.error}</p>}
+        {abandoned && <p role="alert">This match was abandoned and can no longer be resumed.</p>}
         <MatchHistory overlay stacked matchId={view.matchId} records={logRecords} logLoading={logLoading} logUnavailable={logUnavailable}
           homeTeamName={view.homeTeamName} awayTeamName={view.awayTeamName}
           messages={chatMessages} chatLoading={chatLoading} chatUnavailable={chatUnavailable}
@@ -1220,7 +1229,7 @@ function GameViewContent({ view, connected, pending: requestPending, mutate, acc
         onSelectPlayer={selectPlayer} onSquare={selectSquare}/>}
       {!hosted && savePanel}
       {!hosted && view.prompt && <section aria-label="Pre-match choice"><h3>{view.prompt.kind === 'coin' ? 'Call the coin toss' : 'Choose to receive or kick'}</h3>
-        {view.prompt.options.map(option => <button key={option} type="button" onClick={() => mutate('choice', { promptId: view.prompt!.id, optionId: option })} disabled={!connected || !!pending || suspended || view.prompt!.actor !== view.callerRole}>{option}</button>)}
+        {view.prompt.options.map(option => <button key={option} type="button" onClick={() => mutate('choice', { promptId: view.prompt!.id, optionId: option })} disabled={!connected || !!pending || playBlocked || view.prompt!.actor !== view.callerRole}>{option}</button>)}
       </section>}
       {!hosted && view.phase === 'READY_FOR_KICKOFF' && <p>Both teams have confirmed legal setups. The kicking participant can choose a server-issued kick target.</p>}
       {!hosted && view.phase === 'PLAY' && view.actions.length === 0 && <p role="alert">This engine decision does not yet have browser controls. The match remains in memory; reconnecting will preserve this decision.</p>}
@@ -1254,9 +1263,9 @@ function GameViewContent({ view, connected, pending: requestPending, mutate, acc
         <label>X <input aria-label="Setup X" type="number" min="0" max="25" value={x} onChange={event => setX(Number(event.target.value))} disabled={!maySetup} /></label>
         <label>Y <input aria-label="Setup Y" type="number" min="0" max="14" value={y} onChange={event => setY(Number(event.target.value))} disabled={!maySetup} /></label>
         <button type="button" onClick={() => mutate('place', { playerId, to: { x, y } })} disabled={!maySetup || !canPlaceReserve(view, playerId, x, y)}>Place on empty own-half square</button>
-        <button type="button" className="secondary" onClick={() => mutate('place', { playerId, to: null })} disabled={!maySetup || !own.some(player => player.id === playerId && player.x !== null)}>Return selected player to reserve</button>
+        <button type="button" className="secondary" onClick={() => mutate('place', { playerId, to: null })} disabled={!maySetup || view.setupAdjustmentsExhausted || !own.some(player => player.id === playerId && player.x !== null)}>Return selected player to reserve</button>
         <button type="button" onClick={() => mutate('confirm')} disabled={!maySetup}>Confirm Setup</button>
-        {!playbackActive && <SavedFormationButtons formations={view.savedFormations} disabled={!maySetup}
+        {!playbackActive && <SavedFormationButtons formations={view.savedFormations} disabled={!maySetup || view.setupAdjustmentsExhausted === true}
           select={index => { setPlayerId(''); mutate('formation', { formationIndex: index }); }} />}
       </section>}
       {!hosted && rosterTable}

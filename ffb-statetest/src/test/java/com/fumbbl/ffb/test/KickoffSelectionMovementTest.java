@@ -9,6 +9,7 @@ import com.fumbbl.ffb.kickoff.bb2025.KickoffResult;
 import com.fumbbl.ffb.model.Game;
 import com.fumbbl.ffb.model.Player;
 import com.fumbbl.ffb.net.commands.ClientCommandPlayerChoice;
+import com.fumbbl.ffb.net.commands.ClientCommandEndTurn;
 import com.fumbbl.ffb.net.commands.ClientCommandSetupPlayer;
 import com.fumbbl.ffb.server.GameState;
 import com.fumbbl.ffb.server.match.KickoffActions;
@@ -17,6 +18,8 @@ import com.fumbbl.ffb.server.step.StepParameterKey;
 import com.fumbbl.ffb.server.step.StepParameterSet;
 import com.fumbbl.ffb.server.step.bb2025.kickoff.StepApplyKickoffResult;
 
+import com.eclipsesource.json.JsonObject;
+
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -24,6 +27,51 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class KickoffSelectionMovementTest {
+    @Test void quickSnapCounterSurvivesRestoreAndStopsMovesAtFiftyWhileEndRemains() throws Exception {
+        for (boolean home : new boolean[] { true, false }) {
+            GameState state = start(home, KickoffResult.QUICK_SNAP);
+            Game game = state.getGame();
+            StepEngine.respond(state, new ClientCommandPlayerChoice(PlayerChoiceMode.QUICK_SNAP,
+                new Player<?>[] { game.getPlayerById("one"), game.getPlayerById("two") }), home);
+            StepApplyKickoffResult kickoff = (StepApplyKickoffResult) state.getCurrentStep();
+            JsonObject saved = kickoff.toJsonValue().add("kickoffAdjustments", 49);
+            kickoff.initFrom(game.getRules(), saved);
+            FieldCoordinate to = new FieldCoordinate(home ? 13 : 12, 5);
+            StepEngine.respond(state, new ClientCommandSetupPlayer("one", home ? to : to.transform()), home);
+            assertEquals(50, kickoff.toJsonValue().getInt("kickoffAdjustments", -1));
+            assertEquals(1, kickoff.completedParticipants());
+            assertEquals(TurnMode.QUICK_SNAP, game.getTurnMode());
+            StepApplyKickoffResult restored = new StepApplyKickoffResult(state).initFrom(game.getRules(), kickoff.toJsonValue());
+            assertTrue(restored.kickoffAdjustmentsExhausted());
+            assertEquals(1, restored.completedParticipants());
+            assertEquals(1, new KickoffActions(state).actions().size());
+            assertEquals("end-event", new KickoffActions(state).actions().get(0).id);
+            FieldCoordinate fixed = game.getFieldModel().getPlayerCoordinate(game.getPlayerById("two"));
+            FieldCoordinate further = new FieldCoordinate(home ? 13 : 12, 9);
+            StepEngine.respond(state, new ClientCommandSetupPlayer("two", home ? further : further.transform()), home);
+            assertEquals(fixed, game.getFieldModel().getPlayerCoordinate(game.getPlayerById("two")));
+            assertEquals(TurnMode.QUICK_SNAP, game.getTurnMode());
+            StepEngine.respond(state, new ClientCommandEndTurn(TurnMode.QUICK_SNAP, null), home);
+            assertEquals(TurnMode.KICKOFF, game.getTurnMode());
+        }
+    }
+
+    @Test void highKickBudgetRejectsFurtherMovementWithoutEndingTheStage() throws Exception {
+        GameState state = start(true, KickoffResult.HIGH_KICK);
+        Game game = state.getGame();
+        StepApplyKickoffResult kickoff = (StepApplyKickoffResult) state.getCurrentStep();
+        kickoff.initFrom(game.getRules(), kickoff.toJsonValue().add("kickoffAdjustments", 50));
+        assertEquals(1, new KickoffActions(state).actions().size());
+        assertEquals("end-event", new KickoffActions(state).actions().get(0).id);
+        FieldCoordinate before = game.getFieldModel().getPlayerCoordinate(game.getPlayerById("one"));
+        StepEngine.respond(state, new ClientCommandSetupPlayer("one", game.getFieldModel().getBallCoordinate()), true);
+        assertEquals(before, game.getFieldModel().getPlayerCoordinate(game.getPlayerById("one")));
+        assertEquals(TurnMode.HIGH_KICK, game.getTurnMode());
+        StepEngine.respond(state, new ClientCommandEndTurn(TurnMode.HIGH_KICK, null), true);
+        assertEquals(TurnMode.KICKOFF, game.getTurnMode());
+    }
+
+
     @Test void quickSnapLocksOpenPlayersAndAllowsOneMoveAcrossHalfwayForEitherCoach() throws Exception {
         for (boolean home : new boolean[] { true, false }) {
             GameState state = start(home, KickoffResult.QUICK_SNAP);
@@ -46,6 +94,9 @@ class KickoffSelectionMovementTest {
             StepEngine.respond(state, new ClientCommandSetupPlayer("one", home ? another : another.transform()), home);
             assertEquals(to, game.getFieldModel().getPlayerCoordinate(game.getPlayerById("one")));
             assertTrue(new KickoffActions(state).actions().stream().anyMatch(action -> action.id.startsWith("event-two-")));
+            FieldCoordinate last = new FieldCoordinate(home ? 13 : 12, 9);
+            StepEngine.respond(state, new ClientCommandSetupPlayer("two", home ? last : last.transform()), home);
+            assertEquals(TurnMode.KICKOFF, game.getTurnMode(), "The BB2025 player limit ends Quick Snap before the technical ceiling");
         }
     }
 
@@ -53,6 +104,7 @@ class KickoffSelectionMovementTest {
         for (boolean home : new boolean[] { true, false }) {
             GameState state = start(home, KickoffResult.HIGH_KICK);
             Game game = state.getGame();
+            StepApplyKickoffResult kickoff = (StepApplyKickoffResult) state.getCurrentStep();
             FieldCoordinate from = game.getFieldModel().getPlayerCoordinate(game.getPlayerById("one"));
             FieldCoordinate wrong = new FieldCoordinate(home ? 8 : 17, 5);
             StepEngine.respond(state, new ClientCommandSetupPlayer("one", home ? wrong : wrong.transform()), home);
@@ -60,6 +112,8 @@ class KickoffSelectionMovementTest {
             FieldCoordinate landing = game.getFieldModel().getBallCoordinate();
             StepEngine.respond(state, new ClientCommandSetupPlayer("one", home ? landing : landing.transform()), home);
             assertEquals(landing, game.getFieldModel().getPlayerCoordinate(game.getPlayerById("one")));
+            assertEquals(1, kickoff.toJsonValue().getInt("kickoffAdjustments", -1));
+            assertEquals(1, kickoff.completedParticipants());
             assertEquals(TurnMode.KICKOFF, game.getTurnMode());
         }
     }

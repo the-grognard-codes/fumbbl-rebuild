@@ -38,16 +38,27 @@ public interface RecoveryRepository {
 		public final String journalHash;
 		public final int journalEntries;
 		public final long journalBytes;
+		final Long computerWorkUntil;
 
 		public Record(String matchId, long generation, String json) {
-			this(matchId, generation, json, null, 0, 0);
+			this(matchId, generation, json, null, 0, 0, null);
+		}
+
+		Record(String matchId, long generation, String json, long computerWorkUntil) {
+			this(matchId, generation, json, null, 0, 0, computerWorkUntil);
 		}
 
 		Record(String matchId, long generation, String json, String journalHash, int journalEntries, long journalBytes) {
+			this(matchId, generation, json, journalHash, journalEntries, journalBytes, null);
+		}
+
+		private Record(String matchId, long generation, String json, String journalHash, int journalEntries, long journalBytes,
+			Long computerWorkUntil) {
 			this.matchId = matchId;
 			this.generation = generation;
 			this.json = json;
 			this.journalHash = journalHash; this.journalEntries = journalEntries; this.journalBytes = journalBytes;
+			this.computerWorkUntil = computerWorkUntil;
 		}
 	}
 

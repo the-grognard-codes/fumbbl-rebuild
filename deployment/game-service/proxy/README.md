@@ -1,7 +1,7 @@
 # DEV nginx-to-JVM handoff
 
-Current builds require separately provisioned schema marker 9 for durable recovery
-journaling. See [the explicit migration procedure](../../../docs/operations/recovery-journal-schema.md)
+Current builds require separately provisioned schema marker 10 for durable recovery
+journaling and computer job availability. See [the explicit migration procedure](../../../docs/operations/recovery-journal-schema.md)
 before an authorized rollout. Server startup verifies the database without migrating it.
 
 **2026-09-21:** DEV backend installed: nginx on 443, native marker-6 Java on

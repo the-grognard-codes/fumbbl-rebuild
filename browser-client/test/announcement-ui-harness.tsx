@@ -21,7 +21,8 @@ function Harness() {
   return <main className="play-runtime live-match-page">
     <style>{`body { margin: 0; background: #091320; } #focus-anchor, #required-choice { position: fixed; left: 8px; top: 8px; z-index: 200; } .sr-only { position:absolute; width:1px; height:1px; overflow:hidden; clip-path:inset(50%); }`}</style>
     <button id="focus-anchor">Match controls</button>
-    <output id="announcement-state" data-revision={playback.pitchView.revision} data-active={playback.playbackActive}/>
+    <output id="announcement-state" data-revision={playback.pitchView.revision} data-active={playback.playbackActive}
+      data-home-score={playback.pitchView.homeScore} data-turn={playback.pitchView.turn}/>
     {!playback.playbackActive && input.view.actions.length > 0 && <button id="required-choice">Required choice</button>}
     <div className="coach-match hosted-match"><div className="match-layout"><div className="match-board">
     <GameMenu view={input.view} connected pending={false} mutate={() => { window.pitchClicks++; }}
@@ -29,8 +30,7 @@ function Harness() {
     <LivePitch view={playback.pitchView} selectedId="" actions={[]} showToolbar={false} debugOpen={false}
       readOnly={playback.playbackActive} playback={playback.playbackActive}
       diceMoment={playback.diceMoment} movementDuration={playback.movementDuration}
-      splash={playback.announcement ? { announcement: playback.announcement, onDismiss: playback.dismissAnnouncement,
-        hold: playback.holdAnnouncements, exiting: playback.announcementExiting, rate: playback.announcementRate, colors: input.colors } : undefined}
+      splash={playback.splash ? { ...playback.splash, colors: input.colors } : undefined}
       onSquare={() => { window.pitchClicks++; }} onSelectPlayer={() => { window.pitchClicks++; }}/>
     </div></div></div>
   </main>;

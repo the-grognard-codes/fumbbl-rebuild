@@ -206,11 +206,13 @@ function kickoffDecision(state, actions, plan) {
   const moved = plan && state.players.some(player => player.id === plan.playerId && distance(player, plan.target) === 0);
   if (kickoff.event === 'SOLID_DEFENCE') {
     const zone = y => y < 4 ? 0 : y > 10 ? 2 : 1;
-    // One small redeployment preserves the line and wide-zone counts, then confirm.
-    const move = !moved && actions.find(action => {
+    // Move odd rows towards the adjacent even row. The board itself records progress:
+    // an empty-target move cannot be selected again after a reconnect loses the plan.
+    const move = actions.find(action => {
       if (action.kind !== 'kickoffMove') return false;
       const player = state.players.find(item => item.id === action.sourcePlayerId);
-      return player && action.target?.x === player.x && zone(action.target.y) === zone(player.y)
+      return player && player.y % 2 === 1 && action.target?.y === player.y + 1
+        && action.target?.x === player.x && zone(action.target.y) === zone(player.y)
         && distance(player, action.target) === 1
         && !state.players.some(item => item.x === action.target.x && item.y === action.target.y);
     });
@@ -220,7 +222,9 @@ function kickoffDecision(state, actions, plan) {
   }
   // Charge needs no tactical search: activate each offered player, move once, finish.
   const endAction = actions.find(action => action.kind === 'endAction');
-  if (moved && endAction) return { action: endAction, plan: null };
+  const active = state.players.find(player => player.id === state.activePlayerId);
+  const spentMovement = active && state.computer.movement?.normalRemaining < active.ma;
+  if ((moved || spentMovement) && endAction) return { action: endAction, plan: null };
   const move = actions.find(action => action.kind === 'move');
   if (move) {
     const player = state.players.find(item => item.id === state.activePlayerId);

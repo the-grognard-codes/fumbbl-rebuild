@@ -4,7 +4,7 @@ import type { RoutePoint } from './route-protocol.ts';
 
 export function canDragSetupPlayer(view: SetupState, player: SetupPlayer, actions: SetupAction[]): boolean {
   if (view.actor !== view.callerRole || player.role !== view.callerRole) return false;
-  if (view.phase === 'SETUP') return player.x !== null || (player.offPitch ?? 'reserve') === 'reserve';
+  if (view.phase === 'SETUP') return !view.setupAdjustmentsExhausted && (player.x !== null || (player.offPitch ?? 'reserve') === 'reserve');
   return view.phase === 'PLAY' && view.turnMode === 'SOLID_DEFENCE'
     && (player.x !== null || (player.offPitch ?? 'reserve') === 'reserve')
     && actions.some(action => action.actor === view.callerRole && (

@@ -46,7 +46,7 @@ final class Marker6Schema {
 
 	private void verifyMarker(Connection connection) throws SQLException {
 		try (Statement statement = connection.createStatement(); ResultSet rows = statement.executeQuery("SELECT version FROM ffb_local_schema")) {
-			if (!rows.next() || rows.getInt(1) != 9 || rows.next()) throw new SQLException("Recovery-journal schema version 9 is required");
+			if (!rows.next() || rows.getInt(1) != 10 || rows.next()) throw new SQLException("Computer job scheduling schema version 10 is required");
 		}
 	}
 

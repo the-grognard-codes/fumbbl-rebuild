@@ -40,6 +40,7 @@ import java.util.HexFormat;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Function;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -920,42 +921,22 @@ class SetupSessionMovementTest {
         Fixture fixture = new Fixture(1);
         JsonObject ready = fixture.advanceToTurn();
         String role = ready.getString("actor", null);
-        JsonObject plan = null;
-        String playerId = null, targetId = null;
-        for (JsonValue candidate : ready.get("actions").asArray()) {
-            JsonObject action = candidate.asObject();
-            if (!"blitz".equals(action.getString("kind", null))) continue;
-            String sourceId = action.get("target").asObject().getString("playerId", null);
-            for (JsonValue entry : ready.get("players").asArray()) {
-                JsonObject defender = entry.asObject();
-                if (role.equals(defender.getString("role", null)) || !"pitch".equals(defender.getString("offPitch", null))) continue;
-                String defenderId = defender.getString("id", null);
-                JsonObject base;
-                try { base = fixture.session.movementPreview(role, ready.getInt("revision", -1),
-                    sourceId, "blitz", defenderId, new JsonArray()); }
-                catch (MatchService.Failure unavailable) { continue; }
-                JsonArray steps = base.get("route").asObject().get("steps").asArray();
-                if (steps.size() != 2 || !safe(steps)) continue;
-                JsonObject source = base.get("route").asObject().get("from").asObject();
-                JsonObject first = steps.get(0).asObject(), last = steps.get(1).asObject();
-                for (int dx = -1; dx <= 1 && plan == null; dx++) for (int dy = -1; dy <= 1 && plan == null; dy++) {
-                    if (dx == 0 && dy == 0) continue;
-                    int x = source.getInt("x", -1) + dx, y = source.getInt("y", -1) + dy;
-                    if (Math.abs(x - first.getInt("x", -1)) > 1 || Math.abs(y - first.getInt("y", -1)) > 1) continue;
-                    JsonArray waypoints = new JsonArray().add(new JsonObject().add("x", x).add("y", y))
-                        .add(new JsonObject().add("x", first.getInt("x", -1)).add("y", first.getInt("y", -1)))
-                        .add(new JsonObject().add("x", last.getInt("x", -1)).add("y", last.getInt("y", -1)));
-                    try {
-                        JsonObject candidatePlan = fixture.session.movementPreview(role, ready.getInt("revision", -1),
-                            sourceId, "blitz", defenderId, waypoints);
-                        if (!hasRisk(candidatePlan.get("route").asObject().get("steps").asArray())) continue;
-                        plan = candidatePlan; playerId = sourceId; targetId = defenderId;
-                    } catch (MatchService.Failure unavailable) { /* Try another nearby square. */ }
-                }
-            }
-            if (plan != null) break;
-        }
-        assertTrue(plan != null, ready.toString());
+        GameState state = nativeState(fixture.session);
+        Game game = state.getGame();
+        Player<?> blitzer = game.getActingTeam().getPlayers()[1];
+        Player<?> target = game.getOtherTeam(game.getActingTeam()).getPlayers()[1];
+        clearBlockPreviewKickoffEffects(state);
+        UtilBox.putAllPlayersIntoBox(game);
+        place(game, blitzer, 4, 7, PlayerState.STANDING);
+        place(game, target, 12, 7, PlayerState.STANDING);
+        game.getFieldModel().setBallCoordinate(new FieldCoordinate(1, 14));
+        game.getFieldModel().setBallMoving(true);
+        String playerId = blitzer.getId(), targetId = target.getId();
+        // The blitzer must rush to reach the square adjacent to the target.
+        JsonArray waypoints = points(11, 7);
+        JsonObject plan = fixture.session.movementPreview(role, ready.getInt("revision", -1), playerId, "blitz", targetId, waypoints);
+        assertTrue(plan.get("route").asObject().get("steps").asArray().values().stream()
+            .anyMatch(step -> step.asObject().getInt("rush", -1) > 0), plan.toString());
         forceGeneralRolls(fixture.session, 1, 6, 6, 6, 6, 6);
         JsonObject request = fixture.request("movement", "prompted-blitz", ready)
             .add("playerId", playerId).add("kind", "blitz").add("targetPlayerId", targetId)
@@ -1019,14 +1000,6 @@ class SetupSessionMovementTest {
             rolls.add(roll);
         }
         state.getDiceRoller().getTestRolls().put("Block", rolls);
-    }
-
-    private boolean hasRisk(JsonArray steps) {
-        for (JsonValue value : steps) {
-            JsonObject step = value.asObject();
-            if (step.getInt("dodge", -1) > 0 || step.getInt("rush", -1) > 0) return true;
-        }
-        return false;
     }
 
     @Test void activePassMoverCanContinueWithACommittedMovementRoute() {
@@ -1374,6 +1347,14 @@ class SetupSessionMovementTest {
         }
 
         Fixture(int rerolls, boolean captureNative) {
+            this(rerolls, captureNative, false);
+        }
+
+        Fixture(int rerolls, boolean captureNative, boolean computer) {
+            this(rerolls, captureNative, computer ? "away" : null);
+        }
+
+        Fixture(int rerolls, boolean captureNative, String computerRole) {
             RosterCatalog catalog = new RosterCatalog();
             List<TeamDraft.Player> players = new ArrayList<>();
             for (int slot = 1; slot <= 11; slot++)
@@ -1385,8 +1366,15 @@ class SetupSessionMovementTest {
                 "player1", players, resources);
             FrozenTeam home = new FrozenTeam("00000000-0000-0000-0000-000000000011", 1, "home", draft, 550000 + 50000 * rerolls, 0, catalog);
             FrozenTeam away = new FrozenTeam("00000000-0000-0000-0000-000000000012", 1, "away", draft, 550000 + 50000 * rerolls, 0, catalog);
-            document = new MatchDocument("00000000-0000-0000-0000-000000000021", 3, "away", MatchDocument.Lifecycle.ACTIVATED,
+            String matchId = "00000000-0000-0000-0000-000000000021";
+            ComputerOpponentService opponents = new ComputerOpponentService(null);
+            if ("away".equals(computerRole))
+                away = away.copyForMatch(opponents.cloneTeamId(matchId), "away", opponents.teamName(ComputerOpponentService.BUGMAN_ID));
+            if ("home".equals(computerRole))
+                home = home.copyForMatch(opponents.cloneTeamId(matchId), "home", opponents.teamName(ComputerOpponentService.BUGMAN_ID));
+            MatchDocument prepared = new MatchDocument(matchId, 3, "away", MatchDocument.Lifecycle.ACTIVATED,
                 new MatchDocument.Member("home", "home", home), new MatchDocument.Member("away", "away", away));
+            document = "home".equals(computerRole) ? prepared.withComputer(opponents.identity(matchId, ComputerOpponentService.BUGMAN_ID)) : prepared;
             FactoryManager manager = new FactoryManager();
             when(server.getFactoryManager()).thenReturn(manager);
             when(server.getFactorySource()).thenReturn(server);
@@ -1396,7 +1384,7 @@ class SetupSessionMovementTest {
             when(server.getDebugLog()).thenReturn(mock(DebugLog.class));
             ServerCommunication communication = captureNative ? new ServerCommunication(server) : mock(ServerCommunication.class);
             when(server.getCommunication()).thenReturn(communication);
-            session = new SetupSession(server, document, -2, true, true, true, true, true, true);
+            session = SetupSession.startRecoverable(server, document, -2, true, true);
         }
 
         JsonObject request(String operation, String id, JsonObject state) {
@@ -1405,6 +1393,10 @@ class SetupSessionMovementTest {
         }
 
         JsonObject advanceToTurn() {
+            return advanceToTurn("receive", view -> view.get("actions").asArray().get(0).asObject());
+        }
+
+        JsonObject advanceToTurn(String receiveOption, Function<JsonObject, JsonObject> selectAction) {
             JsonObject view = session.reply("load", "ACCEPTED", false, "home").get("state").asObject();
             for (int index = 0; index < 100; index++) {
                 JsonObject endTurn = null;
@@ -1417,10 +1409,10 @@ class SetupSessionMovementTest {
                 else if (!view.get("prompt").isNull()) {
                     JsonObject prompt = view.get("prompt").asObject();
                     request.set("operation", "choice").add("promptId", prompt.get("id"))
-                        .add("optionId", "coin".equals(prompt.getString("kind", null)) ? "heads" : "receive");
+                        .add("optionId", "coin".equals(prompt.getString("kind", null)) ? "heads" : receiveOption);
                 } else {
                     assertTrue(view.get("actions").asArray().size() > 0, view.toString());
-                    JsonObject action = endTurn == null ? view.get("actions").asArray().get(0).asObject() : endTurn;
+                    JsonObject action = endTurn == null ? selectAction.apply(view) : endTurn;
                     request.add("actionId", action.get("id"));
                 }
                 view = session.apply(view.getString("actor", null), request).get("state").asObject();

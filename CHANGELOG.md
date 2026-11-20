@@ -4,9 +4,39 @@
 
 - Retain frozen replay events and transcript records as compact JSON between reads, reducing resident match memory without changing recovery or replay formats.
 
+- Record GitHub App token expiry in UTC, so gh refreshes tokens on time instead of failing with Bad credentials, and add a setup script for running Codex as the app on another machine.
+- Park computer coaches while they wait for a human turn, wake them on match changes, and release their engine after 30 idle minutes. Active computer matches expire after one hour waiting for a human decision. Mutually saved matches keep their 30-day retention and release their computer slot until resume.
+
+- Open match tabs show when the server timer abandons a match and disable play on that match.
+
+- Repair stale or missing GitHub App CLI credentials from the token cache and retry interrupted token refreshes.
+
+- Show opposing threat markings for the inspected Charge player after the server accepts their selection.
+
+- Prepare Firebase deploy authentication for repository renames using immutable GitHub IDs. Add an authentication-only check for production and preserve historical links on the Development page.
+
+- Broadcast setup and kick-off adjustments live and save the final formation at confirmation. Coaches and spectators see participants highlighted as they are selected or deselected for Solid Defence, Quick Snap and Charge. After reconnect, clients ignore delayed adjustments that no longer fit the current stage. Both coaches can still propose a save while adjustments are pending. Setup allows 100 adjustments per stage and kick-off events allow 50. Live recovery now requires checkpoint version 7 (r5.4). Older checkpoints return `RECOVERY_UNSUPPORTED`.
+
+- Animate touchdowns, turnovers, turn starts, all 11 kickoff results, weather, half-time, and the end of a match, including concessions. Touchdown splashes name the scorer. Touchdown, half-time, and final splashes show both teams' scores side by side.
+
+- Keep the pitch dimmed between consecutive splashes. Turnovers last two seconds at normal speed, and splash timings scale with replay speed. Game Settings lets you choose which splashes to show or keep them visible until dismissed. Reduced motion replaces the larger movements with fades.
+
+- Clear consumed reroll dialogs for native callers and engine harnesses without configured skill preferences, including the stale Bone Head choice reproduced by the seeded harness. Configured browser sessions already received this cleanup.
+
+- Limit each kick-off selection or placement stage to 50 adjustments for every coach; reject extra edits without ending the event, preserve confirmation after reverting an illegal final formation, and let the computer coach finish Solid Defence and Charge without retained plans. Offer Solid Defence placements and swaps only for selected players, including during interrupted stages. End runaway turns with match-specific diagnostics.
+
+- Reject checkpoint diagnostics with missing fixture files and accept the zero-decision baseline regardless of fixture order.
+
+- Report checkpoint p95 only with at least 20 samples and reject incomplete or duplicate diagnostic cohorts.
+- Keep the game log to 100 mounted events with accessible earlier, later and latest history controls, resume new events after reading when returning to the bottom with up to one page of arrivals, preserve explicit history pages until Later or Latest, and render settled log dice without hidden 3D faces.
+- Accept expanded IPv6 loopback engine health probes, bound dev-local server restart retries to three, and keep fatal log labels separate from protocol names while preserving canonical match ID context.
+- Preserve definitive completion rejection codes without publication, and expose terminal completion releases in lifecycle metrics.
+
+- Show the final score while result saving retries automatically, reconnect computer coaches through one retry schedule, and mark inactive matches abandoned without waiting for a coach to return.
+
 - Log match persistence failures with request and SQL diagnostics. Computer coaches reload and retry transient failures with bounded backoff.
 
-- Restore long matches from durable state after a refused checkpoint write. Cold loads defer recording abandonment to the next request, and failed final result writes retry with increasing delays without waiting for coaches to reconnect.
+- Restore long matches from durable state after a refused checkpoint write. Cold loads defer recording abandonment to the next request, and recoverable final result writes retry with increasing delays without waiting for coaches to reconnect. Deterministic result failures release resident memory and log a terminal diagnostic while preserving the final state.
 
 - Reduce long-match checkpoint pauses by building the recovery journal cursor without decoding the checkpoint just written.
 

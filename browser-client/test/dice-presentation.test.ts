@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 
-import { blockFace, diceRollGroups, numericRolls, offeredBlockDice, reportedDice } from '../src/dice-presentation.ts';
+import { blockFace, dieStateClasses, isBlockFace, diceRollGroups, numericRolls, offeredBlockDice, reportedDice } from '../src/dice-presentation.ts';
 
 test('complete authoritative block choices expose ordered faces to any viewer without guessing partial rolls', () => {
   const view = JSON.parse(readFileSync(new URL('./fixtures/m5a-blitz-projections.json', import.meta.url), 'utf8'))[0].actor;
@@ -85,4 +85,13 @@ test('untyped totals, unsupported dice and invalid native metadata never become 
   assert.deepEqual(reportedDice({ reportId: 'scatterBall', rolls: [2, 8] })?.rolls?.map(roll => roll.kind), ['d8', 'd8']);
   assert.deepEqual(reportedDice({ reportId: 'tentaclesShadowingRoll', tentacleRoll: [2, 6] })?.faces, ['2', '6']);
   assert.deepEqual(reportedDice({ reportId: 'tentaclesShadowingRoll', roll: 3 })?.rolls?.map(roll => roll.kind), ['d6']);
+});
+
+test('shared die presentation preserves native faces and selection classes', () => {
+  for (let roll = 1; roll <= 6; roll++) assert.equal(isBlockFace(blockFace(roll)), true);
+  for (const face of [undefined, null, '', 'pushback', 'UNKNOWN', 1]) assert.equal(isBlockFace(face), false);
+  assert.equal(dieStateClasses({ chosenBy: 'away', uphill: true }), '');
+  assert.equal(dieStateClasses({ selected: true }), ' selected');
+  assert.equal(dieStateClasses({ selected: true, chosenBy: 'home' }), ' selected home-selected');
+  assert.equal(dieStateClasses({ selected: true, chosenBy: 'away', uphill: true }), ' selected away-selected uphill-selected');
 });

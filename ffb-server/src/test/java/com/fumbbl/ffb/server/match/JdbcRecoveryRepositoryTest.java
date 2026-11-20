@@ -117,7 +117,7 @@ class JdbcRecoveryRepositoryTest {
 	}
 
 	@Test void initialCheckpointsRejectUnsupportedSchemasBeforeWriting() throws Exception {
-		for (int version : new int[] { 4, 10 }) {
+		for (int version : new int[] { 4, 11 }) {
 			setup(); when(schema.getInt(1)).thenReturn(version);
 			assertThrows(SQLException.class, () -> repository.save(record(1), 0));
 			verify(statement, never()).executeUpdate(); verify(connection, never()).commit(); verify(connection).rollback();
