@@ -14,7 +14,7 @@ extends = "cross-project-toolchains"
 
 [permissions.fumbbl-project.filesystem]
 # Linked worktrees also write their shared Git directory in the main checkout.
-'C:\Users\jaken\Git-Hub\fumbbl-rebuild\.git' = "write"
+'C:\Users\jaken\Git-Hub\moles-under-the-pitch\.git' = "write"
 'C:\Users\jaken\AppData\Local\npm-cache' = "write"
 'C:\Users\jaken\AppData\Local\ms-playwright' = "write"
 
