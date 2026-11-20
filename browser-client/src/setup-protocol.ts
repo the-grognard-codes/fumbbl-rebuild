@@ -42,7 +42,9 @@ function object(value: unknown, keys: string[]) { if (!value || typeof value !==
 function role(value: unknown): asserts value is MatchRole { if (value !== 'home' && value !== 'away') throw Error('Invalid role'); }
 function text(value: unknown, maximum = 100): asserts value is string { if (typeof value !== 'string' || !value || value.length > maximum) throw Error('Invalid text'); }
 function integer(value: unknown, maximum = 5_000_000): asserts value is number { if (!Number.isSafeInteger(value) || (value as number) < 0 || (value as number) > maximum) throw Error('Invalid integer'); }
-export function decodeSetupStateValue(value: unknown, spectator = false): SetupState {
+export function decodeSetupStateValue(value: unknown, audience: boolean | 'computer' = false): SetupState {
+	const spectator = audience === true;
+	const live = spectator || audience === 'computer';
 	const base = ['matchId','revision','callerRole','phase','actor','prompt','players','weather','homeRerolls','awayRerolls','actions','turn','turnMode','ball','activePlayerId','half','homeTurn','awayTurn','homeScore','awayScore','drive'];
 	if (!value || typeof value !== 'object' || Array.isArray(value)) throw Error('Expected object');
 	const source = value as Record<string, unknown>; const keys = Object.keys(source);
@@ -54,9 +56,9 @@ export function decodeSetupStateValue(value: unknown, spectator = false): SetupS
 
     if (source.stageSeq !== undefined) {
         integer(source.stageSeq, 100);
-        if (!spectator || source.stageSeq === 0 || !detailsV4) throw Error('Invalid placement sequence');
+        if (!live || source.stageSeq === 0 || !detailsV4) throw Error('Invalid placement sequence');
     }
-    if (source.setupAdjustmentsExhausted !== undefined && (!spectator || !detailsV4
+    if (source.setupAdjustmentsExhausted !== undefined && (!live || !detailsV4
         || source.setupAdjustmentsExhausted !== true || source.phase !== 'SETUP' || source.stageSeq !== 100))
         throw Error('Invalid setup adjustment limit');
     if (Object.hasOwn(source, 'savedFormations')) {
@@ -69,7 +71,8 @@ export function decodeSetupStateValue(value: unknown, spectator = false): SetupS
         });
     }
 	if (Object.hasOwn(source, 'computer')) {
-		if (source.callerRole !== 'away') throw Error('Private computer context without computer seat');
+		if (audience !== 'computer') throw Error('Private computer context outside computer connection');
+		role(source.callerRole);
 		decodeComputerPolicyContext(source.computer);
 	}
 	if (Object.hasOwn(source, 'reaction')) {

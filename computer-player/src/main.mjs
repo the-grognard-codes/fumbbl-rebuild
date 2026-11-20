@@ -4,7 +4,7 @@ import { decodeSetupStateValue } from '../../browser-client/src/setup-protocol.t
 import { assertV2Projection } from '../../browser-client/src/v2-projection.ts';
 import { parseV2Response } from '../../browser-client/src/v2-response.ts';
 import { chooseComputerDecision, isComputerGameOperation } from './computer-policy.mjs';
-import { idleWorkerExitCode, persistenceUnavailableExitCode } from './worker-lifecycle.mjs';
+import { abandonedWorkerExitCode, idleWorkerExitCode, persistenceUnavailableExitCode, suspendedWorkerExitCode } from './worker-lifecycle.mjs';
 
 const uuid = /^[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}$/;
 const matchId = value('--match');
@@ -52,8 +52,10 @@ function send(request) {
 function log(message) { console.log(`[computer-player] ${message}`); }
 function clearIdleTimer() { clearTimeout(idleTimer); idleTimer = undefined; }
 function waitingForHuman() {
-  return state && state.phase !== 'FULL_TIME' && state.actor !== state.callerRole
-    && state.prompt?.actor !== state.callerRole && state.reaction?.actor !== state.callerRole;
+  if (!state || state.phase === 'FULL_TIME') return false;
+  // A policy that can act on save/resume clears the idle timer before sending its decision.
+  if (state.saveResume && state.saveResume.status !== 'ACTIVE') return true;
+  return state.actor !== state.callerRole && state.prompt?.actor !== state.callerRole && state.reaction?.actor !== state.callerRole;
 }
 function yieldIdleWorker() {
   idleTimer = undefined;
@@ -64,6 +66,7 @@ function yieldIdleWorker() {
   }
   log(`Match ${matchId} is waiting for the human coach; yielding worker capacity.`);
   process.exitCode = idleWorkerExitCode;
+  if (process.connected) process.send({ type: 'idle', revision: state.revision });
   stop();
 }
 function requestLoad() {
@@ -74,6 +77,13 @@ function requestLoad() {
 function decide() {
   if (!state || pending || loadId || !authenticated || socket?.readyState !== WebSocket.OPEN) return;
   if (state.phase === 'FULL_TIME') { log(`Match complete at revision ${state.revision}.`); stop(); return; }
+  if (idleTimeoutMs && state.saveResume?.status === 'SUSPENDED') {
+    log(`Match ${matchId} is suspended; releasing worker capacity.`);
+    process.exitCode = suspendedWorkerExitCode;
+    if (process.connected) process.send({ type: 'idle', revision: state.revision });
+    stop();
+    return;
+  }
   if (!waitingForHuman()) clearIdleTimer();
   else if (idleTimeoutMs && !idleTimer) idleTimer = setTimeout(yieldIdleWorker, idleTimeoutMs);
   const decisionKey = `${state.revision}:${state.stageSeq ?? 0}:${state.saveResume?.status ?? ''}:${state.saveResume?.proposalId ?? ''}`;
@@ -102,7 +112,7 @@ function decide() {
   send(pending);
 }
 function applyState(raw) {
-  const next = decodeSetupStateValue(raw, true);
+  const next = decodeSetupStateValue(raw, 'computer');
   if (next.matchId !== matchId || next.callerRole === 'spectator') throw Error('Unexpected match or role');
   if (!state || next.revision > state.revision
     || next.revision === state.revision && (next.stageSeq ?? 0) >= (state.stageSeq ?? 0)) state = next;
@@ -113,6 +123,11 @@ function yieldToDaemon() {
   pending = null;
   loadId = null;
   process.exitCode = persistenceUnavailableExitCode;
+  stop();
+}
+function abandon() {
+  log(`Match ${matchId} was abandoned.`);
+  if (process.connected) process.exitCode = abandonedWorkerExitCode;
   stop();
 }
 
@@ -137,6 +152,9 @@ function receive(raw) {
     if (loadId && message.requestId === loadId) { yieldToDaemon(); return; }
   }
   if (message.type === 'error') {
+    if (message.code === 'MATCH_ABANDONED' && (loadId && message.requestId === loadId || pending && message.requestId === pending.requestId)) {
+      abandon(); return;
+    }
     if (message.requestId === authenticationId || ['AUTHENTICATION_REQUIRED', 'AUTHENTICATION_FAILED', 'CONNECTION_REPLACED', 'AUTHORIZATION'].includes(message.code)) {
       throw Error(`Access unavailable: ${message.code}`);
     }
@@ -145,6 +163,7 @@ function receive(raw) {
     return;
   }
   if (message.type !== 'setupState' || (message.requestId !== null && message.requestId !== pending?.requestId && message.requestId !== loadId)) return;
+  if (message.code === 'MATCH_ABANDONED') { abandon(); return; }
   if (typeof message.code !== 'string' || typeof message.duplicate !== 'boolean'
     || (message.code === 'ACCEPTED' && !message.state)
     || (message.requestId === null && message.code !== 'ACCEPTED')) throw Error('Invalid setup response');

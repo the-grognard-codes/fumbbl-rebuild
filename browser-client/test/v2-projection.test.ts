@@ -36,3 +36,27 @@ test('browse rejects nested identities; unknown future response families require
   for (const type of ['profile', 'admin', 'replay', 'result', 'chat', '__proto__'])
     assert.throws(() => assertV2Projection({ version: 2, type, requestId: 'future', code: 'ACCEPTED' }));
 });
+
+test('computer job changes are unsolicited notices with a match revision and no state payload', () => {
+  const notice = { version: 2, type: 'computerJobChanged', requestId: null, matchId: '12345678-1234-1234-1234-123456789abc',
+    revision: 7, saveResumeChanged: false };
+  assert.doesNotThrow(() => assertV2Projection(notice));
+  for (const invalid of [{ requestId: 'reply' }, { matchId: 'invalid' }, { revision: -1 }, { revision: 1.5 },
+    { saveResumeChanged: 'false' }, { state: {} }]) assert.throws(() => assertV2Projection({ ...notice, ...invalid }));
+});
+
+for (const type of ['computerJobEnded', 'computerJobSuspended']) {
+  test(`${type} only exposes the match ID in an unsolicited notice`, () => {
+    const notice = { version: 2, type, requestId: null, matchId: '12345678-1234-1234-1234-123456789abc' };
+    assert.doesNotThrow(() => assertV2Projection(notice));
+    for (const invalid of [{ requestId: 'reply' }, { matchId: 'invalid' }, { state: {} }])
+      assert.throws(() => assertV2Projection({ ...notice, ...invalid }));
+  });
+}
+
+test('only a ready dispatcher response can request inventory continuation', () => {
+  const message = { version: 2, type: 'computer', requestId: 'register', code: 'READY', inventoryPending: true };
+  assert.doesNotThrow(() => assertV2Projection(message));
+  assert.throws(() => assertV2Projection({ ...message, inventoryPending: false }));
+  assert.throws(() => assertV2Projection({ ...message, code: 'NOT_FOUND' }));
+});

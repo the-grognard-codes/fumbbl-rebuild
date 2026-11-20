@@ -68,10 +68,9 @@ final class RecoveryJournal {
 				journalBytes += bytes(record.json);
 				if (journalBytes > COMPACT_BYTES || record.generation != ++expected || !id.equals(record.matchId))
 					throw new IllegalArgumentException("Journal sequence");
-				JsonObject saved = envelope(record.json, MAX_ENTRY_BYTES), entry = saved.get("payload").asObject();
-				if (entry.size() != 7 || entry.getInt("journalVersion", -1) != 1
-					|| !id.equals(entry.getString("matchId", null)) || entry.getLong("generation", -1) != expected
-					|| !hash.equals(entry.getString("previous", null))
+				JsonObject saved = envelope(record.json, MAX_ENTRY_BYTES);
+				JsonObject entry = entryPayload(saved, id, expected);
+				if (!hash.equals(entry.getString("previous", null))
 					|| !Arrays.equals(counts(payload), counts(entry.get("from").asArray())))
 					throw new IllegalArgumentException("Journal chain");
 				JsonObject tail = entry.get("state").asObject();
@@ -83,6 +82,18 @@ final class RecoveryJournal {
 			String json = entries.isEmpty() ? checkpoint : new RecoveryArtifactJson().encodeCheckpoint(ordered(payload).asObject()).envelope();
 			return new RecoveryRepository.Record(id, generation, json, hash, entries.size(), journalBytes);
 		} catch (RuntimeException corrupt) { throw new MatchService.Failure("RECOVERY_CORRUPT"); }
+	}
+
+	JsonObject readHeadState(String json, String id, long generation) {
+		return entryPayload(envelope(json, MAX_ENTRY_BYTES), id, generation).get("state").asObject();
+	}
+
+	private JsonObject entryPayload(JsonObject envelope, String id, long generation) {
+		JsonObject entry = envelope.get("payload").asObject();
+		if (entry.size() != 7 || entry.getInt("journalVersion", -1) != 1
+			|| !id.equals(entry.getString("matchId", null)) || entry.getLong("generation", -1) != generation)
+			throw new IllegalArgumentException("Invalid journal entry");
+		return entry;
 	}
 
 	private JsonObject combine(JsonObject before, JsonObject tail) {
