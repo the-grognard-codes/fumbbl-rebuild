@@ -28,7 +28,7 @@ final class JdbcV2PublicationAuthorization implements V2PublicationAuthorization
 		StringBuilder sql = new StringBuilder();
 		if (!humans.isEmpty()) {
 			sql.append("SELECT t.slot,m.role,MAX(s.scope='PLAYER') AS player_scope,MAX(s.scope='SPECTATOR') AS spectator_scope,")
-				.append("NULL AS document_json,NULL AS document_version,NULL AS computer_account,0 AS registered FROM (");
+				.append("NULL AS document_json,NULL AS document_version,NULL AS computer_role,0 AS registered FROM (");
 			for (int index = 0; index < humans.size(); index++) {
 				if (index > 0) sql.append(" UNION ALL ");
 				sql.append("SELECT ? AS slot,? AS account_id,? AS issuer,? AS subject");
@@ -39,11 +39,12 @@ final class JdbcV2PublicationAuthorization implements V2PublicationAuthorization
 				.append(" LEFT JOIN ffb_v2_match_members m ON m.matchid=? AND m.account_id=a.account_id GROUP BY t.slot,m.role UNION ALL ");
 		}
 		sql.append("SELECT -1,NULL,0,0,").append(computer ? "p.document_json,p.document_version" : "NULL,NULL")
-			.append(",away.account_id,EXISTS(SELECT 1 FROM ffb_v2_match_members registered WHERE registered.matchid=?)")
+			.append(",computer.role,EXISTS(SELECT 1 FROM ffb_v2_match_members registered WHERE registered.matchid=?)")
 			.append(" FROM ffb_local_schema marker LEFT JOIN ffb_prepared_matches p ON p.match_id=?")
-			.append(" LEFT JOIN ffb_v2_match_members away ON away.matchid=? AND away.role='away'");
+			.append(" LEFT JOIN ffb_v2_match_members computer ON computer.matchid=? AND computer.account_id=?");
 		Map<Integer, String> playerRoles = new HashMap<>(); Map<Integer, Boolean> players = new HashMap<>(), spectators = new HashMap<>();
-		boolean registered = false, computerAllowed = false, metadata = false;
+		boolean registered = false, metadata = false;
+		String computerRole = null;
 		try (Connection connection = connections.open(); PreparedStatement query = connection.prepareStatement(sql.toString())) {
 			int parameter = 1;
 			for (int slot : humans) {
@@ -52,7 +53,8 @@ final class JdbcV2PublicationAuthorization implements V2PublicationAuthorization
 				query.setString(parameter++, principal.issuer()); query.setString(parameter++, principal.subject());
 			}
 			if (!humans.isEmpty()) query.setString(parameter++, matchId);
-			query.setString(parameter++, matchId); query.setString(parameter++, matchId); query.setString(parameter, matchId);
+			query.setString(parameter++, matchId); query.setString(parameter++, matchId);
+			query.setString(parameter++, matchId); query.setString(parameter, computers.memberId());
 			try (ResultSet rows = query.executeQuery()) {
 				int count = 0;
 				while (rows.next()) {
@@ -61,13 +63,15 @@ final class JdbcV2PublicationAuthorization implements V2PublicationAuthorization
 					if (slot == -1) {
 						if (metadata) throw new SQLException("Duplicate publication metadata");
 						metadata = true; registered = rows.getBoolean(8);
-						if (computer && computers.memberId().equals(rows.getString(7))) {
+						String role = rows.getString(7);
+						if (computer && role != null) {
 							String encoded = rows.getString(5);
 							try {
 								BoundedJsonStorageCodec codec = new BoundedJsonStorageCodec(BoundedJsonStorageCodec.PREPARED_ENCODED_LIMIT, BoundedJsonStorageCodec.PREPARED_DECODED_LIMIT);
 								MatchDocument document = encoded == null ? null : new MatchJson().decode(codec.decode(encoded), rows.getInt(6));
-								computerAllowed = document != null && matchId.equals(document.matchId) && computers.coach(document) != null;
-							} catch (RuntimeException corrupt) { computerAllowed = false; }
+								MatchDocument.Member member = document == null ? null : computers.member(document);
+								if (member != null && matchId.equals(document.matchId) && role.equals(member.role)) computerRole = role;
+							} catch (RuntimeException corrupt) { /* Ignore an invalid computer grant. */ }
 						}
 					} else {
 						if (!humans.contains(slot) || players.put(slot, rows.getBoolean(3)) != null) throw new SQLException("Invalid publication result slot");
@@ -81,7 +85,7 @@ final class JdbcV2PublicationAuthorization implements V2PublicationAuthorization
 		if (!metadata) return new Snapshot(grants);
 		for (int slot = 0; slot < targets.size(); slot++) {
 			Target target = targets.get(slot);
-			if (target.audience() == Audience.COMPUTER) { if (computerAllowed && family == Family.STATE) grants.put(slot, "away"); }
+			if (target.audience() == Audience.COMPUTER) { if (computerRole != null && family == Family.STATE) grants.put(slot, computerRole); }
 			else if (target.principal().expiresAtMillis() > clock.millis()) {
 				if (target.audience() == Audience.SPECTATOR && family != Family.PREPARATION && registered && Boolean.TRUE.equals(spectators.get(slot))) grants.put(slot, "spectator");
 				else if (target.audience() == Audience.PLAYER && Boolean.TRUE.equals(players.get(slot)) && playerRoles.containsKey(slot)) grants.put(slot, playerRoles.get(slot));

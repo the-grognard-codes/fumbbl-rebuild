@@ -26,3 +26,15 @@ unchanged. Resetting or replacing a native log invalidates its recovery cursor
 and requires a full checkpoint. This adds one serialized recovery copy per
 command, avoiding repeated full-history encoding without assuming engine objects
 are immutable.
+
+Schema marker 10 adds `ffb_match_recovery.computer_work_until_epoch_ms` for
+dispatcher registration. The column records the availability of the same
+committed generation as the full checkpoint or journal append. The recovery
+artifact remains authoritative. Existing marker-9 rows start with a null
+value and are advertised while awaiting classification. Registration classifies
+up to four legacy heads at a time under the generation check. A classification
+failure leaves availability unknown and the job eligible for normal recovery.
+The server waits five minutes before rechecking the same generation. Schema
+migration preserves the match checkpoint's format version. Both the native
+restore and the computer's stored-view path
+require recovery version 7. See the [migration and rollback procedure](../operations/recovery-journal-schema.md).

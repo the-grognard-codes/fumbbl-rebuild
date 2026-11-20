@@ -46,7 +46,7 @@ public final class BrowserV2Runtime {
 		SavedTeamService teams = new SavedTeamService(new JdbcSavedTeamRepository(connections::open, true), catalog);
 		MatchService matches = new MatchService(new JdbcMatchRepository(connections::open), teams, catalog);
 		// New activations use r4.1 checkpoints. Existing r2.2/r2.3 checkpoints restore under their recorded runtime.
-		SetupApplication setup = new SetupApplication(server, matches, new JdbcRecoveryRepository(connections::open, true), true, true);
+		SetupApplication setup = new SetupApplication(server, matches, new JdbcRecoveryRepository(connections::open, true, true), true, true);
 		setup.configureStorageAdmission(connections::requireAvailable);
 		SkillUsePreferenceService skillUsePreferences = new SkillUsePreferenceService(
 			new JdbcSkillUsePreferenceRepository(connections::open), new JdbcMatchMembershipRepository(connections::open));

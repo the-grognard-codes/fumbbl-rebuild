@@ -107,6 +107,7 @@ public final class SetupSession {
 	private final JsonArray events = new JsonArray();
 	private final DecisionLimit decisionLimit = new DecisionLimit();
 	private final MatchDocument document;
+	private final MatchDocument.Member computerMember;
 	private boolean failed;
 	private RecoveryDice recoveryDice;
 	private SaveResumeState saveResumeState;
@@ -167,8 +168,12 @@ public final class SetupSession {
 		}
 		if (saveResume) saveResumeState = new SaveResumeState(0L);
 		this.document = document;
+		computerMember = new ComputerOpponentService(null).member(document);
 		matchId = document.matchId;
-		if (document.computer != null) computerPolicy = new ComputerPolicyState();
+		if (document.computer != null) {
+			if (computerMember == null) throw new IllegalArgumentException("Missing computer member");
+			computerPolicy = new ComputerPolicyState(computerMember.role);
+		}
 		state = newGameState(server);
 		staging = recoverable ? new SetupStaging(state, document, this::mechanic) : null;
 		if (recoverable) {
@@ -226,27 +231,24 @@ public final class SetupSession {
 
 	/** Recovery uses native deserialization only: never start a sequence or execute a command. */
 	public SetupSession(FantasyFootballServer server, MatchDocument document, String artifact) {
+		this(server, document, new RecoveryCheckpoint().validate(artifact));
+	}
+
+	SetupSession(FantasyFootballServer server, MatchDocument document, RecoveryCheckpoint.Validated checkpoint) {
 		this.document = document;
+		computerMember = new ComputerOpponentService(null).member(document);
 		matchId = document.matchId;
 		state = newGameState(server);
 		try {
-			JsonObject envelope = new MatchJson().parse(artifact, RecoveryArtifactJson.MAX_CHECKPOINT_BYTES, 128);
-			JsonObject payload = envelope.get("payload").asObject();
-			if (envelope.size() != 2 || !new JsonDigest().sha256(payload).equals(envelope.getString("sha256", null)))
-				throw new IllegalArgumentException("Recovery checksum mismatch");
-			if (payload.getInt("recoveryVersion", -1) != STAGED_RECOVERY_VERSION
-				|| !STAGED_RUNTIME.equals(payload.getString("runtimeVersion", null))
-				|| !"ffb-3.4.0-bb2025-m3d.1".equals(payload.getString("engineVersion", null))
-				|| payload.getInt("replayVersion", -1) != 2)
-				throw new MatchService.Failure("RECOVERY_UNSUPPORTED");
+			JsonObject payload = new JsonObject(checkpoint.payload());
 			JsonValue savedAnnouncements = payload.get("matchAnnouncements");
 			if (savedAnnouncements != null) payload.remove("matchAnnouncements");
 			JsonValue savedBlockPresentation = payload.get("blockPresentation");
 			if (savedBlockPresentation != null) payload.remove("blockPresentation");
 			JsonValue savedComputer = payload.get("computerMemory");
 			if (savedComputer != null) {
-				if (document.computer == null) throw new IllegalArgumentException("Unexpected computer memory");
-				computerPolicy = new ComputerPolicyState(savedComputer.asObject());
+				if (document.computer == null || computerMember == null) throw new IllegalArgumentException("Unexpected computer memory");
+				computerPolicy = new ComputerPolicyState(computerMember.role, savedComputer.asObject());
 				payload.remove("computerMemory");
 			} else if (document.computer != null) throw new IllegalArgumentException("Missing computer memory");
 			JsonValue savedReaction = payload.get("reactiveDecision");
@@ -466,20 +468,25 @@ public final class SetupSession {
 
 	/** Only the authenticated computer response path adds this private projection. */
 	JsonObject computerProjection() {
-		ComputerCoach coach = new ComputerOpponentService(null).coach(document);
-		if (coach == null) return null;
+		ComputerOpponentService opponents = new ComputerOpponentService(null);
+		MatchDocument.Member member = opponents.member(document);
+		if (member == null) return null;
+		ComputerCoach coach = opponents.coach(document);
+		boolean home = "home".equals(member.role);
 		Game game = state.getGame();
+		Team team = home ? game.getTeamHome() : game.getTeamAway();
+		TurnData turn = home ? game.getTurnDataHome() : game.getTurnDataAway();
 		JsonValue movement = JsonValue.NULL;
 		Player<?> mover = game.getActingPlayer().getPlayer();
-		if (mover != null && game.getTeamAway().hasPlayer(mover)
+		if (mover != null && team.hasPlayer(mover)
 			&& FieldCoordinateBounds.FIELD.isInBounds(game.getFieldModel().getPlayerCoordinate(mover))
 			&& !mover.hasSkillProperty(NamedProperties.movesRandomly))
 			movement = new RoutePlanner(state, true).budget();
-		String key = Math.max(1, game.getHalf()) + ":" + drive + ":" + game.getTurnDataAway().getTurnNr();
+		String key = Math.max(1, game.getHalf()) + ":" + drive + ":" + turn.getTurnNr();
 		return new JsonObject().add("opponentId", coach.opponentId).add("policyVersion", coach.policyVersion)
 			.add("seed", coach.seed).add("policyState", computerPolicy == null ? JsonValue.NULL : computerPolicy.policyState())
 			.add("progress", computerPolicy == null ? new JsonObject().add("turnKey", key).add("stalledTurns", 0) : computerPolicy.progress())
-			.add("attackDirection", -1).add("movement", movement);
+			.add("attackDirection", home ? 1 : -1).add("movement", movement);
 	}
 
 	private JsonObject recoveryNative() {
@@ -532,34 +539,81 @@ public final class SetupSession {
 	public void startSaveResumeRetention(long now) {
 		if (!saveResume) throw new IllegalStateException("Save/resume is unavailable for this checkpoint runtime");
 		saveResumeState = new SaveResumeState(now);
+		refreshHumanDecisionClock(false, now);
 	}
 
 	public boolean usesSaveResume() { return saveResume; }
 
 	/** Expiry is durable and fail-closed; it is never a background deletion or an inferred consent. */
 	public boolean abandonIfInactive(long now) {
-		if (!abandonmentDue(now)) return false;
+		if (!abandonmentDue(now) || computerTimeoutBeforeAbandonment(now)) return false;
 		saveResumeState.abandoned = true;
 		saveResumeState.proposal = null;
+		saveResumeState.humanDecisionSince = -1L;
 		return true;
+	}
+
+	private boolean computerTimeoutBeforeAbandonment(long now) {
+		if (!isComputerMatch()) return false;
+		return saveResumeProposalDue(now) && !saveResumeState.inactive(true, saveResumeState.proposal.expiresAt)
+			|| reactiveDecisionDue(now) && !saveResumeState.inactive(true, reactiveDecision.expiresAt());
 	}
 
 	boolean abandonmentDue(long now) {
 		return saveResume && !saveResumeState.abandoned && !isComplete() && !failed
-			&& now - saveResumeState.lastPlayerActivityAt >= SaveResumeState.RETENTION_MILLIS;
+			&& saveResumeState.inactive(computerMember != null, now);
 	}
 
-	/** A successful native action invalidates a pending proposal and refreshes the one-month activity period. */
-	public void recordPlayerActivity(long now) {
+	boolean isAbandoned() { return saveResume && saveResumeState.abandoned; }
+
+	boolean isComputerMatch() { return computerMember != null; }
+
+	long computerWorkUntil() { return saveResume ? saveResumeState.computerWorkUntil() : Long.MAX_VALUE; }
+
+	/** A native action invalidates pending consent. Only a human action extends retention. */
+	public void recordPlayerActivity(String role, long now) {
 		if (!saveResume || saveResumeState.abandoned) return;
 		saveResumeState.proposal = null;
-		if (!saveResumeState.suspended()) saveResumeState.lastPlayerActivityAt = now;
+		if (!saveResumeState.suspended()) refreshHumanActivity(role, now);
+		refreshHumanDecisionClock(!computerMemberIs(role), now);
+	}
+
+	boolean initializeHumanDecisionClock(long now) {
+		if (!saveResume || computerMember == null) return false;
+		long previous = saveResumeState.humanDecisionSince;
+		refreshHumanDecisionClock(false, now);
+		return previous != saveResumeState.humanDecisionSince;
+	}
+
+	private void refreshHumanDecisionClock(boolean humanAction, long now) {
+		if (!saveResume || computerMember == null) return;
+		if (isComplete() || failed || saveResumeState.abandoned
+			|| saveResumeState.suspended() && saveResumeState.proposal == null || !humanOwesDecision()) {
+			saveResumeState.humanDecisionSince = -1L;
+		} else if (humanAction || saveResumeState.humanDecisionSince < 0) {
+			saveResumeState.humanDecisionSince = now;
+		}
+	}
+
+	private boolean humanOwesDecision() {
+		Proposal proposal = saveResumeState.proposal;
+		if (proposal != null) return computerMember.role.equals(proposal.proposer);
+		String decidingRole = reactiveDecision.pending() ? reactiveDecision.actor() : actor();
+		return !computerMember.role.equals(decidingRole);
+	}
+
+	boolean saveResumeProposalDue(long now) {
+		return saveResume && saveResumeState.proposal != null && now >= saveResumeState.proposal.expiresAt;
 	}
 
 	/** An expired proposal must not be shown again when a saved match is loaded. */
 	public boolean expireSaveResumeProposal(long now) {
-		if (saveResume && saveResumeState.proposal != null && now >= saveResumeState.proposal.expiresAt) {
+		if (saveResumeProposalDue(now)) {
+			long expiredAt = saveResumeState.proposal.expiresAt;
+			if (isComputerMatch() && (saveResumeState.inactive(true, expiredAt)
+				|| reactiveDecisionDue(now) && reactiveDecision.expiresAt() < expiredAt)) return false;
 			saveResumeState.proposal = null;
+			refreshHumanDecisionClock(false, expiredAt);
 			return true;
 		}
 		return false;
@@ -594,27 +648,34 @@ public final class SetupSession {
 			if ("SAVE".equals(proposal.intent)) saveResumeState.suspendedAt = now;
 			else rebaseClock(now);
 			saveResumeState.proposal = null;
-			saveResumeState.lastPlayerActivityAt = now;
+			refreshHumanActivity(role, now);
 		} else if ("saveReject".equals(operation) || "resumeReject".equals(operation)) {
 			requiredProposal(request, role, operation.startsWith("save") ? "SAVE" : "RESUME", false);
 			saveResumeState.proposal = null;
-			saveResumeState.lastPlayerActivityAt = now;
+			refreshHumanActivity(role, now);
 		} else if ("saveCancel".equals(operation) || "resumeCancel".equals(operation)) {
 			Proposal proposal = requiredProposal(request, role, operation.startsWith("save") ? "SAVE" : "RESUME", true);
 			if (!role.equals(proposal.proposer)) throw new MatchService.Failure("SAVE_PROPOSAL_OWNER");
 			saveResumeState.proposal = null;
-			saveResumeState.lastPlayerActivityAt = now;
+			refreshHumanActivity(role, now);
 		} else throw new MatchService.Failure("INVALID_REQUEST");
 		saveResumeState.history.put(key, new Record(fingerprint, "ACCEPTED"));
+		refreshHumanDecisionClock(!computerMemberIs(role), now);
 		return reply(id, "ACCEPTED", false, role);
 	}
+
+	private void refreshHumanActivity(String role, long now) {
+		if (!computerMemberIs(role)) saveResumeState.lastPlayerActivityAt = now;
+	}
+
+	private boolean computerMemberIs(String role) { return computerMember != null && computerMember.role.equals(role); }
 
 	private void requestProposal(String role, String requestId, String intent, long now) {
 		if (saveResumeState.proposal != null) throw new MatchService.Failure("SAVE_PROPOSAL_PENDING");
 		String proposalId = java.util.UUID.nameUUIDFromBytes((matchId + "\n" + role + "\n" + requestId + "\n" + intent)
 			.getBytes(java.nio.charset.StandardCharsets.UTF_8)).toString();
 		saveResumeState.proposal = new Proposal(proposalId, intent, role, revision, now, now + SaveResumeState.PROPOSAL_MILLIS);
-		saveResumeState.lastPlayerActivityAt = now;
+		refreshHumanActivity(role, now);
 	}
 
 	private Proposal requiredProposal(JsonObject request, String role, String intent) { return requiredProposal(request, role, intent, false); }
@@ -840,7 +901,7 @@ public final class SetupSession {
 			} else if ("formation".equals(operation)) {
                 FrozenTeam frozen = "home".equals(role) ? document.home.team : document.away.team;
                 new SavedFormationDeployment().apply(state, "home".equals(role), frozen,
-                    savedFormations().get(request.getInt("formationIndex", -1)), document.computer != null && "away".equals(role));
+                    savedFormations().get(request.getInt("formationIndex", -1)), computerMemberIs(role));
             } else if (command != null) {
 				if (setupPlacement != null)
 					setupPlacement.prepareSwap(move -> state.handleCommand(new ReceivedCommand(move, "home".equals(role))));
@@ -949,7 +1010,7 @@ public final class SetupSession {
         FrozenTeam selectedTeam = "home".equals(actor()) ? document.home.team : document.away.team;
         if (selectedTeam.formations != null) {
             List<TeamFormations.Formation> group = savedFormations();
-            boolean computer = document.computer != null && "away".equals(actor());
+            boolean computer = computerMemberIs(actor());
             // A stable per-drive draw survives journal replay without another source of randomness.
             int index = computer && !group.isEmpty() ? new java.util.Random(java.util.Objects.hash(matchId, drive, actor())).nextInt(group.size()) : 0;
             new SavedFormationDeployment().apply(state, "home".equals(actor()), selectedTeam, group.isEmpty() ? null : group.get(index), computer);
@@ -985,9 +1046,8 @@ public final class SetupSession {
 	}
 
 	private JsonObject reply(String requestId, String code, boolean duplicate, String role, JsonArray setupErrors) {
-		JsonObject response = new JsonObject().add("version", 1).add("type", "setupState").add("requestId", requestId)
-			.add("code", failed ? "SESSION_UNAVAILABLE" : code).add("duplicate", !failed && duplicate)
-			.add("state", failed ? JsonValue.NULL : liveView(role));
+		JsonObject response = new SetupStateReply().create(requestId, failed ? "SESSION_UNAVAILABLE" : code,
+			!failed && duplicate, failed ? JsonValue.NULL : liveView(role));
 		if (!failed && "ILLEGAL_SETUP".equals(code) && setupErrors != null) response.add("setupErrors", setupErrors);
 		return response;
 	}
@@ -1358,19 +1418,26 @@ public final class SetupSession {
 	/** Executed only on the communication worker, using the same command and checkpoint path as coach input. */
 	public boolean expireReactiveDecision(long now) {
 		if (failed || isComplete() || saveResume && (saveResumeState.suspended() || saveResumeState.abandoned)) return false;
-		refreshReaction(now);
+		refreshReaction(isComputerMatch() && reactiveDecision.due(now) ? reactiveDecision.expiresAt() : now);
 		if (!reactiveDecision.due(now)) return false;
+		long resolutionTime = isComputerMatch() ? reactiveDecision.expiresAt() : now;
 		Action decline = reactiveDecision.decline(state, actions());
 		String role = decline.role;
 		JsonObject request = new JsonObject().add("operation", "action").add("expectedRevision", revision)
 			.add("requestId", "timeout-" + reactiveDecision.id() + "-" + revision).add("actionId", actionId(decline));
 		expiringReaction = true;
-		try { apply(role, request, now); }
+		try { apply(role, request, resolutionTime); }
 		finally { expiringReaction = false; }
+		if (saveResume && saveResumeState.proposal != null && saveResumeState.proposal.revision != revision)
+			saveResumeState.proposal = null;
+		refreshHumanDecisionClock(false, resolutionTime);
 		return true;
 	}
 
-	boolean reactiveDecisionDue(long now) { return reactiveDecision.due(now); }
+	boolean reactiveDecisionDue(long now) {
+		return !failed && !isComplete() && (!saveResume || !saveResumeState.suspended() && !saveResumeState.abandoned)
+			&& reactiveDecision.due(now);
+	}
 
     public boolean isComplete() { return state.getGame().getFinished() != null; }
     private int homeScore() { return state.getGame().getGameResult().getTeamResultHome().getScore(); }
@@ -1900,11 +1967,13 @@ public final class SetupSession {
 	}
 
 	/** Private checkpoint state for a consent protocol; public projection is deliberately smaller. */
-	private static final class SaveResumeState {
+	static final class SaveResumeState {
 		static final long PROPOSAL_MILLIS = 5 * 60 * 1000L;
 		static final long RETENTION_MILLIS = 30L * 24 * 60 * 60 * 1000L;
+		static final long COMPUTER_RETENTION_MILLIS = 60L * 60 * 1000;
 		static final int HISTORY_LIMIT = 256;
 		long lastPlayerActivityAt;
+		long humanDecisionSince = -1L;
 		long suspendedAt = -1L;
 		boolean abandoned;
 		Proposal proposal;
@@ -1913,7 +1982,13 @@ public final class SetupSession {
 		SaveResumeState(long now) { lastPlayerActivityAt = now; }
 
 		SaveResumeState(JsonObject json) {
-			exact(json, "lastPlayerActivityAt", "suspendedAt", "abandoned", "proposal", "history");
+			if (json.get("humanDecisionSince") == null)
+				exact(json, "lastPlayerActivityAt", "suspendedAt", "abandoned", "proposal", "history");
+			else {
+				exact(json, "lastPlayerActivityAt", "humanDecisionSince", "suspendedAt", "abandoned", "proposal", "history");
+				humanDecisionSince = json.get("humanDecisionSince").asLong();
+				if (humanDecisionSince < 0) throw new IllegalArgumentException("Invalid human decision clock");
+			}
 			lastPlayerActivityAt = json.get("lastPlayerActivityAt").asLong();
 			suspendedAt = json.get("suspendedAt").asLong();
 			abandoned = json.get("abandoned").asBoolean();
@@ -1932,13 +2007,27 @@ public final class SetupSession {
 			if (history.size() > HISTORY_LIMIT) throw new IllegalArgumentException("Save request history limit");
 		}
 
+		boolean inactive(boolean computerMatch, long now) {
+			if (!computerMatch) return now - lastPlayerActivityAt >= RETENTION_MILLIS;
+			if (suspended()) return now - suspendedAt >= RETENTION_MILLIS;
+			return humanDecisionSince >= 0 && now - humanDecisionSince >= COMPUTER_RETENTION_MILLIS;
+		}
+
 		boolean suspended() { return suspendedAt >= 0; }
+
+		long computerWorkUntil() {
+			if (abandoned) return 0L;
+			if (!suspended()) return Long.MAX_VALUE;
+			return proposal == null ? 0L : proposal.expiresAt;
+		}
 
 		JsonObject json() {
 			JsonArray entries = new JsonArray();
 			history.forEach((key, entry) -> entries.add(new JsonObject().add("key", key).add("fingerprint", entry.fingerprint).add("code", entry.code)));
-			return new JsonObject().add("lastPlayerActivityAt", lastPlayerActivityAt).add("suspendedAt", suspendedAt).add("abandoned", abandoned)
+			JsonObject result = new JsonObject().add("lastPlayerActivityAt", lastPlayerActivityAt).add("suspendedAt", suspendedAt).add("abandoned", abandoned)
 				.add("proposal", proposal == null ? JsonValue.NULL : proposal.json()).add("history", entries);
+			if (humanDecisionSince >= 0) result.add("humanDecisionSince", humanDecisionSince);
+			return result;
 		}
 
 		JsonObject publicJson() {

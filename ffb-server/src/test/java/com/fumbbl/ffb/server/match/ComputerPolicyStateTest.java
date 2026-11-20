@@ -12,16 +12,32 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 class ComputerPolicyStateTest {
 
 	@Test void countsOnlyCompletedPossessionTurnsAndRetainsFrustrationAcrossRecovery() {
-		ComputerPolicyState memory = new ComputerPolicyState();
+		ComputerPolicyState memory = new ComputerPolicyState("away");
 		memory.observe(view(1, 1, "away", 15), false);
 		assertEquals(0, memory.progress().getInt("stalledTurns", -1));
 		memory.observe(view(1, 1, "away", 15), true);
 		assertEquals(1, memory.progress().getInt("stalledTurns", -1));
-		memory = new ComputerPolicyState(JsonObject.readFrom(memory.json().toString()));
+		memory = new ComputerPolicyState("away", JsonObject.readFrom(memory.json().toString()));
 		memory.observe(view(1, 2, "away", 15), false);
 		memory.observe(view(1, 2, "away", 15), true);
 		assertEquals(2, memory.progress().getInt("stalledTurns", -1));
 		assertEquals("1:1:2", memory.progress().getString("turnKey", null));
+	}
+
+	@Test void homePossessionUsesTheHomeTurnAndForwardDirectionAcrossRecovery() {
+		ComputerPolicyState memory = new ComputerPolicyState("home");
+		memory.observe(view(1, 0, "home", 10).add("homeTurn", 1), true);
+		assertEquals("1:1:1", memory.progress().getString("turnKey", null));
+		memory.validateDecision(decision("1:1:1", 1, true), coach(), true);
+		assertThrows(IllegalArgumentException.class, () -> memory.validateDecision(decision("1:1:0", 1, true), coach(), true));
+		ComputerPolicyState recovered = new ComputerPolicyState("home", JsonObject.readFrom(memory.json().toString()));
+		recovered.observe(view(1, 1, "home", 10).add("homeTurn", 1), false);
+		assertEquals(1, recovered.progress().getInt("stalledTurns", -1));
+		recovered.observe(view(1, 1, "home", 10).add("homeTurn", 2), true);
+		recovered.observe(view(1, 1, "home", 11).add("homeTurn", 2), true);
+		recovered.observe(view(1, 2, "home", 11).add("homeTurn", 2), false);
+		assertEquals("1:1:2", recovered.progress().getString("turnKey", null));
+		assertEquals(0, recovered.progress().getInt("stalledTurns", -1));
 	}
 
 	@Test void forwardProgressPossessionChangesAndDrivesResetFrustration() {
@@ -56,12 +72,12 @@ class ComputerPolicyStateTest {
 	}
 
 	@Test void recoveredMistakeAllowanceCannotBeReplenishedWithinTheSameTurn() {
-		ComputerPolicyState memory = new ComputerPolicyState();
+		ComputerPolicyState memory = new ComputerPolicyState("away");
 		memory.observe(view(1, 1, "away", 15), false);
 		JsonObject used = decision("1:1:1", 3, true);
 		memory.validateDecision(used, coach(), true);
 		memory.accept(used);
-		ComputerPolicyState recovered = new ComputerPolicyState(JsonObject.readFrom(memory.json().toString()));
+		ComputerPolicyState recovered = new ComputerPolicyState("away", JsonObject.readFrom(memory.json().toString()));
 		assertThrows(IllegalArgumentException.class, () -> recovered.validateDecision(decision("1:1:1", 4, false), coach(), true));
 		assertThrows(IllegalArgumentException.class, () -> recovered.validateDecision(decision("1:1:1", 2, true), coach(), true));
 		recovered.validateDecision(used, coach(), false);
@@ -71,7 +87,7 @@ class ComputerPolicyStateTest {
 	}
 
 	@Test void rejectsUnboundedUnknownOrWrongPolicyMetadata() {
-		ComputerPolicyState memory = new ComputerPolicyState();
+		ComputerPolicyState memory = new ComputerPolicyState("away");
 		memory.observe(view(1, 1, "away", 15), false);
 		JsonObject oversized = decision("1:1:1", 257, false);
 		assertThrows(IllegalArgumentException.class, () -> memory.validateDecision(oversized, coach(), true));
@@ -82,7 +98,7 @@ class ComputerPolicyStateTest {
 	}
 
 	private ComputerPolicyState stalled() {
-		ComputerPolicyState memory = new ComputerPolicyState();
+		ComputerPolicyState memory = new ComputerPolicyState("away");
 		memory.observe(view(1, 1, "away", 15), false);
 		memory.observe(view(1, 1, "away", 15), true);
 		return memory;

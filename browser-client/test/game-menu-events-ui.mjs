@@ -182,6 +182,20 @@ try {
   await page.keyboard.press('Escape');
   await splash.waitFor({ state: 'detached' });
   assert.equal(await banner.count(), 0, 'The completed step does not flash between the exit and regular play');
+
+  await page.evaluate(view => {
+    window.publishHud({ ...view, saveResume: { status: 'ABANDONED', proposalId: null, proposer: null, expiresAt: null } });
+  }, playing);
+  const abandoned = page.getByRole('alert').filter({ hasText: 'This match was abandoned and can no longer be resumed.' });
+  for (const [width, height] of [[1237, 617], [640, 330]]) {
+    await page.setViewportSize({ width, height });
+    await abandoned.waitFor();
+    await opener.click();
+    await menu.getByRole('tab', { name: 'Game Options' }).click();
+    assert.equal(await menu.getByRole('button', { name: 'Concede match', exact: true }).isDisabled(), true);
+    assert.equal(await menu.getByRole('button', { name: 'Request Match Pause', exact: true }).count(), 0);
+    await page.keyboard.press('Escape');
+  }
   assert.deepEqual(await page.evaluate(() => window.hudIntents), [], 'Presentation checks submitted no game actions');
   assert.deepEqual(errors, []);
   console.log('PASS: MUTP menu across six tabs/four viewports, keyboard focus, log sizes, live preferences/reading position, reload and denied storage; setup/kickoff-only broadcasts with intact dedicated decisions.');
