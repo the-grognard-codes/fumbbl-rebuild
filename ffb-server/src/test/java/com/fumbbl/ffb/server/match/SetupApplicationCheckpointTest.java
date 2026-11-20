@@ -578,7 +578,7 @@ class SetupApplicationCheckpointTest {
 				String id = "00000000-0000-0000-0000-%012d".formatted(index);
 				fixture.<SetupSession>map("sessions").put(id, mock(SetupSession.class));
 				fixture.<Long>map("lastAccess").put(id, NOW);
-				fixture.<Long>map("residentDecodedBytes").put(id, 5L * 1024 * 1024);
+				fixture.rememberSize(id, 5L * 1024 * 1024);
 				fixture.<byte[]>map("committedFingerprints").put(id, new byte[32]);
 			}
 			Connection connection = mock(Connection.class);
@@ -709,7 +709,7 @@ class SetupApplicationCheckpointTest {
 				SetupSession reaction = mock(SetupSession.class); when(reaction.hasPendingReactiveDecision()).thenReturn(true);
 				quiet = reaction;
 				fixture.<SetupSession>map("sessions").put(id, reaction);
-				fixture.<Long>map("residentDecodedBytes").put(id, 5L * 1024 * 1024 + 512 * 1024);
+				fixture.rememberSize(id, 5L * 1024 * 1024 + 512 * 1024);
 				fixture.<Long>map("lastAccess").put(id, NOW - index);
 				fixture.<byte[]>map("committedFingerprints").put(id, new byte[32]);
 			}
@@ -736,7 +736,7 @@ class SetupApplicationCheckpointTest {
 			for (int index = 1; index <= 2; index++) {
 				String id = "00000000-0000-0000-0000-%012d".formatted(index);
 				fixture.<SetupSession>map("sessions").put(id, mock(SetupSession.class));
-				fixture.<Long>map("residentDecodedBytes").put(id, 5L * 1024 * 1024 + 512 * 1024);
+				fixture.rememberSize(id, 5L * 1024 * 1024 + 512 * 1024);
 				fixture.<Long>map("lastAccess").put(id, NOW - index);
 				fixture.<byte[]>map("committedFingerprints").put(id, new byte[32]);
 			}
@@ -776,7 +776,7 @@ class SetupApplicationCheckpointTest {
 				String id = "00000000-0000-0000-0000-%012d".formatted(index);
 				SetupSession timed = mock(SetupSession.class); when(timed.hasPendingReactiveDecision()).thenReturn(true);
 				fixture.<SetupSession>map("sessions").put(id, timed);
-				fixture.<Long>map("residentDecodedBytes").put(id, 5L * 1024 * 1024 + 512 * 1024);
+				fixture.rememberSize(id, 5L * 1024 * 1024 + 512 * 1024);
 				fixture.<Long>map("lastAccess").put(id, NOW - index);
 				fixture.<byte[]>map("committedFingerprints").put(id, new byte[32]);
 			}
@@ -826,7 +826,7 @@ class SetupApplicationCheckpointTest {
 				String id = "00000000-0000-0000-0000-%012d".formatted(index);
 				SetupSession timed = mock(SetupSession.class); when(timed.hasPendingReactiveDecision()).thenReturn(true); quiet = timed;
 				fixture.<SetupSession>map("sessions").put(id, timed);
-				fixture.<Long>map("residentDecodedBytes").put(id, 5L * 1024 * 1024 + 512 * 1024);
+				fixture.rememberSize(id, 5L * 1024 * 1024 + 512 * 1024);
 				fixture.<Long>map("lastAccess").put(id, NOW - index);
 				fixture.<byte[]>map("committedFingerprints").put(id, new byte[32]);
 			}
@@ -858,11 +858,11 @@ class SetupApplicationCheckpointTest {
 			fixture.application.handle("home", load());
 			long bytes = 25L * 1024 * 1024;
 			when(fixture.session().recoveryBytes()).thenReturn(bytes);
-			fixture.<Long>map("residentDecodedBytes").put(MATCH, bytes);
+			fixture.rememberSize(MATCH, bytes);
 			for (int index = 1; index <= 2; index++) {
 				String id = "00000000-0000-0000-0000-%012d".formatted(index);
 				fixture.<SetupSession>map("sessions").put(id, mock(SetupSession.class));
-				fixture.<Long>map("residentDecodedBytes").put(id, bytes);
+				fixture.rememberSize(id, bytes);
 				fixture.<Long>map("lastAccess").put(id, NOW);
 				fixture.<byte[]>map("committedFingerprints").put(id, new byte[32]);
 			}
@@ -870,6 +870,19 @@ class SetupApplicationCheckpointTest {
 				assertEquals("ACCEPTED", fixture.application.handle("home", request("concurrent-" + index)).getString("code", null));
 			assertEquals(3, fixture.mapSize("sessions"));
 			assertEquals(0, fixture.application.lifecycleMetrics().getInt("memoryEvictions", -1));
+		}
+	}
+
+	@Test void checkpointChargesFrozenHistoryAtItsRetainedSize() throws Exception {
+		try (Fixture fixture = new Fixture(new MatchMemoryBudget(768L * 1024 * 1024))) {
+			fixture.application.handle("home", load());
+			long mib = 1024L * 1024;
+			SetupSession session = fixture.session();
+			when(session.recoveryBytes()).thenReturn(3 * mib);
+			when(session.frozenHistoryDecodedBytes()).thenReturn(2 * mib);
+			when(session.frozenHistoryRetainedBytes()).thenReturn(3 * mib / 2);
+			assertEquals("ACCEPTED", fixture.application.handle("home", request("frozen-growth")).getString("code", null));
+			assertEquals(11 * mib / 2, fixture.application.lifecycleMetrics().getLong("retainedBudgetBytes", -1));
 		}
 	}
 
@@ -882,7 +895,7 @@ class SetupApplicationCheckpointTest {
 				SetupSession session = mock(SetupSession.class);
 				when(session.isComplete()).thenReturn(id.equals(terminal));
 				fixture.<SetupSession>map("sessions").put(id, session);
-				fixture.<Long>map("residentDecodedBytes").put(id, 20L * 1024 * 1024);
+				fixture.rememberSize(id, 20L * 1024 * 1024);
 				fixture.<Long>map("lastAccess").put(id, NOW - (id.equals(active) ? 1000 : 500));
 				fixture.<byte[]>map("committedFingerprints").put(id, new byte[32]);
 			}
@@ -983,6 +996,9 @@ class SetupApplicationCheckpointTest {
 		SetupApplication newApplication() { return new SetupApplication(server, matches, recovery, false, clock, false, memoryBudget, safety); }
 		@SuppressWarnings("unchecked") <T> Map<String, T> map(String name) throws Exception { Field field = SetupApplication.class.getDeclaredField(name); field.setAccessible(true); return (Map<String, T>) field.get(application); }
 		SetupSession session() { return construction.constructed().get(construction.constructed().size() - 1); }
+		void rememberSize(String id, long decodedBytes) throws Exception {
+			this.<MatchMemoryBudget.ResidentSize>map("residentSizes").put(id, memoryBudget.residentSize(decodedBytes, 0, 0));
+		}
 		int mapSize(String name) throws Exception { Field field = SetupApplication.class.getDeclaredField(name); field.setAccessible(true); return ((Map<?, ?>) field.get(application)).size(); }
 		@Override public void close() {
 			construction.close();

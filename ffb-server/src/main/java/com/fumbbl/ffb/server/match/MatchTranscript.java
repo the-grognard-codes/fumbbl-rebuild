@@ -19,6 +19,7 @@ final class MatchTranscript {
     private long lastRecordedAt;
     private JsonObject unfinishedMovement;
     private int bytes;
+    private long frozenBytes;
     private int nativeCursor;
 
     MatchTranscript() { }
@@ -124,6 +125,7 @@ final class MatchTranscript {
 
     int size() { return records.size(); }
     int bytes() { return bytes; }
+    long frozenBytes() { return frozenBytes; }
     int nativeCursor() { return nativeCursor; }
     long lastTime() { return lastRecordedAt; }
 
@@ -144,10 +146,11 @@ final class MatchTranscript {
 
     private void add(JsonObject record) {
         String json = record.toString();
-        int length = json.getBytes(StandardCharsets.UTF_8).length;
+        int length = (int) new Utf8Size().bytes(json);
         if (length > 256 * 1024 || bytes + length > MAX_BYTES - 128 * 1024) throw new IllegalArgumentException("Transcript limit");
         records.add(json);
         bytes += length;
+        frozenBytes += new FrozenJsonSize().retainedBytes(json);
         lastRecordedAt = record.get("at").asLong();
         unfinishedMovement = unfinishedMovement(record);
         driveHistory.append(record);

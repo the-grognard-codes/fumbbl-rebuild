@@ -36,7 +36,7 @@ public final class SetupApplication {
 	private final MatchMemoryBudget memoryBudget;
 	private final MatchSafetyJournal safety;
 	private static final Logger LOG = Logger.getLogger("com.fumbbl.ffb.server.match.safety");
-	private final Map<String, Long> residentDecodedBytes = new LinkedHashMap<>();
+	private final Map<String, MatchMemoryBudget.ResidentSize> residentSizes = new LinkedHashMap<>();
 	private long memoryEvictions;
 	private final Map<String, MatchStopReason> stoppedMatches = new LinkedHashMap<>();
 	/** Timer publication uses the normal bounded, locally authorized recipient path. */
@@ -151,6 +151,7 @@ public final class SetupApplication {
 	public JsonObject lifecycleMetrics() {
 		return new JsonObject().add("residentSessions", sessions.size()).add("residentLimit", memoryBudget.residentLimit())
 			.add("decodedMatchLimitBytes", memoryBudget.decodedLimit()).add("appendMatchLimitBytes", memoryBudget.appendLimit())
+			.add("retainedBudgetBytes", otherResidentBytes(null))
 			.add("memoryEvictions", memoryEvictions)
 			.add("terminalCompletionReleases", terminalCompletionReleases)
 			.add("pendingTimerRestores", pendingTimerRestores.size()).add("pendingActivations", pendingActivations.size()).add("completedReleases", completedReleases)
@@ -163,7 +164,7 @@ public final class SetupApplication {
 
 	private void releaseEngine(String id) {
 		sessions.remove(id);
-		residentDecodedBytes.remove(id);
+		residentSizes.remove(id);
 		generations.remove(id);
 		committedFingerprints.remove(id);
 		pendingRestoreCheckpoints.remove(id);
@@ -355,13 +356,15 @@ public final class SetupApplication {
 		admitDecoded(id, decodedBytes);
 		SetupSession session = reconstruct(document, record, validated);
 		if (session.isFailed()) return session;
+		MatchMemoryBudget.ResidentSize size = residentSize(session, decodedBytes);
+		admitResident(id, size);
 		TimerRestore retry = pendingTimerRestores.get(id);
 		long clockStart = retry != null && retry.generation() == record.generation && retry.clockStartedAt() >= 0
 			? retry.clockStartedAt() : clock.millis();
 		boolean initializedDecisionClock = session.initializeHumanDecisionClock(clockStart);
 		byte[] fingerprint = fingerprints.of(record.json);
 		sessions.put(id, session);
-		residentDecodedBytes.put(id, decodedBytes);
+		residentSizes.put(id, size);
 		generations.put(id, record.generation);
 		committedFingerprints.put(id, fingerprint);
 		if (recovery.supportsJournal()) journalCursors.put(id, journal.cursor(record, session));
@@ -432,39 +435,49 @@ public final class SetupApplication {
 	}
 
 	private boolean requireAppend(String id, SetupSession session) {
-		if (session.isComplete() || residentDecodedBytes.getOrDefault(id, 0L) < memoryBudget.appendLimit()) return false;
+		MatchMemoryBudget.ResidentSize size = residentSizes.get(id);
+		if (session.isComplete() || size == null || size.decodedBytes() < memoryBudget.appendLimit()) return false;
 		session.endForSizeLimit(clock.millis());
 		return true;
 	}
 
 	private void admitDecoded(String id, long decodedBytes) {
-		if (recovery == null) return;
+		// The frozen size is not known before reconstruction. Retain the full decode allowance here.
+		admitResident(id, memoryBudget.residentSize(decodedBytes, 0, 0));
+	}
+
+	private MatchMemoryBudget.ResidentSize residentSize(SetupSession session, long decodedBytes) {
+		return memoryBudget.residentSize(decodedBytes, session.frozenHistoryDecodedBytes(), session.frozenHistoryRetainedBytes());
+	}
+
+	private void admitResident(String id, MatchMemoryBudget.ResidentSize size) {
+		if (recovery == null || fitsResidentBudget(id, size)) return;
 		List<String> candidates = lastAccess.entrySet().stream().filter(entry -> !entry.getKey().equals(id))
 			.sorted(java.util.Comparator.<Map.Entry<String, Long>, Boolean>comparing(entry -> {
 				SetupSession session = sessions.get(entry.getKey());
 				return !session.isComplete() && clock.millis() - entry.getValue() < IDLE_MILLIS;
 			}).thenComparing(Map.Entry.comparingByValue())).map(Map.Entry::getKey).toList();
 		for (String candidate : candidates) {
-			if (fitsResidentBudget(id, decodedBytes)) break;
+			if (fitsResidentBudget(id, size)) break;
 			if (!committedFingerprints.containsKey(candidate)) continue;
 			// These engines own server-driven expiry; evicting them would stall connected peers.
 			if (sessions.get(candidate).hasPendingReactiveDecision()
 				|| pendingRestoreCheckpoints.get(candidate) == RestoreCheckpoint.HUMAN_DECISION_CLOCK) continue;
 			releaseEngine(candidate); memoryEvictions++;
 		}
-		if (!fitsResidentBudget(id, decodedBytes)) throw new MatchService.Failure("ACTIVATION_LIMIT");
+		if (!fitsResidentBudget(id, size)) throw new MatchService.Failure("ACTIVATION_LIMIT");
 	}
 
-	private boolean fitsResidentBudget(String id, long decodedBytes) {
-		long largest = residentDecodedBytes.entrySet().stream().filter(entry -> !entry.getKey().equals(id))
-			.mapToLong(Map.Entry::getValue).max().orElse(0);
-		return memoryBudget.admitsResidents(otherResidentBytes(id) + memoryBudget.residentBytes(decodedBytes),
-			Math.max(largest, decodedBytes));
+	private boolean fitsResidentBudget(String id, MatchMemoryBudget.ResidentSize size) {
+		long largest = residentSizes.entrySet().stream().filter(entry -> !entry.getKey().equals(id))
+			.mapToLong(entry -> entry.getValue().decodedBytes()).max().orElse(0);
+		return memoryBudget.admitsResidents(otherResidentBytes(id) + size.retainedBytes(),
+			Math.max(largest, size.decodedBytes()));
 	}
 
 	private long otherResidentBytes(String id) {
-		return residentDecodedBytes.entrySet().stream().filter(entry -> !entry.getKey().equals(id))
-			.mapToLong(entry -> memoryBudget.residentBytes(entry.getValue())).sum()
+		return residentSizes.entrySet().stream().filter(entry -> !entry.getKey().equals(id))
+			.mapToLong(entry -> entry.getValue().retainedBytes()).sum()
 			+ retainedIds().stream().filter(key -> !key.equals(id) && !sessions.containsKey(key))
 				.mapToLong(key -> memoryBudget.residentBytes(0)).sum();
 	}
@@ -483,11 +496,11 @@ public final class SetupApplication {
 		throw new MatchService.Failure("ACTIVATION_LIMIT");
 	}
 
-	private void checkpointRecorded(String id, SetupSession session, long bytes) {
-		residentDecodedBytes.put(id, bytes);
+	private void checkpointRecorded(String id, SetupSession session, MatchMemoryBudget.ResidentSize size) {
+		residentSizes.put(id, size);
 		if (session.endedForSizeLimit()) {
 			stoppedMatches.put(id, MatchStopReason.MATCH_SIZE_LIMIT);
-			LOG.warning("MATCH_SIZE_LIMIT phase=completed matchId=" + id + " decodedBytes=" + bytes + " limit=" + memoryBudget.decodedLimit());
+			LOG.warning("MATCH_SIZE_LIMIT phase=completed matchId=" + id + " decodedBytes=" + size.decodedBytes() + " limit=" + memoryBudget.decodedLimit());
 		}
 	}
 
@@ -526,7 +539,8 @@ public final class SetupApplication {
 		} } catch (RuntimeException unavailable) { /* Diagnostic context must not affect checkpoint behavior. */ }
 		try (BrowserRequestTiming.Scope ignored = timing.span(BrowserRequestTiming.Phase.CHECKPOINT)) {
 			// The shared workspace was reserved at admission. Stable/smaller checkpoints need no cache churn.
-			if (decodedBytes > residentDecodedBytes.getOrDefault(id, 0L)) admitDecoded(id, decodedBytes);
+			MatchMemoryBudget.ResidentSize size = residentSize(session, decodedBytes);
+			if (size.growsFrom(residentSizes.get(id))) admitResident(id, size);
 			RecoveryJournal.Cursor cursor = journalCursors.get(id);
 			if (cursor != null) { timing.value(BrowserRequestTiming.Value.JOURNAL_ENTRIES, cursor.entries); timing.value(BrowserRequestTiming.Value.JOURNAL_BYTES, cursor.journalBytes); }
 			long generation = generations.get(id);
@@ -545,7 +559,7 @@ public final class SetupApplication {
 							throw new MatchService.Failure("RECOVERY_CONFLICT");
 					}
 					generations.put(id, generation + 1); journalCursors.put(id, change.next);
-					checkpointRecorded(id, session, decodedBytes);
+					checkpointRecorded(id, session, size);
 					pendingRestoreCheckpoints.remove(id);
 					return;
 				}
@@ -570,7 +584,7 @@ public final class SetupApplication {
 					throw new MatchService.Failure("RECOVERY_CONFLICT");
 			}
 			generations.put(id, generation + 1);
-			checkpointRecorded(id, session, decodedBytes);
+			checkpointRecorded(id, session, size);
 			committedFingerprints.put(id, fingerprint);
 			if (checkpoint.cursor() != null) journalCursors.put(id, checkpoint.cursor());
 			pendingRestoreCheckpoints.remove(id);

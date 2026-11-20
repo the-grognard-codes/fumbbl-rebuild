@@ -106,6 +106,7 @@ public final class SetupSession {
 	private int drive = 1;
 	private int replayBytes;
 	private long escapedReplayBytes;
+	private long frozenReplayBytes;
 	private int measuredHistory;
 	private long historyBytes;
 	private final List<String> events = new ArrayList<>();
@@ -451,8 +452,7 @@ public final class SetupSession {
 		}
 		measuredHistory = history.size();
 		long bytes = new Utf8Size().bytes(metadata.toString()) + historyBytes + Math.max(0, history.size() - 1)
-			+ escapedReplayBytes + Math.max(0, events.size() - 1) + state.getGameLog().recoveryJsonBytes();
-		if (transcriptV2) bytes += transcript.bytes() + Math.max(0, transcript.size() - 1);
+			+ frozenHistoryDecodedBytes() + state.getGameLog().recoveryJsonBytes();
 		// Empty arrays/string brackets are already present in metadata; only their contents were added.
 		return bytes + RecoveryArtifactJson.ENVELOPE_BYTES;
 	}
@@ -462,6 +462,17 @@ public final class SetupSession {
 		events.add(json);
 		replayBytes += new Utf8Size().bytes(json);
 		escapedReplayBytes += new Utf8Size().bytes(JsonValue.valueOf(json).toString()) - 2;
+		frozenReplayBytes += new FrozenJsonSize().retainedBytes(json);
+	}
+
+	long frozenHistoryDecodedBytes() {
+		long bytes = escapedReplayBytes + Math.max(0, events.size() - 1);
+		if (transcriptV2) bytes += transcript.bytes() + Math.max(0, transcript.size() - 1);
+		return bytes;
+	}
+
+	long frozenHistoryRetainedBytes() {
+		return frozenReplayBytes + (transcriptV2 ? transcript.frozenBytes() : 0);
 	}
 
 	private JsonObject recoveryRequest(String key, Record entry) {

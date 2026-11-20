@@ -26,6 +26,17 @@ public final class MatchMemoryBudget {
 	public int appendLimit() { return decodedLimit - appendReserve(); }
 	int appendReserve() { return Math.min(RecoveryJournal.MAX_ENTRY_BYTES, decodedLimit / 8); }
 	long residentBytes(long decodedBytes) { return Math.max(MIB, decodedBytes * RETAINED_FACTOR); }
+
+	record ResidentSize(long decodedBytes, long retainedBytes) {
+		boolean growsFrom(ResidentSize previous) {
+			return previous == null || decodedBytes > previous.decodedBytes || retainedBytes > previous.retainedBytes;
+		}
+	}
+
+	ResidentSize residentSize(long decodedBytes, long frozenDecodedBytes, long frozenRetainedBytes) {
+		long expandedBytes = Math.max(0, decodedBytes - frozenDecodedBytes);
+		return new ResidentSize(decodedBytes, Math.max(MIB, expandedBytes * RETAINED_FACTOR + frozenRetainedBytes));
+	}
 	/** One workspace shared by the serial engine worker, sized for the largest admitted history. */
 	long sharedWorkingBytes(long largestDecodedBytes) { return largestDecodedBytes * (WORKING_FACTOR - RETAINED_FACTOR); }
 	boolean admitsResidents(long residentBytes, long largestDecodedBytes) {

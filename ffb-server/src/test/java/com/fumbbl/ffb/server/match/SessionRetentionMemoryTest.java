@@ -1,13 +1,13 @@
 package com.fumbbl.ffb.server.match;
 
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
+import org.junit.jupiter.api.io.TempDir;
+
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.concurrent.TimeUnit;
-
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
-import org.junit.jupiter.api.io.TempDir;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -21,8 +21,10 @@ class SessionRetentionMemoryTest {
 		String javaExecutable = Path.of(System.getProperty("java.home"), "bin", executableName).toString();
 		for (String mode : new String[] { "completion", "idle", "sequence" }) {
 			Path outputFile = outputDirectory.resolve(mode + ".log");
+			Path checkpoints = Files.createDirectory(outputDirectory.resolve(mode));
 			Process process = new ProcessBuilder(javaExecutable, "sequence".equals(mode) ? "-Xmx384m" : "-Xmx256m", "-XX:+UseSerialGC", "-cp", classPath,
-				SessionRetentionMemoryProbe.class.getName(), mode).redirectErrorStream(true).redirectOutput(outputFile.toFile()).start();
+				SessionRetentionMemoryProbe.class.getName(), mode, checkpoints.toString())
+				.redirectErrorStream(true).redirectOutput(outputFile.toFile()).start();
 			boolean finished = process.waitFor("sequence".equals(mode) ? 240 : 90, TimeUnit.SECONDS);
 			if (!finished) { process.destroyForcibly(); process.waitFor(5, TimeUnit.SECONDS); }
 			String output = new String(Files.readAllBytes(outputFile), StandardCharsets.UTF_8);

@@ -2,16 +2,23 @@ package com.fumbbl.ffb.server.match;
 
 import com.fumbbl.ffb.FieldCoordinate;
 import com.fumbbl.ffb.FieldCoordinateBounds;
+import com.fumbbl.ffb.PlayerState;
 import com.fumbbl.ffb.model.Game;
 import com.fumbbl.ffb.model.Player;
 import com.fumbbl.ffb.server.FantasyFootballServer;
 import com.fumbbl.ffb.server.GameState;
+import com.fumbbl.ffb.util.UtilBox;
 
 import com.eclipsesource.json.JsonObject;
+import com.eclipsesource.json.JsonValue;
 
+import java.io.IOException;
 import java.lang.management.ManagementFactory;
 import java.lang.ref.WeakReference;
 import java.lang.reflect.Field;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.sql.SQLException;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneId;
@@ -20,6 +27,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.Random;
 import java.util.concurrent.atomic.AtomicLong;
 
 import static org.mockito.ArgumentMatchers.anyString;
@@ -30,10 +38,16 @@ import static org.mockito.Mockito.when;
 
 /** Isolated JVM: real legal retained setup history, native concession/result materialization and application release. */
 public final class SessionRetentionMemoryProbe {
+	private static final int PLACEMENTS = 450;
+	private static final String HUMAN = "home";
+	private static final String COMPUTER = "away";
+
 	public static void main(String[] arguments) throws Exception {
-		if ("sequence".equals(arguments[0])) { sequence(); return; }
+		Path checkpoints = Path.of(arguments[1]);
+		if ("sequence".equals(arguments[0])) { sequence(checkpoints); return; }
 		long baseline = used();
-		Resident resident = lateResident();
+		Resident resident = lateResident(checkpoints.resolve("resident.json"));
+		int revision = resident.session.revision();
 		long retained = used() - baseline;
 		if (retained > 64L * 1024 * 1024) throw new AssertionError("Late-session retained heap exceeds 64 MiB: " + retained);
 		List<WeakReference<Object>> parts = retainedParts(resident.session);
@@ -44,13 +58,14 @@ public final class SessionRetentionMemoryProbe {
 		for (int attempt = 0; attempt < 10 && (released.get() != null || parts.stream().anyMatch(part -> part.get() != null)); attempt++) { used(); Thread.sleep(20); }
 		if (released.get() != null || parts.stream().anyMatch(part -> part.get() != null) || application.lifecycleMetrics().getInt("residentSessions", -1) != 0)
 			throw new AssertionError("Application retained its released late session");
-		System.out.println("retention-passed mode=" + arguments[0] + " revisions=450 retainedBytes=" + retained);
+		System.out.println("retention-passed mode=" + arguments[0] + " placements=" + PLACEMENTS + " revision=" + revision + " retainedBytes=" + retained
+			+ " afterReleaseBytes=" + (used() - baseline));
 	}
 
-	private static void sequence() throws Exception {
+	private static void sequence(Path checkpoints) throws Exception {
 		long baseline = used();
 		List<Resident> residents = new ArrayList<>();
-		for (int index = 0; index < 8; index++) residents.add(lateResident());
+		for (int index = 0; index < 8; index++) residents.add(lateResident(checkpoints.resolve("resident-" + index + ".json")));
 		long retained = used() - baseline;
 		if (retained > 256L * 1024 * 1024) throw new AssertionError("Eight-session retained heap exceeds 256 MiB: " + retained);
 		List<WeakReference<Object>> parts = new ArrayList<>();
@@ -73,7 +88,7 @@ public final class SessionRetentionMemoryProbe {
 			|| parts.stream().anyMatch(part -> part.get() != null)
 			|| applications.stream().anyMatch(application -> application.lifecycleMetrics().getInt("residentSessions", -1) != 0))
 			throw new AssertionError("Sequential applications retained released late sessions");
-		System.out.println("retention-passed mode=sequence sessions=8 revisionsEach=450 retainedBytes=" + retained
+		System.out.println("retention-passed mode=sequence sessions=8 placementsEach=" + PLACEMENTS + " retainedBytes=" + retained
 			+ " afterReleaseBytes=" + (used() - baseline));
 	}
 
@@ -94,46 +109,128 @@ public final class SessionRetentionMemoryProbe {
 	private record Resident(SetupApplication application, SetupSession session, MatchService matches,
 		FantasyFootballServer server, AtomicLong now, String id) { }
 
-	private static Resident lateResident() throws Exception {
-		SetupSessionMovementTest.Fixture fixture = new SetupSessionMovementTest.Fixture(0, true);
+	private static Resident lateResident(Path checkpoint) throws Exception {
+		SetupSessionMovementTest.Fixture fixture = new SetupSessionMovementTest.Fixture(0, true, COMPUTER);
 		SetupSession session = fixture.session;
-		JsonObject view = session.reply("load", "ACCEPTED", false, "home").get("state").asObject();
-		for (int index = 0; !"SETUP".equals(view.getString("phase", null)) && index < 20; index++) {
-			JsonObject prompt = view.get("prompt").asObject();
-			JsonObject request = fixture.request("choice", "opening-" + index, view).add("promptId", prompt.get("id"))
-				.add("optionId", "coin".equals(prompt.getString("kind", null)) ? "heads" : "receive");
-			view = accepted(session.apply(view.getString("actor", null), request));
-		}
-		if (!"SETUP".equals(view.getString("phase", null))) throw new AssertionError("Setup not reached");
-		Field stateField = SetupSession.class.getDeclaredField("state"); stateField.setAccessible(true);
-		GameState state = (GameState) stateField.get(session); Game game = state.getGame();
-		String role = view.getString("actor", null);
-		Player<?> player = Arrays.stream(("home".equals(role) ? game.getTeamHome() : game.getTeamAway()).getPlayers())
-			.filter(candidate -> FieldCoordinateBounds.FIELD.isInBounds(game.getFieldModel().getPlayerCoordinate(candidate))).findFirst().orElseThrow();
-		FieldCoordinate origin = game.getFieldModel().getPlayerCoordinate(player), alternate = null;
-		for (int x = "home".equals(role) ? 0 : 13; x < ("home".equals(role) ? 13 : 26) && alternate == null; x++)
-			for (int y = 0; y < 15; y++) if (game.getFieldModel().getPlayer(new FieldCoordinate(x, y)) == null) { alternate = new FieldCoordinate(x, y); break; }
-		for (int index = 0; index < 450; index++) {
-			FieldCoordinate to = index % 2 == 0 ? alternate : origin;
-			view = accepted(session.apply(role, fixture.request("place", "retained-" + index, view).add("playerId", player.getId())
-				.add("to", new JsonObject().add("x", to.getX()).add("y", to.getY()))));
-			state.getGameLog().recoveryJsonFrom(state.getGameLog().size());
-			clearInvocations(fixture.server);
-		}
-		SetupSession resident = session;
-		MatchService matches = mock(MatchService.class);
-		when(matches.loadForSetup(anyString(), anyString())).thenReturn(new MatchService.Result(fixture.document, false));
+		buildPlacementHistory(fixture);
 		AtomicLong now = new AtomicLong(System.currentTimeMillis());
+		session.startSaveResumeRetention(now.get());
+		ProbeRecovery recovery = new ProbeRecovery(checkpoint, session);
+		String id = fixture.document.matchId;
+		MatchService matches = mock(MatchService.class);
+		MatchService.Result match = new MatchService.Result(fixture.document, false);
+		when(matches.loadForSetup(anyString(), anyString())).thenReturn(match);
+		when(matches.load(anyString(), anyString())).thenReturn(match);
 		Clock clock = new Clock() {
 			@Override public ZoneId getZone() { return ZoneOffset.UTC; }
 			@Override public Clock withZone(ZoneId zone) { return this; }
 			@Override public Instant instant() { return Instant.ofEpochMilli(now.get()); }
 		};
-		SetupApplication application = new SetupApplication(fixture.server, matches, mock(RecoveryRepository.class), false, clock);
-		map(application, "sessions").put(fixture.document.matchId, resident);
-		map(application, "lastAccess").put(fixture.document.matchId, now.get());
+		SetupApplication application = new SetupApplication(fixture.server, matches, recovery, true, clock, true);
+		JsonObject restored = accepted(application.handle(HUMAN, load(id)));
+		SetupSession resident = (SetupSession) map(application, "sessions").get(id);
+		if (!HUMAN.equals(restored.getString("actor", null)) || resident.revision() != session.revision())
+			throw new AssertionError("Checkpoint did not restore the human turn at revision " + session.revision());
+		if (resident.frozenHistoryRetainedBytes() != session.frozenHistoryRetainedBytes())
+			throw new AssertionError("Frozen history size changed across restore: " + session.frozenHistoryRetainedBytes()
+				+ " -> " + resident.frozenHistoryRetainedBytes());
+		CanonicalJson canonical = new CanonicalJson();
+		if (!canonical.encode(resident.transcriptPage(resident.revision(), 1), 512 * 1024)
+			.equals(canonical.encode(session.transcriptPage(session.revision(), 1), 512 * 1024)))
+			throw new AssertionError("Checkpoint did not preserve the last transcript record");
+		long decodedBytes = new Utf8Size().bytes(recovery.find(id).json);
+		long charged = application.lifecycleMetrics().getLong("retainedBudgetBytes", -1);
+		long expected = new MatchMemoryBudget().residentSize(decodedBytes, session.frozenHistoryDecodedBytes(),
+			session.frozenHistoryRetainedBytes()).retainedBytes();
+		if (charged != expected || charged >= new MatchMemoryBudget().residentBytes(decodedBytes))
+			throw new AssertionError("Resident budget did not account for frozen history: " + charged + " expected=" + expected);
 		clearInvocations(fixture.server);
-		return new Resident(application, resident, matches, fixture.server, now, fixture.document.matchId);
+		return new Resident(application, resident, matches, fixture.server, now, id);
+	}
+
+	private static void buildPlacementHistory(SetupSessionMovementTest.Fixture fixture) throws Exception {
+		SetupSession session = fixture.session;
+		Field stateField = SetupSession.class.getDeclaredField("state");
+		stateField.setAccessible(true);
+		GameState state = (GameState) stateField.get(session);
+		Random dice = new Random(543);
+		state.getDiceRoller().setRecoveryRoll(sides -> dice.nextInt(sides) + 1);
+		JsonObject view = accepted(session.reply("load", "ACCEPTED", false, HUMAN));
+		int placed = 0;
+		for (int step = 0; step < 150; step++) {
+			String role = view.getString("actor", null);
+			JsonObject next = fixture.request("action", "retention-step-" + step, view);
+			if ("SETUP".equals(view.getString("phase", null))) {
+				int count = Math.min(100, PLACEMENTS - placed);
+				place(fixture, state.getGame(), view, placed, count);
+				placed += count;
+				next.set("operation", "confirm");
+			} else if (!view.get("prompt").isNull()) {
+				JsonObject prompt = view.get("prompt").asObject();
+				next.set("operation", "choice").add("promptId", prompt.get("id"))
+					.add("optionId", "coin".equals(prompt.getString("kind", null)) ? "heads" : "receive");
+			} else {
+				JsonObject action = preferredAction(view);
+				if ("REGULAR".equals(view.getString("turnMode", null)) && "endTurn".equals(action.getString("kind", null))) {
+					if (placed == PLACEMENTS && HUMAN.equals(role)) return;
+					if (placed < PLACEMENTS) positionScorer(state.getGame());
+				}
+				next.add("actionId", action.get("id"));
+			}
+			view = accepted(session.apply(role, next));
+			clearInvocations(fixture.server);
+		}
+		throw new AssertionError("Did not park after " + placed + " placements");
+	}
+
+	private static void place(SetupSessionMovementTest.Fixture fixture, Game game, JsonObject view, int placed, int count) {
+		if (count == 0) return;
+		String role = view.getString("actor", null);
+		boolean home = HUMAN.equals(role);
+		Player<?> player = Arrays.stream((home ? game.getTeamHome() : game.getTeamAway()).getPlayers())
+			.filter(candidate -> FieldCoordinateBounds.FIELD.isInBounds(game.getFieldModel().getPlayerCoordinate(candidate)))
+			.findFirst().orElseThrow();
+		FieldCoordinate origin = game.getFieldModel().getPlayerCoordinate(player);
+		FieldCoordinate alternate = emptySquare(game, home);
+		for (int index = 0; index < count; index++) {
+			FieldCoordinate to = index % 2 == 0 ? alternate : origin;
+			JsonObject result = accepted(fixture.session.apply(role, fixture.request("place", "retained-" + (placed + index), view)
+				.add("playerId", player.getId()).add("to", new JsonObject().add("x", to.getX()).add("y", to.getY()))));
+			if (result.getInt("stageSeq", -1) != index + 1 || result.getInt("revision", -1) != view.getInt("revision", -2))
+				throw new AssertionError("A staged placement changed the durable revision or missed the overlay");
+			clearInvocations(fixture.server);
+		}
+	}
+
+	private static FieldCoordinate emptySquare(Game game, boolean home) {
+		for (int x = home ? 1 : 14; x < (home ? 12 : 25); x++) {
+			for (int y = 0; y < 15; y++) {
+				FieldCoordinate square = new FieldCoordinate(x, y);
+				if (game.getFieldModel().getPlayer(square) == null) return square;
+			}
+		}
+		throw new AssertionError("No empty setup square");
+	}
+
+	private static JsonObject preferredAction(JsonObject view) {
+		for (JsonValue value : view.get("actions").asArray()) {
+			JsonObject action = value.asObject();
+			String kind = action.getString("kind", null);
+			if ("endTurn".equals(kind) || "confirm".equals(kind)) return action;
+		}
+		return view.get("actions").asArray().get(0).asObject();
+	}
+
+	private static void positionScorer(Game game) {
+		boolean home = game.isHomePlaying();
+		Player<?> scorer = game.getActingTeam().getPlayers()[0];
+		UtilBox.putAllPlayersIntoBox(game);
+		FieldCoordinate endzone = new FieldCoordinate(home ? 25 : 0, 7);
+		game.getFieldModel().setPlayerCoordinate(scorer, endzone);
+		game.getFieldModel().setPlayerState(scorer, new PlayerState(PlayerState.STANDING));
+		game.getFieldModel().setBallCoordinate(endzone);
+		game.getFieldModel().setBallInPlay(true);
+		game.getFieldModel().setBallMoving(false);
 	}
 
 	private static WeakReference<SetupSession> release(Resident resident, String mode) throws Exception {
@@ -148,8 +245,13 @@ public final class SessionRetentionMemoryProbe {
 			if (!"ACCEPTED".equals(response.getString("code", null))) throw new AssertionError("Completion release failed");
 		} else {
 			resident.now.addAndGet(31 * 60 * 1000L);
-			resident.application.handle("home", load("00000000-0000-0000-0000-000000000099"));
+			resident.application.expireDecisions();
 			if (resident.application.lifecycleMetrics().getLong("idleReleases", -1) != 1) throw new AssertionError("Idle eviction did not run");
+			JsonObject waiting = accepted(resident.application.handleComputerWithOutcome(COMPUTER, load(resident.id)).response());
+			JsonObject metrics = resident.application.lifecycleMetrics();
+			if (!HUMAN.equals(waiting.getString("actor", null)) || waiting.getInt("revision", -1) != resident.session.revision()
+				|| metrics.getInt("restoredSessions", -1) != 1 || metrics.getLong("retainedBudgetBytes", -1) != 0)
+				throw new AssertionError("A cold computer load restored the parked engine or retained its budget");
 		}
 		clearInvocations(resident.matches, resident.server);
 		return reference;
@@ -158,11 +260,48 @@ public final class SessionRetentionMemoryProbe {
 	private static JsonObject load(String id) { return new JsonObject().add("version", 1).add("type", "setup")
 		.add("operation", "load").add("requestId", "release").add("matchId", id); }
 	private static JsonObject accepted(JsonObject response) {
-		if (!"ACCEPTED".equals(response.getString("code", null))) throw new AssertionError("Native setup rejected");
+		if (!"ACCEPTED".equals(response.getString("code", null)))
+			throw new AssertionError("Native setup rejected: " + response.getString("code", null));
 		return response.get("state").asObject();
 	}
 	@SuppressWarnings("unchecked") private static Map<String, Object> map(SetupApplication application, String name) throws Exception {
 		Field field = SetupApplication.class.getDeclaredField(name); field.setAccessible(true);
 		return (Map<String, Object>) field.get(application);
+	}
+
+	/** Keep the checkpoint on disk so the heap measurement excludes the persistence fixture's copy. */
+	private static final class ProbeRecovery implements RecoveryRepository {
+		private final Path path;
+		private final String id;
+		private long generation = 1;
+		private long computerWorkUntil;
+
+		ProbeRecovery(Path path, SetupSession session) throws IOException {
+			this.path = path;
+			this.id = session.spectatorView().getString("matchId", null);
+			computerWorkUntil = session.computerWorkUntil();
+			Files.writeString(path, session.recoveryArtifact());
+		}
+
+		@Override public Record find(String matchId) throws SQLException {
+			if (!id.equals(matchId)) return null;
+			try {
+				return new Record(id, generation, Files.readString(path), computerWorkUntil);
+			} catch (IOException failure) {
+				throw new SQLException(failure);
+			}
+		}
+
+		@Override public boolean save(Record record, long expectedGeneration) throws SQLException {
+			if (!id.equals(record.matchId) || generation != expectedGeneration) return false;
+			try {
+				Files.writeString(path, record.json);
+			} catch (IOException failure) {
+				throw new SQLException(failure);
+			}
+			generation = record.generation;
+			computerWorkUntil = record.computerWorkUntil;
+			return true;
+		}
 	}
 }

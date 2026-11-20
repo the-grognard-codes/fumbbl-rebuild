@@ -56,7 +56,7 @@ SELECT s.revision AS revision, s.@retainedHeapSize AS retained,
 FROM com.fumbbl.ffb.server.match.SetupSession s
 ```
 
-## Correction and regression
+## Original correction and regression
 
 SetupSession freezes accepted replay events once. MatchTranscript freezes each
 record once and retains only the latest time, unfinished movement, and small
@@ -122,10 +122,9 @@ Without that environment variable, plain `mvn test` skips this class before
 launching any of its three child JVMs. The launcher chooses `java.exe` on Windows
 and `java` elsewhere.
 
-For a before run, copy only the two new SessionRetentionMemory test/probe files
-into a separate baseline worktree, compile against its unchanged Java classes,
-and run the same selector. The native fixture and public session/application
-interfaces are unchanged.
+To reproduce the original baseline, take the two SessionRetentionMemory
+test/probe files from `b7f1df32e`, compile them against the original baseline
+Java classes in a separate worktree, and run the same selector.
 
 ## Timing and compatibility
 
@@ -174,3 +173,45 @@ Remaining: sequential full AI matches including natural completions and
 abandonment at the existing 768 MiB heap, and the user's long soak. Keep #524
 open. The controlled test and retaining-path diagnosis support this bounded
 correction while that broader acceptance evidence remains pending.
+
+## Integrated soak preparation
+
+The local integration includes `main` at `66239f8a3` and #559 at
+`3f9eade48`. It keeps the decoded checkpoint limits and the shared working
+reserve from #559. A reconstructed resident or a growing checkpoint charges
+the compact string storage for frozen replay and transcript history. The
+remaining checkpoint data uses #559's retained-size factor. Idle release
+removes the resident's charge.
+
+The updated probe makes 450 legal out-and-back setup adjustments across
+five stages. Controlled native touchdowns create additional setup stages.
+Confirmation commits the formation, so these adjustments produce far
+fewer durable records than the original per-placement workload. The probe
+parks a computer match on the human coach's turn and restores it from a
+file-backed checkpoint. It checks the last transcript record, the rebuilt
+frozen byte count, and the resident budget charge. After idle eviction a
+waiting computer load returns the stored view while the application reports
+zero residents and zero retained budget bytes. Weak references verify that
+the evicted engine and history can be collected.
+
+| Probe | Child heap cap | After-GC delta with residents | After release |
+| --- | ---: | ---: | ---: |
+| One resident, native concession | 256 MiB | 29,821,264 bytes | 24,060,728 bytes |
+| One resident, idle eviction | 256 MiB | 28,393,344 bytes | 22,633,576 bytes |
+| Eight residents, four of each release | 384 MiB | 69,847,776 bytes | 23,701,552 bytes |
+
+Both one-resident fixtures parked at revision 17. The eight-resident delta
+averages 8.33 MiB per fixture, projecting to 266.45 MiB above startup baseline
+at 32 same-shape residents. The probe uses independent applications and
+includes JVM and test-infrastructure overhead. Natural in-play histories and
+production transient allocations may be larger.
+
+The focused default run passed 92 server checks and five native adapter
+checks, with the heap probe class skipped by design. Setting
+`SESSION_RETENTION_MEMORY_RUN=1` passed all three probe modes.
+
+The combined #559, #543 and #541 soak still needs natural full-time
+completion and abandonment through real activation. Run with
+`-Xmx768m`, record each PR head SHA, and measure retained heap per resident
+and after completion, abandonment and idle eviction. Use those observations
+to assess the 32-resident cap.
