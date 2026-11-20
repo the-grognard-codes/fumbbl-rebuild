@@ -28,14 +28,18 @@ class Seat(NamedTuple):
 
 # First fill is the lowest attendance at which this place is occupied.
 SEAT_PLAN = (
-    Seat("rear-bench", 19, 28, "seated-folded", False, 75),
-    Seat("rear-bench", 19, 39, "seated-tankard", True, 50),
-    Seat("rear-bench", 19, 50, "seated-food", True, 100),
-    Seat("rear-bench", 19, 73, "standing-fist", False, 50),
-    Seat("inner-bench", 38, 29, "seated-food", False, 100),
-    Seat("inner-bench", 38, 41, "seated-fist", False, 50),
-    Seat("inner-bench", 38, 53, "seated-bottle", False, 50),
-    Seat("inner-bench", 38, 65, "seated-folded", True, 75),
+    Seat("wall-bench", 6, 28, "seated-bottle", False, 50),
+    Seat("wall-bench", 5, 46, "seated-fist", True, 75),
+    Seat("wall-bench", 5, 56, "seated-bottle", False, 100),
+    Seat("wall-bench", 6, 65, "seated-folded", False, 50),
+    Seat("rear-bench", 19, 30, "seated-fist", False, 75),
+    Seat("rear-bench", 19, 40, "seated-tankard", True, 100),
+    Seat("rear-bench", 19, 48, "seated-food", True, 50),
+    Seat("rear-bench", 19, 71, "standing-fist", False, 50),
+    Seat("inner-bench", 38, 29, "seated-tankard", True, 50),
+    Seat("inner-bench", 38, 37, "seated-bottle", False, 100),
+    Seat("inner-bench", 38, 48, "seated-folded", False, 75),
+    Seat("inner-bench", 38, 66, "seated-bottle", False, 50),
 )
 STUDIES = [
     (key, f"{key.upper()} · {fill}% full", [seat for seat in SEAT_PLAN if seat.first_fill <= fill])
@@ -117,15 +121,32 @@ def place_pose(person, pose, support, x, y, landmarks, planks):
         if not (0 <= local_knee_x < CELL_SIZE and 0 <= local_knee_y < CELL_SIZE
                 and alpha.getpixel((local_knee_x, local_knee_y))):
             raise ValueError(f"{pose} knee is outside its visible silhouette")
-        if not on_plank(x, y) or on_plank(x - 1, y):
-            raise ValueError(f"{pose} hip does not meet the back of {support}")
+        if not on_plank(x, y):
+            raise ValueError(f"{pose} hip is off {support}")
+        back = x
+        while on_plank(back - 1, y):
+            back -= 1
         front = x
         while on_plank(front + 1, y):
             front += 1
-        if not (front <= knee_x <= front + 2 and on_plank(front, knee_y)):
+        width = front - back + 1
+        if support == "wall-bench":
+            # A fan can perch nearer the lip with room for their back inside the wall.
+            # Measure the continuous seated silhouette over timber one pixel above the hip.
+            bearing = 0
+            for px in range(front, back - 1, -1):
+                if not (on_plank(px, y - 1) and 0 <= px - left < alpha.width
+                        and contact_y > 0 and alpha.getpixel((px - left, contact_y - 1))):
+                    break
+                bearing += 1
+            if 3 * bearing < 2 * width or 3 * (x - back) > 2 * width:
+                raise ValueError(f"{pose} has insufficient support on {support}")
+        elif x != back:
+            raise ValueError(f"{pose} hip and knee do not fit {support}")
+        if not (front <= knee_x <= x + width + 1 and on_plank(front, knee_y)):
             raise ValueError(f"{pose} hip and knee do not fit {support}")
         seat.update(stance="seated", knee={"x": knee_x, "y": knee_y},
-                    benchWidth=front - x + 1, thighSpan=knee_x - x)
+                    benchWidth=width, thighSpan=knee_x - x)
     else:
         local_sole_x, local_sole_y = landmarks["otherSole"]
         sole_x, sole_y = left + local_sole_x, top + local_sole_y
@@ -175,8 +196,12 @@ def build_study(mask, bay, atlas, palette, landmarks, study, planks):
     seats = [seat for seat, _, _, _ in placements]
     gaps = []
     for support in {seat["support"] for seat in seats}:
-        contacts = sorted(seat["y"] for seat in seats if seat["support"] == support)
-        gaps.extend(south - north for north, south in zip(contacts, contacts[1:]))
+        row = sorted((seat for seat in seats if seat["support"] == support), key=lambda seat: seat["y"])
+        for north, south in zip(row, row[1:]):
+            # The cheering supporter has both a seated and a standing pose.
+            if north["pose"].split("-", 1)[1] == south["pose"].split("-", 1)[1]:
+                raise ValueError(f"{label} repeats adjacent supporters on {support}")
+            gaps.append(south["y"] - north["y"])
     rail = handrail(size)
     rail_pixels = checked_pixels(rail, (0, 0), mask, bay, f"{label} rail")
     rail_overlap = crowd_pixels & rail_pixels

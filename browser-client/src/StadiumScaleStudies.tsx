@@ -189,7 +189,7 @@ function SupporterPose({ atlas, seat }: { atlas: HTMLImageElement; seat: Seat })
 export function StadiumScaleStudies() {
   const [layers, setLayers] = useState<Awaited<ReturnType<typeof loadLayers>>>();
   const [failed, setFailed] = useState(false);
-  const [view, setView] = useState(seatingStudies[0].id);
+  const [view, setView] = useState('b');
   const [benches, setBenches] = useState(false);
   const [rail, setRail] = useState(true);
   const [markers, setMarkers] = useState(false);

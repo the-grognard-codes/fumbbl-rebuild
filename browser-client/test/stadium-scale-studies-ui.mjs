@@ -96,7 +96,7 @@ try {
   await canvas.waitFor();
   const select = page.getByLabel('Gallery view');
   assert.deepEqual(studies.map(({ id }) => id), ['a', 'b', 'c']);
-  assert.equal(await select.inputValue(), 'a');
+  assert.equal(await select.inputValue(), 'b');
   assert.deepEqual(await select.locator('option').allTextContents(),
     [...studies.map(({ label }) => label), 'Empty stadium', 'Show seating masks']);
   const rail = page.getByRole('checkbox', { name: 'Front rail' });
@@ -138,6 +138,7 @@ try {
   const fullPlan = new Map(studies[0].seats.map(seat => [seatKey(seat), seat]));
   const fullPosesWithBothKits = poseColumns.filter(pose =>
     [true, false].every(neutral => studies[0].seats.some(seat => seat.pose === pose && seat.neutral === neutral)));
+  assert.equal(fullPlan.size, 12);
   assert.equal(fullPlan.size, studies[0].capacity);
   assert.ok(fullPosesWithBothKits.length > 0, 'One pose appears in both kits so the inspector exercises the kit axis');
   let previousLocations = new Set(fullPlan.keys());
@@ -151,17 +152,23 @@ try {
     assert.ok([...locations].every(location => previousLocations.has(location)), id + ' is a subset of the prior study');
     previousLocations = locations;
     const vacant = [...fullPlan.values()].filter(seat => !locations.has(seatKey(seat)));
-    const contactsByPlank = new Map();
+    const seatsByPlank = new Map();
     for (const seat of seats) {
       assert.deepEqual(seat, fullPlan.get(seatKey(seat)), id + ' preserves the fixed seat and its kit');
       assert.equal(typeof seat.neutral, 'boolean');
-      const contacts = contactsByPlank.get(seat.plankId) ?? [];
-      contacts.push(seat.y);
-      contactsByPlank.set(seat.plankId, contacts);
+      const row = seatsByPlank.get(seat.plankId) ?? [];
+      row.push(seat);
+      seatsByPlank.set(seat.plankId, row);
     }
-    const nativeGaps = [...contactsByPlank.values()].flatMap(contacts => {
-      contacts.sort((a, b) => a - b);
-      return contacts.slice(1).map((y, index) => y - contacts[index]);
+    assert.equal(seatsByPlank.size, 3, id + ' uses three planks');
+    if (id === 'b') assert.ok([...seatsByPlank.values()].every(row => row.length === 3), '75% fills three seats per plank');
+    const nativeGaps = [...seatsByPlank.entries()].flatMap(([plankId, row]) => {
+      row.sort((a, b) => a.y - b.y);
+      return row.slice(1).map((seat, index) => {
+        const previous = row[index];
+        assert.notEqual(seat.pose, previous.pose, id + ' repeats an adjacent pose on plank ' + plankId);
+        return seat.y - previous.y;
+      });
     });
     assert.deepEqual(spacing, { min: Math.min(...nativeGaps), max: Math.max(...nativeGaps) });
     await select.selectOption(id);
@@ -441,14 +448,14 @@ try {
   await page.waitForFunction(src=>document.querySelector('canvas').toDataURL()===src,original);
   await page.goto(url+'?view=scale');
   await canvas.waitFor();
-  assert.equal(await select.inputValue(), 'a');
+  assert.equal(await select.inputValue(), 'b');
   await page.setViewportSize({ width: 360, height: 800 });
   await benches.check();
   await benchKey.waitFor();
   await page.getByText('Inspect full poses', { exact: true }).click();
   assert.equal(await page.locator('.bay-six-zoom').evaluate(element =>
     element.scrollWidth > element.clientWidth && document.documentElement.scrollWidth === window.innerWidth), true);
-  console.log('Bay 6 variants, calf occlusion and isolated full poses, native and 4× crops, and independent rail, contact, bench and 15 seating masks passed.');
+  console.log('Bay 6 default, three-plank layouts, neighboring poses, exact crops and kits, calf occlusion, rail and guides passed.');
 } finally {
   await browser?.close();await server.close();
 }

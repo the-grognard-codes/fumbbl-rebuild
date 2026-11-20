@@ -2,15 +2,15 @@
 
 ## West bay 6 · Crowd density review
 
-West bay 6 has eight marked places, four on each of the two interior planks. These 9 and 10 px bench tops support the full-size poses inside the bay mask. On the two edge planks, a correctly anchored pose would extend into the wall or the pitch-side rail. The nearby blitzer gives a game-scale reference.
+The gallery opens at 75% attendance with nine supporters in west bay 6, three each on the wall, rear and inner benches. On each bench the occupied hip or boot contacts are 18–23 native pixels apart. The wall-side supporters perch toward the front of their plank, leaving room for their backs inside the bay. The nearby blitzer gives a game-scale reference.
 
-![The same west bay with eight, six and four supporters, beside the pitch and at pixel zoom](../../assets/game/references/stadiums/scale-studies/bay-six/comparison.webp)
+![West bay 6 at 75% attendance before and after opening the wall-side row, at 4× pixel zoom](../../assets/game/references/stadiums/scale-studies/bay-six/comparison.webp)
 
 | Gallery view | Occupied seats | Seated | Standing | Neutral clothing |
 | --- | ---: | ---: | ---: | ---: |
-| A · 100% full | 8 of 8 | 7 | 1 | 3 |
-| B · 75% full | 6 of 8 | 5 | 1 | 2 |
-| C · 50% full | 4 of 8 | 3 | 1 | 1 |
+| A · 100% full | 12 of 12 | 11 | 1 | 4 |
+| B · 75% full | 9 of 12 | 8 | 1 | 3 |
+| C · 50% full | 6 of 12 | 5 | 1 | 2 |
 
 Open `/stadium-mockup` and use **Gallery view** to change attendance. Returning fans keep the same seats, gestures and clothes. Compare the views at native size and 4×, or scroll down to see the whole pitch. **Seat markers** shows empty places as grey squares, hip or boot contacts as cyan crosses and seated knees as gold dots. **Inspect full poses** shows each figure in its assigned kit before overlap.
 
