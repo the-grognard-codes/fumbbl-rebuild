@@ -3,9 +3,15 @@ package com.fumbbl.ffb.server.match;
 import java.sql.SQLException;
 import java.util.List;
 import java.util.Map;
+import java.util.function.LongConsumer;
 
 public interface RecoveryRepository {
 	Record find(String matchId) throws SQLException;
+
+	/** A durable engine restore can reserve memory before a storage provider decodes the artifact. */
+	default Record findForRestore(String matchId, LongConsumer admitDecoded) throws SQLException {
+		return find(matchId);
+	}
 	/** In-memory implementations may use find; JDBC overrides with a fixed query bound. */
 	default Map<String, Record> findAll(List<String> ids, LobbyReadBudget budget) throws SQLException {
 		return new LobbyReadBatch().read(ids, budget, this::find, record -> record.json);
@@ -38,26 +44,29 @@ public interface RecoveryRepository {
 		public final String journalHash;
 		public final int journalEntries;
 		public final long journalBytes;
+		final long storedCheckpointBytes;
 		final Long computerWorkUntil;
 
 		public Record(String matchId, long generation, String json) {
-			this(matchId, generation, json, null, 0, 0, null);
+			this(matchId, generation, json, null, 0, 0, 0, null);
 		}
 
 		Record(String matchId, long generation, String json, long computerWorkUntil) {
-			this(matchId, generation, json, null, 0, 0, computerWorkUntil);
+			this(matchId, generation, json, null, 0, 0, 0, computerWorkUntil);
 		}
 
-		Record(String matchId, long generation, String json, String journalHash, int journalEntries, long journalBytes) {
-			this(matchId, generation, json, journalHash, journalEntries, journalBytes, null);
+		Record(String matchId, long generation, String json, String journalHash, int journalEntries, long journalBytes,
+			long storedCheckpointBytes) {
+			this(matchId, generation, json, journalHash, journalEntries, journalBytes, storedCheckpointBytes, null);
 		}
 
 		private Record(String matchId, long generation, String json, String journalHash, int journalEntries, long journalBytes,
-			Long computerWorkUntil) {
+			long storedCheckpointBytes, Long computerWorkUntil) {
 			this.matchId = matchId;
 			this.generation = generation;
 			this.json = json;
 			this.journalHash = journalHash; this.journalEntries = journalEntries; this.journalBytes = journalBytes;
+			this.storedCheckpointBytes = storedCheckpointBytes;
 			this.computerWorkUntil = computerWorkUntil;
 		}
 	}

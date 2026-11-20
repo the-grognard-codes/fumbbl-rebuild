@@ -109,6 +109,7 @@ public final class BrowserV2Adapter implements BrowserProtocol {
 			else dispatcher.changed(id, state, publication.saveResumeChanged());
 			publisher.publish(id, null, state);
 		});
+		setup.drainStoppedMatches().forEach((id, code) -> publisher.publishStopped(id, null, code));
 	}
 
 	@Override public synchronized void receive(BrowserConnection connection, String text) {
@@ -438,6 +439,7 @@ public final class BrowserV2Adapter implements BrowserProtocol {
 				LiveMatchTranscript transcript = publisher.transcript(id,
 					state != null && state.isObject() ? state.asObject() : new JsonObject());
 				publisher.sendState(connection, response, transcript);
+				publisher.publishStopped(id, connection, response.getString("code", ""));
 				notifyComputerOfSetupOutcome(id, request, outcome, false);
 				if (outcome.publish()) {
 					publisher.publish(id, connection, state.asObject(), transcript);
@@ -563,6 +565,7 @@ public final class BrowserV2Adapter implements BrowserProtocol {
 			JsonObject response = outcome.response();
 			if ("ACCEPTED".equals(response.getString("code", ""))) publisher.enrollComputer(connection, matchId);
 			send(connection, response);
+			publisher.publishStopped(matchId, connection, response.getString("code", ""));
 			notifyComputerOfSetupOutcome(matchId, request, outcome, true);
 			if (outcome.staged()) publisher.publishPlacement(matchId, connection, outcome.placement());
 			if (outcome.publish()) publisher.publish(matchId, connection, response.get("state").asObject());

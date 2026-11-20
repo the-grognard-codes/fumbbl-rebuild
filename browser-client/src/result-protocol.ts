@@ -2,11 +2,11 @@ import { parseUniqueJson } from './saved-team-protocol.ts';
 import { decodeSetupStateValue } from './setup-protocol.ts';
 import type { SetupState } from './setup-protocol.ts';
 
-export type MatchResultCode = 'ACCEPTED' | 'NOT_FOUND' | 'NOT_COMPLETED' | 'REPLAY_UNSUPPORTED' | 'PERSISTENCE_FAILED' | 'INVALID_REQUEST' | 'AUTHENTICATION_REQUIRED' | 'SNAPSHOT_UNSUPPORTED';
+export type MatchResultCode = 'ACCEPTED' | 'MATCH_SIZE_LIMIT' | 'NOT_FOUND' | 'NOT_COMPLETED' | 'REPLAY_UNSUPPORTED' | 'PERSISTENCE_FAILED' | 'INVALID_REQUEST' | 'AUTHENTICATION_REQUIRED' | 'SNAPSHOT_UNSUPPORTED';
 export type MatchResultMetadata = { formatVersion: 1 | 2 | 3; engineVersion: 'ffb-3.4.0-bb2025-m3d.1'; ruleset: 'BB2025'; catalogVersion: string; presetId: 'human-exhibition-1150' | 'exhibition-1150'; presetVersion: string; matchId: string; homeScore: number; awayScore: number; finalRevision: number; eventCount: number };
 export type ReplayEvent = { revision: number; kind: string; state: SetupState };
 export type MatchResultResponse = { version: 1; type: 'matchResult'; requestId: string | null; code: MatchResultCode; result: MatchResultMetadata | null; event: ReplayEvent | null };
-const codes = new Set<MatchResultCode>(['ACCEPTED', 'NOT_FOUND', 'NOT_COMPLETED', 'REPLAY_UNSUPPORTED', 'PERSISTENCE_FAILED', 'INVALID_REQUEST', 'AUTHENTICATION_REQUIRED', 'SNAPSHOT_UNSUPPORTED']);
+const codes = new Set<MatchResultCode>(['ACCEPTED', 'MATCH_SIZE_LIMIT', 'NOT_FOUND', 'NOT_COMPLETED', 'REPLAY_UNSUPPORTED', 'PERSISTENCE_FAILED', 'INVALID_REQUEST', 'AUTHENTICATION_REQUIRED', 'SNAPSHOT_UNSUPPORTED']);
 const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 function object(value: unknown, keys: string[]) { if (!value || typeof value !== 'object' || Array.isArray(value)) throw Error('Expected object'); const result = value as Record<string, unknown>; if (Object.keys(result).length !== keys.length || keys.some(key => !Object.hasOwn(result, key))) throw Error('Unexpected fields'); return result; }
 function text(value: unknown, maximum = 100): asserts value is string { if (typeof value !== 'string' || !value || value.length > maximum) throw Error('Invalid text'); }

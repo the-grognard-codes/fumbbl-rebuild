@@ -11,6 +11,7 @@ import org.junit.jupiter.api.Test;
 import org.mockito.MockedConstruction;
 
 import java.lang.reflect.Field;
+import java.sql.SQLException;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneId;
@@ -24,6 +25,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.CALLS_REAL_METHODS;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockConstruction;
 import static org.mockito.Mockito.when;
@@ -32,6 +34,37 @@ import static org.mockito.Mockito.withSettings;
 class SetupApplicationReadOnlyLoadTest {
 	private static final long HOUR = 60 * 60_000L;
 	private static final long SAVED_RETENTION = 30 * 24 * HOUR;
+
+	@Test void coldComputerLoadRefusesAnOversizedCheckpointBeforeValidation() throws Exception {
+		Fixture fixture = new Fixture("away");
+		MatchMemoryBudget budget = new MatchMemoryBudget(64L * 1024 * 1024);
+		// Invalid JSON would yield RECOVERY_CORRUPT if checkpoint validation ran.
+		fixture.recovery.record = new RecoveryRepository.Record(fixture.id, 1, "x".repeat(budget.decodedLimit() + 1));
+		SetupApplication application = fixture.application(budget, new MatchSafetyJournal(MatchSafetyJournal.Tracking.DISABLED));
+		JsonObject response = application.handleComputerWithOutcome("away", fixture.load()).response();
+		assertEquals("MATCH_SIZE_LIMIT", response.getString("code", null));
+		assertEquals(1, fixture.recovery.reads);
+		assertEquals(0, application.lifecycleMetrics().getInt("residentSessions", -1));
+	}
+
+	@Test void timerSkipsTheHumanDecisionClockCheckpointForAQuarantinedMatch() throws Exception {
+		Fixture fixture = new Fixture("away");
+		moveToActor(fixture, "home");
+		removePersistedDecisionClock(fixture);
+
+		MatchSafetyJournal safety = mock(MatchSafetyJournal.class);
+		SetupApplication application = fixture.application(new MatchMemoryBudget(), safety);
+		assertEquals("ACCEPTED", application.handleComputerWithOutcome("away", fixture.load()).response().getString("code", null));
+		assertEquals(1, application.lifecycleMetrics().getInt("residentSessions", -1));
+		assertEquals(0, fixture.recovery.saves);
+		int reads = fixture.recovery.reads;
+
+		doThrow(new MatchService.Failure("MATCH_QUARANTINED")).when(safety).requireAutomaticAvailable(fixture.id);
+		assertTrue(application.expireDecisions().isEmpty());
+		assertEquals(reads, fixture.recovery.reads);
+		assertEquals(0, fixture.recovery.saves);
+		assertEquals(0, application.lifecycleMetrics().getInt("residentSessions", -1));
+	}
 
 	@Test void timerPublishesTheDurableAbandonmentBeforeReleasingAResidentMatch() throws Exception {
 		Fixture fixture = new Fixture("away");
@@ -96,11 +129,7 @@ class SetupApplicationReadOnlyLoadTest {
 	@Test void legacyHumanWaitStartsItsClockWhenItIsFirstRestored() throws Exception {
 		Fixture fixture = new Fixture("away");
 		moveToActor(fixture, "home");
-		JsonObject envelope = JsonObject.readFrom(fixture.recovery.record.json);
-		JsonObject payload = envelope.get("payload").asObject();
-		payload.get("saveResume").asObject().remove("humanDecisionSince");
-		envelope.set("sha256", new JsonDigest().sha256(payload));
-		fixture.recovery.record = new RecoveryRepository.Record(fixture.id, 1, envelope.toString());
+		removePersistedDecisionClock(fixture);
 		fixture.now.addAndGet(2 * HOUR);
 		long touchedAt = fixture.now.get();
 		SetupApplication application = fixture.application();
@@ -112,6 +141,35 @@ class SetupApplicationReadOnlyLoadTest {
 		assertEquals(touchedAt, retainedSave(fixture).getLong("humanDecisionSince", -1));
 		fixture.now.set(touchedAt + HOUR);
 		assertEquals("MATCH_ABANDONED", fixture.application().handleComputerWithOutcome("away", fixture.load()).response().getString("code", null));
+	}
+
+	@Test void timerRetryPersistsTheOriginalLegacyDecisionClockAfterStorageFailure() throws Exception {
+		Fixture fixture = new Fixture("away");
+		moveToActor(fixture, "home");
+		removePersistedDecisionClock(fixture);
+		long firstLoadAt = fixture.now.get();
+		SetupApplication application = fixture.application();
+		assertEquals("ACCEPTED", application.handleComputerWithOutcome("away", fixture.load()).response().getString("code", null));
+
+		fixture.recovery.refuseCheckpoint = true;
+		fixture.now.addAndGet(30 * 60_000);
+		assertTrue(application.expireDecisions().isEmpty());
+		assertEquals(0, fixture.recovery.saves);
+		assertEquals(1, application.lifecycleMetrics().getInt("pendingTimerRestores", -1));
+
+		fixture.recovery.refuseCheckpoint = false;
+		fixture.now.addAndGet(1_000);
+		assertTrue(application.expireDecisions().isEmpty());
+		assertEquals(firstLoadAt, retainedSave(fixture).getLong("humanDecisionSince", -1));
+		assertEquals(0, application.lifecycleMetrics().getInt("pendingTimerRestores", -1));
+	}
+
+	private void removePersistedDecisionClock(Fixture fixture) {
+		JsonObject envelope = JsonObject.readFrom(fixture.recovery.record.json);
+		JsonObject payload = envelope.get("payload").asObject();
+		payload.get("saveResume").asObject().remove("humanDecisionSince");
+		envelope.set("sha256", new JsonDigest().sha256(payload));
+		fixture.recovery.record = new RecoveryRepository.Record(fixture.id, 1, envelope.toString());
 	}
 
 	@Test void savedComputerMatchIsResumableUntilThirtyDays() throws Exception {
@@ -455,7 +513,10 @@ class SetupApplicationReadOnlyLoadTest {
 			when(preferences.loadForMatch(eq(id), anyString())).thenReturn(SkillUsePreferences.defaults());
 		}
 		SetupApplication application() {
-			SetupApplication application = new SetupApplication(engine.server, matches, recovery, true, clock, true);
+			return application(new MatchMemoryBudget(), new MatchSafetyJournal(MatchSafetyJournal.Tracking.DISABLED));
+		}
+		SetupApplication application(MatchMemoryBudget budget, MatchSafetyJournal safety) {
+			SetupApplication application = new SetupApplication(engine.server, matches, recovery, true, clock, true, budget, safety);
 			application.configureSkillUsePreferences(preferences); return application;
 		}
 		JsonObject load() { return new JsonObject().add("version", 1).add("type", "setup").add("operation", "load")
@@ -464,9 +525,11 @@ class SetupApplicationReadOnlyLoadTest {
 	private static final class MemoryRecovery implements RecoveryRepository {
 		Record record; int saves, reads;
 		boolean failBeforeCommit;
+		boolean refuseCheckpoint;
 		MemoryRecovery(String id, String artifact) { record = new Record(id, 1, artifact); }
 		@Override public Record find(String id) { reads++; return record; }
-		@Override public boolean save(Record next, long expected) {
+		@Override public boolean save(Record next, long expected) throws SQLException {
+			if (refuseCheckpoint) throw new SQLException("checkpoint refused");
 			if (failBeforeCommit) throw new AssertionError("injected fatal checkpoint failure");
 			assertEquals(record.generation, expected); record = next; saves++; return true;
 		}

@@ -56,8 +56,13 @@ public final class V2PreparationService {
 
 	public V2PreparationService(Connections connections, SavedTeamService teams, RosterCatalog catalog, Clock clock,
 		ComputerOpponentService computers) {
+		this(connections, teams, catalog, clock, computers, new JdbcRecoveryRepository(connections::open, true, true));
+	}
+
+	public V2PreparationService(Connections connections, SavedTeamService teams, RosterCatalog catalog, Clock clock,
+		ComputerOpponentService computers, JdbcRecoveryRepository recovery) {
 		this.connections = connections; this.teams = teams; this.catalog = catalog; this.clock = clock; this.computers = computers;
-		this.recovery = new JdbcRecoveryRepository(connections::open, true, true);
+		this.recovery = recovery;
 	}
 
 	public JsonObject handle(String accountId, JsonObject request) {
@@ -184,11 +189,16 @@ public final class V2PreparationService {
 
 	private JdbcRecoveryRepository.LegacyComputerWork classifyLegacyComputerWork(LegacyCandidate candidate)
 		throws SQLException {
-		try (Connection connection = connections.open()) {
-			MatchDocument document = document(connection, candidate.matchId(), false);
-			if (document == null || document.lifecycle != MatchDocument.Lifecycle.ACTIVATED
-				|| !verifiedComputerRole(document, candidate.role())) {
-				return new JdbcRecoveryRepository.LegacyComputerWork(candidate.matchId(), candidate.generation(), 0);
+		String id = candidate.matchId();
+		recovery.beginLegacyComputerClassification(id);
+		// A match can complete between inventory and classification. Read only the active version.
+		try (Connection connection = connections.open(); PreparedStatement query = connection.prepareStatement(
+			"SELECT document_json FROM ffb_prepared_matches WHERE match_id=? AND document_version=3")) {
+			query.setString(1, id);
+			try (ResultSet rows = query.executeQuery()) {
+				if (!rows.next() || !verifiedComputerRole(json.decode(
+					recovery.decodeLegacyComputerDocument(storageCodec, rows.getString(1)), 3), candidate.role()))
+					return new JdbcRecoveryRepository.LegacyComputerWork(id, candidate.generation(), 0);
 			}
 		}
 		return recovery.readLegacyComputerWork(candidate.matchId());

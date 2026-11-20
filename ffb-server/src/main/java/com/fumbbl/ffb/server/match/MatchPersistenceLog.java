@@ -37,6 +37,11 @@ public final class MatchPersistenceLog {
 			"pending-completion", matchId, null, failure);
 	}
 
+	void timerRestoreRejected(String matchId, RuntimeException failure) {
+		String code = failure instanceof MatchService.Failure rejected ? rejected.code : null;
+		write("TIMER_RESTORE_REJECTED failureCode=" + correlation(code, "[A-Z_]{1,100}"), "timer-restore", matchId, null, failure);
+	}
+
 	void coldComputerLoadFallback(String phase, String matchId, RuntimeException failure) {
 		write("COLD_COMPUTER_LOAD_FALLBACK", phase, matchId, null, failure);
 	}

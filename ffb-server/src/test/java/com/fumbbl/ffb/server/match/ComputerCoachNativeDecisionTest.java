@@ -255,15 +255,12 @@ class ComputerCoachNativeDecisionTest {
         assertFalse(role.equals(result.get("state").asObject().getString("actor", null)), "Forced native turn end advances the coach");
     }
 
-    private void fillDecisionBudget(BogrukEngineFixture fixture, JsonObject view) throws Exception {
-        Field field = SetupSession.class.getDeclaredField("events");
-        field.setAccessible(true);
-        JsonArray events = (JsonArray) field.get(fixture.session);
-        while (events.size() > 0) events.remove(events.size() - 1);
+    private void fillDecisionBudget(BogrukEngineFixture fixture, JsonObject view) {
+        JsonArray events = new JsonArray();
         events.add(new JsonObject().add("kind", "START").add("state", view));
         JsonObject recorded = new JsonObject().add("kind", "ACTION").add("state", view);
         for (int i = 0; i < DecisionLimit.MAX_DECISIONS - 1; i++) events.add(recorded);
-        fixture.session.restoreDecisionLimit();
+        fixture.session.restoreDecisionLimit(events);
     }
 
     private JsonObject request(BogrukEngineFixture fixture, JsonObject view, JsonObject outcome, String id) {

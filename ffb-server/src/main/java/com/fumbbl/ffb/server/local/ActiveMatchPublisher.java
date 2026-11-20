@@ -114,6 +114,20 @@ final class ActiveMatchPublisher {
 
 	void retryPublications() { delivery.retry(); }
 
+	/** Publish a match-local stop through the same bounded, locally authorized delivery path. */
+	void publishStopped(String matchId, BrowserConnection source, String code) {
+		if (!"MATCH_SIZE_LIMIT".equals(code) && !"MATCH_QUARANTINED".equals(code)) return;
+		List<PublicationDelivery.Recipient> targets = new ArrayList<>();
+		for (Recipient recipient : recipients(matchId, source, false)) targets.add(new DeliveryRecipient(recipient) {
+			@Override public void send(V2PublicationAuthorization.Snapshot authorization, int slot) {
+				access.publicationRole(authorization, target(), slot);
+				ActiveMatchPublisher.this.send(recipient.connection, setup.failure(null, code),
+					() -> access.publicationRole(authorization, target(), slot));
+			}
+		});
+		delivery.publish(matchId, V2PublicationAuthorization.Family.STATE, targets, 256);
+	}
+
 	/**
 	 * Best-effort broadcast using the current worker-local enrollment. Successful watch and match requests
 	 * authorize enrollment. Observed authorization denials and provider revocations remove it.
@@ -182,9 +196,9 @@ final class ActiveMatchPublisher {
 			targets.add(new DeliveryRecipient(recipient) {
 				@Override public void send(V2PublicationAuthorization.Snapshot authorization, int slot) throws SQLException {
 					String role = access.publicationRole(authorization, target(), slot);
-					if (recipient.viewer.spectator) {
+					if (recipient.viewer.spectator || "FULL_TIME".equals(publicState.getString("phase", ""))) {
 						JsonObject state = JsonObject.readFrom(retainedState);
-						state.set("callerRole", "spectator");
+						state.set("callerRole", recipient.viewer.spectator ? "spectator" : role);
 						state.remove("computer"); state.remove("threats");
 						state.remove("savedFormations"); state.remove("blockPreview");
 						sendState(recipient.connection, state(null, state), transcript, () -> access.publicationRole(authorization, target(), slot), transcriptReserved);

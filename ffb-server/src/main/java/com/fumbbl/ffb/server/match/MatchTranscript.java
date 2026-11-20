@@ -42,7 +42,7 @@ final class MatchTranscript {
                 throw new IllegalArgumentException("Invalid transcript kind");
             if (index == 0 ? !"START".equals(kind) : "START".equals(kind)) throw new IllegalArgumentException("Invalid start boundary");
             String actor = record.getString("actor", null);
-            if (index == 0 ? !"system".equals(actor) : !("home".equals(actor) || "away".equals(actor)))
+            if (index == 0 ? !"system".equals(actor) : !("home".equals(actor) || "away".equals(actor) || systemSizeLimit(kind, actor, record.get("decision"))))
                 throw new IllegalArgumentException("Invalid transcript actor");
             long at = record.get("at").asLong();
             if (at < priorTime || (index == 0 ? !record.get("decision").isNull() : !record.get("decision").isObject()))
@@ -71,7 +71,7 @@ final class MatchTranscript {
         if (decision == null || nativeOutcomes == null || state == null) throw new IllegalArgumentException("Missing transcript data");
         if (records.size() > 0 && at < lastRecordedAt)
             throw new IllegalArgumentException("Transcript time went backwards");
-        if (revision == 0 ? !"system".equals(actor) || !decision.isNull() : !("home".equals(actor) || "away".equals(actor)) || !decision.isObject())
+        if (revision == 0 ? !"system".equals(actor) || !decision.isNull() : !("home".equals(actor) || "away".equals(actor) || systemSizeLimit(kind, actor, decision)) || !decision.isObject())
             throw new IllegalArgumentException("Invalid transcript actor or decision");
         if (state.getInt("revision", -1) != revision) throw new IllegalArgumentException("Transcript state mismatch");
         int priorNative = nativeCursor;
@@ -85,6 +85,12 @@ final class MatchTranscript {
             .add("actor", actor).add("at", at).add("decision", decision).add("native", nativeOutcomes).add("state", state);
         add(record);
         nativeCursor = cursor;
+    }
+
+    private boolean systemSizeLimit(String kind, String actor, JsonValue decision) {
+        return "system".equals(actor) && "FULL_TIME".equals(kind) && decision != null && decision.isObject()
+            && "sizeLimit".equals(decision.asObject().getString("operation", null))
+            && MatchStopReason.MATCH_SIZE_LIMIT.name().equals(decision.asObject().getString("reason", null));
     }
 
     /** Materialize frozen history for validation or serialization without retaining its expanded graph. */

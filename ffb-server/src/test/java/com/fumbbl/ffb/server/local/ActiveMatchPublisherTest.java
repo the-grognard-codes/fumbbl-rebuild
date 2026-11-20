@@ -30,6 +30,42 @@ import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 class ActiveMatchPublisherTest {
+	@Test void terminalPublicationUsesTheCommittedTerminalViewAfterTheEngineIsReleased() throws Exception {
+		V2MatchAccess access = mock(V2MatchAccess.class);
+		SetupApplication setup = mock(SetupApplication.class);
+		BrowserConnection peer = mock(BrowserConnection.class);
+		new PublicationTestGrants().allow(access, target -> "away");
+		ActiveMatchPublisher publisher = new ActiveMatchPublisher(access, setup);
+		publisher.enrollPlayer(peer, mock(AuthenticatedPrincipal.class), "match");
+		publisher.publish("match", null, new JsonObject().add("phase", "FULL_TIME").add("revision", 900)
+			.add("callerRole", "home").add("computer", new JsonObject()).add("threats", new JsonObject()));
+		ArgumentCaptor<String> frame = ArgumentCaptor.forClass(String.class);
+		verify(peer).send(frame.capture());
+		JsonObject view = JsonObject.readFrom(frame.getValue()).get("state").asObject();
+		assertEquals("away", view.getString("callerRole", null));
+		assertEquals(900, view.getInt("revision", -1));
+		assertNull(view.get("computer")); assertNull(view.get("threats"));
+		verifyNoInteractions(setup);
+	}
+
+	@Test void sizeLimitNoticesUseCurrentPublicationAuthorizationWithoutReadingAnotherMatchState() throws Exception {
+		for (boolean allowed : new boolean[] {true, false}) {
+			V2MatchAccess access = mock(V2MatchAccess.class);
+			SetupApplication setup = mock(SetupApplication.class);
+			BrowserConnection peer = mock(BrowserConnection.class);
+			new PublicationTestGrants().allow(access, target -> allowed ? "home" : null);
+			when(setup.failure(null, "MATCH_SIZE_LIMIT")).thenReturn(new JsonObject().add("type", "setupState")
+				.add("requestId", com.eclipsesource.json.JsonValue.NULL).add("code", "MATCH_SIZE_LIMIT")
+				.add("duplicate", false).add("state", com.eclipsesource.json.JsonValue.NULL));
+			ActiveMatchPublisher publisher = new ActiveMatchPublisher(access, setup);
+			publisher.enrollPlayer(peer, mock(AuthenticatedPrincipal.class), "match");
+			publisher.publishStopped("match", null, "MATCH_SIZE_LIMIT");
+			ArgumentCaptor<String> frame = ArgumentCaptor.forClass(String.class);
+			verify(peer).send(frame.capture());
+			assertEquals(allowed ? "MATCH_SIZE_LIMIT" : "VIEW_UNAVAILABLE", JsonObject.readFrom(frame.getValue()).getString("code", null));
+			verify(setup, never()).handle(any(String.class), any(JsonObject.class));
+		}
+	}
 	@Test void playerPublicationUsesItsOwnCommittedViewAfterAuthorization() throws Exception {
 		V2MatchAccess access = mock(V2MatchAccess.class);
 		SetupApplication setup = mock(SetupApplication.class);
