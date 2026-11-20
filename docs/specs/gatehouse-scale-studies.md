@@ -14,6 +14,8 @@ All three layouts use the same supporter scale. The two intact bench tops measur
 
 Open `/stadium-mockup` and use **Gallery view** to switch rows. Compare each at native size and 4×, or scroll down to see the whole pitch. Enable **Seat markers** to see hip or boot contacts in cyan and seated knees in gold. Toggle **Front rail** to expose the timber. **Inspect full poses** shows the complete figures before overlap.
 
+Enable **Bench tops** in any gallery view to highlight the 64 individual planks. In **Empty stadium** this shows the full layout for a stadium artist. With a west-bay crowd selected, combine **Bench tops** and **Seat markers** to inspect hip and boot placement. The gallery and the crowd builder read the same [reusable bench geometry](../../assets/game/references/stadiums/scale-studies/gatehouse-benches.json).
+
 ## Empty Gatehouse
 
 Open the development gallery at /stadium-mockup. **Empty stadium** shows the permanent timber terraces, access stairs, cold braziers, bare sidelines and south gate in the reference palette. **Show seating masks** identifies 15 bays. Teal marks home seating, and pink identifies the four bays on the east side. Each bay has its own integer ID in the native mask. The [bay dimension manifest](../../assets/game/references/stadiums/scale-studies/empty-seating.json) records the native origin, width, height and pixel count of each bay. The [fit checks](../../assets/game/references/stadiums/scale-studies/README.md) use the approved pixel outlines, including their cutouts.

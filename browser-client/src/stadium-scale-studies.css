@@ -51,12 +51,24 @@
 
 .gatehouse-bay-gallery { max-width: 1028px; }
 .gatehouse-bay-gallery .mockup-controls select { width: auto; max-width: min(280px, 68vw); }
+.gatehouse-bench-key {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 18px;
+  margin: 0 0 16px;
+  padding: 0;
+  list-style: none;
+  color: #baccbf;
+  font-size: .875rem;
+}
+.gatehouse-bench-key li { display: flex; align-items: center; gap: 6px; }
+.gatehouse-bench-key span { width: 12px; height: 12px; }
 .bay-six-review { margin-bottom: 24px; }
 .bay-six-review h2 { margin: 0; }
 .bay-six-toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 24px; margin: 6px 0 10px; }
 .bay-six-toolbar p { margin: 0; font-size: .9375rem; }
-.bay-six-toolbar label { min-height: 32px; cursor: pointer; }
-.bay-six-toolbar input { width: auto; margin: 0; accent-color: #f0ca7b; }
+.bay-six-toolbar label, .gatehouse-bench-toggle { min-height: 32px; cursor: pointer; }
+.gatehouse-bay-gallery input[type=checkbox] { width: auto; margin: 0; accent-color: #f0ca7b; }
 .bay-six-review .bay-six-marker-key { margin-top: 0; font-size: .875rem; }
 .bay-six-marker-key span:first-child { color: #80f5ff; }
 .bay-six-marker-key span:last-child { color: #ffe17b; }

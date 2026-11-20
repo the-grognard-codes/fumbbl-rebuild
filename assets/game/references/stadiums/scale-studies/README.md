@@ -1,5 +1,17 @@
 # Gatehouse gallery artwork
 
+## Gatehouse bench-top template
+
+The [bench layout](gatehouse-benches.json) records 64 plank tops across all 15 seating bays. Each plank has a stable numeric ID and a name within its bay. The last digit is the plank number, so plank 62 is plank 2 in bay 6. Its rectangles are measured in native pixels from the bay’s top-left corner and stored as `[x, y, width, height]`. Their union, intersected with the approved seating mask for that bay, defines the usable timber surface. Keep the same plank IDs and surfaces when drawing a new stadium skin for this layout.
+
+Enable **Bench tops** in the gallery to show the surfaces beneath the crowd. Colours repeat by plank number within each bay. The exported mask identifies each individual plank across the stadium. The west-bay crowd builder uses the same template to register each hip and check that both boot contacts of a standing supporter land on one plank. Spectator silhouettes may extend past the wood anywhere the seating-section mask permits.
+
+To obtain a native 790 × 1188 grayscale PNG for an art editor, run the following from the repository root with Pillow. A pixel value of 0 means no support. Every other value is a plank ID from the layout.
+
+```text
+python -B assets/game/references/stadiums/scale-studies/build-empty-seating.py --export-bench-mask gatehouse-plank-ids.png
+```
+
 ## West bay 6 supporter proofs
 
 Bay 6 is a 65 × 74 px west stand at native (22, 589). The two intact bench tops run from local x=19 through 27 and x=38 through 47. The [indexed supporter sheet](bay-six/supporters.png) has one row of six 48 × 48 px cells at final game scale. In column order the poses are seated with a cheering fist, seated with a tankard, seated with a bottle, seated with food, standing with a cheering fist, and seated with folded arms. Palette index 0 is transparent, 1–16 and 17–32 hold the two clothing ramps, and the other indices hold fixed colours. The tankard drinker wears fixed grey and brown.

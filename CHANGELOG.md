@@ -2,7 +2,7 @@
 
 ## Unreleased
 
-- Compare three arrangements of full-body Gatehouse supporters at bench scale. Toggle seat markers to inspect hips and knees against the timber at native size or 4× zoom.
+- Compare three arrangements of full-body Gatehouse supporters at bench scale. Toggle **Bench tops** to see all 64 planks and **Seat markers** to inspect hips, knees and both boot contacts at native size or 4× zoom.
 
 - Animate touchdowns, turnovers, turn starts, all 11 kickoff results, weather, half-time, and the end of a match, including concessions. Touchdown splashes name the scorer. Touchdown, half-time, and final splashes show both teams' scores side by side.
 

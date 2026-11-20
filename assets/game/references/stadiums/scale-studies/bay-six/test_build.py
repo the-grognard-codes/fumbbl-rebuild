@@ -20,7 +20,9 @@ class BaySixPlacementTest(unittest.TestCase):
         cls.addClassCleanup(cls.mask.close)
         cls.atlas = Image.open(build.HERE / "supporters.png")
         cls.addClassCleanup(cls.atlas.close)
-        cls.studies = [build.build_study(cls.mask, cls.bay, cls.atlas, cls.palette, cls.landmarks, config)[2]
+        _, supports = build.fit.bench_guide(cls.mask, manifest)
+        cls.planks = supports[build.BAY_ID]
+        cls.studies = [build.build_study(cls.mask, cls.bay, cls.atlas, cls.palette, cls.landmarks, config, cls.planks)[2]
                        for config in build.STUDIES]
 
     def cell_alpha(self, pose):
@@ -39,6 +41,7 @@ class BaySixPlacementTest(unittest.TestCase):
                     atlas_points = self.landmarks[pose]
                     alpha = self.cell_alpha(pose)
                     x, y = seat["origin"]["x"], seat["origin"]["y"]
+                    self.assertEqual(seat["plankId"], self.planks[seat["support"]][0])
                     back, front = measured_edges[seat["support"]]
                     contact_x, contact_y = atlas_points["contact"]
                     self.assertEqual((x + contact_x, y + contact_y), (seat["x"], seat["y"]))
@@ -63,7 +66,17 @@ class BaySixPlacementTest(unittest.TestCase):
         pose = "standing-fist"
         person = build.spectator(self.atlas, pose, (self.palette["teal"], self.palette["violet"]))
         with self.assertRaisesRegex(ValueError, "cannot land both boot soles"):
-            build.place_pose(person, pose, "rear-bench", 20, 46, self.landmarks[pose])
+            build.place_pose(person, pose, "rear-bench", 20, 46, self.landmarks[pose], self.planks)
+
+    def test_second_sole_cannot_land_in_a_plank_cutout(self):
+        pose = "standing-fist"
+        person = build.spectator(self.atlas, pose, (self.palette["teal"], self.palette["violet"]))
+        plank_id, footprint = self.planks["rear-bench"]
+        cutout = footprint.copy()
+        cutout.putpixel((27, 46), 0)
+        with self.assertRaisesRegex(ValueError, "cannot land both boot soles"):
+            build.place_pose(person, pose, "rear-bench", 19, 46, self.landmarks[pose],
+                             {"rear-bench": (plank_id, cutout)})
 
     def test_hidden_pixel_still_belongs_to_its_bay(self):
         close = self.studies[2]
@@ -82,7 +95,7 @@ class BaySixPlacementTest(unittest.TestCase):
         mask.putpixel(point, 0)
         with patch.object(Image.Image, "alpha_composite", side_effect=AssertionError("checked after drawing")):
             with self.assertRaises(ValueError) as rejected:
-                build.build_study(mask, self.bay, self.atlas, self.palette, self.landmarks, build.STUDIES[2])
+                build.build_study(mask, self.bay, self.atlas, self.palette, self.landmarks, build.STUDIES[2], self.planks)
         self.assertIn(close["seats"][0]["pose"] + " crosses the bay", str(rejected.exception))
         self.assertIn(str(point), str(rejected.exception))
 

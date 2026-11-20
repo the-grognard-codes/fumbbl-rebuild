@@ -4,12 +4,13 @@ import argparse
 import json
 from pathlib import Path
 
-from PIL import Image, ImageDraw
+from PIL import Image, ImageChops, ImageDraw
 
 ROOT = Path(__file__).resolve().parent
 MASK_PATH = ROOT / "empty-seating.png"
 MANIFEST_PATH = ROOT / "empty-seating.json"
 STADIUM_PATH = ROOT / "empty-gatehouse.webp"
+BENCH_PATH = ROOT / "gatehouse-benches.json"
 NATIVE_SIZE = (790, 1188)
 
 # Outlines traced in the 1024 by 1536 design frame. Each value identifies one bay.
@@ -94,6 +95,41 @@ def check_seating(expected_mask):
     return manifest
 
 
+def bench_guide(mask, manifest):
+    """Compile the shared bay-local plank rectangles into native plank IDs."""
+    layout = json.loads(BENCH_PATH.read_text(encoding="utf-8"))["bays"]
+    bays = {bay["id"]: bay for bay in manifest["bays"]}
+    if sorted(entry["id"] for entry in layout) != sorted(bays):
+        raise ValueError("The bench template must cover every seating bay exactly once.")
+    guide = Image.new("L", mask.size)
+    supports = {}
+    for entry in layout:
+        bay = bays[entry["id"]]
+        x, y, w, h = (bay[k] for k in ("x", "y", "width", "height"))
+        area = mask.crop((x, y, x + w, y + h)).point(lambda v: 255 if v == bay["id"] else 0)
+        local = Image.new("L", (w, h))
+        supports[bay["id"]] = {}
+        for number, plank in enumerate(entry["planks"], 1):
+            pid, name = plank["id"], plank["name"]
+            if (pid != bay["id"] * 10 + number or number > 9 or pid > 255
+                    or name in supports[bay["id"]]):
+                raise ValueError(f"Invalid or duplicate plank {pid} ({name}) in bay {bay['id']}.")
+            footprint = Image.new("L", (w, h))
+            for left, top, width, height in plank["rects"]:
+                if not (width > 0 and height > 0 and 0 <= left <= w - width and 0 <= top <= h - height):
+                    raise ValueError(f"Plank {pid} has a rectangle outside its bay canvas.")
+                footprint.paste(255, (left, top, left + width, top + height))
+            footprint = ImageChops.multiply(footprint, area)
+            if not footprint.getbbox() or ImageChops.multiply(local, footprint).getbbox():
+                raise ValueError(f"Plank {pid} is empty or overlaps another plank.")
+            local.paste(pid, mask=footprint)
+            supports[bay["id"]][name] = (pid, footprint)
+        if not supports[bay["id"]]:
+            raise ValueError(f"Bay {bay['id']} has no planks.")
+        guide.paste(local, (x, y), area)
+    return guide, supports
+
+
 def check_insert(mask, bay, insert_path, origin=None):
     bay_id = bay["id"]
     with insert_path.open("rb") as source, Image.open(source) as insert:
@@ -132,6 +168,8 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     action = parser.add_mutually_exclusive_group()
     action.add_argument("--check", action="store_true", help="verify mask and dimensions")
+    action.add_argument("--export-bench-mask", type=Path, metavar="PNG",
+                        help="export the native plank ID mask from the shared bench template")
     action.add_argument("--check-insert", nargs=2, metavar=("BAY_ID", "PNG"),
                         help="verify an insert's native canvas and visible pixels")
     action.add_argument("--check-placement", nargs=4, metavar=("BAY_ID", "X", "Y", "PNG"),
@@ -140,15 +178,18 @@ def main():
 
     try:
         mask = build_mask()
-        if not (args.check or args.check_insert or args.check_placement):
+        if not (args.check or args.check_insert or args.check_placement or args.export_bench_mask):
             mask.save(MASK_PATH, optimize=True)
             manifest = seating_manifest(mask)
             MANIFEST_PATH.write_text(json.dumps(manifest, indent=2) + "\n", encoding="utf-8")
             return
 
         manifest = check_seating(mask)
-        if args.check:
-            print(f"Verified native dimensions for {len(manifest['bays'])} seating bays.")
+        if args.check or args.export_bench_mask:
+            guide, supports = bench_guide(mask, manifest)
+            if args.export_bench_mask:
+                guide.save(args.export_bench_mask, format="PNG", optimize=True)
+            print(f"Verified {len(supports)} native seating bays and {sum(map(len, supports.values()))} planks.")
             return
 
         origin = None

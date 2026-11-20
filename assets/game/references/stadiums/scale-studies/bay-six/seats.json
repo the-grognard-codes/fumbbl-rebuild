@@ -19,6 +19,7 @@
           "y": -9
         },
         "height": 37,
+        "plankId": 62,
         "stance": "seated",
         "knee": {
           "x": 29,
@@ -38,6 +39,7 @@
           "y": 13
         },
         "height": 37,
+        "plankId": 63,
         "stance": "seated",
         "knee": {
           "x": 48,
@@ -57,6 +59,7 @@
           "y": 28
         },
         "height": 38,
+        "plankId": 62,
         "stance": "seated",
         "knee": {
           "x": 29,
@@ -90,6 +93,7 @@
           "y": -6
         },
         "height": 37,
+        "plankId": 63,
         "stance": "seated",
         "knee": {
           "x": 48,
@@ -109,6 +113,7 @@
           "y": 1
         },
         "height": 43,
+        "plankId": 62,
         "stance": "standing",
         "otherSole": {
           "x": 27,
@@ -126,6 +131,7 @@
           "y": 25
         },
         "height": 38,
+        "plankId": 63,
         "stance": "seated",
         "knee": {
           "x": 48,
@@ -159,6 +165,7 @@
           "y": -1
         },
         "height": 43,
+        "plankId": 62,
         "stance": "standing",
         "otherSole": {
           "x": 27,
@@ -176,6 +183,7 @@
           "y": 17
         },
         "height": 38,
+        "plankId": 63,
         "stance": "seated",
         "knee": {
           "x": 48,
@@ -195,6 +203,7 @@
           "y": 26
         },
         "height": 36,
+        "plankId": 62,
         "stance": "seated",
         "knee": {
           "x": 29,

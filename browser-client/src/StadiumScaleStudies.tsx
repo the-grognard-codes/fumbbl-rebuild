@@ -2,6 +2,7 @@ import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import architectureUrl from '../../assets/game/references/stadiums/scale-studies/empty-gatehouse.webp';
 import seatingUrl from '../../assets/game/references/stadiums/scale-studies/empty-seating.png';
 import seatingLayout from '../../assets/game/references/stadiums/scale-studies/empty-seating.json';
+import benchLayout from '../../assets/game/references/stadiums/scale-studies/gatehouse-benches.json';
 import seatingStudies from '../../assets/game/references/stadiums/scale-studies/bay-six/seats.json';
 import { playerArtPlacement, resolvePlayerArt } from './player-art.ts';
 import { bowl, drawBowlGround } from './stadium-bowl-study.ts';
@@ -26,6 +27,15 @@ const poseColumns = [
   ['standing-fist', 'Raised fist'],
   ['seated-folded', 'Folded arms'],
 ];
+const benchColors = [
+  [202, 145, 254],
+  [170, 235, 108],
+  [255, 128, 104],
+  [122, 159, 255],
+  [232, 214, 196],
+];
+const benchAlpha = 135;
+const maxPlanks = Math.max(...benchLayout.bays.map(({ planks }) => planks.length));
 type SeatingStudy = typeof seatingStudies[number];
 type Seat = SeatingStudy['seats'][number];
 
@@ -44,6 +54,28 @@ function drawingSurface() {
   canvas.width = bowl.width;
   canvas.height = bowl.height;
   return canvas;
+}
+
+function buildBenchOverlay(seating: ImageData) {
+  const overlay = drawingSurface();
+  const context = overlay.getContext('2d')!;
+  const pixels = context.createImageData(bowl.width, bowl.height);
+  for (const { id, planks } of benchLayout.bays) {
+    const bounds = seatingLayout.bays.find(bay => bay.id === id)!;
+    for (const plank of planks) {
+      const color = [...benchColors[(plank.id % 10) - 1], benchAlpha];
+      for (const [left, top, width, height] of plank.rects) {
+        for (let y = Math.max(0, top); y < Math.min(bounds.height, top + height); y++) {
+          for (let x = Math.max(0, left); x < Math.min(bounds.width, left + width); x++) {
+            const pixel = ((bounds.y + y) * bowl.width + bounds.x + x) * 4;
+            if (seating.data[pixel] === id) pixels.data.set(color, pixel);
+          }
+        }
+      }
+    }
+  }
+  context.putImageData(pixels, 0, 0);
+  return overlay;
 }
 
 async function loadScalePlayer() {
@@ -85,6 +117,7 @@ async function loadLayers() {
   const context = overlay.getContext('2d')!;
   context.drawImage(seating, 0, 0);
   const pixels = context.getImageData(0, 0, bowl.width, bowl.height);
+  const benches = buildBenchOverlay(pixels);
   for (let i = 0; i < pixels.data.length; i += 4) {
     const bay = pixels.data[i];
     const away = bay >= 8 && bay <= 11;
@@ -92,7 +125,7 @@ async function loadLayers() {
     if (!bay) pixels.data[i+3] = 0;
   }
   context.putImageData(pixels, 0, 0);
-  return { stadium, overlay, player, atlas, studies };
+  return { stadium, overlay, benches, player, atlas, studies };
 }
 
 function drawSeatMarkers(context: CanvasRenderingContext2D, seats: readonly Seat[]) {
@@ -104,8 +137,9 @@ function drawSeatMarkers(context: CanvasRenderingContext2D, seats: readonly Seat
     context.fillStyle = '#ffe17b';
     context.fillRect(x, y, 1, 1);
   }
-  for (const seat of seats) {
-    const x = bay.x + seat.x, y = bay.y + seat.y;
+  const contacts = seats.flatMap(seat => seat.otherSole ? [seat, seat.otherSole] : [seat]);
+  for (const contact of contacts) {
+    const x = bay.x + contact.x, y = bay.y + contact.y;
     context.fillStyle = '#101820';
     context.fillRect(x - 2, y - 1, 5, 3);
     context.fillRect(x - 1, y - 2, 3, 5);
@@ -145,6 +179,7 @@ export function StadiumScaleStudies() {
   const [layers, setLayers] = useState<Awaited<ReturnType<typeof loadLayers>>>();
   const [failed, setFailed] = useState(false);
   const [view, setView] = useState(seatingStudies[0].id);
+  const [benches, setBenches] = useState(false);
   const [rail, setRail] = useState(true);
   const [markers, setMarkers] = useState(false);
   const canvas = useRef<HTMLCanvasElement>(null);
@@ -169,6 +204,7 @@ export function StadiumScaleStudies() {
     context.imageSmoothingEnabled = false;
     context.drawImage(layers.stadium, 0, 0);
     if (masked) context.drawImage(layers.overlay, 0, 0);
+    if (benches) context.drawImage(layers.benches, 0, 0);
     const variant = layers.studies.find(({ id }) => id === view);
     if (variant) {
       const { player } = layers;
@@ -179,7 +215,7 @@ export function StadiumScaleStudies() {
       drawCrop(native.current, full);
       drawCrop(zoom.current, full);
     }
-  }, [layers, view, masked, rail, markers]);
+  }, [layers, view, masked, benches, rail, markers]);
 
   return <main className="stadium-mockup scale-studies gatehouse-bay-gallery">
     <header className="mockup-heading">
@@ -192,9 +228,18 @@ export function StadiumScaleStudies() {
             <option value="masks">Show seating masks</option>
           </select>
         </label>
+        <label className="gatehouse-bench-toggle">
+          <input type="checkbox" checked={benches} onChange={event => setBenches(event.target.checked)}
+            aria-describedby={benches ? 'gatehouse-bench-key' : undefined}/>Bench tops
+        </label>
       </div>
     </header>
     {masked && <p>Teal marks home seating. Pink marks the east away stand.</p>}
+    {benches && <ul className="gatehouse-bench-key" id="gatehouse-bench-key" role="list" aria-label="Bench top key">
+      {benchColors.slice(0, maxPlanks).map((color, index) => <li key={index}>
+        <span aria-hidden="true" style={{ backgroundColor: `rgb(${color.join(' ')})` }}/>Plank {index + 1}
+      </li>)}
+    </ul>}
     {failed && <p role="alert">The stadium artwork could not be loaded.</p>}
     {!failed && !layers && <p role="status">Loading stadium artwork…</p>}
     {study && <section className="bay-six-review" aria-labelledby="bay-six-heading">

@@ -11,8 +11,9 @@ CELL_SIZE = 48
 BAY_ID = 6
 COLUMNS = ("seated-fist", "seated-tankard", "seated-bottle", "seated-food",
            "standing-fist", "seated-folded")
-# Inclusive left, top, right, bottom measured on the unscaled bay artwork.
-BENCHES = {"rear-bench": (19, 0, 27, 73), "inner-bench": (38, 12, 47, 73)}
+spec = spec_from_file_location("seat_fit", ART / "build-empty-seating.py")
+fit = module_from_spec(spec)
+spec.loader.exec_module(fit)
 # Every variant uses the same atlas scale. Coordinates mark a hip or a boot.
 STUDIES = [
     ("a", "A · Open row", (("seated-fist", "rear-bench", 19, 28),
@@ -73,7 +74,7 @@ def handrail(size):
     return image
 
 
-def place_pose(person, pose, support, x, y, landmarks):
+def place_pose(person, pose, support, x, y, landmarks, planks):
     alpha = person.getchannel("A")
     bounds = alpha.getbbox()
     if bounds is None:
@@ -85,7 +86,11 @@ def place_pose(person, pose, support, x, y, landmarks):
     left, top = x - contact_x, y - contact_y
     seat = {"x": x, "y": y, "pose": pose, "support": support,
             "origin": {"x": left, "y": top}, "height": bounds[3] - bounds[1]}
-    back, first, front, last = BENCHES[support]
+    plank_id, footprint = planks[support]
+    seat["plankId"] = plank_id
+
+    def on_plank(px, py):
+        return 0 <= px < footprint.width and 0 <= py < footprint.height and footprint.getpixel((px, py)) != 0
 
     if pose.startswith("seated-"):
         local_knee_x, local_knee_y = landmarks["knee"]
@@ -93,15 +98,19 @@ def place_pose(person, pose, support, x, y, landmarks):
         if not (0 <= local_knee_x < CELL_SIZE and 0 <= local_knee_y < CELL_SIZE
                 and alpha.getpixel((local_knee_x, local_knee_y))):
             raise ValueError(f"{pose} knee is outside its visible silhouette")
-        if not (x == back and first <= y <= last and front <= knee_x <= front + 2
-                and first <= knee_y <= last):
+        if not on_plank(x, y) or on_plank(x - 1, y):
+            raise ValueError(f"{pose} hip does not meet the back of {support}")
+        front = x
+        while on_plank(front + 1, y):
+            front += 1
+        if not (front <= knee_x <= front + 2 and on_plank(front, knee_y)):
             raise ValueError(f"{pose} hip and knee do not fit {support}")
         seat.update(stance="seated", knee={"x": knee_x, "y": knee_y},
-                    benchWidth=front - back + 1, thighSpan=knee_x - x)
+                    benchWidth=front - x + 1, thighSpan=knee_x - x)
     else:
         local_sole_x, local_sole_y = landmarks["otherSole"]
         sole_x, sole_y = left + local_sole_x, top + local_sole_y
-        if not (back <= x <= front and back <= sole_x <= front and first <= y <= last
+        if not (on_plank(x, y) and on_plank(sole_x, sole_y)
                 and local_sole_y == contact_y == bounds[3] - 1
                 and 0 <= local_sole_x < CELL_SIZE and alpha.getpixel((local_sole_x, local_sole_y))):
             raise ValueError(f"{pose} cannot land both boot soles on {support}")
@@ -109,7 +118,7 @@ def place_pose(person, pose, support, x, y, landmarks):
     return seat, (left, top)
 
 
-def build_study(mask, bay, atlas, palette, landmarks, study):
+def build_study(mask, bay, atlas, palette, landmarks, study, planks):
     key, label, layout = study
     size = bay["width"], bay["height"]
     placements = []
@@ -117,7 +126,7 @@ def build_study(mask, bay, atlas, palette, landmarks, study):
         neutral = pose == "seated-tankard"
         ramps = (palette["slate"], palette["brown"]) if neutral else (palette["teal"], palette["violet"])
         person = spectator(atlas, pose, ramps)
-        seat, origin = place_pose(person, pose, support, x, y, landmarks[pose])
+        seat, origin = place_pose(person, pose, support, x, y, landmarks[pose], planks)
         seat["neutral"] = neutral
         pixels = checked_pixels(person, origin, mask, bay, f"{label} {pose}")
         placements.append((seat, person, origin, pixels))
@@ -163,19 +172,17 @@ def save_layer(layer, path):
 
 
 def build():
-    spec = spec_from_file_location("seat_fit", ART / "build-empty-seating.py")
-    fit = module_from_spec(spec)
-    spec.loader.exec_module(fit)
     mask = fit.build_mask()
     manifest = fit.check_seating(mask)
     bay = next(b for b in manifest["bays"] if b["id"] == BAY_ID)
+    _, supports = fit.bench_guide(mask, manifest)
     delivery = ART.parents[2] / "team-colors/v1/delivery/manifest.json"
     palette = {r["id"]: r["colors"] for r in json.loads(delivery.read_text())["ramps"]}
     landmarks = json.loads((HERE / "pose-landmarks.json").read_text())
     with Image.open(HERE / "supporters.png") as atlas:
         if atlas.mode != "P" or atlas.size != (CELL_SIZE * len(COLUMNS), CELL_SIZE):
             raise ValueError("Supporter sheet must be an indexed row of six 48 px cells")
-        studies = [build_study(mask, bay, atlas, palette, landmarks, study) for study in STUDIES]
+        studies = [build_study(mask, bay, atlas, palette, landmarks, study, supports[BAY_ID]) for study in STUDIES]
 
     for crowd, rail, result in studies:
         key = result["id"]
