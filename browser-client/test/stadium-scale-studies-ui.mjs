@@ -188,8 +188,13 @@ try {
     assert.ok(await review.getByText(countLabel).isVisible());
     const spacingLabel = spacing.min === spacing.max ? String(spacing.min) : `${spacing.min}–${spacing.max}`;
     assert.ok(await review.getByText(spacingLabel + ' px contact spacing', { exact: false }).isVisible());
-    for (const { pose, origin, knee, otherSole, plankId, x, y } of seats) {
+    for (const { pose, stance, origin, knee, otherSole, plankId, x, y } of seats) {
       const local = landmarks[pose];
+      if (stance === 'standing') {
+        assert.equal(local.behindSeat, undefined, pose + ' has no seated occlusion');
+      } else {
+        assert.ok(local.behindSeat?.length > 0, pose + ' defines its occluded calf region');
+      }
       assert.deepEqual([x - origin.x, y - origin.y], local.contact, id + ' registers ' + pose + ' at its contact');
       assert.deepEqual(knee ? [knee.x - origin.x, knee.y - origin.y] : undefined, local.knee,
         id + ' preserves the authored knee position for ' + pose);
@@ -202,12 +207,14 @@ try {
       assert.ok(supports({ x, y }) && (!otherSole || supports(otherSole)),
         id + ' registers each contact with plank ' + plankId);
     }
-    await poses.evaluate(async (list, { atlasPng, crowdPng, seats, bay }) => {
+    const revealsTimber = await poses.evaluate(async (list, {
+      atlasPng, crowdPng, mask, withoutRail, seats, landmarks, bay, bayPlanks,
+    }) => {
       const size = 48;
       const factor = 2;
-      async function decode(bytes) {
+      async function decode(src) {
         const img = new Image();
-        img.src = 'data:image/png;base64,' + bytes;
+        img.src = src;
         await img.decode();
         return img;
       }
@@ -217,15 +224,26 @@ try {
         canvas.height = height;
         return canvas.getContext('2d');
       }
-      const [atlas, crowd] = await Promise.all([decode(atlasPng), decode(crowdPng)]);
+      const [atlas, crowd, seatingMask, cleanBay] = await Promise.all([
+        ...[atlasPng, crowdPng, mask].map(bytes => decode('data:image/png;base64,' + bytes)),
+        decode(withoutRail),
+      ]);
       if (atlas.width !== size * 6 || atlas.height !== size) throw Error('Expected one shared six-pose atlas row');
       const source = surface(atlas.width, atlas.height);
       source.drawImage(atlas, 0, 0);
       const assembled = surface(bay.width, bay.height);
+      const unoccluded = surface(bay.width, bay.height);
+      const maskRegion = surface(bay.width, bay.height);
+      maskRegion.drawImage(seatingMask, bay.x, bay.y, bay.width, bay.height, 0, 0, bay.width, bay.height);
+      const seatingIds = maskRegion.getImageData(0, 0, bay.width, bay.height).data;
+      const tile = surface(size, size);
+      const contains = (rects, x, y) => rects.some(([left, top, width, height]) =>
+        x >= left && x < left + width && y >= top && y < top + height);
       const canvases = list.querySelectorAll('canvas');
       if (canvases.length !== seats.length) throw Error('Missing isolated pose');
-      for (const [index, { origin, column }] of seats.entries()) {
-        const native = source.getImageData(column * size, 0, size, size).data;
+      for (const [index, { pose, plankId, origin, column }] of seats.entries()) {
+        const cell = source.getImageData(column * size, 0, size, size);
+        const native = cell.data;
         const zoom = canvases[index];
         if (zoom.width !== size * factor || zoom.height !== size * factor) throw Error('Expected a 2× isolated pose');
         const pixels = zoom.getContext('2d').getImageData(0, 0, zoom.width, zoom.height).data;
@@ -239,19 +257,51 @@ try {
           }
         }
         if (!native.some((channel, index) => index % 4 === 3 && channel > 0)) throw Error('Empty isolated pose');
-        assembled.drawImage(atlas, column * size, 0, size, size, origin.x, origin.y, size, size);
+        unoccluded.drawImage(atlas, column * size, 0, size, size, origin.x, origin.y, size, size);
+
+        const eligible = landmarks[pose].behindSeat ?? [];
+        const support = bayPlanks.find(({ id }) => id === plankId).rects;
+        for (let y = 0; y < size; y++) {
+          for (let x = 0; x < size; x++) {
+            const pixel = (y * size + x) * 4;
+            if (!native[pixel + 3] || !contains(eligible, x, y)) continue;
+            const bx = origin.x + x, by = origin.y + y;
+            if (bx < 0 || by < 0 || bx >= bay.width || by >= bay.height) continue;
+            if (seatingIds[(by * bay.width + bx) * 4] === bay.id && contains(support, bx, by)) {
+              native.fill(0, pixel, pixel + 4);
+            }
+          }
+        }
+        tile.putImageData(cell, 0, 0);
+        assembled.drawImage(tile.canvas, origin.x, origin.y);
       }
       const expected = surface(bay.width, bay.height);
       expected.drawImage(crowd, 0, 0);
       if (assembled.canvas.toDataURL() !== expected.canvas.toDataURL()) {
-        throw Error('Isolated pose colours or alignment differ from the assembled bay crowd');
+        throw Error('Occluded pose recomposition differs from the assembled bay crowd');
       }
-    }, { atlasPng, crowdPng, seats: seats.map(seat => ({ ...seat, column: poseColumns.indexOf(seat.pose) })), bay });
+      const barePixels = unoccluded.getImageData(0, 0, bay.width, bay.height).data;
+      const coveredPixels = assembled.getImageData(0, 0, bay.width, bay.height).data;
+      const clean = surface(bay.width, bay.height);
+      clean.drawImage(cleanBay, 0, 0);
+      const cleanPixels = clean.getImageData(0, 0, bay.width, bay.height).data;
+      for (let offset = 0; offset < barePixels.length; offset += 4) {
+        if (barePixels[offset + 3] && !coveredPixels[offset + 3] &&
+          barePixels.subarray(offset, offset + 3).some((value, channel) => value !== cleanPixels[offset + channel])) return true;
+      }
+      return false;
+    }, { atlasPng, crowdPng, mask, withoutRail: expectedBay.withoutRail,
+      seats: seats.map(seat => ({ ...seat, column: poseColumns.indexOf(seat.pose) })), landmarks, bay, bayPlanks });
     await review.getByRole('heading', { name: 'West bay 6' }).click();
     await review.screenshot({ path: resolve(captures, 'west-bay-six-' + id + '-poses.png') });
 
     await rail.uncheck();
-    assert.equal(await bayDraw(), expectedBay.withoutRail);
+    assert.equal(await markers.isChecked(), false);
+    assert.equal(await benches.isChecked(), false);
+    // Transparent pixels in this reference show the original stadium below the crowd.
+    assert.equal(await bayDraw(), expectedBay.withoutRail, id + ' renders the clean composite pixel for pixel');
+    assert.ok(revealsTimber, id + ' visibly exposes timber where opaque calves were occluded');
+    await review.screenshot({ path: resolve(captures, 'west-bay-six-' + id + '-occlusion.png') });
     await benches.check();
     assert.equal(await bayDraw(), expectedBenchedBay.withoutRail, id + ' bench colors sit under the crowd');
     await rail.check();
@@ -343,7 +393,7 @@ try {
   await page.getByText('Inspect full poses', { exact: true }).click();
   assert.equal(await page.locator('.bay-six-zoom').evaluate(element =>
     element.scrollWidth > element.clientWidth && document.documentElement.scrollWidth === window.innerWidth), true);
-  console.log('Bay 6 variants, isolated full poses, native and 4× crops, and independent rail, contact, bench and 15 seating masks passed.');
+  console.log('Bay 6 variants, calf occlusion and isolated full poses, native and 4× crops, and independent rail, contact, bench and 15 seating masks passed.');
 } finally {
   await browser?.close();await server.close();
 }

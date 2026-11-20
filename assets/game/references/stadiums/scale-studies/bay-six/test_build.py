@@ -78,6 +78,48 @@ class BaySixPlacementTest(unittest.TestCase):
             build.place_pose(person, pose, "rear-bench", 19, 46, self.landmarks[pose],
                              {"rear-bench": (plank_id, cutout)})
 
+    def test_timber_leaves_both_boot_fronts_visible(self):
+        # Row 41 crosses both shafts on every seated pose in this atlas.
+        for study in self.studies:
+            for seat in study["seats"]:
+                if seat["stance"] != "seated":
+                    continue
+                pose = seat["pose"]
+                with self.subTest(study=study["id"], pose=pose):
+                    person = build.spectator(self.atlas, pose, (self.palette["teal"], self.palette["violet"]))
+                    shafts = person.getchannel("A").crop((0, 41, person.width, 42)).tobytes()
+                    origin = seat["origin"]["x"], seat["origin"]["y"]
+                    build.tuck_behind_seat(person, origin, self.planks[seat["support"]][1],
+                                           self.landmarks[pose]["behindSeat"])
+                    exposed = person.getchannel("A").crop((0, 41, person.width, 42)).tobytes()
+                    self.assertLess(sum(exposed), sum(shafts))
+                    boots = [run for run in exposed.split(b"\x00") if run]
+                    self.assertEqual(len(boots), 2)
+                    self.assertGreaterEqual(min(map(len, boots)), 2)
+
+    def test_gap_in_timber_exposes_the_calf_behind_it(self):
+        pose = "seated-fist"
+        person = build.spectator(self.atlas, pose, (self.palette["teal"], self.palette["violet"]))
+        _, footprint = self.planks["rear-bench"]
+        _, origin = build.place_pose(person, pose, "rear-bench", 19, 28, self.landmarks[pose], self.planks)
+        gap = footprint.copy()
+        gap.putpixel((25, 29), 0)
+        original = person.getpixel((24, 38))
+        self.assertEqual(original[3], 255)
+        build.tuck_behind_seat(person, origin, gap, self.landmarks[pose]["behindSeat"])
+        self.assertEqual(person.getpixel((24, 38)), original)
+        self.assertEqual(person.getpixel((25, 38))[3], 0)
+
+    def test_calf_behind_timber_still_must_fit_the_bay(self):
+        # In the open row this is the first supporter's calf, just behind its seat.
+        point = self.bay["x"] + 25, self.bay["y"] + 29
+        mask = self.mask.copy()
+        mask.putpixel(point, 0)
+        with self.assertRaisesRegex(ValueError, "seated-fist crosses the bay") as rejected:
+            build.build_study(mask, self.bay, self.atlas, self.palette, self.landmarks,
+                              build.STUDIES[0], self.planks)
+        self.assertIn(str(point), str(rejected.exception))
+
     def test_hidden_pixel_still_belongs_to_its_bay(self):
         close = self.studies[2]
         silhouettes = []

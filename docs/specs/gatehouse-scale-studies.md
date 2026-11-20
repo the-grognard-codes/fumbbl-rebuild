@@ -14,6 +14,10 @@ All three layouts use the same supporter scale. The two intact bench tops measur
 
 Open `/stadium-mockup` and use **Gallery view** to switch rows. Compare each at native size and 4×, or scroll down to see the whole pitch. Enable **Seat markers** to see hip or boot contacts in cyan and seated knees in gold. Toggle **Front rail** to expose the timber. **Inspect full poses** shows the complete figures before overlap.
 
+With the rail and guides off, look at the middle supporter in **A · Open row**. The bench covers the back of the calf below the knee. Both boot fronts are visible. The same placement rule applies to each seated supporter in B and C.
+
+![Before and after at 8× showing the bench edge behind the knees and in front of the rear calf](../../assets/game/references/stadiums/scale-studies/bay-six/seat-edge.webp)
+
 Enable **Bench tops** in any gallery view to highlight the 64 individual planks. In **Empty stadium** this shows the full layout for a stadium artist. With a west-bay crowd selected, combine **Bench tops** and **Seat markers** to inspect hip and boot placement. The gallery and the crowd builder read the same [reusable bench geometry](../../assets/game/references/stadiums/scale-studies/gatehouse-benches.json).
 
 ## Empty Gatehouse

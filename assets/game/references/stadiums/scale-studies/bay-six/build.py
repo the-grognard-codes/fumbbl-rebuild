@@ -118,6 +118,17 @@ def place_pose(person, pose, support, x, y, landmarks, planks):
     return seat, (left, top)
 
 
+def tuck_behind_seat(person, origin, footprint, regions):
+    """Expose the supporting plank only behind the authored parts of this pose."""
+    left, top = origin
+    for x, y, width, height in regions:
+        if not (0 <= x < x + width <= person.width and 0 <= y < y + height <= person.height):
+            raise ValueError(f"Invalid behindSeat rectangle {(x, y, width, height)}")
+        plank = footprint.crop((left + x, top + y, left + x + width, top + y + height))
+        # Each tile is private to its placement. Clearing it here preserves people behind it.
+        person.paste((0, 0, 0, 0), (x, y, x + width, y + height), plank)
+
+
 def build_study(mask, bay, atlas, palette, landmarks, study, planks):
     key, label, layout = study
     size = bay["width"], bay["height"]
@@ -136,9 +147,12 @@ def build_study(mask, bay, atlas, palette, landmarks, study, planks):
     crowd = Image.new("RGBA", size)
     crowd_pixels = set()
     overlap_pixels = set()
-    for _, person, origin, pixels in placements:
+    for seat, person, origin, pixels in placements:
         overlap_pixels.update(crowd_pixels & pixels)
         crowd_pixels.update(pixels)
+        if seat["stance"] == "seated":
+            _, footprint = planks[seat["support"]]
+            tuck_behind_seat(person, origin, footprint, landmarks[seat["pose"]]["behindSeat"])
         crowd.alpha_composite(person, origin)
 
     seats = [seat for seat, _, _, _ in placements]

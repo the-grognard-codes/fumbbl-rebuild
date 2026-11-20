@@ -20,7 +20,9 @@ The [pose landmarks](bay-six/pose-landmarks.json) are measured in pixels from th
 
 Run `python -B assets/game/references/stadiums/scale-studies/bay-six/build.py` with Pillow to rebuild the proofs. The [seat list](bay-six/seats.json) records the physical contact point and the resulting tile origin, both relative to the bay. The complete silhouette must fit the approved bay before compositing. Nearer spectators can obscure figures behind them. The front rail exports as its own layer.
 
-Run `python -B assets/game/references/stadiums/scale-studies/bay-six/test_build.py` to verify that removing a shared pixel from the mask rejects the spectator behind it, even when the nearer spectator hides that pixel.
+Each seated pose also marks the backs of its calves and heels in `behindSeat` rectangles, in source-cell pixels as `[x, y, width, height]`. After the full silhouette passes the bay check, the builder makes those pixels transparent wherever they meet that supporter’s own plank. It then draws the supporter into the section image. This lets another spectator or the stadium’s painted wood show through. Keep the front of each shin and boot visible when authoring a new pose.
+
+Run `python -B assets/game/references/stadiums/scale-studies/bay-six/test_build.py` to check bench contacts, both boot silhouettes, plank cutouts, and the bay boundary for pixels hidden by timber or another supporter.
 
 ## Empty Gatehouse seating bays
 
