@@ -2,17 +2,17 @@
 
 ## West bay 6 · Supporter scale review
 
-The three gallery views place one row of right-facing supporters in the same small west stand. The blitzer on the nearest pitch square gives all three a common scale. The person raising the tankard wears slate and brown in every row.
+The three gallery views put full-body supporters in the same small west stand with a blitzer on the nearest pitch square for scale. The seated figures have bent knees and boots extending toward the field. Each row has two supporters in team colours and a tankard drinker in fixed grey and brown.
 
 ![Three rows in the same stand, each beside the same blitzer](../../assets/game/references/stadiums/scale-studies/bay-six/comparison.webp)
 
 | Gallery view | Tallest pose | Seat spacing | Poses from top to bottom |
 | --- | ---: | ---: | --- |
-| A · Open row | 15 px | 20 px | Cheering fist, raised tankard, folded arms |
-| B · Balanced row | 18 px | 22 px | Raised tankard, eating a drumstick, cheering fist |
-| C · Close row | 20 px | 22 px | Bottle, cheering fist, raised tankard |
+| A · Open row | 19 px | 23 px | Seated cheer, raised tankard, folded arms. The gaps expose all three silhouettes. |
+| B · Balanced row | 25 px | 21 px | Standing cheer, seated dwarf eating, seated tankard drinker. |
+| C · Close row | 28 px | 19 px | Standing cheer, seated bottle holder, seated tankard drinker. The staggered figures overlap at six native pixels. |
 
-Open `/stadium-mockup` and use **Gallery view** to switch rows. Compare each at native size and 4×, or scroll down to see the whole pitch. **Seat markers** shows the three anchors. Toggle **Front rail** to inspect the complete silhouettes underneath.
+Open `/stadium-mockup` and use **Gallery view** to switch rows. Compare each at native size and 4×, or scroll down to see the whole pitch. **Seat markers** shows the three anchors, and **Front rail** toggles the timber in front of the nearest boots. Open **Inspect full poses** to see the complete source figures, including pixels hidden by a neighbour or the rail.
 
 ## Empty Gatehouse
 

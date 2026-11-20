@@ -2,70 +2,103 @@
   {
     "id": "a",
     "label": "A \u00b7 Open row",
-    "height": 15,
-    "pitch": 20,
+    "height": 19,
+    "pitch": 23,
     "seats": [
       {
         "x": 42,
-        "y": 23,
-        "pose": "fist"
+        "pose": "seated-fist",
+        "stance": "seated",
+        "height": 18,
+        "neutral": false,
+        "y": 20
       },
       {
         "x": 41,
-        "y": 43,
-        "pose": "tankard"
+        "pose": "seated-tankard",
+        "stance": "seated",
+        "height": 19,
+        "neutral": true,
+        "y": 43
       },
       {
         "x": 43,
-        "y": 63,
-        "pose": "folded"
+        "pose": "seated-folded",
+        "stance": "seated",
+        "height": 18,
+        "neutral": false,
+        "y": 66
       }
-    ]
+    ],
+    "overlapPixels": 0,
+    "railOverlapPixels": 9
   },
   {
     "id": "b",
     "label": "B \u00b7 Balanced row",
-    "height": 18,
-    "pitch": 22,
+    "height": 25,
+    "pitch": 21,
     "seats": [
       {
-        "x": 42,
-        "y": 23,
-        "pose": "tankard"
+        "x": 41,
+        "pose": "standing-fist",
+        "stance": "standing",
+        "height": 25,
+        "neutral": false,
+        "y": 26
       },
       {
-        "x": 41,
-        "y": 45,
-        "pose": "drumstick"
+        "x": 42,
+        "pose": "seated-food",
+        "stance": "seated",
+        "height": 21,
+        "neutral": false,
+        "y": 47
       },
       {
         "x": 43,
-        "y": 67,
-        "pose": "fist"
+        "pose": "seated-tankard",
+        "stance": "seated",
+        "height": 22,
+        "neutral": true,
+        "y": 68
       }
-    ]
+    ],
+    "overlapPixels": 0,
+    "railOverlapPixels": 11
   },
   {
     "id": "c",
     "label": "C \u00b7 Close row",
-    "height": 20,
-    "pitch": 22,
+    "height": 28,
+    "pitch": 19,
     "seats": [
       {
-        "x": 42,
-        "y": 24,
-        "pose": "bottle"
+        "x": 28,
+        "pose": "standing-fist",
+        "stance": "standing",
+        "height": 28,
+        "neutral": false,
+        "y": 28
       },
       {
-        "x": 41,
-        "y": 46,
-        "pose": "fist"
+        "x": 39,
+        "pose": "seated-bottle",
+        "stance": "seated",
+        "height": 24,
+        "neutral": false,
+        "y": 47
       },
       {
-        "x": 43,
-        "y": 68,
-        "pose": "tankard"
+        "x": 52,
+        "pose": "seated-tankard",
+        "stance": "seated",
+        "height": 25,
+        "neutral": true,
+        "y": 66
       }
-    ]
+    ],
+    "overlapPixels": 6,
+    "railOverlapPixels": 12
   }
 ]

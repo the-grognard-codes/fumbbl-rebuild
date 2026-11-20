@@ -12,10 +12,21 @@ import './stadium-scale-studies.css';
 const bay = seatingLayout.bays.find(({ id }) => id === 6)!;
 const square = STILL_LAYOUT.pixelsPerSquare;
 const crop = { x: 0, y: bay.y - 17, width: bowl.pitchX + square + 6, height: bay.height + 38 };
-const studyImages = import.meta.glob('../../assets/game/references/stadiums/scale-studies/bay-six/*.png', {
+const studyImages = import.meta.glob<string>('../../assets/game/references/stadiums/scale-studies/bay-six/*.png', {
   eager: true, query: '?url', import: 'default',
 });
 const studyImageRoot = '../../assets/game/references/stadiums/scale-studies/bay-six/';
+const poseCellSize = 32;
+const poseZoomSize = poseCellSize * 3;
+const poseColumns = [
+  ['seated-fist', 'Raised fist'],
+  ['seated-tankard', 'Tankard'],
+  ['seated-bottle', 'Bottle'],
+  ['seated-food', 'Eating'],
+  ['standing-fist', 'Raised fist'],
+  ['seated-folded', 'Folded arms'],
+];
+type SeatingStudy = typeof seatingStudies[number];
 
 async function image(url: string, dimensions: { width: number; height: number }) {
   const result = new Image();
@@ -50,14 +61,16 @@ async function loadScalePlayer() {
 }
 
 async function loadLayers() {
-  const [architecture, seating, player, studies] = await Promise.all([
+  const [architecture, seating, player, atlas, studies] = await Promise.all([
     image(architectureUrl, bowl),
     image(seatingUrl, bowl),
     loadScalePlayer(),
+    image(studyImages[studyImageRoot + 'supporters.png'],
+      { width: poseColumns.length * poseCellSize, height: seatingStudies.length * poseCellSize }),
     Promise.all(seatingStudies.map(async study => {
       const [crowd, rail] = await Promise.all([
-        image(studyImages[studyImageRoot + study.id + '.png'] as string, bay),
-        image(studyImages[studyImageRoot + study.id + '-rail.png'] as string, bay),
+        image(studyImages[studyImageRoot + study.id + '.png'], bay),
+        image(studyImages[studyImageRoot + study.id + '-rail.png'], bay),
       ]);
       return { ...study, crowd, rail };
     })),
@@ -78,7 +91,7 @@ async function loadLayers() {
     if (!bay) pixels.data[i+3] = 0;
   }
   context.putImageData(pixels, 0, 0);
-  return { stadium, overlay, player, studies };
+  return { stadium, overlay, player, atlas, studies };
 }
 
 function drawSeatMarkers(context: CanvasRenderingContext2D, seats: readonly {x: number; y: number}[]) {
@@ -100,6 +113,25 @@ function drawCrop(target: HTMLCanvasElement | null, source: HTMLCanvasElement) {
   context.drawImage(source, crop.x, crop.y, crop.width, crop.height, 0, 0, target.width, target.height);
 }
 
+function SupporterPose({ atlas, row, seat }: { atlas: HTMLImageElement; row: number; seat: SeatingStudy['seats'][number] }) {
+  const canvas = useRef<HTMLCanvasElement>(null);
+  const column = poseColumns.findIndex(([pose]) => pose === seat.pose);
+  useLayoutEffect(() => {
+    const context = canvas.current?.getContext('2d');
+    if (!context) return;
+    context.imageSmoothingEnabled = false;
+    context.drawImage(atlas, column * poseCellSize, row * poseCellSize, poseCellSize, poseCellSize,
+      0, 0, poseZoomSize, poseZoomSize);
+  }, [atlas, column, row]);
+
+  return <li>
+    <figure>
+      <canvas ref={canvas} width={poseZoomSize} height={poseZoomSize} aria-hidden="true"/>
+      <figcaption>{seat.stance === 'standing' ? 'Standing' : 'Seated'} · {poseColumns[column][1]}</figcaption>
+    </figure>
+  </li>;
+}
+
 export function StadiumScaleStudies() {
   const [layers, setLayers] = useState<Awaited<ReturnType<typeof loadLayers>>>();
   const [failed, setFailed] = useState(false);
@@ -110,6 +142,7 @@ export function StadiumScaleStudies() {
   const native = useRef<HTMLCanvasElement>(null);
   const zoom = useRef<HTMLCanvasElement>(null);
   const study = seatingStudies.find(({ id }) => id === view);
+  const standing = study?.seats.filter(({ stance }) => stance === 'standing').length ?? 0;
   const masked = view === 'masks';
 
   useEffect(() => {
@@ -156,7 +189,7 @@ export function StadiumScaleStudies() {
     {study && <section className="bay-six-review" aria-labelledby="bay-six-heading">
       <h2 id="bay-six-heading">West bay 6</h2>
       <div className="bay-six-toolbar">
-        <p>{study.label} · {study.height} px tall · {study.pitch} px seat spacing · {study.seats.length} seats</p>
+        <p>{study.label} · Up to {study.height} px tall · {study.pitch} px seat spacing · {study.seats.length - standing} seated{standing > 0 && `, ${standing} standing`}</p>
         <div className="mockup-controls">
           <label><input type="checkbox" checked={rail} onChange={event => setRail(event.target.checked)}/>Front rail</label>
           <label><input type="checkbox" checked={markers} onChange={event => setMarkers(event.target.checked)}/>Seat markers</label>
@@ -174,6 +207,13 @@ export function StadiumScaleStudies() {
           </div>
         </figure>
       </div>}
+      {layers && <details className="bay-six-poses" key={study.id}>
+        <summary>Inspect full poses</summary>
+        <ol role="list" aria-label="Supporters in bay order">
+          {study.seats.map(seat => <SupporterPose key={`${seat.x},${seat.y}`} atlas={layers.atlas}
+            row={seatingStudies.indexOf(study)} seat={seat}/>)}
+        </ol>
+      </details>}
     </section>}
     <div className="scale-study-crop gatehouse-overview">
       <canvas ref={canvas} width={bowl.width} height={bowl.height} data-ready={Boolean(layers)}

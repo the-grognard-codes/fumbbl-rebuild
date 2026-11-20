@@ -67,6 +67,18 @@
 .bay-six-crops figcaption { margin-bottom: 6px; color: #baccbf; font-size: .875rem; }
 .bay-six-crops canvas { display: block; image-rendering: pixelated; }
 .bay-six-zoom { max-width: max-content; overflow-x: auto; }
+.bay-six-poses { margin-top: 12px; }
+.bay-six-poses summary { width: max-content; padding: 6px 0; color: #c1e9ff; cursor: pointer; }
+.bay-six-poses ol { display: flex; flex-wrap: wrap; gap: 12px; margin: 8px 0 0; padding: 0; list-style: none; }
+.bay-six-poses figure { width: 104px; margin: 0; }
+.bay-six-poses canvas {
+  display: block;
+  box-sizing: content-box;
+  padding: 4px;
+  background: #acb0af;
+  image-rendering: pixelated;
+}
+.bay-six-poses figcaption { margin-top: 6px; color: #baccbf; font-size: .875rem; line-height: 1.35; }
 .gatehouse-overview { max-width: 790px; }
 
 @media (max-width: 680px) {

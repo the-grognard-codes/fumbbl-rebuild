@@ -9,6 +9,13 @@ const root = fileURLToPath(new URL('../', import.meta.url));
 const captures = process.env.STADIUM_MOCKUP_OUTPUT || resolve(root, '../.tools/stadium-mockup');
 const artwork = resolve(root, '../assets/game/references/stadiums/scale-studies');
 const studies = JSON.parse(await readFile(resolve(artwork, 'bay-six/seats.json'), 'utf8'));
+const atlasPng = await readFile(resolve(artwork, 'bay-six/supporters.png'), 'base64');
+const poseColumns = ['seated-fist', 'seated-tankard', 'seated-bottle', 'seated-food', 'standing-fist', 'seated-folded'];
+const poseCaptions = [
+  ['Seated · Raised fist', 'Seated · Tankard', 'Seated · Folded arms'],
+  ['Standing · Raised fist', 'Seated · Eating', 'Seated · Tankard'],
+  ['Standing · Raised fist', 'Seated · Bottle', 'Seated · Tankard'],
+];
 const layout = JSON.parse(await readFile(resolve(artwork, 'empty-seating.json'), 'utf8'));
 const bay = layout.bays.find(({ id }) => id === 6);
 await mkdir(captures, { recursive: true });
@@ -38,7 +45,7 @@ try {
   const original = await canvas.evaluate(c => c.toDataURL());
 
   const bayDraws = [];
-  for (const { id, label, seats } of studies) {
+  for (const [row, { id, label, seats }] of studies.entries()) {
     await select.selectOption(id);
     await page.getByLabel('Gatehouse stadium with ' + label + ' in west bay 6').waitFor();
     const [crowdPng, railPng] = await Promise.all(['.png', '-rail.png'].map(suffix =>
@@ -79,7 +86,66 @@ try {
     const [nativeBox, zoomBox] = await Promise.all([native.boundingBox(), zoom.boundingBox()]);
     assert.equal(zoomBox.width, nativeBox.width * 4);
     assert.equal(zoomBox.height, nativeBox.height * 4);
+    const disclosure = review.locator('details');
+    assert.equal(await disclosure.evaluate(element => element.open), false, id + ' starts with its pose inspection closed');
     await review.screenshot({ path: resolve(captures, 'west-bay-six-' + id + '.png') });
+
+    await page.getByText('Inspect full poses', { exact: true }).press('Enter');
+    const poses = review.getByRole('list', { name: 'Supporters in bay order' });
+    await poses.waitFor();
+    assert.deepEqual(await poses.locator('figcaption').allTextContents(), poseCaptions[row]);
+    assert.ok(await review.getByText(row === 0 ? /3 seated$/ : /2 seated, 1 standing$/).isVisible());
+    await poses.evaluate(async (list, { atlasPng, crowdPng, row, seats, bay }) => {
+      const size = 32;
+      async function decode(bytes) {
+        const img = new Image();
+        img.src = 'data:image/png;base64,' + bytes;
+        await img.decode();
+        return img;
+      }
+      function surface(width, height) {
+        const canvas = document.createElement('canvas');
+        canvas.width = width;
+        canvas.height = height;
+        return canvas.getContext('2d');
+      }
+      const [atlas, crowd] = await Promise.all([decode(atlasPng), decode(crowdPng)]);
+      const source = surface(atlas.width, atlas.height);
+      source.drawImage(atlas, 0, 0);
+      const assembled = surface(bay.width, bay.height);
+      const canvases = list.querySelectorAll('canvas');
+      if (canvases.length !== seats.length) throw Error('Missing isolated pose');
+      for (const [index, { x, y, column }] of seats.entries()) {
+        const native = source.getImageData(column * size, row * size, size, size).data;
+        const zoom = canvases[index];
+        if (zoom.width !== size * 3 || zoom.height !== size * 3) throw Error('Expected a 3× isolated pose');
+        const pixels = zoom.getContext('2d').getImageData(0, 0, zoom.width, zoom.height).data;
+        let bottom = -1;
+        for (let sy = 0; sy < size; sy++) {
+          for (let sx = 0; sx < size; sx++) {
+            const sample = (sy * size + sx) * 4;
+            if (native[sample + 3]) bottom = sy;
+            for (let yy = 0; yy < 3; yy++) {
+              for (let xx = 0; xx < 3; xx++) {
+                const target = ((sy * 3 + yy) * zoom.width + sx * 3 + xx) * 4;
+                if (native.subarray(sample, sample + 4).some((value, channel) => value !== pixels[target + channel])) {
+                  throw Error('Isolated pose ' + index + ' differs from its original atlas cell');
+                }
+              }
+            }
+          }
+        }
+        if (bottom < 0) throw Error('Empty isolated pose');
+        assembled.drawImage(atlas, column * size, row * size, size, size, x - size / 2, y - bottom, size, size);
+      }
+      const expected = surface(bay.width, bay.height);
+      expected.drawImage(crowd, 0, 0);
+      if (assembled.canvas.toDataURL() !== expected.canvas.toDataURL()) {
+        throw Error('Isolated pose colours or alignment differ from the assembled bay crowd');
+      }
+    }, { atlasPng, crowdPng, row, seats: seats.map(seat => ({ ...seat, column: poseColumns.indexOf(seat.pose) })), bay });
+    await review.getByRole('heading', { name: 'West bay 6' }).click();
+    await review.screenshot({ path: resolve(captures, 'west-bay-six-' + id + '-poses.png') });
 
     await rail.uncheck();
     assert.equal(await bayDraw(), expectedBay.withoutRail);
@@ -127,6 +193,7 @@ try {
 
   await select.selectOption('masks');
   await page.getByText('Teal marks home seating.',{exact:false}).waitFor();
+  assert.equal(await page.getByText('Inspect full poses', { exact: true }).count(), 0);
   const mask = await readFile(resolve(root,'../assets/game/references/stadiums/scale-studies/empty-seating.png'));
   const counts = await canvas.evaluate(async(c,{original,mask})=>{
     async function pixels(src) {
@@ -152,9 +219,10 @@ try {
   await canvas.waitFor();
   assert.equal(await select.inputValue(), 'a');
   await page.setViewportSize({ width: 360, height: 800 });
+  await page.getByText('Inspect full poses', { exact: true }).click();
   assert.equal(await page.locator('.bay-six-zoom').evaluate(element =>
     element.scrollWidth > element.clientWidth && document.documentElement.scrollWidth === window.innerWidth), true);
-  console.log('Bay 6 variants, native and 4× crops, rail and seat toggles, empty stadium, and 15 seating masks passed.');
+  console.log('Bay 6 variants, isolated full poses, native and 4× crops, rail and seat toggles, empty stadium, and 15 seating masks passed.');
 } finally {
   await browser?.close();await server.close();
 }

@@ -2,9 +2,11 @@
 
 ## West bay 6 supporter proofs
 
-Bay 6 is a 65 × 74 px west stand at native (22, 589). The [indexed supporter sheet](bay-six/supporters.png) has 24 × 24 px cells. Its three rows hold the final native sizes for A, B and C. The six columns are the cheering fist, tankard, bottle, drumstick, clapping and folded-arm poses. Palette index 0 is transparent, 1–16 and 17–32 select the two clothing ramps, and the other indices hold fixed colours. Each proof seats one supporter in slate and brown and two in the home colours.
+Bay 6 is a 65 × 74 px west stand at native (22, 589). The [indexed supporter sheet](bay-six/supporters.png) contains complete right-facing figures in 32 × 32 px cells, with the three native sizes for A, B and C arranged in rows. In column order the poses are seated with a cheering fist, seated with a tankard, seated with a bottle, seated with food, standing with a cheering fist, and seated with folded arms. Every pose includes its legs and boots. Palette index 0 is transparent, 1–16 and 17–32 hold the clothing ramps, and the other indices hold fixed colours. The tankard drinker wears fixed grey and brown. The other two supporters in each proof use the home colours.
 
-Run `python -B assets/game/references/stadiums/scale-studies/bay-six/build.py` with Pillow to rebuild all three proofs. The [seat list](bay-six/seats.json) records bottom-centre anchors relative to the bay origin. The distance between successive seats is the tallest occupied pose plus the study's clearance. The builder checks every visible source pixel against the bay before placement, rejects overlap between supporters, and exports the crowd and front rail separately. Only the lowest three pixel rows of the final spectator may sit behind the rail.
+Run `python -B assets/game/references/stadiums/scale-studies/bay-six/build.py` with Pillow to rebuild all three proofs. The [seat list](bay-six/seats.json) records each figure’s foot baseline relative to the bay origin, stance, height and wardrobe. Spacing starts from the tallest pose in the study. The open row adds space, while the closer rows bring the baselines together. Each complete source silhouette must fit the bay before compositing. The builder draws the figures from back to front by foot baseline so a nearer spectator can overlap one behind them. It records the shared pixel count and exports the front rail separately.
+
+Run `python -B assets/game/references/stadiums/scale-studies/bay-six/test_build.py` to verify that removing a shared pixel from the mask rejects the spectator behind it, even when the nearer spectator hides that pixel.
 
 ## Empty Gatehouse seating bays
 
