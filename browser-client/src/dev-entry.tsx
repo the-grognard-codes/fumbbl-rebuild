@@ -7,7 +7,7 @@ import './style.css';
 if (import.meta.env.DEV) {
   const route = location.pathname;
   const Preview = route === '/stadium-mockup'
-    ? lazy(() => import('./StadiumMockup').then(module => ({ default: module.StadiumMockup })))
+    ? lazy(() => import('./StadiumScaleStudies').then(module => ({ default: module.StadiumScaleStudies })))
     : route === '/pitch-preview'
     ? lazy(() => new URLSearchParams(location.search).get('variant') === 'stadium-hybrid'
       ? import('./StadiumHybridPrototype').then(module => ({ default: module.StadiumHybridPrototype }))

@@ -1,6 +1,8 @@
 # Gatehouse scale and colour studies
 
-Open `/stadium-mockup?view=scale` in the development gallery. From `browser-client`, run `npm run dev:stadium` and use the address printed by Vite.
+The gallery now shows only the inward-facing Gatehouse bowl (Study F). Earlier studies below record the design history.
+
+Open `/stadium-mockup` in the development gallery. From `browser-client`, run `npm run dev:stadium` and use the address printed by Vite.
 
 The original review compared a reconstructed stadium to its painting. That established fidelity but missed the scale mismatch visible when a player stood near a barrel or a supporter. These studies put a touchline player and adjacent opponents in the same crop.
 
