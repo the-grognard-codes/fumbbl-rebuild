@@ -49,8 +49,29 @@
 .scale-study-stand[data-background="Dark"] { background: #1a1b20; }
 .scale-study-stand canvas { display: block; max-width: 100%; height: auto; image-rendering: pixelated; }
 
+.gatehouse-bay-gallery { max-width: 1028px; }
+.gatehouse-bay-gallery .mockup-controls select { width: auto; max-width: min(280px, 68vw); }
+.bay-six-review { margin-bottom: 24px; }
+.bay-six-review h2 { margin: 0; }
+.bay-six-toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 24px; margin: 6px 0 10px; }
+.bay-six-toolbar p { margin: 0; font-size: .9375rem; }
+.bay-six-toolbar label { min-height: 32px; cursor: pointer; }
+.bay-six-toolbar input { width: auto; margin: 0; accent-color: #f0ca7b; }
+.bay-six-crops {
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr);
+  align-items: start;
+  gap: 16px;
+}
+.bay-six-crops figure { min-width: 0; margin: 0; }
+.bay-six-crops figcaption { margin-bottom: 6px; color: #baccbf; font-size: .875rem; }
+.bay-six-crops canvas { display: block; image-rendering: pixelated; }
+.bay-six-zoom { max-width: max-content; overflow-x: auto; }
+.gatehouse-overview { max-width: 790px; }
+
 @media (max-width: 680px) {
   .scale-study-comparisons { grid-template-columns: minmax(0, 416px); }
+  .bay-six-crops { grid-template-columns: minmax(0, 1fr); }
 }
 
 .bowl-detail { max-width: 416px; }

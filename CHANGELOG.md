@@ -2,7 +2,7 @@
 
 ## Unreleased
 
-- Review the static Gatehouse stadium and its 15 seating masks. The south gate opens onto the pitch, the braziers are unlit, and the sidelines are clear for removable scenery.
+- Compare three supporter sizes in one west Gatehouse stand at native scale and 4× zoom. Toggle seat markers and the front rail, or inspect the empty stadium and its 15 seating masks.
 
 - Animate touchdowns, turnovers, turn starts, all 11 kickoff results, weather, half-time, and the end of a match, including concessions. Touchdown splashes name the scorer. Touchdown, half-time, and final splashes show both teams' scores side by side.
 

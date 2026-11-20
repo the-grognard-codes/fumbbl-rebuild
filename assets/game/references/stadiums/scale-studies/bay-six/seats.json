@@ -1,0 +1,71 @@
+[
+  {
+    "id": "a",
+    "label": "A \u00b7 Open row",
+    "height": 15,
+    "pitch": 20,
+    "seats": [
+      {
+        "x": 42,
+        "y": 23,
+        "pose": "fist"
+      },
+      {
+        "x": 41,
+        "y": 43,
+        "pose": "tankard"
+      },
+      {
+        "x": 43,
+        "y": 63,
+        "pose": "folded"
+      }
+    ]
+  },
+  {
+    "id": "b",
+    "label": "B \u00b7 Balanced row",
+    "height": 18,
+    "pitch": 22,
+    "seats": [
+      {
+        "x": 42,
+        "y": 23,
+        "pose": "tankard"
+      },
+      {
+        "x": 41,
+        "y": 45,
+        "pose": "drumstick"
+      },
+      {
+        "x": 43,
+        "y": 67,
+        "pose": "fist"
+      }
+    ]
+  },
+  {
+    "id": "c",
+    "label": "C \u00b7 Close row",
+    "height": 20,
+    "pitch": 22,
+    "seats": [
+      {
+        "x": 42,
+        "y": 24,
+        "pose": "bottle"
+      },
+      {
+        "x": 41,
+        "y": 46,
+        "pose": "fist"
+      },
+      {
+        "x": 43,
+        "y": 68,
+        "pose": "tankard"
+      }
+    ]
+  }
+]

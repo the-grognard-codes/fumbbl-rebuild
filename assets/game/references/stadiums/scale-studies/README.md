@@ -1,5 +1,11 @@
 # Gatehouse gallery artwork
 
+## West bay 6 supporter proofs
+
+Bay 6 is a 65 × 74 px west stand at native (22, 589). The [indexed supporter sheet](bay-six/supporters.png) has 24 × 24 px cells. Its three rows hold the final native sizes for A, B and C. The six columns are the cheering fist, tankard, bottle, drumstick, clapping and folded-arm poses. Palette index 0 is transparent, 1–16 and 17–32 select the two clothing ramps, and the other indices hold fixed colours. Each proof seats one supporter in slate and brown and two in the home colours.
+
+Run `python -B assets/game/references/stadiums/scale-studies/bay-six/build.py` with Pillow to rebuild all three proofs. The [seat list](bay-six/seats.json) records bottom-centre anchors relative to the bay origin. The distance between successive seats is the tallest occupied pose plus the study's clearance. The builder checks every visible source pixel against the bay before placement, rejects overlap between supporters, and exports the crowd and front rail separately. Only the lowest three pixel rows of the final spectator may sit behind the rail.
+
 ## Empty Gatehouse seating bays
 
 The [bay dimension manifest](empty-seating.json) gives each bay's exact bounds and permitted pixel count from the [seating mask](empty-seating.png). Both the mask and [empty stadium artwork](empty-gatehouse.webp) register at (0, 0) on the 790 × 1188 px native gallery canvas. Coordinates measure from the upper-left corner, with x increasing right and y increasing down. Mask value 0 reserves the aisles, entrances, fixtures and space outside the seating. The IDs are 1–3 north, 4–7 west, 8–11 east and 12–15 south.

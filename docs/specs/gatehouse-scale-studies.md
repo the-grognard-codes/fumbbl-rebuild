@@ -1,6 +1,20 @@
 # Gatehouse scale and colour studies
 
-## Current approval round · Empty Gatehouse
+## West bay 6 · Supporter scale review
+
+The three gallery views place one row of right-facing supporters in the same small west stand. The blitzer on the nearest pitch square gives all three a common scale. The person raising the tankard wears slate and brown in every row.
+
+![Three rows in the same stand, each beside the same blitzer](../../assets/game/references/stadiums/scale-studies/bay-six/comparison.webp)
+
+| Gallery view | Tallest pose | Seat spacing | Poses from top to bottom |
+| --- | ---: | ---: | --- |
+| A · Open row | 15 px | 20 px | Cheering fist, raised tankard, folded arms |
+| B · Balanced row | 18 px | 22 px | Raised tankard, eating a drumstick, cheering fist |
+| C · Close row | 20 px | 22 px | Bottle, cheering fist, raised tankard |
+
+Open `/stadium-mockup` and use **Gallery view** to switch rows. Compare each at native size and 4×, or scroll down to see the whole pitch. **Seat markers** shows the three anchors. Toggle **Front rail** to inspect the complete silhouettes underneath.
+
+## Empty Gatehouse
 
 Open the development gallery at /stadium-mockup. **Empty stadium** shows the permanent timber terraces, access stairs, cold braziers, bare sidelines and south gate in the reference palette. **Show seating masks** identifies 15 bays. Teal marks home seating, and pink identifies the four bays on the east side. Each bay has its own integer ID in the native mask. The [bay dimension manifest](../../assets/game/references/stadiums/scale-studies/empty-seating.json) records the native origin, width, height and pixel count of each bay. The [fit checks](../../assets/game/references/stadiums/scale-studies/README.md) use the approved pixel outlines, including their cutouts.
 
