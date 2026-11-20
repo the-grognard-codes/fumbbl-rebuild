@@ -135,8 +135,10 @@ Close the session, or run `. ./tools/github-app/exit.ps1`, to go back to your ow
 
 ## A second machine
 
-Repeat steps 3, 5, 6 and 7 on each machine where Codex runs, then set up Codex as
-above. The scripts come with the repository; the key, `config.json`, token cache and
+[`setup-machine.ps1`](../../tools/github-app/setup-machine.ps1) carries out steps 3, 5, 6
+and 7 and the Codex setup on another machine. See
+[the machine setup guide](github-app-machine-setup.md). To do it by hand, repeat those
+steps on each machine where Codex runs, then set up Codex as described above. The scripts come with the repository; the key, `config.json`, token cache and
 Codex settings don't.
 
 - **Generate a separate key for each machine** (step 3 again, on the app's page) instead

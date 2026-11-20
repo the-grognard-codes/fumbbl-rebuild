@@ -216,7 +216,9 @@ function New-InstallationToken($Config) {
 	# With a repo in config.json the token is narrowed to it; otherwise it covers the whole installation.
 	$body = if ($repository) { @{ repositories = @($repository) } } else { $null }
 	$minted = Invoke-GitHub POST "/app/installations/$($installation.id)/access_tokens" $jwt $body
-	$expiresAt = [DateTimeOffset]::Parse($minted.expires_at)
+	# Invoke-RestMethod already turns expires_at into a UTC DateTime. Parsing it again as a
+	# string would drop the UTC marker and read the time as local.
+	$expiresAt = [DateTimeOffset]$minted.expires_at
 	$protected = ConvertTo-SecureString $minted.token -AsPlainText -Force | ConvertFrom-SecureString
 	$record = [pscustomobject]@{
 		scope          = Get-TokenScope $Config
