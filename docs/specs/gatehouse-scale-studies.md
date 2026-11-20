@@ -2,7 +2,7 @@
 
 ## Current approval round · Empty Gatehouse
 
-Open the development gallery at /stadium-mockup. **Empty stadium** shows the timber terraces, access stairs, torch bowls, sideline benches and south gate in the reference palette. **Show seating masks** identifies 15 bays. Teal marks home seating, and pink identifies the four bays on the east side. Each bay has its own integer ID in the native mask. This round is for reviewing seat boundaries, stair landings and entrances before placing any spectators.
+Open the development gallery at /stadium-mockup. **Empty stadium** shows the permanent timber terraces, access stairs, cold braziers, bare sidelines and south gate in the reference palette. **Show seating masks** identifies 15 bays. Teal marks home seating, and pink identifies the four bays on the east side. Each bay has its own integer ID in the native mask. The [bay dimension manifest](../../assets/game/references/stadiums/scale-studies/empty-seating.json) records the native origin, width, height and pixel count of each bay. The [fit checks](../../assets/game/references/stadiums/scale-studies/README.md) use the approved pixel outlines, including their cutouts.
 
 ![Empty Gatehouse and its seating bays](../../assets/game/references/stadiums/scale-studies/empty-gallery.webp)
 

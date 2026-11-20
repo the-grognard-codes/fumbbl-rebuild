@@ -1,6 +1,24 @@
 # Gatehouse gallery artwork
 
-The current Gatehouse uses the editable native-resolution [terraces](gatehouse-terraces.png) and [spectator sheet](spectator-wardrobe.png). Both are indexed PNGs. Index 0 is transparent, 1–16 shade the primary fabric, 17–32 shade secondary fabric, and the other indices hold fixed colours. Preserve these assignments when editing an individual pixel. The sheet contains twelve poses in three directions, with reflected profiles for the east stand.
+## Empty Gatehouse seating bays
+
+The [bay dimension manifest](empty-seating.json) gives each bay's exact bounds and permitted pixel count from the [seating mask](empty-seating.png). Both the mask and [empty stadium artwork](empty-gatehouse.webp) register at (0, 0) on the 790 × 1188 px native gallery canvas. Coordinates measure from the upper-left corner, with x increasing right and y increasing down. Mask value 0 reserves the aisles, entrances, fixtures and space outside the seating. The IDs are 1–3 north, 4–7 west, 8–11 east and 12–15 south.
+
+Check each original, untrimmed PNG at its intended native origin before assembling the insert. Use single-frame PNGs with 8 bits per channel or fewer so the checker reads every alpha value exactly. In `--check-placement`, `X` and `Y` give the native coordinates of the source PNG's upper-left pixel. Transparent margins can extend past the bay or stadium edges. Any nonzero alpha, including partial transparency, must land on that bay's mask ID.
+
+Export one transparent PNG per bay with the exact `width` and `height` from its manifest entry. The insert's upper-left pixel registers at that bay's `(x, y)` at native scale. `--check-insert` verifies the final canvas size and coverage, including the brazier cutouts and the wedges inside irregular bounds.
+
+Run these checks from the repository root with Pillow. Substitute the target bay ID, source origin, and file paths for your artwork. Both PNG checks report the native coordinates of visible alpha outside the bay and leave the input assets untouched.
+
+```text
+python assets/game/references/stadiums/scale-studies/build-empty-seating.py --check
+python assets/game/references/stadiums/scale-studies/build-empty-seating.py --check-placement 2 240 24 north-center-source.png
+python assets/game/references/stadiums/scale-studies/build-empty-seating.py --check-insert 2 north-center.png
+```
+
+## Earlier inward-facing Gatehouse study
+
+This study uses the editable native-resolution [terraces](gatehouse-terraces.png) and [spectator sheet](spectator-wardrobe.png). Both are indexed PNGs. Index 0 is transparent, 1–16 shade the primary fabric, 17–32 shade secondary fabric, and the other indices hold fixed colours. Preserve these assignments when editing an individual pixel. The sheet contains twelve poses in three directions, with reflected profiles for the east stand.
 
 Run `python assets/game/references/stadiums/scale-studies/build-gatehouse.py` with Pillow to seat the crowd and export the lossless foreground and matching material plane. Each bay has a repeatable mix of fixed neutral outfits and team wardrobes. Opaque hands, hair and carried objects replace any material underneath them. In the output mask, zero keeps the underlying pixel fixed, 1–32 are home cloth, and 33–64 are away cloth. The pitch renderer draws the ground through the open south doors.
 

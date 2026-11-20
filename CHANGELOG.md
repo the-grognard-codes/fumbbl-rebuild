@@ -2,7 +2,7 @@
 
 ## Unreleased
 
-- Connect the Gatehouse gallery’s south gate to the pitch with a worn track. Supporters now cheer, drink and eat in the stands, and kit changes recolour their team clothing and banners.
+- Review the static Gatehouse stadium and its 15 seating masks. The south gate opens onto the pitch, the braziers are unlit, and the sidelines are clear for removable scenery.
 
 - Animate touchdowns, turnovers, turn starts, all 11 kickoff results, weather, half-time, and the end of a match, including concessions. Touchdown splashes name the scorer. Touchdown, half-time, and final splashes show both teams' scores side by side.
 
