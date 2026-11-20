@@ -64,6 +64,29 @@ class ActiveMatchPublisherTest {
 		assertEquals("VIEW_UNAVAILABLE", JsonObject.readFrom(frame.getValue()).getString("code", null));
 	}
 
+	@Test void abandonmentPublishesTheAuthorizedCoachsViewAfterTheEngineIsReleased() throws Exception {
+		V2MatchAccess access = mock(V2MatchAccess.class);
+		SetupApplication setup = mock(SetupApplication.class);
+		AuthenticatedPrincipal home = mock(AuthenticatedPrincipal.class), away = mock(AuthenticatedPrincipal.class);
+		BrowserConnection homeConnection = mock(BrowserConnection.class), awayConnection = mock(BrowserConnection.class);
+		new PublicationTestGrants().allow(access, target -> target.principal() == home ? "home" : "away");
+		ActiveMatchPublisher publisher = new ActiveMatchPublisher(access, setup);
+		publisher.enrollPlayer(homeConnection, home, "match");
+		publisher.enrollPlayer(awayConnection, away, "match");
+		JsonObject terminal = new JsonObject().add("revision", 7).add("saveResume", new JsonObject().add("status", "ABANDONED"));
+
+		publisher.publishAbandonment("match", new JsonObject(terminal).add("callerRole", "home"),
+			new JsonObject(terminal).add("callerRole", "away"));
+
+		ArgumentCaptor<String> frame = ArgumentCaptor.forClass(String.class);
+		verify(homeConnection).send(frame.capture());
+		verify(awayConnection).send(frame.capture());
+		List<JsonObject> states = frame.getAllValues().stream().map(value -> JsonObject.readFrom(value).get("state").asObject()).toList();
+		assertEquals(List.of("home", "away"), states.stream().map(state -> state.getString("callerRole", null)).toList());
+		for (JsonObject state : states) assertEquals("ABANDONED", state.get("saveResume").asObject().getString("status", null));
+		verifyNoInteractions(setup);
+	}
+
 	@Test void placementSendsIdenticalFramesToEnrolledPeersWithoutServiceReads() throws Exception {
 		MatchMembershipRepository memberships = mock(MatchMembershipRepository.class);
 		V2PrincipalDirectory directory = mock(V2PrincipalDirectory.class);

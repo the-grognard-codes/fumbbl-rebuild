@@ -18,9 +18,8 @@ import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
-import java.util.function.Consumer;
 import java.util.Optional;
+import java.util.Set;
 import java.util.function.Function;
 
 /** Invoked on the existing communication worker; optional private checkpoints preserve activated engines. */
@@ -113,7 +112,11 @@ public final class SetupApplication {
 	private HandleOutcome outcome(JsonObject response, boolean publish) { return new HandleOutcome(response, publish, false, null); }
 
 	private JsonObject publishedState(SetupSession session, String requestId) {
-		return session.decorateSaveResume(session.reply(requestId, "ACCEPTED", false, "home")).get("state").asObject();
+		return publishedState(session, requestId, "home");
+	}
+
+	private JsonObject publishedState(SetupSession session, String requestId, String role) {
+		return session.decorateSaveResume(session.reply(requestId, "ACCEPTED", false, role)).get("state").asObject();
 	}
 
 	/** Worker-thread operational counters; contains no match IDs or private state. */
@@ -447,13 +450,17 @@ public final class SetupApplication {
 
 	public JsonObject handle(String owner, JsonObject request) { return handleWithOutcome(owner, request).response(); }
 
-	/** Timer callbacks enqueue this on the same communication worker as coach commands. */
+	public record DeadlinePublication(JsonObject state, boolean saveResumeChanged, Optional<JsonObject> abandonedAwayState) { }
+
 	public Map<String, JsonObject> expireReactiveDecisions() {
-		return expireReactiveDecisions(id -> { });
+		Map<String, JsonObject> states = new LinkedHashMap<>();
+		expireDecisions().forEach((id, publication) -> states.put(id, publication.state()));
+		return states;
 	}
 
-	public Map<String, JsonObject> expireReactiveDecisions(Consumer<String> abandoned) {
-		Map<String, JsonObject> changed = new LinkedHashMap<>();
+	/** Timer callbacks enqueue this on the same communication worker as coach commands. */
+	public Map<String, DeadlinePublication> expireDecisions() {
+		Map<String, DeadlinePublication> changed = new LinkedHashMap<>();
 		retryPendingCompletion(changed);
 		// A legacy clock is durable even if its first cold load is the only request before eviction.
 		// Use at most one fresh timer budget per tick for this restore maintenance.
@@ -471,27 +478,22 @@ public final class SetupApplication {
 			if (!abandonmentDue && !proposalDue && !reactionDue && !persistDecisionClock) continue;
 			try {
 				boolean expiredProposal = proposalDue && session.expireSaveResumeProposal(now);
-				if (recovery != null && recordAbandonment(session.checkpointOwner(), id, session, now)) {
-					abandoned.accept(id);
-					continue;
-				}
+				if (recovery != null && recordTimedAbandonment(id, session, now, changed)) continue;
 				boolean expiredReaction = false;
 				if (reactionDue) {
 					refreshSkillUsePreferences(id, session);
 					expiredReaction = session.expireReactiveDecision(clock.millis());
 				}
 				if (recovery != null && expiredReaction && session.isComputerMatch()
-					&& recordAbandonment(session.checkpointOwner(), id, session, now)) {
-					abandoned.accept(id);
-					continue;
-				}
+					&& recordTimedAbandonment(id, session, now, changed)) continue;
 				if (!expiredProposal && !expiredReaction && !persistDecisionClock) continue;
 				checkpoint(session.checkpointOwner(), id, session);
 				if (session.isComplete()) {
 					if (recovery != null) queueCompletion(id);
 					else matches.complete(session.checkpointOwner(), id, session.completedMatch());
 				}
-				if (expiredProposal || expiredReaction) changed.put(id, publishedState(session, "deadline"));
+				if (expiredProposal || expiredReaction)
+					changed.put(id, new DeadlinePublication(publishedState(session, "deadline"), expiredProposal, Optional.empty()));
 			} catch (SQLException | RuntimeException failure) {
 				if (session.isFailed() && sessions.containsKey(id)) {
 					try { checkpoint(session.checkpointOwner(), id, session); }
@@ -503,6 +505,15 @@ public final class SetupApplication {
 		}
 		releaseIdle();
 		return changed;
+	}
+
+	private boolean recordTimedAbandonment(String id, SetupSession session, long now, Map<String, DeadlinePublication> changed)
+		throws SQLException {
+		if (!recordAbandonment(session.checkpointOwner(), id, session, now)) return false;
+		// The checkpoint is durable and the session has been released. Keep each coach's view for delivery.
+		changed.put(id, new DeadlinePublication(publishedState(session, "deadline"), false,
+			Optional.of(publishedState(session, "deadline", "away"))));
+		return true;
 	}
 
 	private boolean recordAbandonment(String owner, String id, SetupSession session, long now) throws SQLException {
@@ -517,7 +528,7 @@ public final class SetupApplication {
 	}
 
 	/** At most one resident terminal result per tick, within the existing worker deadline. */
-	private void retryPendingCompletion(Map<String, JsonObject> changed) {
+	private void retryPendingCompletion(Map<String, DeadlinePublication> changed) {
 		if (pendingCompletions.isEmpty() || timing.budget() != null
 			&& timing.budget().allowanceMillis(1, JdbcConnections.WORK_RESERVE_MILLIS) == 0) return;
 		long now = clock.millis();
@@ -531,7 +542,7 @@ public final class SetupApplication {
 			String owner = session.checkpointOwner();
 			MatchDocument document = matches.loadForSetup(owner, id).document;
 			matches.completeLoaded(owner, document, session.completedMatch());
-			changed.put(id, publishedState(session, "completion"));
+			changed.put(id, new DeadlinePublication(publishedState(session, "completion"), false, Optional.empty()));
 			releaseCompleted(id);
 		} catch (MatchService.Failure rejected) {
 			release(id);

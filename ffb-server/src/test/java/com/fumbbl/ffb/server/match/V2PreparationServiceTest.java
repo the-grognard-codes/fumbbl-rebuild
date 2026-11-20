@@ -154,6 +154,32 @@ class V2PreparationServiceTest {
 		assertEquals("Bugman's Best", document.get("away").asObject().getString("teamName", null));
 	}
 
+	@Test void rejectsAComputerMatchWithTheSameFrozenCloneIdentityInBothSeats() throws Exception {
+		Connection connection = connection(false);
+		RosterCatalog catalog = new RosterCatalog();
+		String account = "00000000-0000-0000-0000-000000000001";
+		String requestId = "ambiguous-clone";
+		String matchId = UUID.nameUUIDFromBytes(("v2-prepared-match\n" + account + "\n" + requestId)
+			.getBytes(StandardCharsets.UTF_8)).toString();
+		String cloneId = new ComputerOpponentService(null).cloneTeamId(matchId);
+		MemoryTeams repository = new MemoryTeams();
+		SavedTeamService teams = new SavedTeamService(repository, catalog);
+		String seed = teams.create(account, "seed", namedDraft(catalog)).document.teamId;
+		SavedTeamRepository.Record source = repository.find(account, seed);
+		JsonObject imported = JsonObject.readFrom(source.json).set("teamId", cloneId);
+		imported.get("draft").asObject().set("teamName", ComputerOpponentService.BUGMAN_TEAM_NAME);
+		repository.insert(new SavedTeamRepository.Record(cloneId, account, 1, source.catalogVersion, imported.toString()));
+		V2PreparationService service = new V2PreparationService(() -> connection, teams, catalog, Clock.systemUTC());
+		JsonObject request = new JsonObject().add("version", 1).add("type", "preparedMatch")
+			.add("operation", "createComputer").add("requestId", requestId)
+			.add("teamId", cloneId).add("expectedDocumentVersion", 1)
+			.add("computerId", ComputerOpponentService.BUGMAN_ID)
+			.add("computerTeamId", seed).add("expectedComputerDocumentVersion", 1);
+
+		assertEquals("INCOMPATIBLE_TEAM", service.handle(account, request).getString("code", null));
+		verify(connection, never()).prepareStatement(startsWith("INSERT INTO ffb_prepared_matches"));
+	}
+
 	@Test void completedCompressedComputerMatchRemainsAuthorizedAndLeavesActiveJobQueue() throws Exception {
 		RosterCatalog catalog = new RosterCatalog();
 		String matchId = "00000000-0000-0000-0000-000000000021";
@@ -207,7 +233,7 @@ class V2PreparationServiceTest {
 		assertEquals(new V2PreparationService.ComputerInventory(List.of(), false), service.activeComputerMatches(),
 			"a completed match is no longer an active computer job");
 		assertEquals(1, documentReads.get(), "historical completed rows must be filtered before document decode");
-		verify(connection).prepareStatement(eq("SELECT p.match_id,computer.role,r.computer_work_until_epoch_ms FROM ffb_prepared_matches p "
+		verify(connection).prepareStatement(eq("SELECT p.match_id,computer.role,r.computer_work_until_epoch_ms,r.generation FROM ffb_prepared_matches p "
 			+ "JOIN ffb_v2_match_members computer ON computer.matchid=p.match_id AND computer.account_id=? "
 			+ "JOIN ffb_v2_match_members opponent ON opponent.matchid=p.match_id AND opponent.role<>computer.role "
 			+ "JOIN ffb_match_recovery r ON r.matchid=p.match_id "

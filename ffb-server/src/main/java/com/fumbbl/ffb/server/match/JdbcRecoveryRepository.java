@@ -323,9 +323,10 @@ public final class JdbcRecoveryRepository implements RecoveryRepository {
 	}
 
 	record LegacyComputerWork(String matchId, long generation, long workUntil) { }
+	private static final long UNREADABLE_LEGACY_WORK_MILLIS = 5 * 60_000L;
 
 	/** Reads a single pre-migration head. A scheduled load still validates the full history. */
-	LegacyComputerWork readLegacyComputerWork(String matchId) throws SQLException {
+	LegacyComputerWork readLegacyComputerWork(String matchId, long now) throws SQLException {
 		long generation;
 		boolean journalHead;
 		String stored;
@@ -359,7 +360,8 @@ public final class JdbcRecoveryRepository implements RecoveryRepository {
 				? Long.MAX_VALUE : new SetupSession.SaveResumeState(saved.asObject()).computerWorkUntil();
 		} catch (RuntimeException invalid) {
 			new MatchPersistenceLog().coldComputerLoadFallback("computer-inventory-backfill", matchId, invalid);
-			workUntil = Long.MAX_VALUE; // Keep the job visible so normal recovery can report the failure.
+			// Give normal recovery time to report the failure without permanently advertising a broken head.
+			workUntil = now + UNREADABLE_LEGACY_WORK_MILLIS;
 		}
 		return new LegacyComputerWork(matchId, generation, workUntil);
 	}

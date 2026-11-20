@@ -54,10 +54,7 @@ public final class BrowserV2Adapter implements BrowserProtocol {
 	private final ComputerOpponentService computers;
 	private final Clock clock;
 	private SkillUsePreferenceService skillUsePreferences;
-	private BrowserConnection computerDispatcher;
-	private final Set<String> watchedComputerMatches = new HashSet<>();
-	private boolean watchComputerChanges;
-	private boolean watchComputerSuspension;
+	private final DispatcherSubscription dispatcher = new DispatcherSubscription(this::send);
 	private final Set<BrowserConnection> computerConnections = new HashSet<>();
 	private final BrowserTeamJson catalog = new BrowserTeamJson(new RosterCatalog());
 	private final Map<BrowserConnection, AuthenticatedPrincipal> principals = new LinkedHashMap<>();
@@ -101,9 +98,15 @@ public final class BrowserV2Adapter implements BrowserProtocol {
 	@Override public synchronized void retryPublications() { delivery.retry(); }
 
 	@Override public synchronized void expireDecisions() {
-		setup.expireReactiveDecisions(this::computerJobEnded).forEach((id, state) -> {
-			if (isSuspended(state)) suspendComputerJob(id);
-			else computerJobChanged(id, state, false);
+		setup.expireDecisions().forEach((id, publication) -> {
+			JsonObject state = publication.state();
+			if (publication.abandonedAwayState().isPresent()) {
+				dispatcher.ended(id);
+				publisher.publishAbandonment(id, state, publication.abandonedAwayState().get());
+				return;
+			}
+			if (isSuspended(state)) dispatcher.suspended(id);
+			else dispatcher.changed(id, state, publication.saveResumeChanged());
 			publisher.publish(id, null, state);
 		});
 	}
@@ -479,8 +482,7 @@ public final class BrowserV2Adapter implements BrowserProtocol {
 				if (!"load".equals(request.getString("operation", ""))) preparationChanged(id, connection);
 				if ("activate".equals(request.getString("operation", "")) && !response.getBoolean("duplicate", false)
 					&& preparation.isComputerMatch(id)) {
-					if (watchComputerChanges) watchedComputerMatches.add(id);
-					sendComputerJobs(Collections.singletonList(id), null);
+					dispatcher.advertise(id);
 				}
 			}
 		} catch (V2PrincipalAuthenticator.Rejected rejected) { fail(connection, requestId, "AUTHENTICATION_FAILED"); }
@@ -522,7 +524,7 @@ public final class BrowserV2Adapter implements BrowserProtocol {
 		String id = request.getString("requestId", null);
 		if (!"status".equals(operation)) throw new IllegalArgumentException();
 		fields(request, "version", "type", "operation", "requestId");
-		send(connection, computerResponse(id, computerDispatcher == null ? "UNAVAILABLE" : "READY"));
+		send(connection, computerResponse(id, dispatcher.connected() ? "READY" : "UNAVAILABLE"));
 	}
 
 	private void handleComputerConnection(BrowserConnection connection, JsonObject request) throws SQLException {
@@ -531,26 +533,24 @@ public final class BrowserV2Adapter implements BrowserProtocol {
 		if (type == BrowserV2RequestType.COMPUTER && "register".equals(request.getString("operation", ""))) {
 			boolean watch = request.get("watchChanges") != null;
 			boolean suspension = request.get("watchSuspension") != null;
-			if (watch) {
-				if (suspension) {
-					fields(request, "version", "type", "operation", "requestId", "watchChanges", "watchSuspension");
-					if (!request.getBoolean("watchSuspension", false)) throw new IllegalArgumentException();
-				} else fields(request, "version", "type", "operation", "requestId", "watchChanges");
-				if (!request.getBoolean("watchChanges", false)) throw new IllegalArgumentException();
-			} else fields(request, "version", "type", "operation", "requestId");
+			List<String> registerFields = new ArrayList<>(List.of("version", "type", "operation", "requestId"));
+			for (String flag : List.of("watchChanges", "watchSuspension")) {
+				JsonValue value = request.get(flag);
+				if (value == null) continue;
+				if (!JsonValue.TRUE.equals(value)) throw new IllegalArgumentException();
+				registerFields.add(flag);
+			}
+			fields(request, registerFields.toArray(String[]::new));
+			if (suspension && !watch) throw new IllegalArgumentException();
 			V2PreparationService.ComputerInventory inventory = preparation.activeComputerMatches();
 			List<String> activeMatches = inventory.matches();
-			computerDispatcher = connection;
-			watchComputerChanges = watch;
-			watchComputerSuspension = suspension;
-			watchedComputerMatches.clear();
-			if (watch) watchedComputerMatches.addAll(activeMatches);
+			dispatcher.register(connection, watch, suspension, activeMatches);
 			// Only correlated chunks before READY form an authoritative snapshot, including an empty list.
-			if (watch) sendComputerJobs(activeMatches, id);
+			if (watch) dispatcher.jobs(activeMatches, id);
 			JsonObject ready = computerResponse(id, "READY");
 			if (suspension && inventory.inventoryPending()) ready.add("inventoryPending", true);
 			send(connection, ready);
-			if (!watch) sendComputerJobs(activeMatches, null);
+			if (!watch) dispatcher.jobs(activeMatches, null);
 		} else if (type == BrowserV2RequestType.SETUP) {
 			String matchId = request.get("matchId").asString();
 			String role = preparation.computerMembershipRole(matchId);
@@ -573,11 +573,11 @@ public final class BrowserV2Adapter implements BrowserProtocol {
 		boolean fromComputer) {
 		JsonObject response = outcome.response();
 		String code = response.getString("code", "");
-		if ("MATCH_ABANDONED".equals(code)) computerJobEnded(matchId);
+		if ("MATCH_ABANDONED".equals(code)) dispatcher.ended(matchId);
 		else if (outcome.publish()) {
 			JsonObject state = response.get("state").asObject();
 			if (isSuspended(state)) {
-				suspendComputerJob(matchId);
+				dispatcher.suspended(matchId);
 				return;
 			}
 			String operation = request.getString("operation", "");
@@ -586,8 +586,8 @@ public final class BrowserV2Adapter implements BrowserProtocol {
 			if (saveResumeChanged && ("resumeRequest".equals(operation) || "resumeAccept".equals(operation)))
 				reenlistComputerJob(matchId, request.getString("requestId", null));
 			if (!fromComputer || saveResumeChanged || "concede".equals(operation) || "STALE_REVISION".equals(code)
-				|| "load".equals(operation)) computerJobChanged(matchId, state, saveResumeChanged);
-			else if ("FULL_TIME".equals(state.getString("phase", null))) watchedComputerMatches.remove(matchId);
+				|| "load".equals(operation)) dispatcher.changed(matchId, state, saveResumeChanged);
+			else if ("FULL_TIME".equals(state.getString("phase", null))) dispatcher.forget(matchId);
 		}
 	}
 
@@ -596,14 +596,8 @@ public final class BrowserV2Adapter implements BrowserProtocol {
 		return save != null && save.isObject() && "SUSPENDED".equals(save.asObject().getString("status", null));
 	}
 
-	private void suspendComputerJob(String matchId) {
-		if (computerDispatcher == null || !watchedComputerMatches.remove(matchId) || !watchComputerSuspension) return;
-		send(computerDispatcher, new JsonObject().add("type", "computerJobSuspended").add("requestId", JsonValue.NULL)
-			.add("matchId", matchId));
-	}
-
 	private void reenlistComputerJob(String matchId, String requestId) {
-		if (computerDispatcher == null || watchedComputerMatches.contains(matchId)) return;
+		if (!dispatcher.connected() || dispatcher.watches(matchId)) return;
 		try {
 			if (!preparation.isComputerMatch(matchId)) return;
 		} catch (SQLException unavailable) {
@@ -611,45 +605,10 @@ public final class BrowserV2Adapter implements BrowserProtocol {
 			new MatchPersistenceLog().rejected("computer-resume-dispatch", matchId, requestId, unavailable);
 			return;
 		}
-		if (watchComputerChanges) watchedComputerMatches.add(matchId);
-		sendComputerJobs(Collections.singletonList(matchId), null);
-	}
-
-	private void computerJobChanged(String matchId, JsonObject state, boolean saveResumeChanged) {
-		if (computerDispatcher == null || !watchedComputerMatches.contains(matchId)) return;
-		int revision = state.getInt("revision", -1);
-		if (revision < 0) return;
-		send(computerDispatcher, new JsonObject().add("type", "computerJobChanged").add("requestId", JsonValue.NULL)
-			.add("matchId", matchId).add("revision", revision).add("saveResumeChanged", saveResumeChanged));
-		if ("FULL_TIME".equals(state.getString("phase", null))) watchedComputerMatches.remove(matchId);
-	}
-
-	private void computerJobEnded(String matchId) {
-		if (computerDispatcher == null || !watchedComputerMatches.remove(matchId)) return;
-		send(computerDispatcher, new JsonObject().add("type", "computerJobEnded").add("requestId", JsonValue.NULL)
-			.add("matchId", matchId));
-	}
-
-	private void sendComputerJobs(List<String> matches, String requestId) {
-		if (computerDispatcher == null || (requestId == null && matches.isEmpty())) return;
-		JsonValue correlation = requestId == null ? JsonValue.NULL : JsonValue.valueOf(requestId);
-		for (int first = 0; first < Math.max(1, matches.size()); first += 1024) {
-			JsonArray jobs = new JsonArray();
-			for (int index = first; index < Math.min(first + 1024, matches.size()); index++) jobs.add(matches.get(index));
-			send(computerDispatcher, new JsonObject().add("type", "computerJobs").add("requestId", correlation)
-				.add("code", "AVAILABLE").add("matches", jobs));
-		}
+		dispatcher.advertise(matchId);
 	}
 	private JsonObject computerResponse(String requestId, String code) {
 		return new JsonObject().add("type", "computer").add("requestId", requestId).add("code", code);
-	}
-
-	private void removeComputerDispatcher(BrowserConnection connection) {
-		if (connection != computerDispatcher) return;
-		computerDispatcher = null;
-		watchComputerChanges = false;
-		watchComputerSuspension = false;
-		watchedComputerMatches.clear();
 	}
 
 	private JsonObject browseDetails(MatchDocument document, JsonObject state, int spectators) {
@@ -725,7 +684,7 @@ public final class BrowserV2Adapter implements BrowserProtocol {
 		diagnosticProbeAt.remove(connection);
 		lobbyReads.remove(connection);
 		connection.diagnosticsEnabled(false);
-		removeComputerDispatcher(connection);
+		dispatcher.disconnect(connection);
 		computerConnections.remove(connection);
 		principals.remove(connection); connectionPurposes.remove(connection); preparationCompletedAt.remove(connection); publisher.disconnect(connection); preparationSubscriptions.remove(connection);
 	}
@@ -742,7 +701,7 @@ public final class BrowserV2Adapter implements BrowserProtocol {
 		diagnosticProbeAt.remove(connection);
 		lobbyReads.remove(connection);
 		connection.diagnosticsEnabled(false);
-		removeComputerDispatcher(connection);
+		dispatcher.disconnect(connection);
 		computerConnections.remove(connection);
 		principals.remove(connection);
 		connectionPurposes.remove(connection);

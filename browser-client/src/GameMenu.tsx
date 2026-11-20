@@ -47,6 +47,7 @@ export function GameMenu({ view, connected, pending, mutate, records, logLoading
   }, [open, tab, neutral, connected]);
   const saved = view.saveResume;
   const canAct = connected && !pending && view.callerRole !== 'spectator' && view.phase !== 'FULL_TIME';
+  const canConcede = canAct && saved?.status !== 'SUSPENDED' && saved?.status !== 'RESUME_PENDING' && saved?.status !== 'ABANDONED';
   return <>
     <button ref={opener} type="button" className="game-menu-trigger" aria-haspopup="dialog" aria-expanded={open} onClick={() => setOpen(true)}>
       Game Menu{saved?.status === 'SAVE_PENDING' || saved?.status === 'RESUME_PENDING' ? ' · Request pending' : ''}
@@ -122,9 +123,9 @@ export function GameMenu({ view, connected, pending, mutate, records, logLoading
               {saved?.status === 'ABANDONED' && <p>This match can no longer be resumed.</p>}
             </section>
             <section><h3>Concede</h3><p>End the match now. Your opponent will be declared the winner.</p>
-              {!confirmConcede ? <button type="button" disabled={!canAct || saved?.status === 'SUSPENDED' || saved?.status === 'RESUME_PENDING'} onClick={() => setConfirmConcede(true)}>Concede match</button> :
+              {!confirmConcede ? <button type="button" disabled={!canConcede} onClick={() => setConfirmConcede(true)}>Concede match</button> :
                 <div className="game-menu-confirm"><p>Concede this match? This cannot be undone.</p>
-                  <button type="button" disabled={!canAct || saved?.status === 'SUSPENDED' || saved?.status === 'RESUME_PENDING'} onClick={() => { mutate('concede'); setConfirmConcede(false); }}>Confirm concession</button>
+                  <button type="button" disabled={!canConcede} onClick={() => { mutate('concede'); setConfirmConcede(false); }}>Confirm concession</button>
                   <button type="button" onClick={() => setConfirmConcede(false)}>Keep playing</button></div>}
             </section>
           </>}

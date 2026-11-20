@@ -31,8 +31,9 @@ Schema marker 10 adds `ffb_match_recovery.computer_work_until_epoch_ms` for
 dispatcher registration. The column records the availability of the same
 committed generation as the full checkpoint or journal append. The recovery
 artifact remains authoritative. Existing marker-9 rows start with a null
-value and are classified one per registration under the generation check.
-An unreadable or unsupported legacy head stays eligible so normal recovery
+value and are advertised while awaiting classification. Registration classifies
+up to four legacy heads at a time under the generation check. An unreadable or
+unsupported legacy head stays eligible for five minutes so normal recovery
 can report the failure. Schema migration preserves the match checkpoint's
 format version. Both the native restore and the computer's stored-view path
 require recovery version 7. See the [migration and rollback procedure](../operations/recovery-journal-schema.md).

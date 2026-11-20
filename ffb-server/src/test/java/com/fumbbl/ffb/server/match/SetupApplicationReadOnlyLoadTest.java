@@ -33,6 +33,23 @@ class SetupApplicationReadOnlyLoadTest {
 	private static final long HOUR = 60 * 60_000L;
 	private static final long SAVED_RETENTION = 30 * 24 * HOUR;
 
+	@Test void timerPublishesTheDurableAbandonmentBeforeReleasingAResidentMatch() throws Exception {
+		Fixture fixture = new Fixture("away");
+		moveToActor(fixture, "home");
+		SetupApplication application = fixture.application();
+		assertEquals("ACCEPTED", application.handle("home", fixture.load()).getString("code", null));
+
+		fixture.now.addAndGet(HOUR);
+		SetupApplication.DeadlinePublication publication = application.expireDecisions().get(fixture.id);
+		assertEquals("ABANDONED", saveStatus(publication.state()));
+		assertEquals("home", publication.state().getString("callerRole", null));
+		assertEquals("ABANDONED", saveStatus(publication.abandonedAwayState().orElseThrow()));
+		assertEquals("away", publication.abandonedAwayState().orElseThrow().getString("callerRole", null));
+		assertTrue(retainedSave(fixture).getBoolean("abandoned", false));
+		assertEquals(0, application.lifecycleMetrics().getInt("residentSessions", -1));
+		assertTrue(application.expireReactiveDecisions().isEmpty());
+	}
+
 	@Test void evictedComputerMatchIsDurablyAbandonedOnFirstTouchAfterOneHour() throws Exception {
 		Fixture fixture = new Fixture("away");
 		moveToActor(fixture, "home");
@@ -141,7 +158,10 @@ class SetupApplicationReadOnlyLoadTest {
 		assertEquals("SAVE_PENDING", saveStatus(stateOf(application.handleComputerWithOutcome("away", fixture.load()).response())));
 		long expiry = proposed.get("saveResume").asObject().getLong("expiresAt", -1);
 		fixture.now.set(expiry);
-		assertEquals("ACTIVE", saveStatus(application.expireReactiveDecisions().get(fixture.id)));
+		SetupApplication.DeadlinePublication publication = application.expireDecisions().get(fixture.id);
+		assertEquals("ACTIVE", saveStatus(publication.state()));
+		assertEquals(proposed.getInt("revision", -1), publication.state().getInt("revision", -1));
+		assertTrue(publication.saveResumeChanged());
 		assertEquals(expiry, retainedSave(fixture).getLong("humanDecisionSince", -1));
 	}
 

@@ -29,10 +29,15 @@ together.
 The server commits the availability column with each full checkpoint or journal
 append. `0` excludes suspended and abandoned jobs, a pending resume proposal sets its expiry
 in epoch milliseconds, and `Long.MAX_VALUE` marks a job with no scheduling
-deadline. A `NULL` value marks an unclassified legacy row. Registration
-backfills one legacy head at a time, guarded by its recovery generation.
-If the head cannot be decoded or is unsupported, the server logs the match ID
-and keeps the job eligible for the normal recovery diagnostics. Schema 10
+deadline. A `NULL` value marks an unclassified legacy row. Registration includes
+activated legacy jobs and classifies up to four heads per request, guarded by
+their recovery generation. If another write wins, the job stays in that
+snapshot and the next registration reads the authoritative availability.
+A legacy row with inconsistent computer membership is set to `0`. If a head
+cannot be decoded or is unsupported, the server logs the match ID and advertises
+the job for five minutes so normal recovery can report the failure. A subsequent
+successful checkpoint or journal append sets availability from the new head.
+Schema 10
 preserves the saved artifact's recovery format. In-progress matches need
 recovery version 7 (r5.4) to resume. Finish or reset in-progress matches with
 older checkpoints before the upgrade. Older checkpoints return

@@ -17,6 +17,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.EnumSet;
 import java.util.List;
+import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
@@ -216,7 +217,8 @@ class BrowserV2LiveTranscriptTest {
 		Connection peer = fixture.connect("away", true), viewer = fixture.connect("spectator", true);
 		fixture.load(peer); fixture.watch(viewer);
 		peer.messages.clear(); viewer.messages.clear();
-		when(fixture.setup.expireReactiveDecisions(any())).thenReturn(Collections.singletonMap(MATCH, state(10)));
+		when(fixture.setup.expireDecisions()).thenReturn(Collections.singletonMap(MATCH,
+			new SetupApplication.DeadlinePublication(state(10), false, Optional.empty())));
 
 		fixture.adapter.expireDecisions();
 

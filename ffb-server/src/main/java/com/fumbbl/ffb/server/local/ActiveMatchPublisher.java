@@ -163,6 +163,15 @@ final class ActiveMatchPublisher {
 	}
 
 	void publish(String matchId, BrowserConnection source, JsonObject publicState, LiveMatchTranscript transcript) {
+		publish(matchId, source, publicState, transcript, null);
+	}
+
+	void publishAbandonment(String matchId, JsonObject homeState, JsonObject awayState) {
+		publish(matchId, null, homeState, transcript(matchId, homeState), awayState.toString());
+	}
+
+	private void publish(String matchId, BrowserConnection source, JsonObject publicState, LiveMatchTranscript transcript,
+		String retainedAbandonedAwayState) {
 		String retainedState = publicState.toString();
 		List<Recipient> recipients = recipients(matchId, source, false);
 		boolean liveTranscript = recipients.stream()
@@ -180,6 +189,10 @@ final class ActiveMatchPublisher {
 						state.remove("savedFormations"); state.remove("blockPreview");
 						sendState(recipient.connection, state(null, state), transcript, () -> access.publicationRole(authorization, target(), slot), transcriptReserved);
 						if ("FULL_TIME".equals(state.getString("phase", ""))) viewers.remove(recipient.connection);
+					} else if (retainedAbandonedAwayState != null) {
+						JsonObject state = JsonObject.readFrom("away".equals(role) ? retainedAbandonedAwayState : retainedState);
+						sendState(recipient.connection, state(null, state), transcript,
+							() -> access.publicationRole(authorization, target(), slot), transcriptReserved);
 					} else {
 						JsonObject load = new JsonObject().add("version", 1).add("type", "setup")
 							.add("operation", "load").add("requestId", "broadcast").add("matchId", matchId);
@@ -192,7 +205,8 @@ final class ActiveMatchPublisher {
 				}
 			});
 		}
-		delivery.publish(matchId, V2PublicationAuthorization.Family.STATE, targets, retainedState.length() + Math.max(transcript.retainedCharacters(),
+		int retainedCharacters = retainedState.length() + (retainedAbandonedAwayState == null ? 0 : retainedAbandonedAwayState.length());
+		delivery.publish(matchId, V2PublicationAuthorization.Family.STATE, targets, retainedCharacters + Math.max(transcript.retainedCharacters(),
 			liveTranscript ? BrowserMatchTransport.MAX_LIVE_TRANSCRIPT_BYTES : 0));
 	}
 

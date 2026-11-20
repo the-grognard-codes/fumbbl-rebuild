@@ -31,8 +31,8 @@ import java.util.Collections;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.atomic.AtomicLong;
-import java.util.function.Consumer;
 
 import org.eclipse.jetty.ee8.websocket.api.RemoteEndpoint;
 import org.eclipse.jetty.ee8.websocket.api.Session;
@@ -433,8 +433,11 @@ class BrowserV2AdapterTest {
 				.add("code", "ACCEPTED").add("duplicate", false).add("state", new JsonObject().add("matchId", MATCH)
 					.add("callerRole", "away").add("revision", 8)), true);
 		});
-		when(setup.expireReactiveDecisions(any())).thenReturn(Map.of(MATCH, new JsonObject().add("matchId", MATCH)
-			.add("callerRole", "home").add("revision", 9)));
+		JsonObject reactionExpired = new JsonObject().add("matchId", MATCH).add("callerRole", "home").add("revision", 9);
+		JsonObject proposalExpired = new JsonObject(reactionExpired).add("saveResume", new JsonObject().add("status", "ACTIVE"));
+		when(setup.expireDecisions()).thenReturn(
+			Map.of(MATCH, new SetupApplication.DeadlinePublication(reactionExpired, false, Optional.empty())),
+			Map.of(MATCH, new SetupApplication.DeadlinePublication(proposalExpired, true, Optional.empty())));
 		BrowserV2Adapter adapter = new BrowserV2Adapter(bearer -> home, access, setup,
 			mock(MatchService.class), preparation, mock(BrowserSavedTeamJson.class),
 			new com.fumbbl.ffb.server.match.ComputerOpponentService(SERVICE_HASH));
@@ -468,6 +471,11 @@ class BrowserV2AdapterTest {
 		assertEquals(5, dispatcher.messages.size(), "An acknowledged computer move does not wake its dispatcher");
 		adapter.expireDecisions();
 		assertEquals(9, JsonObject.readFrom(dispatcher.messages.get(5)).getInt("revision", -1));
+		assertFalse(JsonObject.readFrom(dispatcher.messages.get(5)).getBoolean("saveResumeChanged", true));
+		adapter.expireDecisions();
+		JsonObject sameRevision = JsonObject.readFrom(dispatcher.messages.get(6));
+		assertEquals(9, sameRevision.getInt("revision", -1));
+		assertTrue(sameRevision.getBoolean("saveResumeChanged", false), "Proposal expiry wakes a worker parked at the same revision");
 
 		for (String operation : List.of("saveRequest", "saveAccept", "saveReject", "saveCancel",
 				"resumeRequest", "resumeAccept", "resumeReject", "resumeCancel")) {
@@ -479,11 +487,10 @@ class BrowserV2AdapterTest {
 			assertFalse(JsonObject.readFrom(dispatcher.messages.getLast()).getBoolean("saveResumeChanged", true), operation);
 		}
 
-		when(setup.expireReactiveDecisions(any())).thenAnswer(call -> {
-			Consumer<String> abandoned = call.getArgument(0);
-			abandoned.accept(MATCH);
-			return Map.of();
-		});
+		JsonObject abandoned = new JsonObject().add("matchId", MATCH).add("revision", 9)
+			.add("saveResume", new JsonObject().add("status", "ABANDONED"));
+		when(setup.expireDecisions()).thenReturn(Map.of(MATCH, new SetupApplication.DeadlinePublication(
+			new JsonObject(abandoned).add("callerRole", "home"), false, Optional.of(new JsonObject(abandoned).add("callerRole", "away")))), Map.of());
 		adapter.expireDecisions();
 		assertEquals(new JsonObject().add("type", "computerJobEnded").add("requestId", JsonValue.NULL)
 			.add("matchId", MATCH).add("version", 2), JsonObject.readFrom(dispatcher.messages.getLast()));
