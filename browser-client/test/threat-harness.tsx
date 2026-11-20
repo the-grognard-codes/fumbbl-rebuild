@@ -11,6 +11,7 @@ declare global {
   interface Window {
     threatState: SetupState;
     threatRange: MovementRange;
+    threatRangeReads: (string | null)[];
     threatIntents: unknown[];
     publishThreat: (state: SetupState, connected?: boolean, pending?: string | null) => void;
   }
@@ -24,6 +25,7 @@ function App() {
     setView(state); setConnected(connected); setPending(pending);
   });
   return <GameView hosted view={view} connected={connected} pending={pending} logRecords={[]} movementRange={{ ...window.threatRange, revision: view.revision }}
+    requestMovementRange={playerId => window.threatRangeReads.push(playerId)}
     mutate={(operation, fields) => window.threatIntents.push({ operation, fields })}
     matchControls={{ fullscreen: false, error: '', toggleFullscreen() {}, exitMatch() {}, reconnect() {} }}/>
 }

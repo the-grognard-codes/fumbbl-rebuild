@@ -1,0 +1,15 @@
+#!/bin/sh
+# Stands in for gh in POSIX shells (Git Bash) when this folder is first on PATH: refreshes
+# the GitHub App token if needed, then runs the real gh. See docs/agents/github-app.md.
+shim_dir=$(cd "$(dirname "$0")" && pwd)
+pwsh -NoProfile -NonInteractive -File "$shim_dir/../github-app-token.ps1" -Mode ensure || exit 1
+
+old_ifs=$IFS
+IFS=:
+for dir in $PATH; do
+	[ "$dir" = "$shim_dir" ] && continue
+	if [ -x "$dir/gh.exe" ]; then IFS=$old_ifs; exec "$dir/gh.exe" "$@"; fi
+	if [ -x "$dir/gh" ] && [ ! -d "$dir/gh" ]; then IFS=$old_ifs; exec "$dir/gh" "$@"; fi
+done
+echo 'gh was not found on PATH outside the GitHub App shim folder.' >&2
+exit 127

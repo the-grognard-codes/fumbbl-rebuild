@@ -62,18 +62,20 @@ try {
   assert.equal(await page.getByRole('button', { name: 'Other action', exact: true }).count(), 0);
   assert.equal(await page.getByRole('heading', { name: 'Server actions', exact: true }).count(), 0);
   assert.equal(await page.getByRole('button', { name: 'End Turn', exact: true }).count(), 1);
-  await icons.getByRole('button', { name: 'Pass', exact: true }).click();
+  const pass = icons.getByRole('button', { name: 'Pass', exact: true });
+  await pass.click();
   assert.deepEqual(await pitchPosition(), pitchBeforeMenu, 'Selecting an action must preserve the pitch position');
-  await page.waitForTimeout(220);
-  const selected = await icons.getByRole('button', { name: 'Pass', exact: true }).evaluate(button => {
+  await icons.getByRole('button', { name: 'Pass', exact: true, pressed: true }).waitFor();
+  const selected = await pass.evaluate(async button => {
+    await Promise.all(button.getAnimations().map(animation => animation.finished));
     const css = getComputedStyle(button); return { color: css.color, transform: css.transform, glow: css.boxShadow };
   });
   assert.equal(selected.color, 'rgb(255, 225, 123)');
   assert.notEqual(selected.transform, 'none'); assert.notEqual(selected.glow, 'none');
-  assert.notEqual(await icons.getByRole('button', { name: 'Pass', exact: true }).locator('.action-glyph').evaluate(icon => getComputedStyle(icon).filter), 'none',
+  assert.notEqual(await pass.locator('.action-glyph').evaluate(icon => getComputedStyle(icon).filter), 'none',
     'Selected raster artwork receives the yellow tint');
   await page.emulateMedia({ reducedMotion: 'reduce' });
-  assert.equal(await icons.getByRole('button', { name: 'Pass', exact: true }).evaluate(button => getComputedStyle(button).transitionDuration), '0s');
+  assert.equal(await pass.evaluate(button => getComputedStyle(button).transitionDuration), '0s');
   await page.getByRole('button', { name: 'End Turn', exact: true }).click();
   assert.deepEqual(await page.evaluate(() => window.hudIntents), []);
   await page.locator('.live-pitch-viewport').focus(); await page.keyboard.press('Backspace');

@@ -116,6 +116,15 @@
         ],
         "createdAt": "2026-11-08T00:47:13.613Z",
         "reason": "Existing HEAD declarations retained under the approved idle-panning requirement to preserve MUTP styling; no font addition. Legacy typography cleanup is outside this performance fix."
+      },
+      {
+        "rule": "side-tab",
+        "value": "*",
+        "files": [
+          ".worktrees/dev-browser-prompt-validation/browser-client/src/SetupPanel.css"
+        ],
+        "createdAt": "2026-11-19T08:26:33.451Z",
+        "reason": "Codex: GameView assigns los only to pitch columns 12 and 13 to mark the line of scrimmage."
       }
     ]
   }
