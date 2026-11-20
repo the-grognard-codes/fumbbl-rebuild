@@ -38,6 +38,11 @@ const benchAlpha = 135;
 const maxPlanks = Math.max(...benchLayout.bays.map(({ planks }) => planks.length));
 type SeatingStudy = typeof seatingStudies[number];
 type Seat = SeatingStudy['seats'][number];
+const fullPlan = seatingStudies[0].seats;
+
+function seatKey({ x, y, plankId }: Pick<Seat, 'x' | 'y' | 'plankId'>) {
+  return `${plankId}:${x},${y}`;
+}
 
 async function image(url: string, dimensions: { width: number; height: number }) {
   const result = new Image();
@@ -98,8 +103,8 @@ async function loadLayers() {
     image(architectureUrl, bowl),
     image(seatingUrl, bowl),
     loadScalePlayer(),
-    image(studyImages[studyImageRoot + 'supporters.png'],
-      { width: poseColumns.length * poseCellSize, height: poseCellSize }),
+    image(studyImages[studyImageRoot + 'supporter-kits.png'],
+      { width: poseColumns.length * poseCellSize, height: poseCellSize * 2 }),
     Promise.all(seatingStudies.map(async study => {
       const [crowd, rail] = await Promise.all([
         image(studyImages[studyImageRoot + study.id + '.png'], bay),
@@ -129,6 +134,11 @@ async function loadLayers() {
 }
 
 function drawSeatMarkers(context: CanvasRenderingContext2D, seats: readonly Seat[]) {
+  const occupied = new Set(seats.map(seatKey));
+  context.strokeStyle = '#d4cdc1';
+  for (const seat of fullPlan) {
+    if (!occupied.has(seatKey(seat))) context.strokeRect(bay.x + seat.x - .5, bay.y + seat.y - .5, 2, 2);
+  }
   for (const { knee } of seats) {
     if (!knee) continue;
     const x = bay.x + knee.x, y = bay.y + knee.y;
@@ -159,18 +169,19 @@ function drawCrop(target: HTMLCanvasElement | null, source: HTMLCanvasElement) {
 function SupporterPose({ atlas, seat }: { atlas: HTMLImageElement; seat: Seat }) {
   const canvas = useRef<HTMLCanvasElement>(null);
   const column = poseColumns.findIndex(([pose]) => pose === seat.pose);
+  const row = seat.neutral ? poseCellSize : 0;
   useLayoutEffect(() => {
     const context = canvas.current?.getContext('2d');
     if (!context) return;
     context.imageSmoothingEnabled = false;
-    context.drawImage(atlas, column * poseCellSize, 0, poseCellSize, poseCellSize,
+    context.drawImage(atlas, column * poseCellSize, row, poseCellSize, poseCellSize,
       0, 0, poseZoomSize, poseZoomSize);
-  }, [atlas, column]);
+  }, [atlas, column, row]);
 
   return <li>
     <figure>
       <canvas ref={canvas} width={poseZoomSize} height={poseZoomSize} aria-hidden="true"/>
-      <figcaption>{seat.stance === 'standing' ? 'Standing' : 'Seated'} · {poseColumns[column][1]}</figcaption>
+      <figcaption>{seat.stance === 'standing' ? 'Standing' : 'Seated'} · {poseColumns[column][1]} · {seat.neutral ? 'Neutral kit' : 'Home kit'}</figcaption>
     </figure>
   </li>;
 }
@@ -245,7 +256,8 @@ export function StadiumScaleStudies() {
     {study && <section className="bay-six-review" aria-labelledby="bay-six-heading">
       <h2 id="bay-six-heading">West bay 6</h2>
       <div className="bay-six-toolbar">
-        <p>{study.label} · Up to {study.height} px tall · {contactSpacing} px contact spacing · {study.seats.length - standing} seated{standing > 0 && `, ${standing} standing`}</p>
+        <p>{study.label} · <strong>{study.seats.length} of {study.capacity} occupied</strong> · {contactSpacing} px spacing along planks
+          {standing > 0 && ` · ${study.seats.length - standing} seated, ${standing} standing`}</p>
         <div className="mockup-controls">
           <label><input type="checkbox" checked={rail} onChange={event => setRail(event.target.checked)}/>Front rail</label>
           <label><input type="checkbox" checked={markers} onChange={event => setMarkers(event.target.checked)}
@@ -254,6 +266,7 @@ export function StadiumScaleStudies() {
       </div>
       {markers && <p className="bay-six-marker-key" id="bay-six-marker-key">
         <span>Cyan crosses</span> mark hip or boot contact. <span>Gold dots</span> mark seated knees.
+        {study.seats.length < study.capacity && <> <span>Grey squares</span> mark vacant seats.</>}
       </p>}
       {layers && <div className="bay-six-crops">
         <figure>
@@ -270,7 +283,7 @@ export function StadiumScaleStudies() {
       {layers && <details className="bay-six-poses" key={study.id}>
         <summary>Inspect full poses</summary>
         <ol role="list" aria-label="Supporters in bay order">
-          {study.seats.map(seat => <SupporterPose key={`${seat.x},${seat.y}`} atlas={layers.atlas} seat={seat}/>)}
+          {study.seats.map(seat => <SupporterPose key={seatKey(seat)} atlas={layers.atlas} seat={seat}/>)}
         </ol>
       </details>}
     </section>}

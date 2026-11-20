@@ -33,8 +33,6 @@ class BaySixPlacementTest(unittest.TestCase):
     def test_hips_knees_and_boot_soles_land_on_the_measured_benches(self):
         measured_edges = {"rear-bench": (19, 27), "inner-bench": (38, 47)}
         for study in self.studies:
-            self.assertEqual(len(study["seats"]), 3)
-            self.assertEqual(sum(seat["neutral"] for seat in study["seats"]), 1)
             for seat in study["seats"]:
                 with self.subTest(study=study["id"], pose=seat["pose"]):
                     pose = seat["pose"]
@@ -61,6 +59,19 @@ class BaySixPlacementTest(unittest.TestCase):
                         self.assertEqual(sole_y, contact_y)
                         self.assertIn(seat["x"], range(back, front + 1))
                         self.assertIn(x + sole_x, range(back, front + 1))
+
+    def test_attendance_leaves_existing_supporters_in_the_same_seats_and_kits(self):
+        previous = None
+        for study, occupied, neutrals in zip(self.studies, (8, 6, 4), (3, 2, 1), strict=True):
+            plan = {(s["plankId"], s["x"], s["y"]): s for s in study["seats"]}
+            self.assertEqual(study["capacity"], 8)
+            self.assertEqual(len(plan), len(study["seats"]))
+            self.assertEqual(len(plan), occupied)
+            self.assertEqual(sum(s["neutral"] for s in plan.values()), neutrals)
+            if previous is not None:
+                for place, supporter in plan.items():
+                    self.assertEqual(supporter, previous[place])
+            previous = plan
 
     def test_rejects_a_boot_suspended_beyond_the_bench(self):
         pose = "standing-fist"
@@ -111,34 +122,34 @@ class BaySixPlacementTest(unittest.TestCase):
         self.assertEqual(person.getpixel((25, 38))[3], 0)
 
     def test_calf_behind_timber_still_must_fit_the_bay(self):
-        # In the open row this is the first supporter's calf, just behind its seat.
+        # The north folded-arms supporter's calf is behind the rear bench at this pixel.
         point = self.bay["x"] + 25, self.bay["y"] + 29
         mask = self.mask.copy()
         mask.putpixel(point, 0)
-        with self.assertRaisesRegex(ValueError, "seated-fist crosses the bay") as rejected:
+        with self.assertRaisesRegex(ValueError, "seated-folded crosses the bay") as rejected:
             build.build_study(mask, self.bay, self.atlas, self.palette, self.landmarks,
                               build.STUDIES[0], self.planks)
         self.assertIn(str(point), str(rejected.exception))
 
     def test_hidden_pixel_still_belongs_to_its_bay(self):
-        close = self.studies[2]
+        full = self.studies[0]
         silhouettes = []
-        for seat in close["seats"]:
+        for seat in full["seats"]:
             alpha = self.cell_alpha(seat["pose"])
             left = self.bay["x"] + seat["origin"]["x"]
             top = self.bay["y"] + seat["origin"]["y"]
             silhouettes.append({(left + x, top + y) for y in range(alpha.height) for x in range(alpha.width)
                                 if alpha.getpixel((x, y))})
 
-        shared = silhouettes[0] & silhouettes[2]
-        self.assertTrue(shared, "The close row needs an actual occlusion for this check")
+        shared = silhouettes[0].intersection(set.union(*silhouettes[1:]))
+        self.assertTrue(shared, "The full bay needs an actual occlusion for this check")
         point = min(shared)
         mask = self.mask.copy()
         mask.putpixel(point, 0)
         with patch.object(Image.Image, "alpha_composite", side_effect=AssertionError("checked after drawing")):
             with self.assertRaises(ValueError) as rejected:
-                build.build_study(mask, self.bay, self.atlas, self.palette, self.landmarks, build.STUDIES[2], self.planks)
-        self.assertIn(close["seats"][0]["pose"] + " crosses the bay", str(rejected.exception))
+                build.build_study(mask, self.bay, self.atlas, self.palette, self.landmarks, build.STUDIES[0], self.planks)
+        self.assertIn(full["seats"][0]["pose"] + " crosses the bay", str(rejected.exception))
         self.assertIn(str(point), str(rejected.exception))
 
 

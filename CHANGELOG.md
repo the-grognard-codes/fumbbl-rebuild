@@ -2,7 +2,7 @@
 
 ## Unreleased
 
-- Compare three arrangements of full-body Gatehouse supporters at bench scale. Each seat covers the backs of seated calves while the boots hang over its edge. Toggle **Bench tops** to see all 64 planks and **Seat markers** to inspect hips, knees and both boot contacts at native size or 4× zoom.
+- Compare the eight-seat Gatehouse west bay at 100%, 75% and 50% attendance. Returning supporters keep their seats and clothing. Use **Seat markers** to see the vacancies and inspect bench contact at native size or 4× zoom.
 
 - Animate touchdowns, turnovers, turn starts, all 11 kickoff results, weather, half-time, and the end of a match, including concessions. Touchdown splashes name the scorer. Touchdown, half-time, and final splashes show both teams' scores side by side.
 

@@ -1,20 +1,20 @@
 # Gatehouse scale and colour studies
 
-## West bay 6 · Supporter scale review
+## West bay 6 · Crowd density review
 
-All three layouts use the same supporter scale. The two intact bench tops measure 9 and 10 native pixels across. Each seated hip rests at the back of its plank, with the near knee 10 px toward the pitch and the boots hanging past the front. A standing supporter places both soles on one plank. The blitzer on the nearest pitch square provides a second scale reference.
+West bay 6 has eight marked places, four on each of the two interior planks. These 9 and 10 px bench tops support the full-size poses inside the bay mask. On the two edge planks, a correctly anchored pose would extend into the wall or the pitch-side rail. The nearby blitzer gives a game-scale reference.
 
-![Three seating arrangements at game scale above enlarged views of hip, boot and knee placement](../../assets/game/references/stadiums/scale-studies/bay-six/comparison.webp)
+![The same west bay with eight, six and four supporters, beside the pitch and at pixel zoom](../../assets/game/references/stadiums/scale-studies/bay-six/comparison.webp)
 
-| Gallery view | Arrangement | Vertical spacing between contacts |
-| --- | --- | ---: |
-| A · Open row | Three seated fans spread across both benches | 15–22 px |
-| B · Balanced row | Two seated fans on the inner bench and one standing on the rear bench | 16 px |
-| C · Close row | Two seated fans and a standing fan clustered across the benches | 10 px |
+| Gallery view | Occupied seats | Seated | Standing | Neutral clothing |
+| --- | ---: | ---: | ---: | ---: |
+| A · 100% full | 8 of 8 | 7 | 1 | 3 |
+| B · 75% full | 6 of 8 | 5 | 1 | 2 |
+| C · 50% full | 4 of 8 | 3 | 1 | 1 |
 
-Open `/stadium-mockup` and use **Gallery view** to switch rows. Compare each at native size and 4×, or scroll down to see the whole pitch. Enable **Seat markers** to see hip or boot contacts in cyan and seated knees in gold. Toggle **Front rail** to expose the timber. **Inspect full poses** shows the complete figures before overlap.
+Open `/stadium-mockup` and use **Gallery view** to change attendance. Returning fans keep the same seats, gestures and clothes. Compare the views at native size and 4×, or scroll down to see the whole pitch. **Seat markers** shows empty places as grey squares, hip or boot contacts as cyan crosses and seated knees as gold dots. **Inspect full poses** shows each figure in its assigned kit before overlap.
 
-With the rail and guides off, look at the middle supporter in **A · Open row**. The bench covers the back of the calf below the knee. Both boot fronts are visible. The same placement rule applies to each seated supporter in B and C.
+Turn off **Front rail** to inspect how each plank covers the back of a seated calf. This detail from the bench-fit proof shows the effect on the folded-arms pose.
 
 ![Before and after at 8× showing the bench edge behind the knees and in front of the rear calf](../../assets/game/references/stadiums/scale-studies/bay-six/seat-edge.webp)
 

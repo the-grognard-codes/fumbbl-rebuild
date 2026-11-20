@@ -9,7 +9,12 @@ const root = fileURLToPath(new URL('../', import.meta.url));
 const captures = process.env.STADIUM_MOCKUP_OUTPUT || resolve(root, '../.tools/stadium-mockup');
 const artwork = resolve(root, '../assets/game/references/stadiums/scale-studies');
 const studies = JSON.parse(await readFile(resolve(artwork, 'bay-six/seats.json'), 'utf8'));
-const atlasPng = await readFile(resolve(artwork, 'bay-six/supporters.png'), 'base64');
+const [atlasPng, authoringPng] = await Promise.all(['supporter-kits.png', 'supporters.png'].map(file =>
+  readFile(resolve(artwork, 'bay-six', file), 'base64')));
+const { ramps } = JSON.parse(await readFile(resolve(artwork, '../../../team-colors/v1/delivery/manifest.json'), 'utf8'));
+const ramp = name => ramps.find(({ id }) => id === name).colors.map(color => parseInt(color.slice(1), 16));
+const neutralPalette = [...ramp('slate'), ...ramp('brown')];
+const kitPairs = [...ramp('teal'), ...ramp('violet')].map((color, index) => [color, neutralPalette[index]]);
 const landmarks = JSON.parse(await readFile(resolve(artwork, 'bay-six/pose-landmarks.json'), 'utf8'));
 const poseColumns = ['seated-fist', 'seated-tankard', 'seated-bottle', 'seated-food', 'standing-fist', 'seated-folded'];
 const poseCaptions = {
@@ -25,6 +30,7 @@ const benchLayout = JSON.parse(await readFile(resolve(artwork, 'gatehouse-benche
 const mask = await readFile(resolve(artwork, 'empty-seating.png'), 'base64');
 const bay = layout.bays.find(({ id }) => id === 6);
 const bayPlanks = benchLayout.bays.find(({ id }) => id === bay.id).planks;
+const seatKey = ({ plankId, x, y }) => `${plankId}:${x},${y}`;
 
 async function benchReference(canvas, colors) {
   return canvas.evaluate(async (full, { benchLayout, layout, mask, colors }) => {
@@ -129,8 +135,34 @@ try {
   assert.equal(await canvas.evaluate(c => c.toDataURL()), original);
 
   const bayDraws = [];
-  for (const { id, label, seats, spacing } of studies) {
-    const nativeGaps = seats.slice(1).map((seat, index) => Math.abs(seat.y - seats[index].y));
+  const fullPlan = new Map(studies[0].seats.map(seat => [seatKey(seat), seat]));
+  const fullPosesWithBothKits = poseColumns.filter(pose =>
+    [true, false].every(neutral => studies[0].seats.some(seat => seat.pose === pose && seat.neutral === neutral)));
+  assert.equal(fullPlan.size, studies[0].capacity);
+  assert.ok(fullPosesWithBothKits.length > 0, 'One pose appears in both kits so the inspector exercises the kit axis');
+  let previousLocations = new Set(fullPlan.keys());
+  for (const [index, { id, label, seats, spacing, capacity }] of studies.entries()) {
+    const percentage = [100, 75, 50][index];
+    assert.equal(capacity, fullPlan.size);
+    assert.equal(seats.length * 100, capacity * percentage);
+    assert.ok(label.includes(percentage + '%'));
+    const locations = new Set(seats.map(seatKey));
+    assert.equal(locations.size, seats.length);
+    assert.ok([...locations].every(location => previousLocations.has(location)), id + ' is a subset of the prior study');
+    previousLocations = locations;
+    const vacant = [...fullPlan.values()].filter(seat => !locations.has(seatKey(seat)));
+    const contactsByPlank = new Map();
+    for (const seat of seats) {
+      assert.deepEqual(seat, fullPlan.get(seatKey(seat)), id + ' preserves the fixed seat and its kit');
+      assert.equal(typeof seat.neutral, 'boolean');
+      const contacts = contactsByPlank.get(seat.plankId) ?? [];
+      contacts.push(seat.y);
+      contactsByPlank.set(seat.plankId, contacts);
+    }
+    const nativeGaps = [...contactsByPlank.values()].flatMap(contacts => {
+      contacts.sort((a, b) => a - b);
+      return contacts.slice(1).map((y, index) => y - contacts[index]);
+    });
     assert.deepEqual(spacing, { min: Math.min(...nativeGaps), max: Math.max(...nativeGaps) });
     await select.selectOption(id);
     await page.getByLabel('Gatehouse stadium with ' + label + ' in west bay 6').waitFor();
@@ -183,11 +215,11 @@ try {
     await page.getByText('Inspect full poses', { exact: true }).press('Enter');
     const poses = review.getByRole('list', { name: 'Supporters in bay order' });
     await poses.waitFor();
-    assert.deepEqual(await poses.locator('figcaption').allTextContents(), seats.map(({ pose }) => poseCaptions[pose]));
-    const countLabel = seats.every(({ stance }) => stance === 'seated') ? /3 seated$/ : /2 seated, 1 standing$/;
-    assert.ok(await review.getByText(countLabel).isVisible());
+    assert.deepEqual(await poses.locator('figcaption').allTextContents(),
+      seats.map(({ pose, neutral }) => poseCaptions[pose] + (neutral ? ' · Neutral kit' : ' · Home kit')));
+    assert.ok(await review.getByText(`${seats.length} of ${capacity} occupied`, { exact: true }).isVisible());
     const spacingLabel = spacing.min === spacing.max ? String(spacing.min) : `${spacing.min}–${spacing.max}`;
-    assert.ok(await review.getByText(spacingLabel + ' px contact spacing', { exact: false }).isVisible());
+    assert.ok(await review.getByText(spacingLabel + ' px spacing along planks', { exact: false }).isVisible());
     for (const { pose, stance, origin, knee, otherSole, plankId, x, y } of seats) {
       const local = landmarks[pose];
       if (stance === 'standing') {
@@ -208,7 +240,7 @@ try {
         id + ' registers each contact with plank ' + plankId);
     }
     const revealsTimber = await poses.evaluate(async (list, {
-      atlasPng, crowdPng, mask, withoutRail, seats, landmarks, bay, bayPlanks,
+      atlasPng, authoringPng, crowdPng, mask, withoutRail, seats, landmarks, bay, bayPlanks, kitPairs, fullPosesWithBothKits,
     }) => {
       const size = 48;
       const factor = 2;
@@ -224,13 +256,17 @@ try {
         canvas.height = height;
         return canvas.getContext('2d');
       }
-      const [atlas, crowd, seatingMask, cleanBay] = await Promise.all([
-        ...[atlasPng, crowdPng, mask].map(bytes => decode('data:image/png;base64,' + bytes)),
+      const [atlas, authoring, crowd, seatingMask, cleanBay] = await Promise.all([
+        ...[atlasPng, authoringPng, crowdPng, mask].map(bytes => decode('data:image/png;base64,' + bytes)),
         decode(withoutRail),
       ]);
-      if (atlas.width !== size * 6 || atlas.height !== size) throw Error('Expected one shared six-pose atlas row');
+      if (atlas.width !== size * 6 || atlas.height !== size * 2) throw Error('Expected home and neutral rows of six poses');
       const source = surface(atlas.width, atlas.height);
       source.drawImage(atlas, 0, 0);
+      const originalPoses = surface(authoring.width, authoring.height);
+      originalPoses.drawImage(authoring, 0, 0);
+      const kitPalette = new Map(kitPairs);
+      const rgb = (pixels, i) => pixels[i] * 65536 + pixels[i + 1] * 256 + pixels[i + 2];
       const assembled = surface(bay.width, bay.height);
       const unoccluded = surface(bay.width, bay.height);
       const maskRegion = surface(bay.width, bay.height);
@@ -241,8 +277,24 @@ try {
         x >= left && x < left + width && y >= top && y < top + height);
       const canvases = list.querySelectorAll('canvas');
       if (canvases.length !== seats.length) throw Error('Missing isolated pose');
-      for (const [index, { pose, plankId, origin, column }] of seats.entries()) {
-        const cell = source.getImageData(column * size, 0, size, size);
+      for (const [index, { pose, plankId, origin, column, neutral }] of seats.entries()) {
+        const x = column * size;
+        const row = neutral ? size : 0;
+        const home = source.getImageData(x, 0, size, size).data;
+        const neutralKit = source.getImageData(x, size, size, size).data;
+        const authoringPixels = originalPoses.getImageData(x, 0, size, size).data;
+        let recolored = false;
+        for (let i = 0; i < home.length; i += 4) {
+          if (home[i + 3] !== authoringPixels[i + 3] || neutralKit[i + 3] !== authoringPixels[i + 3]) {
+            throw Error('Kits must retain the full authored ' + pose + ' silhouette');
+          }
+          if (rgb(home, i) !== rgb(neutralKit, i)) {
+            if (kitPalette.get(rgb(home, i)) !== rgb(neutralKit, i)) throw Error('Unexpected kit shade for ' + pose);
+            recolored = true;
+          }
+        }
+        if (fullPosesWithBothKits.includes(pose) && !recolored) throw Error('Home and neutral kits match for ' + pose);
+        const cell = source.getImageData(x, row, size, size);
         const native = cell.data;
         const zoom = canvases[index];
         if (zoom.width !== size * factor || zoom.height !== size * factor) throw Error('Expected a 2× isolated pose');
@@ -252,12 +304,12 @@ try {
             const sample = (Math.floor(y / factor) * size + Math.floor(x / factor)) * 4;
             const target = (y * zoom.width + x) * 4;
             if (native.subarray(sample, sample + 4).some((value, channel) => value !== pixels[target + channel])) {
-              throw Error('Isolated pose ' + index + ' differs from its original atlas cell');
+              throw Error('Isolated pose ' + index + ' differs from its full ' + (neutral ? 'neutral' : 'home') + ' kit');
             }
           }
         }
         if (!native.some((channel, index) => index % 4 === 3 && channel > 0)) throw Error('Empty isolated pose');
-        unoccluded.drawImage(atlas, column * size, 0, size, size, origin.x, origin.y, size, size);
+        unoccluded.drawImage(atlas, x, row, size, size, origin.x, origin.y, size, size);
 
         const eligible = landmarks[pose].behindSeat ?? [];
         const support = bayPlanks.find(({ id }) => id === plankId).rects;
@@ -290,8 +342,9 @@ try {
           barePixels.subarray(offset, offset + 3).some((value, channel) => value !== cleanPixels[offset + channel])) return true;
       }
       return false;
-    }, { atlasPng, crowdPng, mask, withoutRail: expectedBay.withoutRail,
-      seats: seats.map(seat => ({ ...seat, column: poseColumns.indexOf(seat.pose) })), landmarks, bay, bayPlanks });
+    }, { atlasPng, authoringPng, crowdPng, mask, withoutRail: expectedBay.withoutRail,
+      seats: seats.map(seat => ({ ...seat, column: poseColumns.indexOf(seat.pose) })), landmarks, bay, bayPlanks, kitPairs,
+      fullPosesWithBothKits });
     await review.getByRole('heading', { name: 'West bay 6' }).click();
     await review.screenshot({ path: resolve(captures, 'west-bay-six-' + id + '-poses.png') });
 
@@ -308,13 +361,15 @@ try {
     assert.equal(await bayDraw(), expectedBenchedBay.withRail, id + ' bench colors sit under the foreground rail');
     await markers.check();
     assert.ok(await review.getByText('mark hip or boot contact.', { exact: false }).isVisible());
-    assert.equal(await canvas.evaluate((c, { bay, seats }) => {
+    assert.equal(await review.getByText('mark vacant seats.', { exact: false }).isVisible(), vacant.length > 0);
+    assert.equal(await canvas.evaluate((c, { bay, seats, vacant }) => {
       const context = c.getContext('2d');
       const color = ({ x, y }) => context.getImageData(bay.x + x, bay.y + y, 1, 1).data.join(',');
       return seats.every(seat => color(seat) === '128,245,255,255' &&
         (!seat.knee || color(seat.knee) === '255,225,123,255') &&
-        (!seat.otherSole || color(seat.otherSole) === '128,245,255,255'));
-    }, { bay, seats }), true, id + ' marks hips, knees and both soles above the bench and rail layers');
+        (!seat.otherSole || color(seat.otherSole) === '128,245,255,255')) &&
+        vacant.every(({ x, y }) => color({ x: x - 1, y: y - 1 }) === '212,205,193,255');
+    }, { bay, seats, vacant }), true, id + ' marks occupied contacts and vacant locations above the bench and rail layers');
     await review.screenshot({ path: resolve(captures, 'west-bay-six-' + id + '-benches.png') });
     assert.equal(await native.evaluate(async (c, original) => {
       const full = document.querySelector('canvas[data-ready="true"]');

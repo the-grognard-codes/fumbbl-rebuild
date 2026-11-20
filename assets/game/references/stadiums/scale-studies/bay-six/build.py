@@ -2,6 +2,7 @@
 from importlib.util import module_from_spec, spec_from_file_location
 import json
 from pathlib import Path
+from typing import NamedTuple
 
 from PIL import Image, ImageDraw
 
@@ -14,17 +15,31 @@ COLUMNS = ("seated-fist", "seated-tankard", "seated-bottle", "seated-food",
 spec = spec_from_file_location("seat_fit", ART / "build-empty-seating.py")
 fit = module_from_spec(spec)
 spec.loader.exec_module(fit)
-# Every variant uses the same atlas scale. Coordinates mark a hip or a boot.
+
+
+class Seat(NamedTuple):
+    support: str
+    x: int
+    y: int
+    pose: str
+    neutral: bool
+    first_fill: int
+
+
+# First fill is the lowest attendance at which this place is occupied.
+SEAT_PLAN = (
+    Seat("rear-bench", 19, 28, "seated-folded", False, 75),
+    Seat("rear-bench", 19, 39, "seated-tankard", True, 50),
+    Seat("rear-bench", 19, 50, "seated-food", True, 100),
+    Seat("rear-bench", 19, 73, "standing-fist", False, 50),
+    Seat("inner-bench", 38, 29, "seated-food", False, 100),
+    Seat("inner-bench", 38, 41, "seated-fist", False, 50),
+    Seat("inner-bench", 38, 53, "seated-bottle", False, 50),
+    Seat("inner-bench", 38, 65, "seated-folded", True, 75),
+)
 STUDIES = [
-    ("a", "A · Open row", (("seated-fist", "rear-bench", 19, 28),
-                           ("seated-folded", "inner-bench", 38, 50),
-                           ("seated-tankard", "rear-bench", 19, 65))),
-    ("b", "B · Balanced row", (("seated-food", "inner-bench", 38, 30),
-                               ("standing-fist", "rear-bench", 19, 46),
-                               ("seated-tankard", "inner-bench", 38, 62))),
-    ("c", "C · Close row", (("standing-fist", "rear-bench", 19, 44),
-                            ("seated-tankard", "inner-bench", 38, 54),
-                            ("seated-bottle", "rear-bench", 19, 64))),
+    (key, f"{key.upper()} · {fill}% full", [seat for seat in SEAT_PLAN if seat.first_fill <= fill])
+    for key, fill in (("a", 100), ("b", 75), ("c", 50))
 ]
 
 
@@ -39,6 +54,10 @@ def spectator(atlas, pose, ramps):
             colors[start:start + 3] = bytes.fromhex(rgb[1:])
     tile.putpalette(colors)
     return tile.convert("RGBA")
+
+
+def kit_ramps(palette, neutral):
+    return (palette["slate"], palette["brown"]) if neutral else (palette["teal"], palette["violet"])
 
 
 def checked_pixels(layer, origin, mask, bay, label):
@@ -133,13 +152,11 @@ def build_study(mask, bay, atlas, palette, landmarks, study, planks):
     key, label, layout = study
     size = bay["width"], bay["height"]
     placements = []
-    for pose, support, x, y in layout:
-        neutral = pose == "seated-tankard"
-        ramps = (palette["slate"], palette["brown"]) if neutral else (palette["teal"], palette["violet"])
-        person = spectator(atlas, pose, ramps)
-        seat, origin = place_pose(person, pose, support, x, y, landmarks[pose], planks)
-        seat["neutral"] = neutral
-        pixels = checked_pixels(person, origin, mask, bay, f"{label} {pose}")
+    for slot in layout:
+        person = spectator(atlas, slot.pose, kit_ramps(palette, slot.neutral))
+        seat, origin = place_pose(person, slot.pose, slot.support, slot.x, slot.y, landmarks[slot.pose], planks)
+        seat["neutral"] = slot.neutral
+        pixels = checked_pixels(person, origin, mask, bay, f"{label} {slot.pose}")
         placements.append((seat, person, origin, pixels))
 
     # Every complete silhouette has passed its mask check before any compositing.
@@ -156,14 +173,16 @@ def build_study(mask, bay, atlas, palette, landmarks, study, planks):
         crowd.alpha_composite(person, origin)
 
     seats = [seat for seat, _, _, _ in placements]
-    contacts = sorted(seat["y"] for seat in seats)
-    gaps = [south - north for north, south in zip(contacts, contacts[1:])]
+    gaps = []
+    for support in {seat["support"] for seat in seats}:
+        contacts = sorted(seat["y"] for seat in seats if seat["support"] == support)
+        gaps.extend(south - north for north, south in zip(contacts, contacts[1:]))
     rail = handrail(size)
     rail_pixels = checked_pixels(rail, (0, 0), mask, bay, f"{label} rail")
     rail_overlap = crowd_pixels & rail_pixels
 
     return crowd, rail, {
-        "id": key, "label": label, "height": max(seat["height"] for seat in seats),
+        "id": key, "label": label, "capacity": len(SEAT_PLAN), "height": max(seat["height"] for seat in seats),
         "pitch": min(gaps), "spacing": {"min": min(gaps), "max": max(gaps)}, "seats": seats,
         "overlapPixels": len(overlap_pixels), "railOverlapPixels": len(rail_overlap),
     }
@@ -197,6 +216,12 @@ def build():
         if atlas.mode != "P" or atlas.size != (CELL_SIZE * len(COLUMNS), CELL_SIZE):
             raise ValueError("Supporter sheet must be an indexed row of six 48 px cells")
         studies = [build_study(mask, bay, atlas, palette, landmarks, study, supports[BAY_ID]) for study in STUDIES]
+        kits = Image.new("RGBA", (atlas.width, 2 * CELL_SIZE))
+        for row, neutral in enumerate((False, True)):
+            for column, pose in enumerate(COLUMNS):
+                person = spectator(atlas, pose, kit_ramps(palette, neutral))
+                kits.paste(person, (column * CELL_SIZE, row * CELL_SIZE))
+        save_layer(kits, HERE / "supporter-kits.png")
 
     for crowd, rail, result in studies:
         key = result["id"]
