@@ -20,12 +20,25 @@ public final class MatchPersistenceLog {
 		write("PERSISTENCE_FAILED", phase, matchId, requestId, failure);
 	}
 
-	void completionPending(String matchId, String requestId, SQLException failure) {
-		write("COMPLETION_PENDING", "completion", matchId, requestId, failure);
+	void completionDeferred(String matchId, String requestId, Exception failure) {
+		write("COMPLETION_DEFERRED", "completion", matchId, requestId, failure);
+	}
+
+	void completionTerminated(String phase, String matchId, String requestId, RuntimeException failure) {
+		write("COMPLETION_TERMINAL", phase, matchId, requestId, failure);
 	}
 
 	void pendingCompletionFailed(String matchId, Exception failure) {
-		write("PERSISTENCE_FAILED", "pending-completion", matchId, null, failure);
+		write("COMPLETION_RETRY", "pending-completion", matchId, null, failure);
+	}
+
+	void pendingCompletionRejected(String matchId, MatchService.Failure failure) {
+		write("COMPLETION_REJECTED failureCode=" + correlation(failure.code, "[A-Z_]{1,100}"),
+			"pending-completion", matchId, null, failure);
+	}
+
+	void coldComputerLoadFallback(String phase, String matchId, RuntimeException failure) {
+		write("COLD_COMPUTER_LOAD_FALLBACK", phase, matchId, null, failure);
 	}
 
 	private void write(String code, String phase, String matchId, String requestId, Exception failure) {

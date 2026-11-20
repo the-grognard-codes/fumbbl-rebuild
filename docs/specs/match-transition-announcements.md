@@ -115,6 +115,7 @@ In short: **end of turn = splash, then decisions; start of drive = decisions, th
 
 ### Timing
 - Playback catch-up never shortens an announcement. Its duration is independent of the catch-up rate, and a banner that starts during catch-up keeps its normal length after catch-up ends.
+- With the animated splashes from #569, the 3 s and 1.5 s reading times are followed by the 200 ms exit. Reduced motion uses an opacity fade. The clear gap is 350 ms, or 125 ms with the shade held between consecutive cards.
 - Catch-up and background processing continue while a splash plays. Queued moves and dice are presented, never skipped, to reach a required choice.
 - The coach's own playback-speed setting and the until-dismissed preference still apply. In until-dismissed mode, a cleanup decision waits until the coach closes the splash.
 

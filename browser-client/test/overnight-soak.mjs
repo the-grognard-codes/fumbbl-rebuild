@@ -22,6 +22,7 @@ import { fileURLToPath } from 'node:url';
 import { createGzip } from 'node:zlib';
 import { chromium } from 'playwright';
 import { squarePosition } from './projected-pitch-helper.mjs';
+import { SoakRetainedRequests } from './soak-retained-requests.mjs';
 
 const root = fileURLToPath(new URL('../../', import.meta.url));
 const args = process.argv.slice(2);
@@ -121,7 +122,7 @@ mkdirSync(resolve(output, 'screenshots'), { recursive: true });
 function instrument() {
   const prefs = (() => { try { return JSON.parse(localStorage.getItem('moles.diagnostics.preferences') ?? '{}') ?? {}; } catch { return {}; } })();
   try { localStorage.setItem('moles.diagnostics.preferences', JSON.stringify({ ...prefs, window: 60, details: true, probes: true })); } catch { /* optional */ }
-  const soak = window.__soak = { state: null, revision: -1, arrivals: [], outgoing: [], failures: [], seq: 0, exports: [], sockets: 0 };
+  const soak = window.__soak = { state: null, revision: -1, arrivals: [], outgoing: [], receipts: [], failures: [], seq: 0, exports: [], sockets: 0 };
   const Native = window.WebSocket;
   window.WebSocket = class extends Native {
     constructor(...rest) {
@@ -131,11 +132,13 @@ function instrument() {
         if (message.type === 'setupState' && message.state) {
           soak.state = message.state; soak.revision = message.state.revision;
           soak.arrivals.push({ at: performance.now(), wall: Date.now(), revision: message.state.revision, actor: message.state.prompt?.actor ?? message.state.actor,
-            phase: message.state.phase, bytes: event.data.length });
+            phase: message.state.phase, stageSeq: message.state.stageSeq, bytes: event.data.length });
           if (soak.arrivals.length > 20_000) soak.arrivals.splice(0, 10_000);
         }
-        const sent = message.requestId && soak.outgoing.find(entry => entry.requestId === message.requestId);
-        if (sent && message.code && message.code !== 'ACCEPTED') soak.failures.push({ seq: sent.seq, code: message.code, operation: sent.operation });
+        const sent = message.requestId && soak.outgoing.findLast(entry => entry.requestId === message.requestId);
+        if (sent && message.code) soak.receipts.push({ seq: sent.seq, code: message.code });
+        if (soak.receipts.length > 200) soak.receipts.splice(0, 100);
+        if (sent && message.code && message.code !== 'ACCEPTED') soak.failures.push({ seq: sent.seq, requestId: sent.requestId, code: message.code, operation: sent.operation });
         if (soak.failures.length > 200) soak.failures.splice(0, 100);
       });
     }
@@ -168,13 +171,13 @@ async function advanced(view, intent) {
   await intent();
   const deadline = Date.now() + 30_000;
   while (Date.now() < deadline) {
-    const result = await page.evaluate(mark => ({ revision: window.__soak.revision,
+    const result = await page.evaluate(mark => ({ revision: window.__soak.revision, stageSeq: window.__soak.state?.stageSeq ?? 0,
       failure: window.__soak.failures.find(entry => entry.seq > mark) ?? null }), mark);
     if (result.failure) throw Error(`setup ${result.failure.operation} rejected: ${result.failure.code}`);
-    if (result.revision > view.revision) return state();
+    if (result.revision > view.revision || (result.revision === view.revision && result.stageSeq > (view.stageSeq ?? 0))) return state();
     await sleep(25);
   }
-  throw Error(`no new revision after intent at ${view.revision}`);
+  throw Error(`no new revision or staged placement after intent at revision ${view.revision}`);
 }
 
 async function setDebug(open) {
@@ -334,7 +337,7 @@ async function arrangeByDebug(view) {
     await page.getByLabel('Setup Y', { exact: true }).fill(String(y));
     view = await advanced(view, () => page.getByRole('button', { name: 'Place on empty own-half square', exact: true }).click());
   }
-  view = await advanced(view, () => page.getByRole('button', { name: 'Confirmed!', exact: true }).click());
+  view = await advanced(view, () => page.getByRole('button', { name: 'Confirm Setup', exact: true }).click());
   await setDebug(false);
   return view;
 }
@@ -353,10 +356,12 @@ async function decide(view) {
     if (/COMPLETION_PENDING/.test(failure.message)) {
       // The final decision is durable; the server's timer retries the result write. Wait, then reload.
       log('completion-pending', { revision: view.revision });
+      await retainedRequests.captureRefusals();
       await sleep(5000); await page.reload(); await page.getByLabel('Live match pitch').waitFor({ timeout: 60_000 });
       await ensureDiagnostics();
       return state();
     }
+    if (await repeatRetainedRequest()) return state();
     log('ui-action-fallback', { kind: action.kind, reason: failure.message.slice(0, 200) });
     const fresh = await state();
     if (fresh.revision !== view.revision || !fresh.actions.some(item => item.id === action.id)) return fresh;
@@ -366,25 +371,38 @@ async function decide(view) {
 
 // ---------------------------------------------------------------- match lifecycle
 let matches = 0, completed = 0, decisions = 0, errors = 0, screenshots = 0;
+const observedMatches = new Set();
+const retainedRequests = new SoakRetainedRequests(() => page, log);
+
+function recordMatch(event, details) {
+  const matchId = new URL(page.url()).searchParams.get('matchId');
+  if (!observedMatches.has(matchId)) { observedMatches.add(matchId); matches++; }
+  log(event, { matches, matchId, ...details });
+}
 async function rejectedSignIn() {
   const alerts = (await page.getByRole('alert').allTextContents().catch(() => [])).join(' ');
   if (/AUTHENTICATION FAILED/i.test(alerts)) throw Error('AUTHENTICATION_FAILED: the game server rejected sign-in; refresh its ADC (gcloud auth application-default login) and restart the server');
 }
-// A refused completion write (COMPLETION_PENDING) leaves the client holding the request; repeating it is the
-// coach's documented recovery, and until it succeeds Play keeps routing back to the unfinished match.
-async function repeatRetainedRequest() {
-  const repeat = page.getByRole('button', { name: 'Repeat retained request', exact: true });
-  if (!await repeat.isVisible().catch(() => false)) return false;
-  log('retained-request-repeated', { url: page.url() });
-  await repeat.click();
-  await sleep(5000);
+// A held exact request must finish before deriving a new intent from the displayed state.
+const repeatRetainedRequest = () => retainedRequests.repeat();
+
+async function resumeActiveMatch() {
+  if (!/\/play\/match/.test(page.url())) return false;
+  await page.getByLabel('Live match pitch').waitFor({ timeout: 30_000 });
+  const view = await state();
+  if (!view || view.phase === 'FULL_TIME') return false;
+  await repeatRetainedRequest();
+  recordMatch('match-resumed', { revision: view.revision, phase: view.phase });
   return true;
 }
 
 async function createMatch() {
+  await retainedRequests.captureRefusals();
   await page.goto(`${origin}/play`);
+  if (await resumeActiveMatch()) return;
   if (/\/play\/match/.test(page.url()) && await repeatRetainedRequest()) await page.goto(`${origin}/play`);
   if (!await connected(30_000)) {
+    if (await resumeActiveMatch()) return;
     // Only a redirect to the login page means signed out. Otherwise the game server is down or restarting.
     // The server rejects every sign-in when its Google credentials (ADC) can no longer refresh.
     await rejectedSignIn();
@@ -418,7 +436,7 @@ async function createMatch() {
   await page.getByRole('button', { name: 'Start game', exact: true }).click({ timeout: 60_000 });
   await page.waitForURL(/\/play\/match/, { timeout: 60_000 });
   await page.getByLabel('Live match pitch').waitFor({ timeout: 60_000 });
-  matches++; log('match-started', { matches, url: page.url() });
+  recordMatch('match-started', { url: page.url() });
 }
 
 // ---------------------------------------------------------------- recorders
@@ -520,6 +538,7 @@ let consecutiveFailures = 0, needMatch = true, unavailableSince = null;
 while (Date.now() < deadline) {
   try {
     if (!browser.isConnected()) { log('browser-reconnect'); await closeChrome(); await launchChrome('about:blank'); await context.addInitScript(instrument); cdp = null; needMatch = true; }
+    await retainedRequests.captureRefusals();
     if (needMatch) { await createMatch(); await ensureDiagnostics(); needMatch = false; unavailableSince = null; lastChange = Date.now(); lastView = null; }
     const now = Date.now();
     if (now >= due.export) { await exportCapture(); due.export = now + every.export; }
@@ -530,24 +549,29 @@ while (Date.now() < deadline) {
     if (now >= due.status) {
       const view = await state();
       const status = { wall: new Date().toISOString(), elapsedMinutes: Math.round((now - started) / 60_000), matches, completed, decisions, errors,
-        exports: exportsSaved, traces: tracesSaved, revision: view?.revision, phase: view?.phase, half: view?.half, score: view ? [view.homeScore, view.awayScore] : null };
+        exports: exportsSaved, traces: tracesSaved, retainedRetries: retainedRequests.counts(), revision: view?.revision, phase: view?.phase, half: view?.half, score: view ? [view.homeScore, view.awayScore] : null };
       writeFileSync(resolve(output, 'status.json'), JSON.stringify(status, null, 2)); log('status', status); due.status = now + every.status;
     }
+    // A checkpoint refusal can retain a request during any phase, including setup.
+    // Finish its exact retry before deriving another intent from the displayed state.
+    if (await repeatRetainedRequest()) { lastView = null; lastChange = Date.now(); continue; }
     await maybeDecide();
     const view = lastView;
     if (view?.phase === 'FULL_TIME') {
-      completed++; log('match-completed', { revision: view.revision, score: [view.homeScore, view.awayScore] });
+      completed++; recordMatch('match-completed', { revision: view.revision, score: [view.homeScore, view.awayScore] });
       await exportCapture().catch(() => {}); await flushArrivals().catch(() => {});
       await screenshot('full-time'); await sleep(10_000); await repeatRetainedRequest(); needMatch = true; continue;
     }
     if (Date.now() - lastChange > 20 * 60_000) { log('stalled-new-match', { revision: view?.revision }); await screenshot('stalled'); needMatch = true; continue; }
     if (Date.now() - lastChange > 8 * 60_000 && !mine(view)) {
       log('stalled-reload', { revision: view?.revision }); await screenshot('stall'); lastChange = Date.now() - 8 * 60_000 + 60_000;
+      await retainedRequests.captureRefusals();
       await page.reload(); await page.getByLabel('Live match pitch').waitFor({ timeout: 60_000 }); await ensureDiagnostics(); continue;
     }
     consecutiveFailures = 0;
     await page.waitForFunction(revision => window.__soak?.revision !== revision, lastView?.revision ?? -1, { timeout: 1000 }).catch(() => {});
   } catch (failure) {
+    await retainedRequests.captureRefusals();
     errors++; consecutiveFailures++;
     log('error', { consecutive: consecutiveFailures, message: String(failure?.message ?? failure).split('\n')[0].slice(0, 300) });
     if (/NOT_SIGNED_IN|AUTHENTICATION_FAILED/.test(failure?.message)) break;
@@ -565,8 +589,9 @@ while (Date.now() < deadline) {
     await sleep(2000);
   }
 }
+await retainedRequests.captureRefusals();
 await flushArrivals().catch(() => {});
-log('run-finished', { matches, completed, decisions, errors, exports: exportsSaved, traces: tracesSaved });
-writeFileSync(resolve(output, 'status.json'), JSON.stringify({ finished: new Date().toISOString(), matches, completed, decisions, errors, exports: exportsSaved, traces: tracesSaved }, null, 2));
+log('run-finished', { matches, completed, decisions, errors, retainedRetries: retainedRequests.counts(), exports: exportsSaved, traces: tracesSaved });
+writeFileSync(resolve(output, 'status.json'), JSON.stringify({ finished: new Date().toISOString(), matches, completed, decisions, errors, retainedRetries: retainedRequests.counts(), exports: exportsSaved, traces: tracesSaved }, null, 2));
 await closeChrome();
 process.exit(matches === 0 ? 1 : 0);

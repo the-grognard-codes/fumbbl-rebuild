@@ -21,6 +21,8 @@ import com.fumbbl.ffb.server.team.bb2025.RosterCatalog;
 import org.eclipse.jetty.ee8.servlet.ServletContextHandler;
 import org.eclipse.jetty.ee8.servlet.ServletHolder;
 
+import java.net.InetAddress;
+import java.net.UnknownHostException;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.time.Clock;
@@ -44,7 +46,7 @@ public final class BrowserV2Runtime {
 		SavedTeamService teams = new SavedTeamService(new JdbcSavedTeamRepository(connections::open, true), catalog);
 		MatchService matches = new MatchService(new JdbcMatchRepository(connections::open), teams, catalog);
 		// New activations use r4.1 checkpoints. Existing r2.2/r2.3 checkpoints restore under their recorded runtime.
-		SetupApplication setup = new SetupApplication(server, matches, new JdbcRecoveryRepository(connections::open, true), true, true);
+		SetupApplication setup = new SetupApplication(server, matches, new JdbcRecoveryRepository(connections::open, true, true), true, true);
 		setup.configureStorageAdmission(connections::requireAvailable);
 		SkillUsePreferenceService skillUsePreferences = new SkillUsePreferenceService(
 			new JdbcSkillUsePreferenceRepository(connections::open), new JdbcMatchMembershipRepository(connections::open));
@@ -85,13 +87,38 @@ public final class BrowserV2Runtime {
 
 		@Override protected void doGet(HttpServletRequest request, HttpServletResponse response) {
 			String remoteAddress = request.getRemoteAddr();
-			if (!"127.0.0.1".equals(remoteAddress) && !"::1".equals(remoteAddress)) {
+			if (!loopback(remoteAddress)) {
 				response.setStatus(HttpServletResponse.SC_NOT_FOUND);
 				return;
 			}
 			response.setHeader("Cache-Control", "no-store");
 			response.setStatus(server.getCommunication().isHealthy()
 				? HttpServletResponse.SC_NO_CONTENT : HttpServletResponse.SC_SERVICE_UNAVAILABLE);
+		}
+
+		private boolean loopback(String address) {
+			// Servlet peer addresses are numeric. Never pass malformed IPv4 to a hostname resolver.
+			if (address == null || address.length() > 128) return false;
+			if (address.startsWith("[") && address.endsWith("]")) address = address.substring(1, address.length() - 1);
+			try {
+				if (!address.contains(":")) {
+					String[] parts = address.split("\\.", -1);
+					if (parts.length != 4) return false;
+					byte[] bytes = new byte[4];
+					for (int index = 0; index < parts.length; index++) {
+						if (!parts[index].matches("[0-9]{1,3}")) return false;
+						int octet = Integer.parseInt(parts[index]);
+						if (octet > 255) return false;
+						bytes[index] = (byte) octet;
+					}
+					return InetAddress.getByAddress(bytes).isLoopbackAddress();
+				}
+				int zone = address.indexOf('%');
+				if (zone >= 0) address = address.substring(0, zone);
+				if (!address.contains(":") || !address.matches("[0-9a-fA-F:][0-9a-fA-F:.]*")) return false;
+				// A hex/colon prefix plus a colon selects JDK literal parsing without hostname fallback.
+				return InetAddress.getByName(address).isLoopbackAddress();
+			} catch (UnknownHostException invalid) { return false; }
 		}
 	}
 }

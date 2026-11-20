@@ -18,7 +18,7 @@ class SpectatorProjectionTest {
 		Field field = SetupSession.class.getDeclaredField("document"); field.setAccessible(true);
 		MatchDocument document = (MatchDocument) field.get(fixture);
 		TestServer server = new TestServer();
-		SetupSession recoverable = new SetupSession(server.getServer(), document, -7, true);
+		SetupSession recoverable = SetupSession.startRecoverable(server.getServer(), document, -7, false, false);
 		JsonObject view = recoverable.spectatorView();
 		String json = view.toString();
 		assertEquals(recoverable.reply("read", "ACCEPTED", false, "home").get("state").asObject().set("callerRole", "spectator"), view);

@@ -164,6 +164,29 @@ try {
   assert.equal(await resumedLog.getAttribute('aria-live'), 'polite', 'Returning to the live bottom resumes following and announcements');
   assert.ok(await resumedLog.evaluate(element => element.scrollHeight - element.scrollTop - element.clientHeight <= 36));
   await resumed.close();
+  // Exercise real GameView announcement mounts without growing the retained log input.
+  await page.clock.install();
+  await page.evaluate(view => {
+    const state = { ...view, matchId: 'splash-dom', revision: 100, phase: 'PLAY', turnMode: 'REGULAR', actions: [], prompt: null };
+    const records = Array.from({length: 101}, (_, revision) => ({ index: revision, revision, kind: 'ACTION', actor: 'home', at: revision, decision: null, state: { ...state, revision },
+      native: [{ commandNr: revision, matchAnnouncements: { version: 1, events: [{ kind: 'touchdown', team: 'home', turn: 1, half: 1, reason: null }] } }] }));
+    window.publishDom({ view: state, records });
+  }, view);
+  await page.locator('.match-splash').waitFor({ state: 'detached' });
+  let settledCount;
+  for (let revision = 101; revision <= 151; revision++) {
+    await page.evaluate(({ view, revision }) => {
+      const state = { ...view, matchId: 'splash-dom', revision, phase: 'PLAY', turnMode: 'REGULAR', actions: [], prompt: null };
+      window.publishDom({ view: state, records: [...window.domInput.records, { index: revision, revision, kind: 'ACTION', actor: 'home', at: revision, decision: null, state,
+        native: [{ commandNr: revision, matchAnnouncements: { version: 1, events: [{ kind: 'touchdown', team: 'home', turn: 1, half: 1, reason: null }] } }] }] });
+    }, { view, revision });
+    await page.locator('.match-splash-touchdown').waitFor();
+    await page.keyboard.press('Escape'); await page.clock.runFor(600);
+    await page.locator('.match-splash').waitFor({ state: 'detached' });
+    const current = await page.locator('*').count();
+    if (revision === 101) settledCount = current;
+    else assert.equal(current, settledCount, '50 further splashes retain no DOM after exit');
+  }
   assert.deepEqual(errors, []);
   console.log('PASS 450 revisions, bounded match DOM, accessible full log history, idle Off/Graph evidence, pitch selection');
 } finally { await browser.close(); await server.close(); }

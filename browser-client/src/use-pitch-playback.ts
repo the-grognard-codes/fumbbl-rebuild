@@ -1,26 +1,38 @@
-import { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 
 import { playbackBeats, failedRerollGate, withConfirmedBallChanges, withConfirmedMove, withBlockContext, withConfirmedPlayerChanges } from './pitch-playback.ts';
 import { blockFaceLabel, diceRollGroups, offeredBlockDice, isOfferedPartialReroll } from './dice-presentation.ts';
 import { MultipleBlockDiceReveals } from './multiple-block-dice.ts';
 import { DiceStream } from './dice-stream.ts';
 import { provisionalMoves, remainingConfirmedBeats, movementBeatMillis } from './provisional-movement.ts';
-import { LIVE_CATCHUP_THRESHOLD, LIVE_CATCHUP_RATE, BALL_STEP_MS, PITCH_DICE_ROLL_MS, DICE_GROUP_INTERVAL_MS, DICE_EXIT_MS, ANNOUNCEMENT_GAP_MS, playbackRate } from './presentation-timing.ts';
+import { BALL_STEP_MS, PITCH_DICE_ROLL_MS, DICE_GROUP_INTERVAL_MS, DICE_EXIT_MS, ANNOUNCEMENT_GAP_MS, ANNOUNCEMENT_CHAIN_GAP_MS, LIVE_CATCHUP_THRESHOLD, LIVE_CATCHUP_RATE, playbackRate } from './presentation-timing.ts';
 import type { ConfirmedMove, PlaybackBeat } from './pitch-playback.ts';
 import type { RoutePreview } from './route-protocol.ts';
 import type { DiceMoment } from './dice-presentation.ts';
 import type { SetupState } from './setup-protocol.ts';
 import type { TranscriptRecord } from './transcript-protocol.ts';
-import { announcementDuration } from './match-announcements.ts';
+import { announcementReadingDuration } from './match-announcements.ts';
 import type { MatchAnnouncement } from './match-announcements.ts';
+import type { MatchSplashProps } from './MatchSplash.tsx';
 import { useAnnouncementPreferences } from './use-announcement-preferences.ts';
 
-type QueuedAnnouncement = MatchAnnouncement & Pick<SetupState, 'homeScore' | 'awayScore'>;
+type QueuedAnnouncement = {
+  card: MatchAnnouncement;
+  score: Pick<SetupState, 'homeScore' | 'awayScore'>;
+  chained: boolean;
+};
 
 const responseKinds = new Set(['blockDie', 'rerollDie', 'proTestReroll', 'reroll', 'skill', 'kickSkill', 'pileDriver', 'push', 'followUp', 'apothecary', 'argueTheCall', 'bribe', 'interception', 'reactiveSkill', 'reactiveSquare', 'reactionMove', 'reactionEnd']);
 
 function sequenceKey(view: SetupState): string {
   return [view.matchId, view.half, view.actor, view.turn, view.turnMode, view.activePlayerId].join(':');
+}
+
+function viewAfterBeat(view: SetupState, beat: Exclude<PlaybackBeat, { kind: 'dice' | 'announcement' }>): SetupState {
+  if (beat.kind === 'block') return withBlockContext(view, beat.context);
+  if (beat.kind === 'player') return withConfirmedPlayerChanges(view, beat.playerId, beat.changes);
+  const moved = beat.kind === 'move' ? withConfirmedMove(view, beat.move) : view;
+  return beat.ballChanges ? withConfirmedBallChanges(moved, beat.ballChanges) : moved;
 }
 
 /** Present native events in order before exposing decisions; never delay server processing. */
@@ -34,11 +46,18 @@ export function usePitchPlayback(view: SetupState, records: TranscriptRecord[], 
   const [synchronizing, setSynchronizing] = useState(false);
   const [announcement, setAnnouncement] = useState<MatchAnnouncement | null>(null);
   const [announcementExiting, setAnnouncementExiting] = useState(false);
+  const [announcementRate, setAnnouncementRate] = useState(1);
+  const [announcementShadeHeld, setAnnouncementShadeHeld] = useState(false);
+  const [announcementFading, setAnnouncementFading] = useState(false);
   const announcementPreferences = useAnnouncementPreferences();
+  const hiddenAnnouncements = useRef(announcementPreferences.hiddenAnnouncements);
+  hiddenAnnouncements.current = announcementPreferences.hiddenAnnouncements;
   const announcementQueue = useRef<QueuedAnnouncement[]>([]);
-  const pendingAnnouncement = useRef<{ id: string; closing: boolean; advance: () => void } | null>(null);
+  const canChainAnnouncement = useRef(false);
+  const pendingAnnouncement = useRef<{ closing: boolean; chained: boolean; skipGap?: () => void } | null>(null);
   const announcementTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const announcementTransitionTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const announcementExitComplete = useRef<(() => void) | null>(null);
   const announced = useRef(new Set<string>());
   const presented = useRef(view), received = useRef(view), latest = useRef(view);
   // Observation only: the revision whose first beat is being committed can be
@@ -58,10 +77,10 @@ export function usePitchPlayback(view: SetupState, records: TranscriptRecord[], 
   const multipleReveals = useRef(new MultipleBlockDiceReveals());
   const recoveringVisibility = useRef(false);
   const receivedSnapshotKey = useRef(snapshotKey);
-  const currentSpeed = useRef(speed); currentSpeed.current = speed;
+  const currentRate = useRef(playbackRate(speed, mode));
+  currentRate.current = playbackRate(speed, mode);
   const catchingUp = useRef(false);
-  const announcementRate = playbackRate(speed, mode);
-  const pace = () => mode === 'live' && catchingUp.current ? LIVE_CATCHUP_RATE : playbackRate(currentSpeed.current, mode);
+  const nativeRate = () => mode === 'live' && catchingUp.current ? LIVE_CATCHUP_RATE : currentRate.current;
   latest.current = view;
   const clearDice = () => { pinnedDice.current = false; diceStream.current!.clear(); };
   const cancel = () => {
@@ -69,8 +88,13 @@ export function usePitchPlayback(view: SetupState, records: TranscriptRecord[], 
     generation.current += 1;
     if (timer.current) clearTimeout(timer.current);
     pendingBeat.current = null;
-    pendingAnnouncement.current = null; announcementQueue.current = []; setAnnouncement(null);
+    announcementQueue.current = [];
+    canChainAnnouncement.current = false;
+    pendingAnnouncement.current = null; setAnnouncement(null);
+    announcementExitComplete.current = null;
     setAnnouncementExiting(false);
+    setAnnouncementShadeHeld(false);
+    setAnnouncementFading(false);
     if (announcementTimer.current) clearTimeout(announcementTimer.current);
     announcementTimer.current = null;
     if (announcementTransitionTimer.current) clearTimeout(announcementTransitionTimer.current);
@@ -79,28 +103,37 @@ export function usePitchPlayback(view: SetupState, records: TranscriptRecord[], 
     clearDice();
     timer.current = null; running.current = false; waiting.current = false;
   };
-  const startNextAnnouncement = () => {
-    const next = announcementQueue.current.shift();
-    if (!next) { setTick(value => value + 1); return; }
-    if (next.kind === 'touchdown') {
+  // The preference can change while cards wait behind an active splash.
+  const nextVisibleAnnouncement = useCallback(() => {
+    const queue = announcementQueue.current;
+    while (queue.length && hiddenAnnouncements.current.includes(queue[0].card.kind)) queue.shift();
+    return queue[0];
+  }, []);
+  const startNextAnnouncement = (shadeHeld = false) => {
+    const next = nextVisibleAnnouncement();
+    setAnnouncementShadeHeld(shadeHeld && !!next?.chained);
+    if (!next) {
+      canChainAnnouncement.current = false;
+      if (shadeHeld) setAnnouncementFading(true);
+      setTick(value => value + 1);
+      return;
+    }
+    announcementQueue.current.shift();
+    if (next.card.kind === 'touchdown') {
       const current = presented.current;
-      const scored = { ...current, homeScore: next.homeScore, awayScore: next.awayScore };
-      // A native square awaiting its React commit must keep its timer boundary.
+      const scored = { ...current, ...next.score };
+      // Keep a native beat's commit boundary when the score changes in the same render.
       if (pendingBeat.current?.view === current) pendingBeat.current.view = scored;
       presented.current = scored;
       setPitchView(scored);
     }
-    pendingAnnouncement.current = { id: next.id, closing: false, advance: startNextAnnouncement };
-    setAnnouncementExiting(false);
-    setAnnouncement(next);
+    pendingAnnouncement.current = { closing: false, chained: false };
+    setAnnouncementFading(false);
+    setAnnouncementRate(currentRate.current);
+    setAnnouncement(next.card);
   };
-  const queueAnnouncement = (next: QueuedAnnouncement) => {
-    announcementQueue.current.push(next);
-    if (!pendingAnnouncement.current) startNextAnnouncement();
-  };
-  // Native revisions keep draining, but cannot reveal a queued touchdown's score early.
   const scoreBeforeQueuedTouchdown = (next: SetupState): SetupState =>
-    announcementQueue.current.some(queued => queued.kind === 'touchdown')
+    announcementQueue.current.some(queued => queued.card.kind === 'touchdown')
       ? { ...next, homeScore: presented.current.homeScore, awayScore: presented.current.awayScore } : next;
   useEffect(() => () => cancel(), []);
   useEffect(() => {
@@ -113,10 +146,9 @@ export function usePitchPlayback(view: SetupState, records: TranscriptRecord[], 
     received.current = view;
     const seeking = snapshotKey !== undefined && snapshotKey !== receivedSnapshotKey.current;
     if (seeking) receivedSnapshotKey.current = snapshotKey;
-    // Latch catch-up through the tail so the final few revisions cannot slow back to normal pace.
+    // Keep catch-up through the tail, even after the backlog drops below the entry threshold.
     if (mode !== 'live' || completed.current >= view.revision) catchingUp.current = false;
     else if (view.revision - completed.current >= LIVE_CATCHUP_THRESHOLD) catchingUp.current = true;
-    const rate = pace();
     const requiresResponse = !!view.prompt || !!view.reaction || view.actions.some(action => responseKinds.has(action.kind));
     const deferScoringResponse = view.drive > presented.current.drive
       || view.homeScore > presented.current.homeScore || view.awayScore > presented.current.awayScore;
@@ -137,7 +169,7 @@ export function usePitchPlayback(view: SetupState, records: TranscriptRecord[], 
       multipleReveals.current.remember(dice, view);
       pinnedDice.current = view.actions.some(action => ['blockDie', 'reroll', 'skill', 'kickSkill'].includes(action.kind));
       // Recovery restores the result, never an old roll animation or backlog.
-      diceStream.current!.enqueue({ ...dice, revision: view.revision }, sequenceKey(view), pinnedDice.current, true, rate);
+      diceStream.current!.enqueue({ ...dice, revision: view.revision }, sequenceKey(view), pinnedDice.current, true, nativeRate());
     };
     const snapshot = () => {
       presentationRevision.current = view.revision;
@@ -197,17 +229,18 @@ export function usePitchPlayback(view: SetupState, records: TranscriptRecord[], 
     }
     const record = records[completed.current + 1];
     if (!record || record.revision !== completed.current + 1) {
-      // Missing history may recover the board, but an offered choice cannot
-      // interrupt an existing splash. Wait for history or explicit recovery.
-      if (pendingAnnouncement.current || announcementQueue.current.length) {
+      // Missing history can postpone a choice, but cannot interrupt an earlier splash.
+      if (pendingAnnouncement.current) {
         setActive(true);
         setSynchronizing(true);
         return;
       }
+      // A missing transcript cannot postpone a newly offered mandatory response.
       if (!deferScoringResponse && (view.prompt || view.actions.some(action => responseKinds.has(action.kind)) || view.phase === 'FULL_TIME')) {
         snapshot();
         return;
       }
+      canChainAnnouncement.current = false;
       setActive(true);
       setSynchronizing(true);
       // A future drive decision cannot stand in for its missing scoring
@@ -264,47 +297,56 @@ export function usePitchPlayback(view: SetupState, records: TranscriptRecord[], 
         ...record.state, callerRole: latest.current.callerRole, actions: [], prompt: null
       } as SetupState;
       const visible = scoreBeforeQueuedTouchdown(final);
-      presented.current = visible; setPitchView(visible); completed.current = record.revision;
+      presented.current = visible; setPitchView(visible);
+      completed.current = record.revision;
       running.current = false; timer.current = null;
       setActive(completed.current < latest.current.revision);
       setMoveMillis(0);
       setTick(value => value + 1);
     };
-    const presentDice = (index: number) => {
-      const rate = pace();
-      const beat = beats[index];
-      if (beat.kind === 'dice') {
-        if (!multipleReveals.current.allows(beat.dice, record.state)) return false;
-        multipleReveals.current.remember(beat.dice, record.state);
-        diceRevision.current = record.revision;
-        const response = mode === 'live' && record.revision === latest.current.revision
-          && (latest.current.prompt || latest.current.actions.some(action => responseKinds.has(action.kind)));
-        const finalResponseRoll = response && index === finalDiceIndex;
-        const keep = !!finalResponseRoll && latest.current.actions.some(action => ['blockDie', 'reroll', 'skill', 'kickSkill'].includes(action.kind));
-        if (finalResponseRoll) {
-          responseDiceKey.current = `${latest.current.matchId}:${record.revision}`;
-          pinnedDice.current = keep;
-        }
-        diceStream.current!.enqueue({ ...beat.dice, revision: record.revision, rollDuration: PITCH_DICE_ROLL_MS / rate,
-          rollKey: !reduced && beat.dice.selected === null ? `${record.revision}:${index}` : undefined },
-          sequenceKey(record.state), keep, false, rate, reduced, retainRoll);
-        return true;
+    const presentDice = (dice: DiceMoment, index: number, rate: number) => {
+      multipleReveals.current.remember(dice, record.state);
+      diceRevision.current = record.revision;
+      const response = mode === 'live' && record.revision === latest.current.revision
+        && (latest.current.prompt || latest.current.actions.some(action => responseKinds.has(action.kind)));
+      const finalResponseRoll = response && index === finalDiceIndex;
+      const keep = !!finalResponseRoll && latest.current.actions.some(action => ['blockDie', 'reroll', 'skill', 'kickSkill'].includes(action.kind));
+      if (finalResponseRoll) {
+        responseDiceKey.current = `${latest.current.matchId}:${record.revision}`;
+        pinnedDice.current = keep;
       }
+      diceStream.current!.enqueue({ ...dice, revision: record.revision, rollDuration: PITCH_DICE_ROLL_MS / rate,
+        rollKey: !reduced && dice.selected === null ? `${record.revision}:${index}` : undefined },
+        sequenceKey(record.state), keep, false, rate, reduced, retainRoll);
     };
     const advance = (index: number) => {
       if (generation.current !== token) return;
-      const rate = pace();
+      const rate = nativeRate();
       for (; index < beats.length; index += 1) {
         const beat = beats[index];
         if (beat.kind === 'announcement') {
           if (announced.current.has(beat.announcement.id)) continue;
           announced.current.add(beat.announcement.id);
+          if (hiddenAnnouncements.current.includes(beat.announcement.kind)) continue;
+          const next = beats[index + 1];
+          // A displayed Changing Weather card already includes this exact weather fact.
+          // If kickoff splashes are hidden, the weather card can still play on its own.
+          const pairedWeather = next?.kind === 'announcement'
+            && next.announcement.id === beat.announcement.kickoffWeather?.pairedEventId;
+          if (pairedWeather) announced.current.add(next.announcement.id);
           presentationRevision.current = record.revision;
-          queueAnnouncement({ ...beat.announcement, homeScore: record.state.homeScore, awayScore: record.state.awayScore });
+          announcementQueue.current.push({
+            card: beat.announcement, chained: canChainAnnouncement.current,
+            score: { homeScore: record.state.homeScore, awayScore: record.state.awayScore },
+          });
+          canChainAnnouncement.current = true;
+          if (!pendingAnnouncement.current) startNextAnnouncement();
           continue;
         }
         if (beat.kind === 'dice') {
-          if (!presentDice(index)) continue;
+          if (!multipleReveals.current.allows(beat.dice, record.state)) continue;
+          canChainAnnouncement.current = false;
+          presentDice(beat.dice, index, rate);
           // Successful movement checks accompany their native square update;
           // dice lifetime must not add a stop to the player's movement.
           if (beat.dice.continuous) continue;
@@ -315,11 +357,9 @@ export function usePitchPlayback(view: SetupState, records: TranscriptRecord[], 
           return;
         }
         const current = presented.current;
-        const moved = beat.kind === 'move' ? withConfirmedMove(current, beat.move) : current;
-        const next = beat.kind === 'block' ? withBlockContext(current, beat.context)
-          : beat.kind === 'player' ? withConfirmedPlayerChanges(current, beat.playerId, beat.changes)
-          : beat.ballChanges ? withConfirmedBallChanges(moved, beat.ballChanges) : moved;
+        const next = viewAfterBeat(current, beat);
         if (next === current) continue;
+        canChainAnnouncement.current = false;
         // Start the next delay only after React commits this square. Separate
         // timer tasks alone can still be batched, especially in reduced motion.
         const delay = beat.kind === 'block' || beat.kind === 'player' ? 16 : beat.kind === 'ball' ? BALL_STEP_MS / rate
@@ -342,53 +382,84 @@ export function usePitchPlayback(view: SetupState, records: TranscriptRecord[], 
     pending.committed?.();
     timer.current = setTimeout(pending.advance, pending.delay);
   }, [pitchView, diceMoment]);
-  const dismissAnnouncement = () => {
+  const dismissAnnouncement = useCallback(() => {
     const pending = pendingAnnouncement.current;
-    if (!pending || pending.closing) return;
+    if (!pending) return;
+    if (pending.closing) {
+      pending.skipGap?.();
+      return;
+    }
     pending.closing = true;
+    pending.chained = nextVisibleAnnouncement()?.chained ?? false;
     if (announcementTimer.current) clearTimeout(announcementTimer.current);
     announcementTimer.current = null;
+    setAnnouncementShadeHeld(pending.chained);
     setAnnouncementExiting(true);
-  };
+  }, [nextVisibleAnnouncement]);
+  useEffect(() => {
+    if (announcement && announcementPreferences.hiddenAnnouncements.includes(announcement.kind)) dismissAnnouncement();
+  }, [announcement, announcementPreferences.hiddenAnnouncements, dismissAnnouncement]);
+  useLayoutEffect(() => {
+    if (!announcementFading) return;
+    const timeout = setTimeout(() => {
+      setAnnouncement(null);
+      setAnnouncementFading(false);
+    }, DICE_EXIT_MS / announcementRate);
+    return () => clearTimeout(timeout);
+  }, [announcement, announcementFading, announcementRate]);
   // Start the fade timer after its visual state commits. Keep the queue active
-  // through the clear interval. Recovery can cancel both phases without a
-  // stale callback advancing the old queue; choices wait for the whole queue.
+  // through the clear interval. Snapshot recovery cancels both phases.
   useLayoutEffect(() => {
     const pending = pendingAnnouncement.current;
     if (!announcementExiting || !pending) return;
-    const reduced = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false;
-    announcementTransitionTimer.current = setTimeout(() => {
+    const rate = announcementRate;
+    const complete = () => {
       if (pendingAnnouncement.current !== pending) return;
+      announcementExitComplete.current = null;
+      if (announcementTransitionTimer.current) clearTimeout(announcementTransitionTimer.current);
       setAnnouncement(null);
-      announcementTransitionTimer.current = setTimeout(() => {
+      const resume = () => {
         if (pendingAnnouncement.current !== pending) return;
+        if (announcementTransitionTimer.current) clearTimeout(announcementTransitionTimer.current);
         announcementTransitionTimer.current = null;
         pendingAnnouncement.current = null;
         setAnnouncementExiting(false);
-        pending.advance();
-      }, ANNOUNCEMENT_GAP_MS / announcementRate);
-    }, reduced ? 0 : DICE_EXIT_MS / announcementRate);
+        startNextAnnouncement(pending.chained);
+      };
+      if (pending.chained) pending.skipGap = resume;
+      announcementTransitionTimer.current = setTimeout(resume, (pending.chained ? ANNOUNCEMENT_CHAIN_GAP_MS : ANNOUNCEMENT_GAP_MS) / rate);
+    };
+    announcementExitComplete.current = complete;
+    announcementTransitionTimer.current = setTimeout(complete, DICE_EXIT_MS / rate);
     return () => {
+      announcementExitComplete.current = null;
       if (announcementTransitionTimer.current) clearTimeout(announcementTransitionTimer.current);
       announcementTransitionTimer.current = null;
     };
   }, [announcementExiting, announcementRate]);
   useLayoutEffect(() => {
     if (!announcement || announcementExiting || announcementPreferences.holdAnnouncements) return;
-    const timeout = setTimeout(dismissAnnouncement, announcementDuration(announcement, announcementRate));
+    const rate = announcementRate;
+    const timeout = setTimeout(dismissAnnouncement, announcementReadingDuration(announcement, rate));
     announcementTimer.current = timeout;
     return () => { clearTimeout(timeout); };
-  }, [announcement, announcementExiting, announcementPreferences.holdAnnouncements, announcementRate]);
+  }, [announcement, announcementExiting, announcementPreferences.holdAnnouncements, announcementRate, dismissAnnouncement]);
   const beginProvisional = (route: RoutePreview) => {
     if (!enabled || mode !== 'live' || running.current || waiting.current || provisional.current
-      || pendingAnnouncement.current || announcementQueue.current.length) return;
+      || pendingAnnouncement.current || announcementFading) return;
     const moves = provisionalMoves(latest.current, route);
     if (!moves.length) return;
     provisional.current = { base: latest.current, moves, shown: [] };
     setTick(value => value + 1);
   };
-  const playbackActive = active || !!pendingAnnouncement.current || announcementQueue.current.length > 0;
+  const splash: MatchSplashProps | undefined = announcement || announcementShadeHeld || announcementFading ? {
+    announcement, exiting: announcementExiting || announcementFading, rate: announcementRate, shadeHeld: announcementShadeHeld,
+    fading: announcementFading, hold: announcementPreferences.holdAnnouncements,
+    onDismiss: dismissAnnouncement, onExited: () => announcementExitComplete.current?.(),
+    onSkipGap: !announcement && announcementShadeHeld && announcementExiting ? dismissAnnouncement : undefined,
+  } : undefined;
+  const playbackActive = active || !!pendingAnnouncement.current || announcementFading;
   return { pitchView, presentationRevision: playbackActive ? Math.max(pitchView.revision, presentationRevision.current, diceMoment?.revision ?? -1) : pitchView.revision, provisionalActive: !!provisional.current, playbackActive, diceMoment, synchronizing, movementDuration: moveMillis, beginProvisional,
-    announcement, announcementExiting, announcementRate, dismissAnnouncement, ...announcementPreferences,
+    splash, announcement, announcementExiting, changeHoldAnnouncements: announcementPreferences.changeHoldAnnouncements,
     diceSnapshot: pitchView.revision === snapshotRevision.current };
 }

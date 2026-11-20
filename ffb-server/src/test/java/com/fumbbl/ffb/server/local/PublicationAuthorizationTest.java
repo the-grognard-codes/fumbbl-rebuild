@@ -84,6 +84,25 @@ class PublicationAuthorizationTest {
 			for (Connection connection : fixture.connections) assertEquals("ACCEPTED", connection.last().getString("code", null));
 		}
 	}
+
+	@Test void stagedPlacementSkipsAnExhaustedBudgetWithoutRetryingOrRetiringViewers() throws Exception {
+		Fixture fixture = new Fixture();
+		fixture.enroll(V2PublicationAuthorization.Family.STATE, 2);
+		fixture.reset();
+		JsonObject placement = new JsonObject().add("type", "stagedPlacement");
+		fixture.withBudget(() -> {
+			fixture.nanos.addAndGet(BrowserRequestTiming.REQUEST_BUDGET_NANOS);
+			fixture.publisher.publishPlacement(MATCH, null, placement);
+		});
+		fixture.withBudget(fixture.publisher::retryPublications);
+		assertTrue(fixture.connections.stream().allMatch(connection -> connection.messages.isEmpty()));
+
+		fixture.withBudget(() -> fixture.publisher.publishPlacement(MATCH, null, placement));
+		for (Connection connection : fixture.connections) assertEquals(List.of(placement), connection.messages);
+		assertEquals(0, fixture.directory.batches);
+		assertEquals(0, fixture.directory.providerCalls);
+	}
+
 	@Test void budgetExpiryAfterBatchAndDuringFinalAdmissionPreservesEverySubscription() throws Exception {
 		for (V2PublicationAuthorization.Family family : V2PublicationAuthorization.Family.values()) for (boolean finalAdmission : new boolean[] {false, true}) {
 			Fixture fixture = new Fixture(); fixture.enroll(family, 2); fixture.reset();

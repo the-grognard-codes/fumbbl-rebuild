@@ -107,13 +107,16 @@ test('hosted kickoff player choices toggle in one click and confirm separately',
   try {
     const page = await (await browser.newContext({ viewport: { width: 1280, height: 660 } })).newPage();
     const requests = []; let revision = 0;
-    const choice = (name, playerId) => ({ id: `${revision}:event-pick:${playerId}`, label: `Select ${name}`,
+    const selected = new Set();
+    const choice = (name, playerId) => ({ id: `${revision}:event-pick:${playerId}`,
+      label: `${selected.has(playerId) ? 'Deselect' : 'Select'} ${name}`,
       actor: 'home', kind: 'kickoffChoice', target: { playerId }, sourcePlayerId: null });
     const state = () => ({ ...beforeFinalDecision, revision, turnMode: revision === 0 ? 'KICKOFF' : 'REGULAR',
-      ...(revision === 0 ? { kickoff: { version: 1, event: 'CHARGE', actor: 'home', stage: 'selection', allowed: 2, selected: 0, completed: 0 } } : {}),
+      ...(revision === 0 ? { kickoff: { version: 1, event: 'CHARGE', actor: 'home', stage: 'selection', allowed: 2,
+        selected: selected.size, participantIds: [...selected], completed: 0 } } : {}),
       players: [...beforeFinalDecision.players, { ...beforeFinalDecision.players[0], id: 'p3', name: 'Runner', slot: 3, number: 3, x: 4 }],
       actions: revision === 0 ? [choice('Lineman', 'p1'), choice('Runner', 'p3'),
-        { id: `${revision}:event-confirm`, label: 'Confirm CHARGE', actor: 'home', kind: 'kickoffChoice', target: null, sourcePlayerId: null }]
+        ...(selected.size ? [{ id: `${revision}:event-confirm`, label: 'Confirm CHARGE', actor: 'home', kind: 'kickoffChoice', target: null, sourcePlayerId: null }] : [])]
         : beforeFinalDecision.actions });
     await page.route('**/assets/auth-client.js', route => route.fulfill({ contentType: 'text/javascript', body: 'export const authentication=()=>({auth:{},config:window.MOLES_FIREBASE_CONFIG});' }));
     await page.route('https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js', route => route.fulfill({ contentType: 'text/javascript', body: "export function onAuthStateChanged(auth,callback){queueMicrotask(()=>callback({getIdToken:async()=>'fixture'}));return()=>{};}" }));
@@ -125,10 +128,10 @@ test('hosted kickoff player choices toggle in one click and confirm separately',
         if (request.type === 'setup') {
           if (request.operation === 'action') {
             requests.push([request.actionId, request.expectedRevision, request.playerIds]);
-            assert.equal(request.expectedRevision, revision);
-            assert.equal(request.actionId, '0:event-confirm');
-            assert.deepEqual(request.playerIds, ['p1', 'p3']);
-            revision++;
+            const playerId = request.actionId?.match(/^0:event-pick:(p1|p3)$/)?.[1];
+            if (playerId) {
+              if (!selected.delete(playerId)) selected.add(playerId);
+            } else if (request.actionId === '0:event-confirm') revision++;
           }
           send({ type: 'setupState', requestId: request.requestId, code: 'ACCEPTED', duplicate: false, state: state() });
         }
@@ -137,13 +140,18 @@ test('hosted kickoff player choices toggle in one click and confirm separately',
     await page.goto(`http://127.0.0.1:${server.address().port}/play/match?matchId=${matchId}`);
     const confirmSelection = page.locator('.confirmation-row .commit-action');
     const toggle = async id => { const player = page.locator(`[data-player-id="${id}"]`); await revealPlayer(page, player); await player.click(); };
+    const selection = id => page.locator(`.live-selection-square[data-selection="${id}"]`);
     await toggle('p1');
-    assert.equal(await page.locator('.live-selection-square[data-selection="p1"]').count(), 1);
+    await selection('p1').waitFor();
     await toggle('p1');
-    assert.equal(await page.locator('.live-selection-square[data-selection]').count(), 0);
-    await toggle('p1'); await toggle('p3');
-    assert.equal(await page.locator('.live-selection-square[data-selection]').count(), 2);
-    assert.deepEqual(requests, [], 'Draft choices remain local until confirmation');
+    await selection('p1').waitFor({ state: 'detached' });
+    await toggle('p1');
+    await selection('p1').waitFor();
+    await toggle('p3');
+    await selection('p3').waitFor();
+    const picks = ['p1', 'p1', 'p1', 'p3'].map(id => [`0:event-pick:${id}`, 0, undefined]);
+    assert.deepEqual(requests, picks, 'Each toggle stages one server action at the current revision');
+    assert.deepEqual([...selected], ['p1', 'p3']);
     assert.equal(await confirmSelection.isEnabled(), true);
     if (process.env.MATCH_CAPTURE_DIR) {
       await mkdir(process.env.MATCH_CAPTURE_DIR, { recursive: true });
@@ -154,7 +162,7 @@ test('hosted kickoff player choices toggle in one click and confirm separately',
     await page.waitForFunction(() => document.querySelector('[data-testid="setup-status"]')?.textContent.includes('Revision 1'));
     await page.getByLabel('Live match pitch').waitFor();
     assert.match(await page.getByTestId('setup-status').textContent(), /Revision 1.*\(REGULAR\)/);
-    assert.deepEqual(requests, [['0:event-confirm', 0, ['p1', 'p3']]]);
+    assert.deepEqual(requests, [...picks, ['0:event-confirm', 0, undefined]], 'Confirmation commits the staged group');
   } finally { await browser.close(); await new Promise(done => server.close(done)); }
 });
 

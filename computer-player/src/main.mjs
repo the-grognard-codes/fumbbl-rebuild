@@ -4,7 +4,7 @@ import { decodeSetupStateValue } from '../../browser-client/src/setup-protocol.t
 import { assertV2Projection } from '../../browser-client/src/v2-projection.ts';
 import { parseV2Response } from '../../browser-client/src/v2-response.ts';
 import { chooseComputerDecision, isComputerGameOperation } from './computer-policy.mjs';
-import { idleWorkerExitCode, persistenceExhaustedExitCode } from './worker-lifecycle.mjs';
+import { abandonedWorkerExitCode, idleWorkerExitCode, persistenceUnavailableExitCode, suspendedWorkerExitCode } from './worker-lifecycle.mjs';
 
 const uuid = /^[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}$/;
 const matchId = value('--match');
@@ -38,9 +38,6 @@ let sentAt = 0;
 let setupKey;
 let setupVariant = 0;
 let idleTimer;
-const persistenceBackoffMs = [1000, 2000, 4000];
-let persistenceRetries = 0;
-let persistenceTimer;
 
 function value(flag, required = true) {
   const index = process.argv.indexOf(flag);
@@ -55,8 +52,10 @@ function send(request) {
 function log(message) { console.log(`[computer-player] ${message}`); }
 function clearIdleTimer() { clearTimeout(idleTimer); idleTimer = undefined; }
 function waitingForHuman() {
-  return state && state.phase !== 'FULL_TIME' && state.actor !== state.callerRole
-    && state.prompt?.actor !== state.callerRole && state.reaction?.actor !== state.callerRole;
+  if (!state || state.phase === 'FULL_TIME') return false;
+  // A policy that can act on save/resume clears the idle timer before sending its decision.
+  if (state.saveResume && state.saveResume.status !== 'ACTIVE') return true;
+  return state.actor !== state.callerRole && state.prompt?.actor !== state.callerRole && state.reaction?.actor !== state.callerRole;
 }
 function yieldIdleWorker() {
   idleTimer = undefined;
@@ -67,19 +66,27 @@ function yieldIdleWorker() {
   }
   log(`Match ${matchId} is waiting for the human coach; yielding worker capacity.`);
   process.exitCode = idleWorkerExitCode;
+  if (process.connected) process.send({ type: 'idle', revision: state.revision });
   stop();
 }
 function requestLoad() {
-  if (!authenticated || !socket || socket.readyState !== WebSocket.OPEN || loadId || pending || persistenceTimer) return;
+  if (!authenticated || !socket || socket.readyState !== WebSocket.OPEN || loadId || pending) return;
   loadId = randomUUID();
   send({ version: 2, type: 'setup', operation: 'load', requestId: loadId, matchId });
 }
 function decide() {
-  if (!state || pending || loadId || persistenceTimer || !authenticated || socket?.readyState !== WebSocket.OPEN) return;
+  if (!state || pending || loadId || !authenticated || socket?.readyState !== WebSocket.OPEN) return;
   if (state.phase === 'FULL_TIME') { log(`Match complete at revision ${state.revision}.`); stop(); return; }
+  if (idleTimeoutMs && state.saveResume?.status === 'SUSPENDED') {
+    log(`Match ${matchId} is suspended; releasing worker capacity.`);
+    process.exitCode = suspendedWorkerExitCode;
+    if (process.connected) process.send({ type: 'idle', revision: state.revision });
+    stop();
+    return;
+  }
   if (!waitingForHuman()) clearIdleTimer();
   else if (idleTimeoutMs && !idleTimer) idleTimer = setTimeout(yieldIdleWorker, idleTimeoutMs);
-  const decisionKey = `${state.revision}:${state.saveResume?.status ?? ''}:${state.saveResume?.proposalId ?? ''}`;
+  const decisionKey = `${state.revision}:${state.stageSeq ?? 0}:${state.saveResume?.status ?? ''}:${state.saveResume?.proposalId ?? ''}`;
   if (decisionKey === lastDecisionKey) return;
   const key = `${state.half}:${state.drive}:${state.homeTurn}:${state.awayTurn}:${state.actor}`;
   if (key !== turnKey) { turnKey = key; actionsThisTurn = 0; }
@@ -105,34 +112,25 @@ function decide() {
   send(pending);
 }
 function applyState(raw) {
-  const next = decodeSetupStateValue(raw);
+  const next = decodeSetupStateValue(raw, 'computer');
   if (next.matchId !== matchId || next.callerRole === 'spectator') throw Error('Unexpected match or role');
-  if (!state || next.revision >= state.revision) state = next;
+  if (!state || next.revision > state.revision
+    || next.revision === state.revision && (next.stageSeq ?? 0) >= (state.stageSeq ?? 0)) state = next;
 }
-function recoverPersistence(operation, code) {
-  // This is a definite rejection. Discard the decision and wait for a correlated load
-  // before choosing again. Unanswered requests still use the exact reconnect retry.
+function yieldToDaemon() {
+  // The daemon owns persistence backoff and emits one diagnostic per failed worker.
+  // Never repeat a decision after a definite rejection; the next worker loads durable state.
   pending = null;
   loadId = null;
-  state = null;
-  lastDecisionKey = undefined;
-  sentAt = 0;
-  clearIdleTimer();
-  if (persistenceRetries === persistenceBackoffMs.length) {
-    console.error(`[computer-player] Match ${matchId}: Persistence recovery exhausted after ${persistenceRetries} retries (${operation}: ${code}).`);
-    process.exitCode = persistenceExhaustedExitCode;
-    stop();
-    return;
-  }
-  const delay = persistenceBackoffMs[persistenceRetries++];
-  log(`Match ${matchId}: ${operation} returned ${code}; reloading in ${delay} ms.`);
-  persistenceTimer = setTimeout(() => {
-    persistenceTimer = undefined;
-    // Broadcasts during backoff cannot establish the revision for a retry.
-    state = null;
-    requestLoad();
-  }, delay);
+  process.exitCode = persistenceUnavailableExitCode;
+  stop();
 }
+function abandon() {
+  log(`Match ${matchId} was abandoned.`);
+  if (process.connected) process.exitCode = abandonedWorkerExitCode;
+  stop();
+}
+
 function receive(raw) {
   const message = parseV2Response(raw);
   assertV2Projection(message);
@@ -150,10 +148,13 @@ function receive(raw) {
   }
   if ((message.type === 'error' || message.type === 'setupState')
       && (message.code === 'PERSISTENCE_FAILED' || message.code === 'COMPLETION_PENDING')) {
-    if (message.requestId === pending?.requestId) { recoverPersistence(pending.operation, message.code); return; }
-    if (loadId && message.requestId === loadId) { recoverPersistence('load', message.code); return; }
+    if (message.requestId === pending?.requestId) { yieldToDaemon(); return; }
+    if (loadId && message.requestId === loadId) { yieldToDaemon(); return; }
   }
   if (message.type === 'error') {
+    if (message.code === 'MATCH_ABANDONED' && (loadId && message.requestId === loadId || pending && message.requestId === pending.requestId)) {
+      abandon(); return;
+    }
     if (message.requestId === authenticationId || ['AUTHENTICATION_REQUIRED', 'AUTHENTICATION_FAILED', 'CONNECTION_REPLACED', 'AUTHORIZATION'].includes(message.code)) {
       throw Error(`Access unavailable: ${message.code}`);
     }
@@ -162,6 +163,7 @@ function receive(raw) {
     return;
   }
   if (message.type !== 'setupState' || (message.requestId !== null && message.requestId !== pending?.requestId && message.requestId !== loadId)) return;
+  if (message.code === 'MATCH_ABANDONED') { abandon(); return; }
   if (typeof message.code !== 'string' || typeof message.duplicate !== 'boolean'
     || (message.code === 'ACCEPTED' && !message.state)
     || (message.requestId === null && message.code !== 'ACCEPTED')) throw Error('Invalid setup response');
@@ -171,7 +173,6 @@ function receive(raw) {
     pending = null;
     sentAt = 0;
     if (message.code === 'ACCEPTED') {
-      persistenceRetries = 0;
       if (old.operation === 'action') actionsThisTurn++;
     } else if (message.code === 'ILLEGAL_SETUP' && old.operation === 'confirm') {
       setupVariant++;
@@ -185,7 +186,6 @@ function receive(raw) {
     if (message.code === 'NOT_ACTIVATED') { setTimeout(requestLoad, 3000); return; }
     if (message.code !== 'ACCEPTED') throw Error(`Load rejected: ${message.code}`);
     decide();
-    if (!pending) persistenceRetries = 0;
     return;
   }
   decide();
@@ -220,7 +220,7 @@ function fail(error) {
   stop();
   process.exitCode = 1;
 }
-function stop() { stopped = true; clearIdleTimer(); clearTimeout(persistenceTimer); try { socket?.close(); } catch { /* A connecting socket may already be closing. */ } socket = null; }
+function stop() { stopped = true; clearIdleTimer(); try { socket?.close(); } catch { /* A connecting socket may already be closing. */ } socket = null; }
 process.on('SIGINT', stop);
 process.on('SIGTERM', stop);
 setInterval(requestLoad, 30000).unref();

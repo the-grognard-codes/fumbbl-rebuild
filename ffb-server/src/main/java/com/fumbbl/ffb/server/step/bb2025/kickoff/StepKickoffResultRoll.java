@@ -96,6 +96,7 @@ public final class StepKickoffResultRoll extends AbstractStep {
 
 		}
 
+		getGameState().observeKickoffResult(fKickoffResult);
 		getResult().addReport(new ReportKickoffResult(fKickoffResult, rollKickoff));
 		publishParameter(new StepParameter(StepParameterKey.KICKOFF_RESULT, fKickoffResult));
 		getResult().setNextAction(StepAction.NEXT_STEP);

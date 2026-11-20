@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { readFileSync } from 'node:fs';
-import { decodeMatchAnnouncements, syncAnnouncements, announcementDuration } from '../src/match-announcements.ts';
+import { decodeMatchAnnouncements, syncAnnouncements, announcementReadingDuration, announcementHeadline } from '../src/match-announcements.ts';
 import { playbackBeats, withConfirmedPlayerChanges, withConfirmedMove, withConfirmedBallChanges } from '../src/pitch-playback.ts';
 import { matchLogLines } from '../src/match-log.ts';
 import type { TranscriptRecord } from '../src/transcript-protocol.ts';
@@ -78,8 +78,8 @@ test('announcements retain readable causes in the log and deduplicate stable ide
   const lines = matchLogLines([input]).filter(line => line.key.includes(state.matchId));
   assert.equal(lines.length, 1);
   assert.equal(lines[0].text, 'Blue Badgers — TURNOVER. Runner failed to pick up the ball.');
-  assert.equal(announcementDuration(turnover, 1), 3000);
-  assert.equal(announcementDuration({ ...turnover, kind: 'turnStart' }, 2), 750);
+  assert.equal(announcementReadingDuration(turnover, 1), 3000);
+  assert.equal(announcementReadingDuration({ ...turnover, kind: 'turnStart' }, 2), 750);
 });
 
 test('native friendly throw collision resolves both players before the turnover splash', () => {
@@ -111,4 +111,58 @@ test('native friendly throw collision resolves both players before the turnover 
     }
   }
   assert.deepEqual(announcements, ['turnover', 'turnStart']);
+});
+
+test('extended authoritative kinds retain ordering and rate-scaled durations', () => {
+  const facts: MatchAnnouncementEvent[] = [
+    { ...turnover, kind: 'weather', code: 'NICE', headline: 'Nice Weather', reason: 'No additional weather effects.' },
+    { ...turnover, kind: 'kickoff', code: 'WEATHER_CHANGE', headline: 'Weather Change', teamSpecific: false,
+      weather: { code: 'BLIZZARD', headline: 'Blizzard', reason: 'No rush beyond the first square without a penalty.' } },
+    { ...turnover, kind: 'weather', code: 'BLIZZARD', headline: 'Blizzard' },
+    { ...turnover, kind: 'turnStart', team: 'away' },
+    { ...turnover, kind: 'touchdown' },
+    { ...turnover, kind: 'halfTime' },
+    { ...turnover, kind: 'fullTime', code: 'CONCEDED', headline: 'MATCH CONCEDED' }
+  ];
+  const native = sync(facts);
+  assert.deepEqual(syncAnnouncements(record([native]), native).map(event => event.kind), facts.map(event => event.kind));
+  assert.deepEqual(facts.map(event => announcementReadingDuration(event, 2)), [1150, 1150, 1150, 750, 1500, 1400, 1900]);
+  for (const patch of [{ code: 'INTRO' }, { code: 'unknown' }, { headline: '' }, { headline: 7 }]) {
+    assert.throws(() => decodeMatchAnnouncements({ version: 1, events: [{ ...facts[0], ...patch }] }));
+  }
+});
+
+test('completed match replays use the new title and concessions keep their own title', () => {
+  for (const code of ['WIN', 'DRAW', 'CONCEDED']) {
+    const headline = code === 'CONCEDED' ? 'MATCH CONCEDED' : 'END OF MATCH';
+    const event: MatchAnnouncementEvent = { ...turnover, kind: 'fullTime', code, headline };
+    assert.equal(announcementHeadline(event), headline);
+    assert.ok(matchLogLines([record([sync([event])])]).some(line => line.text.includes(headline)));
+  }
+});
+
+test('structured scorer and kickoff metadata reject invalid payloads', () => {
+  const touchdown = { ...turnover, kind: 'touchdown', scorer: { name: 'A player — Jr.', number: 8 }, reason: 'Badgers 1 – 0 Giants' };
+  const native = sync([touchdown as MatchAnnouncementEvent]);
+  assert.ok(matchLogLines([record([native])]).some(line => line.text.includes('A player — Jr. #8 — Badgers 1 – 0 Giants')));
+  for (const event of [
+    { ...touchdown, scorer: null },
+    { ...touchdown, scorer: { name: 'Player', number: '8' } },
+    { ...touchdown, teamSpecific: true },
+    { ...turnover, kind: 'kickoff', code: 'WEATHER_CHANGE', headline: 'Weather Change' },
+    { ...turnover, kind: 'kickoff', code: 'WEATHER_CHANGE', headline: 'Weather Change', teamSpecific: false,
+      weather: { code: 'INTRO', headline: 'Intro', reason: 'Invalid weather' } },
+  ]) assert.throws(() => decodeMatchAnnouncements({ version: 1, events: [event] }));
+});
+
+test('browser consumes all engine-generated kickoff and weather facts', () => {
+  const facts: MatchAnnouncementEvent[] = JSON.parse(readFileSync(new URL('./fixtures/match-splash-events.json', import.meta.url), 'utf8'));
+  assert.equal(facts.filter(event => event.kind === 'kickoff').length, 11);
+  assert.equal(facts.filter(event => event.kind === 'weather').length, 5);
+  for (const fact of facts) {
+    assert.deepEqual(decodeMatchAnnouncements({ version: 1, events: [fact] }), [fact]);
+    const native = sync([fact]);
+    assert.equal(playbackBeats(record([native])).filter(beat => beat.kind === 'announcement').length, 1);
+    assert.ok(matchLogLines([record([native])]).some(line => line.text.includes(fact.headline!.toUpperCase())));
+  }
 });

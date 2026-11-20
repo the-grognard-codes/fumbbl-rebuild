@@ -1,24 +1,30 @@
 {
   "version": 1,
   "maximumLagMs": 15000,
-  "browser": "157.0.8103.52",
+  "browser": "157.0.8103.79",
   "evidence": [
     {
       "reduced": false,
-      "boardLagMs": 5707.399999976158,
-      "drainMs": 11106.299999982119,
+      "boardLagMs": 6045.60000000149,
+      "drainMs": 11261.60000000149,
       "readings": [
         {
           "kind": "turnover",
-          "durationMs": 3009.4000000059605
+          "durationMs": 3010.8000000044703,
+          "fadeMs": 231.39999999850988,
+          "clearGapMs": 350.79999999701977
         },
         {
           "kind": "touchdown",
-          "durationMs": 3003.5999999940395
+          "durationMs": 3007.89999999851,
+          "fadeMs": 205.10000000149012,
+          "clearGapMs": 351.3999999985099
         },
         {
           "kind": "turnStart",
-          "durationMs": 1507.300000011921
+          "durationMs": 1508,
+          "fadeMs": 207.10000000149012,
+          "clearGapMs": 350.80000000447035
         }
       ],
       "revisions": 30,
@@ -30,20 +36,26 @@
     },
     {
       "reduced": true,
-      "boardLagMs": 4703,
-      "drainMs": 10156.200000017881,
+      "boardLagMs": 4824,
+      "drainMs": 10792.40000000596,
       "readings": [
         {
           "kind": "turnover",
-          "durationMs": 3007.300000011921
+          "durationMs": 3011.8000000044703,
+          "fadeMs": 218.69999999552965,
+          "clearGapMs": 347.20000000298023
         },
         {
           "kind": "touchdown",
-          "durationMs": 3005.300000011921
+          "durationMs": 3010.39999999851,
+          "fadeMs": 206.10000000149012,
+          "clearGapMs": 352
         },
         {
           "kind": "turnStart",
-          "durationMs": 1507.9000000059605
+          "durationMs": 1507.2999999970198,
+          "fadeMs": 207.80000000447035,
+          "clearGapMs": 349.5
         }
       ],
       "revisions": 30,

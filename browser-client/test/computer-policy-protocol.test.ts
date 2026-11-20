@@ -35,7 +35,10 @@ test('private computer state is unavailable in human and spectator projections',
     homeTeamName: 'Home', awayTeamName: 'Away',
     homeResources: { apothecaries: 0, assistantCoaches: 0, cheerleaders: 0 },
     awayResources: { apothecaries: 0, assistantCoaches: 0, cheerleaders: 0 } };
-  assert.deepEqual(decodeSetupStateValue({ ...state, computer: context() }).computer, context());
-  assert.throws(() => decodeSetupStateValue({ ...state, callerRole: 'home', computer: context() }));
+  for (const callerRole of ['home', 'away']) {
+    const privateState = { ...state, callerRole, computer: context() };
+    assert.deepEqual(decodeSetupStateValue(privateState, 'computer').computer, context());
+    assert.throws(() => decodeSetupStateValue(privateState));
+  }
   assert.throws(() => decodeSetupStateValue({ ...state, callerRole: 'spectator', computer: context() }, true));
 });

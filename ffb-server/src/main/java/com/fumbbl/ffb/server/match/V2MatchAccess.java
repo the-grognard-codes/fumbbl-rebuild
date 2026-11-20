@@ -40,7 +40,8 @@ public final class V2MatchAccess {
 	 * @throws MatchService.Failure when local authorization or token expiry denies delivery.
 	 */
 	public String publicationRole(V2PublicationAuthorization.Snapshot snapshot, V2PublicationAuthorization.Target target, int slot) throws PublicationDeferred {
-		if (snapshot == null || target.principal() != null && target.principal().expiresAtMillis() <= clock.millis()) throw new MatchService.Failure("VIEW_UNAVAILABLE");
+		if (snapshot == null) throw new MatchService.Failure("VIEW_UNAVAILABLE");
+		requirePublicationToken(target);
 		String role = snapshot.role(slot);
 		boolean allowed = switch (target.audience()) {
 			case SPECTATOR -> "spectator".equals(role);
@@ -51,6 +52,19 @@ public final class V2MatchAccess {
 		requirePublicationBudget();
 		return role;
 	}
+
+	/** Checks the token and deadline for a staged push to an already authorized live viewer. */
+	public void requireStagedPublication(V2PublicationAuthorization.Target target) throws PublicationDeferred {
+		requirePublicationToken(target);
+		requirePublicationBudget();
+	}
+
+	private void requirePublicationToken(V2PublicationAuthorization.Target target) {
+		if (target.principal() != null && target.principal().expiresAtMillis() <= clock.millis()) {
+			throw new MatchService.Failure("VIEW_UNAVAILABLE");
+		}
+	}
+
 	private void requirePublicationBudget() {
 		if (timing.budget() != null && timing.budget().remainingNanos() == 0) throw new PublicationDeferred();
 	}

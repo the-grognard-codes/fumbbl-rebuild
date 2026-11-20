@@ -38,7 +38,7 @@ public class LocalSchema {
 
 	private void initializeMarker6(DbConnectionManager manager) throws SQLException {
 		try (Connection connection = manager.openDbConnection(); Statement statement = connection.createStatement()) {
-			if (schemaVersion(statement) != 9) throw new SQLException("Recovery-journal startup requires a separately migrated schema version 9 database");
+			if (schemaVersion(statement) != 10) throw new SQLException("Browser startup requires a separately migrated schema version 10 database");
 			verifySavedTeams(connection);
 			verifyCompletedMatches(connection);
 			verifyRecovery(connection, true);
@@ -168,12 +168,20 @@ public class LocalSchema {
 	}
 
 	void verifyRecovery(Connection connection, boolean journal) throws SQLException {
+		verifyRecovery(connection, journal, journal);
+	}
+
+	void verifyRecovery(Connection connection, boolean journal, boolean computerWork) throws SQLException {
 		try (Statement statement = connection.createStatement()) {
 			try (ResultSet table = statement.executeQuery("SELECT ENGINE FROM information_schema.TABLES WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='ffb_match_recovery'")) {
 				if (!table.next() || !"InnoDB".equalsIgnoreCase(table.getString(1)) || table.next()) throw new SQLException("Recovery table engine mismatch");
 			}
 			String[] expected = {"matchid|char(36)|NO|ascii|ascii_bin", "generation|bigint|NO|null|null", "artifact_json|longtext|NO|utf8mb4|utf8mb4_bin"};
 			if (journal) expected = new String[] {expected[0], expected[1], expected[2], "checkpoint_generation|bigint|NO|null|null"};
+			if (computerWork) {
+				expected = Arrays.copyOf(expected, expected.length + 1);
+				expected[expected.length - 1] = "computer_work_until_epoch_ms|bigint unsigned|YES|null|null";
+			}
 			try (ResultSet columns = statement.executeQuery("SELECT COLUMN_NAME,COLUMN_TYPE,IS_NULLABLE,CHARACTER_SET_NAME,COLLATION_NAME FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='ffb_match_recovery' ORDER BY ORDINAL_POSITION")) {
 				for (String column : expected) {
 					if (!columns.next()) throw new SQLException("Recovery columns missing");

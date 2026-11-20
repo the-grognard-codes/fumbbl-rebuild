@@ -25,18 +25,17 @@ test('revision-bound kickoff actions provide one-click selected state and separa
 import { readFileSync } from 'node:fs';
 const initial: SetupState = JSON.parse(readFileSync(new URL('./fixtures/m5a-blitz-projections.json', import.meta.url), 'utf8'))[0].actor;
 
-test('draft toggles locally, respects the cap and sends only confirmed participants', () => {
-  const state: SetupState = { ...initial, kickoff: { version: 1, event: 'QUICK_SNAP', actor: 'home', stage: 'selection', allowed: 1, completed: 0, selected: 0 },
-    actions: [action('1:event-pick:home1', 'Select Alice', 'home', 'home1'), action('1:event-pick:p2', 'Select Bob', 'home', 'p2'), action('1:event-confirm', 'Confirm QUICK_SNAP', 'home')] };
-  const before = JSON.stringify(state);
-  const selected = toggleKickoffPlayer([], 'home1', 1);
-  assert.deepEqual(toggleKickoffPlayer(selected, 'p2', 1), ['home1']);
-  assert.deepEqual(toggleKickoffPlayer(selected, 'home1', 1), []);
-  assert.deepEqual(kickoffDraft(state, selected)?.selected, ['home1']);
-  assert.equal(kickoffDraft(state, selected)?.batch, true);
-  assert.deepEqual(kickoffDraft(state, [])?.selected, [], 'Reconnect begins with an empty draft');
-  assert.equal(JSON.stringify(state), before, 'No server-state mutation before confirmation');
-  assert.equal(kickoffDraft({ ...state, callerRole: 'spectator' }, selected), null);
+test('group selection survives reconnect and remains confirmable when toggles are exhausted', () => {
+  const confirm = action('1:event-confirm', 'Confirm QUICK_SNAP', 'home');
+  const state: SetupState = { ...initial, stageSeq: 50,
+    kickoff: { version: 1, event: 'QUICK_SNAP', actor: 'home', stage: 'selection', allowed: 1, completed: 0,
+      selected: 1, participantIds: ['home1'] }, actions: [confirm] };
+  const resumed = kickoffDraft(state, []);
+  assert.deepEqual(resumed?.players, []);
+  assert.deepEqual(resumed?.selected, ['home1']);
+  assert.equal(resumed?.batch, true);
+  assert.equal(resumed?.confirm?.id, confirm.id);
+  assert.equal(kickoffDraft({ ...state, callerRole: 'spectator' }, []), null);
 });
 
 test('High Kick and touchback select one recipient and confirm the offered action', () => {
@@ -49,6 +48,8 @@ test('High Kick and touchback select one recipient and confirm the offered actio
     assert.equal(kickoffDraft(state, ['home1'])?.confirm?.id, offered.id);
     assert.equal(kickoffDraft(state, ['home1'])?.batch, false);
     assert.equal(kickoffDraft(state, ['home1'])?.maximum, 1);
+    assert.deepEqual(toggleKickoffPlayer(['home1'], 'other', 1), ['home1']);
+    assert.deepEqual(toggleKickoffPlayer(['home1'], 'home1', 1), []);
   }
   assert.equal(kickoffDraft({ ...initial, turnMode: 'TOUCHBACK', actions: [{ id: '3:square', label: 'Place ball', actor: 'home', kind: 'touchback', target: { x: 8, y: 7 } }] }, []), null);
 });

@@ -20,29 +20,25 @@ try {
   await page.locator('[data-die-mark-probe] .polygon-die[data-face="POW"]').waitFor();
   const measurements = await page.locator('[data-die-mark-probe] p').evaluateAll(rows => rows.map(row => {
     const die = row.querySelector('.polygon-die');
-    const face = die.querySelector('.block-die-side[data-result="true"]') ?? die;
+    const svg = die.querySelector(':scope > svg');
     const center = element => { const box = element.getBoundingClientRect(); return box.y + box.height / 2; };
-    const marks = die.classList.contains('d8') || die.classList.contains('d16') ? [face.querySelector('text')] : [...face.querySelectorAll('svg path')];
+    const number = svg.querySelector('text');
+    const marks = number ? [number] : [...svg.querySelectorAll('path')];
     const markBoxes = marks.map(mark => mark.getBoundingClientRect());
     const markCenter = (Math.min(...markBoxes.map(box => box.top)) + Math.max(...markBoxes.map(box => box.bottom))) / 2;
-    const cube = die.querySelector('.block-die-cube');
-    const polygon = face.querySelector('polygon');
+    const polygon = svg.querySelector('polygon');
     const textLine = document.createRange();
     textLine.selectNodeContents(row.firstChild);
-    const graphic = polygon ?? face;
+    const graphic = polygon ?? die;
     const graphicBox = graphic.getBoundingClientRect();
-    return { name: row.textContent.trim().split(':')[0], offset: markCenter - center(die), lineOffset: center(die) - center(row),
-      graphicOffset: markCenter - (polygon ? graphicBox.top + graphicBox.height * 2 / 3 : center(face)),
+    return { name: row.textContent.trim().split(':')[0],
+      graphicOffset: markCenter - (polygon ? graphicBox.top + graphicBox.height * 2 / 3 : center(die)),
       bottomOffset: graphicBox.bottom - textLine.getBoundingClientRect().bottom,
-      selectedFilter: getComputedStyle(die).filter, numberSize: face.querySelector('text') && getComputedStyle(face.querySelector('text')).fontSize,
+      selectedFilter: getComputedStyle(die).filter, numberSize: number && getComputedStyle(number).fontSize,
       selectedOutline: getComputedStyle(die).outlineColor, coachMarker: die.dataset.coachMarker, coachTitle: die.title,
-      cubeWidth: cube && getComputedStyle(cube).width,
-      dieWidth: die.getBoundingClientRect().width,
-      faceBorder: face.classList.contains('block-die-side') ? getComputedStyle(face).borderWidth : null,
-      faceStroke: polygon ? getComputedStyle(polygon).stroke : null,
-      visibleFaces: [...die.querySelectorAll('.polyhedron-face')].filter(element => getComputedStyle(element).display !== 'none').length,
-      hiddenFaces: [...die.querySelectorAll('.polyhedron-face:not([data-result="true"])')]
-        .every(element => getComputedStyle(element).display === 'none') };
+      dieHeight: die.getBoundingClientRect().height, fontSize: parseFloat(getComputedStyle(die).fontSize),
+      layeredFaces: die.querySelectorAll('.block-die-cube, .polyhedron-face').length,
+      faceStroke: polygon ? getComputedStyle(polygon).stroke : null };
   }));
   for (const item of measurements) {
     const triangle = item.name.startsWith('D8') || item.name.startsWith('D16');
@@ -54,20 +50,18 @@ try {
       assert.equal(item.coachMarker, undefined, 'selected die has no coach letter');
       assert.equal(item.coachTitle, '', 'selected die has no coach badge title');
     }
-    if (item.name.startsWith('Block') || item.name.startsWith('D6')) assert.equal(item.cubeWidth, '24px', 'cube face scales with the inherited text size');
-    if (item.name.startsWith('Block') || item.name.startsWith('D6')) assert.equal(item.faceBorder, '0px', `${item.name} face has no cyan outline`);
+    assert.equal(item.layeredFaces, 0, 'settled log dice have a single flat face');
     if (triangle) {
       assert.equal(item.numberSize, '16px', 'numeric values share the same legible triangle typography');
-      assert.equal(item.cubeWidth, null, 'log triangles do not render transformed solids');
       assert.equal(item.faceStroke, 'none', 'triangle has no cyan outline');
-    }
+    } else assert.equal(item.dieHeight, item.fontSize * 1.5, 'flat face height scales with the inherited text size');
   }
   assert.deepEqual(measurements.map(item => item.name), ['Block POW', 'Block PUSH', 'Block SKULL', 'D6 pips', 'D8 number', 'D16 number']);
   for (const fontSize of [10, 12, 14]) {
     await page.locator('[data-die-mark-probe]').evaluate((element, size) => { element.style.fontSize = `${size}px`; }, fontSize);
     const offsets = await page.locator('[data-die-mark-probe] p').evaluateAll(rows => rows.map(row => {
       const die = row.querySelector('.polygon-die');
-      const graphic = die.querySelector('polygon') ?? die.querySelector('[data-result="true"]');
+      const graphic = die.querySelector('polygon') ?? die;
       const text = document.createRange(); text.selectNodeContents(row.firstChild);
       return graphic.getBoundingClientRect().bottom - text.getBoundingClientRect().bottom;
     }));

@@ -36,12 +36,28 @@ try {
   assert.equal(await dialog.locator('img.portrait').count(),2);
   await page.waitForFunction(()=>[...document.querySelectorAll('dialog img')].every(img=>img.complete && img.naturalWidth>0));
   await page.keyboard.press('Escape'); assert.equal(await dialog.isVisible(),true);
-  if (size.width > 1000) assert.ok(await page.evaluate(() => {
-    const panel=document.querySelector('dialog').getBoundingClientRect();
-    const subject=document.querySelector('[data-player-id="candidate-1"]');
-    const cells=[...document.querySelectorAll('[data-cell-x][data-cell-y]')].filter(n=>Math.abs(Number(n.dataset.cellX)-Number(subject.dataset.x))<=1 && Math.abs(Number(n.dataset.cellY)-Number(subject.dataset.y))<=1);
-    return cells.length===9 && cells.every(n=>{const r=n.getBoundingClientRect();return panel.right<=r.left || panel.left>=r.right || panel.bottom<=r.top || panel.top>=r.bottom;});
-  }), 'Prompt avoids the subject and all eight neighboring squares');
+  if (size.width > 1000) {
+    // Wait for the prompt to follow the selected player on the settled pitch projection.
+    await page.waitForFunction(() => {
+      const subject = document.querySelector('.live-marker[data-player-id="candidate-1"]');
+      const pointer = document.querySelector('.decision-pointer circle');
+      const dialog = document.querySelector('dialog');
+      if (!subject || !pointer || !dialog) return false;
+      const marker = subject.getBoundingClientRect();
+      const offsetX = Math.abs(Number(pointer.getAttribute('cx')) - (marker.left + marker.width / 2));
+      const offsetY = Math.abs(Number(pointer.getAttribute('cy')) - (marker.top + marker.height / 2));
+      if (offsetX > 0.5 || offsetY > 0.5) return false;
+
+      const panel = dialog.getBoundingClientRect();
+      const cells = [...document.querySelectorAll('[data-cell-x][data-cell-y]')].filter(cell =>
+        Math.abs(Number(cell.dataset.cellX) - Number(subject.dataset.x)) <= 1
+        && Math.abs(Number(cell.dataset.cellY) - Number(subject.dataset.y)) <= 1);
+      return cells.length === 9 && cells.every(cell => {
+        const bounds = cell.getBoundingClientRect();
+        return panel.right <= bounds.left || panel.left >= bounds.right || panel.bottom <= bounds.top || panel.top >= bounds.bottom;
+      });
+    });
+  }
   // Pitch inspection and global confirmation shortcuts cannot submit a candidate.
   await page.locator('[data-player-id="candidate-0"]').focus(); await page.keyboard.press('Enter'); await page.keyboard.press('Space');
   assert.deepEqual(await page.evaluate(()=>window.adjustmentIntents),[]);

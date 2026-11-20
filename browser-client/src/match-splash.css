@@ -1,43 +1,149 @@
 .live-pitch-viewport:has(.match-splash-shade) { isolation: isolate; }
 .match-splash-shade {
-  position: absolute; inset: 0; z-index: 160; display: grid; justify-items: center; align-items: safe center;
-  padding: clamp(12px, 3vw, 40px); background: radial-gradient(ellipse at center, #050a12b8, #050a1266 75%); overflow: auto; overscroll-behavior: contain;
+  position: absolute; inset: 0; z-index: 160;
+  opacity: 1;
+  transition: opacity calc(150ms / var(--splash-rate, 1)) linear;
+}
+.match-splash-shade-content {
+  position: absolute; inset: 0; display: grid; justify-items: center; align-items: safe center;
+  padding: clamp(12px, 3vw, 40px); background: #050a12aa; overflow: auto; overscroll-behavior: contain;
   cursor: default; box-sizing: border-box;
-  animation: match-splash-dim-in calc(200ms / var(--splash-rate, 1)) linear both;
+  animation: match-splash-dim-in calc(150ms / var(--splash-entrance-rate, 1)) linear backwards;
 }
 .play-runtime .match-splash-shade .match-splash {
   --splash-accent: #edb644; --splash-secondary: #426c9b;
-  position: relative; isolation: isolate; width: min(560px, 100%); box-sizing: border-box;
-  margin: 0; padding: clamp(16px, 2.4vw, 26px); border: 0; border-radius: 0;
-  color: #f3ead7;
-  background: none; box-shadow: none; text-shadow: 0 2px 5px #000, 0 0 20px #0009;
+  position: relative; isolation: isolate; width: min(620px, 100%); box-sizing: border-box;
+  margin: 0; padding: clamp(20px, 3vw, 36px); border: 0; border-radius: 0;
+  color: #edf5ff; background: none; box-shadow: none; text-shadow: 0 2px 2px #070d16;
   text-align: center; font-family: MUTP, sans-serif; overflow-wrap: anywhere;
-  animation: match-splash-enter calc(200ms / var(--splash-rate, 1)) linear both;
 }
-.play-runtime .match-splash-shade .match-splash-rule { height: 3px; background: var(--splash-accent); width: 44px; margin: 0 auto 10px; }
-.play-runtime .match-splash-shade .match-splash-icon { width: clamp(58px, 8vw, 88px); height: clamp(58px, 8vw, 88px); margin: 0 auto 10px; }
-.play-runtime .match-splash-shade .match-splash-icon .match-art { display: block; width: 100%; height: 100%; filter: drop-shadow(0 5px 5px #0008); }
-.play-runtime .match-splash-shade .match-splash .match-splash-team { margin: 0 0 8px; font-size: clamp(18px, 2.4vw, 30px); line-height: 1.2; }
-.play-runtime .match-splash-shade .match-splash h2 { margin: 0; font-family: MUTP, sans-serif; color: #ffe17b; font-size: clamp(27px, 3.7vw, 48px); line-height: 1.05; letter-spacing: .04em; }
-.play-runtime .match-splash-shade .match-splash-turnover h2 { color: #fff0d4; }
-.play-runtime .match-splash-shade .match-splash-turnover .match-splash-rule { width: 80px; background: repeating-linear-gradient(120deg,var(--splash-accent) 0 8px,transparent 8px 12px); }
-.play-runtime .match-splash-shade .match-splash-touchdown .match-splash-rule { width: 110px; }
-.play-runtime .match-splash-shade .match-splash-turnStart h2 { font-size: clamp(24px, 3.3vw, 42px); color: #d8e9fa; }
-.play-runtime .match-splash-shade .match-splash .match-splash-reason { font-family: inherit; margin: 16px auto 0; max-width: 48ch; font-size: clamp(16px, 1.8vw, 21px); line-height: 1.4; }
-.match-splash-shade[data-exiting=true] { animation: match-splash-dim-out calc(200ms / var(--splash-rate, 1)) ease-in both; }
-.play-runtime .match-splash-shade[data-exiting=true] .match-splash { animation: match-splash-exit calc(200ms / var(--splash-rate, 1)) ease-in both; }
+
+.match-splash-backdrop { position: absolute; inset: 0; z-index: -2; background: #101c2bf5; border-block: 2px solid #40637e; animation: splash-backdrop calc(150ms / var(--splash-rate, 1)) steps(4) both; }
+.match-splash-ribbon { position: absolute; inset: 8px 0; z-index: -1; border-block: 6px solid var(--splash-accent); box-shadow: inset 0 2px var(--splash-secondary), inset 0 -2px var(--splash-secondary); animation: splash-ribbon calc(200ms / var(--splash-rate, 1)) calc(150ms / var(--splash-rate, 1)) steps(5) both; }
+
+.play-runtime .match-splash-shade .match-splash-icon { width: clamp(58px, 8vw, 88px); height: clamp(58px, 8vw, 88px); margin: 0 auto 10px; animation: splash-impact calc(200ms / var(--splash-rate, 1)) calc(250ms / var(--splash-rate, 1)) steps(4) both; }
+.play-runtime .match-splash-shade .match-splash-icon .match-art { display: block; width: 100%; height: 100%; object-fit: contain; }
+.play-runtime .match-splash-shade .match-splash .match-splash-team { margin: 0 24px 12px; font-size: clamp(18px, 2.4vw, 28px); line-height: 1.2; text-wrap: balance; animation: match-splash-dim-in calc(150ms / var(--splash-rate, 1)) calc(550ms / var(--splash-rate, 1)) linear both; }
+.play-runtime .match-splash-shade .match-splash h2 { width: fit-content; max-width: 100%; margin: 0 auto; font-family: MUTP, sans-serif; color: #ffe17b; font-size: clamp(27px, 3.7vw, 52px); line-height: 1.05; letter-spacing: .025em; text-wrap: balance; animation: splash-impact calc(200ms / var(--splash-rate, 1)) calc(350ms / var(--splash-rate, 1)) steps(4) both; }
+.play-runtime .match-splash-shade .match-splash-turnover h2 { color: #edf5ff; }
+.play-runtime .match-splash-shade .match-splash-turnover { animation: splash-shake calc(150ms / var(--splash-rate, 1)) calc(450ms / var(--splash-rate, 1)) steps(3) both; }
+.match-splash-turnover .match-splash-ribbon { border-block-style: dashed; }
+.play-runtime .match-splash-shade .match-splash-turnStart h2 { font-size: clamp(24px, 3.3vw, 42px); color: #d9e9f7; animation-name: splash-turn; }
+.play-runtime .match-splash-shade .match-splash .match-splash-reason { font-family: inherit; margin: 16px auto 0; max-width: 48ch; font-size: clamp(16px, 1.8vw, 21px); line-height: 1.4; animation: match-splash-dim-in calc(150ms / var(--splash-rate, 1)) calc(550ms / var(--splash-rate, 1)) linear both; }
+.match-splash-shade[data-exiting=true][data-shade-held=false],
+.match-splash-shade[data-fading=true] { opacity: 0; transition-duration: calc(200ms / var(--splash-rate, 1)); }
+/* Keep an unfinished entrance from darkening the pitch during an early exit. */
+.match-splash-shade[data-exiting=true][data-shade-held=false] .match-splash-shade-content,
+.match-splash-shade[data-fading=true] .match-splash-shade-content { animation-play-state: paused; }
+.match-splash-shade[data-fading=true] { pointer-events: none; }
+.play-runtime .match-splash-shade[data-exiting=true] .match-splash { animation: match-splash-exit calc(200ms / var(--splash-rate, 1)) steps(4) both; }
 @keyframes match-splash-dim-in { from { opacity: 0; } to { opacity: 1; } }
 @keyframes match-splash-dim-out { from { opacity: 1; } to { opacity: 0; } }
-@keyframes match-splash-enter { from { filter: blur(1.5px); } to { filter: blur(0); } }
-@keyframes match-splash-exit { from { filter: blur(0); transform: translateY(0); } to { filter: blur(3px); transform: translateY(-11px) scale(.95); } }
+@keyframes splash-backdrop { from { transform: scaleX(0); opacity: 0; } to { transform: scaleX(1); opacity: 1; } }
+@keyframes splash-ribbon { from { transform: scaleX(0); opacity: 0; } to { transform: scaleX(1); opacity: 1; } }
+@keyframes splash-impact { 0% { transform: translateY(-28px) scale(1.06); opacity: 0; } 65% { transform: translateY(3px) scale(.97); opacity: 1; } 100% { transform: translateY(0) scale(1); opacity: 1; } }
+@keyframes splash-turn { from { transform: scale(.96); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+@keyframes splash-shake { 0%,100% { transform: translateX(0); } 33% { transform: translateX(-4px); } 66% { transform: translateX(4px); } }
+@keyframes match-splash-exit { from { transform: scaleX(1); opacity: 1; } to { transform: scaleX(.92); opacity: 0; } }
 @media(prefers-reduced-motion: reduce) {
-  .match-splash-shade, .play-runtime .match-splash-shade .match-splash { animation: none; }
-  .match-splash-shade[data-exiting=true] { visibility: hidden; }
+  .play-runtime .match-splash-shade .match-splash, .play-runtime .match-splash-shade .match-splash :is(.match-splash-icon, .match-splash-team, .match-splash-reason, h2, div) { animation: none; }
+  .play-runtime .match-splash-shade[data-exiting=true] .match-splash { animation: match-splash-dim-out calc(200ms / var(--splash-rate, 1)) linear both; }
+  .play-runtime .match-splash-shade[data-exiting=false][data-shade-held=true] .match-splash { animation: match-splash-dim-in calc(150ms / var(--splash-rate, 1)) linear both; }
 }
 @media(max-height: 500px) {
   .play-runtime .match-splash-shade .match-splash-icon { width: 42px; height: 42px; margin-bottom: 4px; }
-  .play-runtime .match-splash-shade .match-splash { padding: 12px; }
+  .play-runtime .match-splash-shade .match-splash { padding: 20px; }
+}
+.play-runtime .match-splash-shade .match-splash-close { position: absolute; z-index: 1; top: 20px; right: 6px; display: grid; place-items: center; width: 44px; height: 44px; min-height: 44px; margin: 0; padding: 0; border: 1px solid #40637e; border-radius: 3px; color: #edf5ff; background: #101c2b; font: 24px/1 sans-serif; cursor: pointer; }
+.play-runtime .match-splash-shade .match-splash-close:focus-visible { outline: 3px solid #ffe17b; outline-offset: 2px; }
+
+
+
+
+
+.match-splash-ribbon { transform-origin: left center; } .match-splash-shade[data-team=away] .match-splash-ribbon { transform-origin: right center; }
+.match-splash-halfTime .match-splash-ribbon, .match-splash-fullTime[data-code=DRAW] .match-splash-ribbon { border: 0; background: linear-gradient(90deg, var(--splash-left) 50%, var(--splash-right) 50%) top / 100% 6px no-repeat, linear-gradient(90deg, var(--splash-left) 50%, var(--splash-right) 50%) bottom / 100% 6px no-repeat; }
+.play-runtime .match-splash-shade .match-splash-kickoff:not([data-weather]) .match-splash-icon { animation-name: splash-flip; }
+.play-runtime .match-splash-shade :is(.match-splash-halfTime, .match-splash-fullTime) .match-splash-icon {
+  animation-name: splash-whistle;
+  animation-timing-function: steps(5);
+}
+@keyframes splash-flip { from { transform: rotate(-90deg) scale(.5); opacity: 0; } to { transform: rotate(0) scale(1); opacity: 1; } }
+@keyframes splash-whistle {
+  from { transform: translateY(-12px) rotate(-16deg) scale(.78); opacity: 0; }
+  65% { transform: translateY(1px) rotate(5deg) scale(1.06); opacity: 1; }
+  to { transform: translateY(0) rotate(0) scale(1); opacity: 1; }
+}
+@media(prefers-reduced-motion: reduce) {
+  .play-runtime .match-splash-shade .match-splash-kickoff:not([data-weather]) .match-splash-icon,
+  .play-runtime .match-splash-shade :is(.match-splash-halfTime, .match-splash-fullTime) .match-splash-icon { animation: none; }
 }
 
-.play-runtime .match-splash-shade .match-splash-close { position: absolute; top: 6px; right: 6px; display: grid; place-items: center; width: 44px; height: 44px; min-height: 44px; margin: 0; padding: 0; border: 1px solid var(--splash-secondary); border-radius: 3px; color: #f3ead7; background: #09132066; font: 24px/1 sans-serif; cursor: pointer; }
-.play-runtime .match-splash-shade .match-splash-close:focus-visible { outline: 3px solid #ffe17b; outline-offset: 2px; }
+.match-splash-halfTime .match-splash-ribbon,
+.match-splash-fullTime[data-code=DRAW] .match-splash-ribbon { background: none; box-shadow: none; animation: none; }
+:is(.match-splash-halfTime, .match-splash-fullTime[data-code=DRAW]) .match-splash-ribbon::before,
+:is(.match-splash-halfTime, .match-splash-fullTime[data-code=DRAW]) .match-splash-ribbon::after { content: ''; position: absolute; inset: 0 50% 0 0; border-block: 6px solid var(--splash-left); transform-origin: left; animation: splash-ribbon calc(200ms / var(--splash-rate, 1)) calc(150ms / var(--splash-rate, 1)) steps(5) both; }
+:is(.match-splash-halfTime, .match-splash-fullTime[data-code=DRAW]) .match-splash-ribbon::after { inset: 0 0 0 50%; border-color: var(--splash-right); transform-origin: right; }
+@media(prefers-reduced-motion: reduce) {
+  :is(.match-splash-halfTime, .match-splash-fullTime[data-code=DRAW]) .match-splash-ribbon::before,
+  :is(.match-splash-halfTime, .match-splash-fullTime[data-code=DRAW]) .match-splash-ribbon::after { animation: none; }
+}
+.match-splash-ribbon { outline: 1px solid var(--splash-outline, #070d16); }
+.match-splash-turnover .match-splash-ribbon { border-color: color-mix(in srgb, var(--splash-accent) 45%, #9bb0c4); }
+.match-splash-burst, .match-splash-weather-fx { position: absolute; inset: 16px 0; overflow: hidden; z-index: -1; pointer-events: none; }
+.match-splash-burst::before, .match-splash-burst::after { content: ''; position: absolute; inset: 0; background: var(--splash-accent); mask: url('/assets/game/ui/match-events/burst.svg') center / contain no-repeat; animation: splash-burst calc(600ms / var(--splash-rate, 1)) calc(400ms / var(--splash-rate, 1)) steps(5) both; }
+.match-splash-burst::after { background: var(--splash-secondary); animation-delay: calc(500ms / var(--splash-rate, 1)); }
+.match-splash-halfTime .match-splash-burst::before { background: var(--splash-left); }
+.match-splash-halfTime .match-splash-burst::after { background: var(--splash-right); }
+.match-splash-weather-fx::before { content: ''; position: absolute; inset: -12px 0; background: var(--splash-accent); opacity: .12; mask: url('/assets/game/ui/match-events/weather-pixels.svg') center / 64px 64px; animation: splash-weather calc(1100ms / var(--splash-rate, 1)) steps(5) infinite; }
+:is([data-weather=NICE], [data-weather=VERY_SUNNY]) .match-splash-weather-fx::before { mask: url('/assets/game/ui/match-events/weather-rays.svg') center / contain no-repeat; animation-name: splash-rays; }
+[data-weather=SWELTERING_HEAT] .match-splash-weather-fx::before { animation-name: splash-heat; }
+.play-runtime .match-splash-shade :is(.match-splash-touchdown, .match-splash-halfTime, .match-splash-fullTime) .match-splash-reason {
+  max-width: 100%;
+  animation-name: splash-score-tick;
+}
+.match-splash-score {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  width: min(100%, 490px);
+  margin: 0 auto;
+  border-top: 1px solid #40637e;
+}
+.match-splash-scorer + .match-splash-score { margin-top: 12px; }
+.match-splash-score > div { display: grid; align-content: start; gap: 4px; padding: 8px 10px; }
+.match-splash-score > div + div { border-left: 1px solid #40637e; }
+.match-splash-score dt { color: #d9e9f7; font-size: clamp(13px, 1.7vw, 18px); text-wrap: balance; }
+.match-splash-score dd {
+  grid-row: 1;
+  margin: 0;
+  font-size: clamp(25px, 4.5vw, 39px);
+  font-variant-numeric: tabular-nums;
+  line-height: 1.1;
+}
+.match-splash-score [data-highlighted=true] dd { color: #ffe17b; }
+.match-splash-outcome { margin-top: 10px; }
+@keyframes splash-burst { from { opacity: 0; transform: scale(.4); } 30% { opacity: .8; } to { opacity: 0; transform: scale(1); } }
+@keyframes splash-weather { from { transform: translateY(-10px); } to { transform: translateY(10px); } }
+@keyframes splash-rays { 0%,100% { opacity: .06; transform: scale(.92); } 50% { opacity: .18; transform: scale(1); } }
+@keyframes splash-heat { 0%,100% { opacity: .06; transform: translateY(4px); } 50% { opacity: .16; transform: translateY(-4px); } }
+@media(prefers-reduced-motion: reduce) { .match-splash-burst, .match-splash-weather-fx { display: none; } .match-splash-burst::before, .match-splash-burst::after, .match-splash-weather-fx::before { animation: none; } }
+[data-weather=BLIZZARD] .match-splash-weather-fx::before { mask-image: url('/assets/game/ui/match-events/weather-snow.svg'); }
+@keyframes splash-score-tick { from { opacity: 0; transform: scale(.98); } 70% { opacity: 1; transform: scale(1.025); } to { opacity: 1; transform: scale(1); } }
+@media(prefers-reduced-motion: reduce) {
+  .play-runtime .match-splash-shade :is(.match-splash-touchdown, .match-splash-halfTime, .match-splash-fullTime) .match-splash-reason { animation: none; }
+}
+.match-splash-burst { inset: 16px 0 48%; }
+.match-splash-weather-fx { inset: 16px 0 auto; height: 40%; }
+.play-runtime .match-splash-shade .match-splash[data-weather] .match-splash-icon {
+  width: clamp(110px, 13vw, 170px);
+  height: auto;
+  aspect-ratio: 100 / 32;
+}
+.match-splash[data-weather] .match-splash-icon img {
+  mask-image: radial-gradient(ellipse closest-side, black 47%, rgb(0 0 0 / .86) 67%, rgb(0 0 0 / .38) 86%, transparent 100%);
+}
+.match-splash-weather-condition { display: block; color: #edf5ff; }
+.match-splash-weather-condition + span { display: block; margin-top: 4px; }
+:is(.match-splash-halfTime, .match-splash-fullTime[data-code=DRAW]) .match-splash-ribbon::before { box-shadow: inset 0 1px var(--splash-left-outline), inset 0 -1px var(--splash-left-outline); }
+:is(.match-splash-halfTime, .match-splash-fullTime[data-code=DRAW]) .match-splash-ribbon::after { box-shadow: inset 0 1px var(--splash-right-outline), inset 0 -1px var(--splash-right-outline); }
+@media(max-height:500px) { .play-runtime .match-splash-shade .match-splash[data-weather] .match-splash-icon { width:100px; } }

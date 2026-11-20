@@ -53,20 +53,30 @@ try {
     const started = await page.evaluate(input => { window.playbackFrames = []; const started = performance.now(); window.publishPlayback(input); return started; },
       { view: state(30), records, enabled: true, mode: 'live' });
     await page.waitForFunction(() => document.querySelector('#playback-state').dataset.revision === '30', undefined, { timeout: maximumLagMs });
-    const boardLagMs = await page.evaluate(started => performance.now() - started, started);
     await page.waitForFunction(() => document.querySelector('#playback-state').dataset.active === 'false', undefined, { timeout: maximumLagMs });
-    const drainMs = await page.evaluate(started => performance.now() - started, started);
     const frames = await page.evaluate(() => window.playbackFrames);
+    const finalBoard = frames.find(frame => frame.revision === 30);
+    const drained = frames.find(frame => frame.revision === 30 && !frame.active);
+    const boardLagMs = finalBoard.monotonicMs - started;
+    const drainMs = drained.monotonicMs - started;
     const rolls = assertOrdered(frames, 30);
     const announcements = frames.filter(frame => frame.announcement).map(frame => frame.announcement).filter((kind, index, all) => !index || kind !== all[index - 1]);
     assert.deepEqual(announcements, kinds);
-    const readings = kinds.map(kind => {
+    const readings = kinds.map((kind, index) => {
       const shown = frames.find(frame => frame.announcement === kind && !frame.announcementExiting);
-      const exiting = frames.find(frame => frame.announcement === kind && frame.announcementExiting);
+      const exitIndex = frames.findIndex(frame => frame.announcement === kind && frame.announcementExiting);
+      assert.notEqual(exitIndex, -1, `${kind} has a visible exit`);
+      const fadeEnd = frames.slice(exitIndex + 1).find(frame => !frame.announcement && frame.announcementExiting);
+      assert.ok(fadeEnd, `${kind} clears before the next card or input`);
+      const next = index === kinds.length - 1 ? drained : frames.find(frame => frame.announcement === kinds[index + 1]);
       assert.equal(shown.announcementRate, 1, 'Catch-up must never change splash speed');
-      const duration = exiting.monotonicMs - shown.monotonicMs;
-      assert.ok(duration >= (kind === 'turnStart' ? 1450 : 2950), `${kind} keeps its full reading duration: ${duration}`);
-      return { kind, durationMs: duration };
+      const durationMs = frames[exitIndex].monotonicMs - shown.monotonicMs;
+      const fadeMs = fadeEnd.monotonicMs - frames[exitIndex].monotonicMs;
+      const clearGapMs = next.monotonicMs - fadeEnd.monotonicMs;
+      assert.ok(durationMs >= (kind === 'turnStart' ? 1450 : 2950), `${kind} keeps its full reading duration: ${durationMs}`);
+      assert.ok(fadeMs >= 180, `${kind} keeps its animated fade within one frame: ${fadeMs}`);
+      assert.ok(clearGapMs >= 330, `${kind} keeps its clear gap within one frame: ${clearGapMs}`);
+      return { kind, durationMs, fadeMs, clearGapMs };
     });
     assert.ok(boardLagMs <= maximumLagMs && drainMs <= maximumLagMs, 'The fixed burst keeps the stated 15-second maximum lag and drain bounds');
     if (reduced) assert.ok(frames.every(frame => frame.duration <= 16));
