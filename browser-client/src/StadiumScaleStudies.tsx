@@ -33,8 +33,8 @@ type SeatingStudy = typeof seatingStudies[number];
 type Seat = SeatingStudy['seats'][number];
 const fullPlan = seatingStudies[0].seats;
 
-function seatKey({ x, y, plankId }: Pick<Seat, 'x' | 'y' | 'plankId'>) {
-  return `${plankId}:${x},${y}`;
+function seatKey({ slot, plankId }: Seat) {
+  return `${plankId}:${slot.x},${slot.y}`;
 }
 
 async function image(url: string, dimensions: { width: number; height: number }) {
@@ -130,7 +130,8 @@ function drawSeatMarkers(context: CanvasRenderingContext2D, seats: readonly Seat
   const occupied = new Set(seats.map(seatKey));
   context.strokeStyle = '#d4cdc1';
   for (const seat of fullPlan) {
-    if (!occupied.has(seatKey(seat))) context.strokeRect(bay.x + seat.x - .5, bay.y + seat.y - .5, 2, 2);
+    const { x, y } = seat.slot;
+    if (!occupied.has(seatKey(seat))) context.strokeRect(bay.x + x - .5, bay.y + y - .5, 2, 2);
   }
   for (const { knee } of seats) {
     if (!knee) continue;

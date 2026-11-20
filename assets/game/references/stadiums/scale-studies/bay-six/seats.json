@@ -3,11 +3,11 @@
     "id": "a",
     "label": "A \u00b7 100% full",
     "capacity": 12,
-    "height": 43,
+    "height": 38,
     "pitch": 8,
     "spacing": {
       "min": 8,
-      "max": 23
+      "max": 18
     },
     "seats": [
       {
@@ -28,6 +28,34 @@
         },
         "benchWidth": 10,
         "thighSpan": 10,
+        "slot": {
+          "x": 6,
+          "y": 28
+        },
+        "neutral": false
+      },
+      {
+        "x": 19,
+        "y": 28,
+        "pose": "seated-fist",
+        "support": "rear-bench",
+        "origin": {
+          "x": 1,
+          "y": -9
+        },
+        "height": 37,
+        "plankId": 62,
+        "stance": "seated",
+        "knee": {
+          "x": 29,
+          "y": 26
+        },
+        "benchWidth": 9,
+        "thighSpan": 10,
+        "slot": {
+          "x": 19,
+          "y": 28
+        },
         "neutral": false
       },
       {
@@ -48,27 +76,11 @@
         },
         "benchWidth": 10,
         "thighSpan": 10,
+        "slot": {
+          "x": 38,
+          "y": 29
+        },
         "neutral": true
-      },
-      {
-        "x": 19,
-        "y": 30,
-        "pose": "seated-fist",
-        "support": "rear-bench",
-        "origin": {
-          "x": 1,
-          "y": -7
-        },
-        "height": 37,
-        "plankId": 62,
-        "stance": "seated",
-        "knee": {
-          "x": 29,
-          "y": 28
-        },
-        "benchWidth": 9,
-        "thighSpan": 10,
-        "neutral": false
       },
       {
         "x": 38,
@@ -88,26 +100,34 @@
         },
         "benchWidth": 10,
         "thighSpan": 10,
+        "slot": {
+          "x": 38,
+          "y": 37
+        },
         "neutral": false
       },
       {
         "x": 19,
-        "y": 40,
-        "pose": "seated-tankard",
+        "y": 44,
+        "pose": "seated-food",
         "support": "rear-bench",
         "origin": {
           "x": 2,
-          "y": 3
+          "y": 8
         },
-        "height": 38,
+        "height": 37,
         "plankId": 62,
         "stance": "seated",
         "knee": {
           "x": 29,
-          "y": 38
+          "y": 42
         },
         "benchWidth": 9,
         "thighSpan": 10,
+        "slot": {
+          "x": 19,
+          "y": 44
+        },
         "neutral": true
       },
       {
@@ -128,6 +148,10 @@
         },
         "benchWidth": 10,
         "thighSpan": 10,
+        "slot": {
+          "x": 5,
+          "y": 46
+        },
         "neutral": true
       },
       {
@@ -148,27 +172,11 @@
         },
         "benchWidth": 10,
         "thighSpan": 10,
+        "slot": {
+          "x": 38,
+          "y": 48
+        },
         "neutral": false
-      },
-      {
-        "x": 19,
-        "y": 48,
-        "pose": "seated-food",
-        "support": "rear-bench",
-        "origin": {
-          "x": 2,
-          "y": 12
-        },
-        "height": 37,
-        "plankId": 62,
-        "stance": "seated",
-        "knee": {
-          "x": 29,
-          "y": 46
-        },
-        "benchWidth": 9,
-        "thighSpan": 10,
-        "neutral": true
       },
       {
         "x": 5,
@@ -188,23 +196,57 @@
         },
         "benchWidth": 10,
         "thighSpan": 10,
+        "slot": {
+          "x": 5,
+          "y": 56
+        },
         "neutral": false
       },
       {
-        "x": 21,
-        "y": 71,
-        "pose": "standing-bell",
+        "x": 19,
+        "y": 55,
+        "pose": "seated-tankard",
         "support": "rear-bench",
         "origin": {
-          "x": 4,
-          "y": 26
+          "x": 2,
+          "y": 18
         },
-        "height": 43,
+        "height": 38,
         "plankId": 62,
-        "stance": "standing",
-        "otherSole": {
-          "x": 27,
-          "y": 71
+        "stance": "seated",
+        "knee": {
+          "x": 29,
+          "y": 53
+        },
+        "benchWidth": 9,
+        "thighSpan": 10,
+        "slot": {
+          "x": 19,
+          "y": 55
+        },
+        "neutral": true
+      },
+      {
+        "x": 19,
+        "y": 64,
+        "pose": "seated-bell",
+        "support": "rear-bench",
+        "origin": {
+          "x": 0,
+          "y": 27
+        },
+        "height": 37,
+        "plankId": 62,
+        "stance": "seated",
+        "knee": {
+          "x": 29,
+          "y": 61
+        },
+        "benchWidth": 9,
+        "thighSpan": 10,
+        "slot": {
+          "x": 19,
+          "y": 64
         },
         "neutral": false
       },
@@ -226,6 +268,10 @@
         },
         "benchWidth": 10,
         "thighSpan": 10,
+        "slot": {
+          "x": 6,
+          "y": 65
+        },
         "neutral": false
       },
       {
@@ -246,10 +292,14 @@
         },
         "benchWidth": 10,
         "thighSpan": 10,
+        "slot": {
+          "x": 38,
+          "y": 66
+        },
         "neutral": false
       }
     ],
-    "overlapPixels": 1969,
+    "overlapPixels": 1970,
     "railOverlapPixels": 0
   },
   {
@@ -257,10 +307,10 @@
     "label": "B \u00b7 75% full",
     "capacity": 12,
     "height": 43,
-    "pitch": 18,
+    "pitch": 16,
     "spacing": {
-      "min": 18,
-      "max": 23
+      "min": 16,
+      "max": 28
     },
     "seats": [
       {
@@ -281,6 +331,34 @@
         },
         "benchWidth": 10,
         "thighSpan": 10,
+        "slot": {
+          "x": 6,
+          "y": 28
+        },
+        "neutral": false
+      },
+      {
+        "x": 19,
+        "y": 28,
+        "pose": "seated-fist",
+        "support": "rear-bench",
+        "origin": {
+          "x": 1,
+          "y": -9
+        },
+        "height": 37,
+        "plankId": 62,
+        "stance": "seated",
+        "knee": {
+          "x": 29,
+          "y": 26
+        },
+        "benchWidth": 9,
+        "thighSpan": 10,
+        "slot": {
+          "x": 19,
+          "y": 28
+        },
         "neutral": false
       },
       {
@@ -301,27 +379,35 @@
         },
         "benchWidth": 10,
         "thighSpan": 10,
+        "slot": {
+          "x": 38,
+          "y": 29
+        },
         "neutral": true
       },
       {
         "x": 19,
-        "y": 30,
-        "pose": "seated-fist",
+        "y": 44,
+        "pose": "seated-food",
         "support": "rear-bench",
         "origin": {
-          "x": 1,
-          "y": -7
+          "x": 2,
+          "y": 8
         },
         "height": 37,
         "plankId": 62,
         "stance": "seated",
         "knee": {
           "x": 29,
-          "y": 28
+          "y": 42
         },
         "benchWidth": 9,
         "thighSpan": 10,
-        "neutral": false
+        "slot": {
+          "x": 19,
+          "y": 44
+        },
+        "neutral": true
       },
       {
         "x": 5,
@@ -341,6 +427,10 @@
         },
         "benchWidth": 10,
         "thighSpan": 10,
+        "slot": {
+          "x": 5,
+          "y": 46
+        },
         "neutral": true
       },
       {
@@ -361,43 +451,31 @@
         },
         "benchWidth": 10,
         "thighSpan": 10,
+        "slot": {
+          "x": 38,
+          "y": 48
+        },
         "neutral": false
       },
       {
-        "x": 19,
-        "y": 48,
-        "pose": "seated-food",
-        "support": "rear-bench",
-        "origin": {
-          "x": 2,
-          "y": 12
-        },
-        "height": 37,
-        "plankId": 62,
-        "stance": "seated",
-        "knee": {
-          "x": 29,
-          "y": 46
-        },
-        "benchWidth": 9,
-        "thighSpan": 10,
-        "neutral": true
-      },
-      {
         "x": 21,
-        "y": 71,
+        "y": 72,
         "pose": "standing-bell",
         "support": "rear-bench",
         "origin": {
           "x": 4,
-          "y": 26
+          "y": 27
         },
         "height": 43,
         "plankId": 62,
         "stance": "standing",
         "otherSole": {
           "x": 27,
-          "y": 71
+          "y": 72
+        },
+        "slot": {
+          "x": 19,
+          "y": 64
         },
         "neutral": false
       },
@@ -419,6 +497,10 @@
         },
         "benchWidth": 10,
         "thighSpan": 10,
+        "slot": {
+          "x": 6,
+          "y": 65
+        },
         "neutral": false
       },
       {
@@ -439,10 +521,14 @@
         },
         "benchWidth": 10,
         "thighSpan": 10,
+        "slot": {
+          "x": 38,
+          "y": 66
+        },
         "neutral": false
       }
     ],
-    "overlapPixels": 1329,
+    "overlapPixels": 1308,
     "railOverlapPixels": 0
   },
   {
@@ -450,9 +536,9 @@
     "label": "C \u00b7 50% full",
     "capacity": 12,
     "height": 43,
-    "pitch": 23,
+    "pitch": 28,
     "spacing": {
-      "min": 23,
+      "min": 28,
       "max": 37
     },
     "seats": [
@@ -474,6 +560,10 @@
         },
         "benchWidth": 10,
         "thighSpan": 10,
+        "slot": {
+          "x": 6,
+          "y": 28
+        },
         "neutral": false
       },
       {
@@ -494,43 +584,55 @@
         },
         "benchWidth": 10,
         "thighSpan": 10,
+        "slot": {
+          "x": 38,
+          "y": 29
+        },
         "neutral": true
       },
       {
         "x": 19,
-        "y": 48,
+        "y": 44,
         "pose": "seated-food",
         "support": "rear-bench",
         "origin": {
           "x": 2,
-          "y": 12
+          "y": 8
         },
         "height": 37,
         "plankId": 62,
         "stance": "seated",
         "knee": {
           "x": 29,
-          "y": 46
+          "y": 42
         },
         "benchWidth": 9,
         "thighSpan": 10,
+        "slot": {
+          "x": 19,
+          "y": 44
+        },
         "neutral": true
       },
       {
         "x": 21,
-        "y": 71,
+        "y": 72,
         "pose": "standing-bell",
         "support": "rear-bench",
         "origin": {
           "x": 4,
-          "y": 26
+          "y": 27
         },
         "height": 43,
         "plankId": 62,
         "stance": "standing",
         "otherSole": {
           "x": 27,
-          "y": 71
+          "y": 72
+        },
+        "slot": {
+          "x": 19,
+          "y": 64
         },
         "neutral": false
       },
@@ -552,6 +654,10 @@
         },
         "benchWidth": 10,
         "thighSpan": 10,
+        "slot": {
+          "x": 6,
+          "y": 65
+        },
         "neutral": false
       },
       {
@@ -572,10 +678,14 @@
         },
         "benchWidth": 10,
         "thighSpan": 10,
+        "slot": {
+          "x": 38,
+          "y": 66
+        },
         "neutral": false
       }
     ],
-    "overlapPixels": 558,
+    "overlapPixels": 495,
     "railOverlapPixels": 0
   }
 ]

@@ -34,7 +34,7 @@ const benchLayout = JSON.parse(await readFile(resolve(artwork, 'gatehouse-benche
 const mask = await readFile(resolve(artwork, 'empty-seating.png'), 'base64');
 const bay = layout.bays.find(({ id }) => id === 6);
 const bayPlanks = benchLayout.bays.find(({ id }) => id === bay.id).planks;
-const seatKey = ({ plankId, x, y }) => `${plankId}:${x},${y}`;
+const seatKey = ({ plankId, slot }) => `${plankId}:${slot.x},${slot.y}`;
 
 async function benchReference(canvas, colors) {
   return canvas.evaluate(async (full, { benchLayout, layout, mask, colors }) => {
@@ -172,6 +172,7 @@ try {
   const select = page.getByLabel('Gallery view');
   assert.deepEqual(studies.map(({ id }) => id), ['a', 'b', 'c']);
   assert.equal(await select.inputValue(), 'b');
+  await page.getByText('9 of 12 occupied', { exact: true }).waitFor();
   assert.equal(new Set(poseColumns).size, 10);
   assert.equal(new Set(poseColumns.map(id => id.slice(id.indexOf('-') + 1))).size, 8);
   assert.deepEqual(posesManifest.slice(-4), newPoses);
@@ -221,6 +222,8 @@ try {
 
   const bayDraws = [];
   const fullPlan = new Map(studies[0].seats.map(seat => [seatKey(seat), seat]));
+  const fullRows = Map.groupBy(fullPlan.values(), seat => seat.plankId);
+  for (const row of fullRows.values()) row.sort((a, b) => a.slot.y - b.slot.y);
   const fullPosesWithBothKits = poseColumns.filter(pose =>
     [true, false].every(neutral => studies[0].seats.some(seat => seat.pose === pose && seat.neutral === neutral)));
   assert.equal(fullPlan.size, 12);
@@ -238,9 +241,27 @@ try {
     assert.ok([...locations].every(location => previousLocations.has(location)), id + ' is a subset of the prior study');
     previousLocations = locations;
     const vacant = [...fullPlan.values()].filter(seat => !locations.has(seatKey(seat)));
+    const standing = seats.filter(seat => seat.stance === 'standing');
+    if (id === 'a') {
+      assert.equal(standing.length, 0, 'A fills every seat, so the bell ringer sits');
+      assert.ok(seats.some(({ pose }) => pose === 'seated-bell'));
+    } else {
+      assert.ok(standing.some(({ pose }) => pose === 'standing-bell'), id + ' includes the standing bell ringer');
+    }
     const seatsByPlank = new Map();
     for (const seat of seats) {
-      assert.deepEqual(seat, fullPlan.get(seatKey(seat)), id + ' preserves the fixed seat and its kit');
+      const planned = fullPlan.get(seatKey(seat));
+      assert.ok(planned, id + ' uses a fixed slot from A');
+      assert.equal(seat.neutral, planned.neutral, id + ' preserves its kit');
+      if (seat.stance === 'standing') {
+        assert.equal(planned.pose, seat.pose.replace(/^standing-/, 'seated-'), id + ' preserves supporter identity across stances');
+        const row = fullRows.get(seat.plankId);
+        const north = row[row.indexOf(planned) - 1];
+        assert.ok(north, id + ' has a physical seat north of ' + seatKey(seat));
+        assert.ok(!locations.has(seatKey(north)), id + ' leaves the immediately north seat ' + seatKey(north) + ' vacant');
+      } else {
+        assert.deepEqual(seat, planned, id + ' preserves the seated pose at ' + seatKey(seat));
+      }
       assert.equal(typeof seat.neutral, 'boolean');
       const row = seatsByPlank.get(seat.plankId) ?? [];
       row.push(seat);
@@ -439,10 +460,11 @@ try {
     assert.equal(await canvas.evaluate((c, { bay, seats, vacant }) => {
       const context = c.getContext('2d');
       const color = ({ x, y }) => context.getImageData(bay.x + x, bay.y + y, 1, 1).data.join(',');
+      const vacantMark = ({ x, y }) => color({ x: x - 1, y: y - 1 }) === '212,205,193,255';
       return seats.every(seat => color(seat) === '128,245,255,255' &&
         (!seat.knee || color(seat.knee) === '255,225,123,255') &&
-        (!seat.otherSole || color(seat.otherSole) === '128,245,255,255')) &&
-        vacant.every(({ x, y }) => color({ x: x - 1, y: y - 1 }) === '212,205,193,255');
+        (!seat.otherSole || color(seat.otherSole) === '128,245,255,255') && !vacantMark(seat.slot)) &&
+        vacant.every(({ slot }) => vacantMark(slot));
     }, { bay, seats, vacant }), true, id + ' marks occupied contacts and vacant locations above the bench and rail layers');
     await review.screenshot({ path: resolve(captures, 'west-bay-six-' + id + '-benches.png') });
     assert.equal(await native.evaluate(async (c, original) => {
@@ -523,7 +545,7 @@ try {
   await page.getByText('Inspect all 10 poses', { exact: true }).click();
   assert.equal(await page.locator('.bay-six-zoom').evaluate(element =>
     element.scrollWidth > element.clientWidth && document.documentElement.scrollWidth === window.innerWidth), true);
-  console.log('Ten full poses, eight supporters, source colors, Bay 6 layouts, exact crops and kits, calf occlusion, rail and guides passed.');
+  console.log('Bay 6 default, standing clearance, fixed slots, exact poses and crops, calf occlusion, rail and guides passed.');
 } finally {
   await browser?.close();await server.close();
 }

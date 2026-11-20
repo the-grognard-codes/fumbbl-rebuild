@@ -20,25 +20,26 @@ class Seat(NamedTuple):
     support: str
     x: int
     y: int
-    pose: str
+    supporter: str
     neutral: bool
     first_fill: int
+    standing_contact: tuple[int, int] | None = None
 
 
 # First fill is the lowest attendance at which this place is occupied.
 SEAT_PLAN = (
-    Seat("wall-bench", 6, 28, "seated-bottle", False, 50),
-    Seat("wall-bench", 5, 46, "seated-fist", True, 75),
-    Seat("wall-bench", 5, 56, "seated-bottle", False, 100),
-    Seat("wall-bench", 6, 65, "seated-folded", False, 50),
-    Seat("rear-bench", 19, 30, "seated-fist", False, 75),
-    Seat("rear-bench", 19, 40, "seated-tankard", True, 100),
-    Seat("rear-bench", 19, 48, "seated-food", True, 50),
-    Seat("rear-bench", 21, 71, "standing-bell", False, 50),
-    Seat("inner-bench", 38, 29, "seated-tankard", True, 50),
-    Seat("inner-bench", 38, 37, "seated-pretzel", False, 100),
-    Seat("inner-bench", 38, 48, "seated-clap", False, 75),
-    Seat("inner-bench", 38, 66, "seated-bottle", False, 50),
+    Seat("wall-bench", 6, 28, "bottle", False, 50),
+    Seat("wall-bench", 5, 46, "fist", True, 75),
+    Seat("wall-bench", 5, 56, "bottle", False, 100),
+    Seat("wall-bench", 6, 65, "folded", False, 50),
+    Seat("rear-bench", 19, 28, "fist", False, 75),
+    Seat("rear-bench", 19, 44, "food", True, 50),
+    Seat("rear-bench", 19, 55, "tankard", True, 100),
+    Seat("rear-bench", 19, 64, "bell", False, 50, standing_contact=(21, 72)),
+    Seat("inner-bench", 38, 29, "tankard", True, 50),
+    Seat("inner-bench", 38, 37, "pretzel", False, 100),
+    Seat("inner-bench", 38, 48, "clap", False, 75),
+    Seat("inner-bench", 38, 66, "bottle", False, 50),
 )
 STUDIES = [
     (key, f"{key.upper()} · {fill}% full", [seat for seat in SEAT_PLAN if seat.first_fill <= fill])
@@ -168,15 +169,27 @@ def tuck_behind_seat(person, origin, footprint, regions):
         person.paste((0, 0, 0, 0), (x, y, x + width, y + height), plank)
 
 
+def pose_at_seat(slot, occupied):
+    if slot.standing_contact is not None:
+        # The next physical seat toward the top of the image must be empty.
+        north_y = max((s.y for s in SEAT_PLAN if s.support == slot.support and s.y < slot.y), default=None)
+        if north_y is not None and (slot.support, north_y) not in occupied:
+            return f"standing-{slot.supporter}", slot.standing_contact
+    return f"seated-{slot.supporter}", (slot.x, slot.y)
+
+
 def build_study(mask, bay, atlas, palette, landmarks, study, planks):
     key, label, layout = study
     size = bay["width"], bay["height"]
     placements = []
+    occupied = {(s.support, s.y) for s in layout}
     for slot in layout:
-        person = spectator(atlas, slot.pose, kit_ramps(palette, slot.neutral))
-        seat, origin = place_pose(person, slot.pose, slot.support, slot.x, slot.y, landmarks[slot.pose], planks)
+        pose, (x, y) = pose_at_seat(slot, occupied)
+        person = spectator(atlas, pose, kit_ramps(palette, slot.neutral))
+        seat, origin = place_pose(person, pose, slot.support, x, y, landmarks[pose], planks)
+        seat["slot"] = {"x": slot.x, "y": slot.y}
         seat["neutral"] = slot.neutral
-        pixels = checked_pixels(person, origin, mask, bay, f"{label} {slot.pose}")
+        pixels = checked_pixels(person, origin, mask, bay, f"{label} {pose}")
         placements.append((seat, person, origin, pixels))
 
     # Every complete silhouette has passed its mask check before any compositing.
@@ -195,7 +208,7 @@ def build_study(mask, bay, atlas, palette, landmarks, study, planks):
     seats = [seat for seat, _, _, _ in placements]
     gaps = []
     for support in {seat["support"] for seat in seats}:
-        row = sorted((seat for seat in seats if seat["support"] == support), key=lambda seat: seat["y"])
+        row = sorted((seat for seat in seats if seat["support"] == support), key=lambda seat: seat["slot"]["y"])
         for north, south in zip(row, row[1:]):
             # Compare the supporter even if their stance or kit changes.
             if north["pose"].split("-", 1)[1] == south["pose"].split("-", 1)[1]:

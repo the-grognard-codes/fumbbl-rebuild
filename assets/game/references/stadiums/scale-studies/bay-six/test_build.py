@@ -99,7 +99,7 @@ class BaySixPlacementTest(unittest.TestCase):
     def test_attendance_leaves_existing_supporters_in_the_same_seats_and_kits(self):
         previous = None
         for study, occupied, neutrals in zip(self.studies, (12, 9, 6), (4, 3, 2), strict=True):
-            plan = {(s["plankId"], s["x"], s["y"]): s for s in study["seats"]}
+            plan = {(s["plankId"], s["slot"]["x"], s["slot"]["y"]): s for s in study["seats"]}
             self.assertEqual(study["capacity"], 12)
             self.assertEqual(len(plan), len(study["seats"]))
             self.assertEqual(len(plan), occupied)
@@ -112,8 +112,28 @@ class BaySixPlacementTest(unittest.TestCase):
                                     f"{supporter['pose']} has no team cloth")
             if previous is not None:
                 for place, supporter in plan.items():
-                    self.assertEqual(supporter, previous[place])
+                    earlier = previous[place]
+                    self.assertEqual(supporter["pose"].split("-", 1)[1], earlier["pose"].split("-", 1)[1])
+                    self.assertEqual(supporter["neutral"], earlier["neutral"])
+                    if supporter["pose"] == earlier["pose"]:
+                        self.assertEqual(supporter, earlier)
             previous = plan
+
+    def test_standing_requires_the_immediately_northern_slot_to_be_vacant(self):
+        ringer = next(s for s in build.SEAT_PLAN if s.supporter == "bell")
+        row = sorted((s for s in build.SEAT_PLAN if s.support == ringer.support), key=lambda s: s.y)
+        north = row[row.index(ringer) - 1]
+        place = (ringer.support, ringer.y)
+        above = (north.support, north.y)
+        standing = ("standing-bell", ringer.standing_contact)
+        seated = ("seated-bell", (ringer.x, ringer.y))
+        self.assertEqual(build.pose_at_seat(ringer, {place, ("inner-bench", north.y)}), standing)
+        self.assertEqual(build.pose_at_seat(ringer, {place, above}), seated)
+        for study, expected in zip(self.studies, (seated, standing, standing), strict=True):
+            seat = next(s for s in study["seats"] if s["pose"].endswith("-bell"))
+            self.assertEqual((seat["pose"], (seat["x"], seat["y"])), expected)
+            self.assertEqual(any(s["support"] == north.support and s["slot"]["y"] == north.y
+                                 for s in study["seats"]), seat["stance"] == "seated")
 
     def test_preferred_crowd_has_three_spaced_contacts_on_each_occupied_plank(self):
         preferred = self.studies[1]["seats"]
@@ -134,8 +154,8 @@ class BaySixPlacementTest(unittest.TestCase):
 
     def test_same_neighbour_in_another_kit_is_still_a_repeat(self):
         adjacent = (
-            build.Seat("rear-bench", 19, 28, "seated-fist", False, 75),
-            build.Seat("rear-bench", 19, 62, "standing-fist", True, 75),
+            build.Seat("rear-bench", 19, 28, "fist", False, 75),
+            build.Seat("rear-bench", 19, 62, "fist", True, 75, standing_contact=(19, 69)),
         )
         with self.assertRaisesRegex(ValueError, "repeats adjacent supporters"):
             build.build_study(self.mask, self.bay, self.atlas, self.palette, self.landmarks,
@@ -197,7 +217,7 @@ class BaySixPlacementTest(unittest.TestCase):
         point = self.bay["x"] + 25, self.bay["y"] + 29
         mask = self.mask.copy()
         mask.putpixel(point, 0)
-        single = (build.Seat("rear-bench", 19, 28, "seated-fist", False, 75),)
+        single = (build.Seat("rear-bench", 19, 28, "fist", False, 75),)
         with self.assertRaisesRegex(ValueError, "seated-fist crosses the bay") as rejected:
             build.build_study(mask, self.bay, self.atlas, self.palette, self.landmarks,
                               ("b", "75%", single), self.planks)
