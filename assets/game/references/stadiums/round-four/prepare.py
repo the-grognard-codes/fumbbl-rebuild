@@ -30,10 +30,10 @@ def prepare(index, bounds, track):
         changed = ImageChops.difference(original, result).split()
         neutral_mask = ImageChops.lighter(ImageChops.lighter(changed[0], changed[1]), changed[2]).point(lambda value: 255 if value else 0)
         neutral_mask.convert("1").save(ROOT / "neutral-clothing-mask.png")
-    if index == 1:
-        result.save(ROOT / "candidate-01.webp", lossless=True, method=6, quality=100)
-    else:
+    if index == 2:
         result.save(ROOT / f"candidate-{index:02}.png", optimize=True)
+    else:
+        result.save(ROOT / f"candidate-{index:02}.webp", lossless=True, method=6, quality=100)
 
 
 if __name__ == "__main__":

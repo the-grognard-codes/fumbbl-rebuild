@@ -4,7 +4,7 @@
 
 | 01 · Drummers | 02 · Gatehouse | 03 · Lion wall |
 | --- | --- | --- |
-| [![Drummers](../../assets/game/references/stadiums/round-four/candidate-01.webp)](../../assets/game/references/stadiums/round-four/candidate-01.webp) | [![Gatehouse](../../assets/game/references/stadiums/round-four/candidate-02.png)](../../assets/game/references/stadiums/round-four/candidate-02.png) | [![Lion wall](../../assets/game/references/stadiums/round-four/candidate-03.png)](../../assets/game/references/stadiums/round-four/candidate-03.png) |
+| [![Drummers](../../assets/game/references/stadiums/round-four/candidate-01.webp)](../../assets/game/references/stadiums/round-four/candidate-01.webp) | [![Gatehouse](../../assets/game/references/stadiums/round-four/candidate-02.png)](../../assets/game/references/stadiums/round-four/candidate-02.png) | [![Lion wall](../../assets/game/references/stadiums/round-four/candidate-03.webp)](../../assets/game/references/stadiums/round-four/candidate-03.webp) |
 | Drummers flank the touchlines and a timber booth breaks up the far wall. | The broad far banners, alternating torch pillars and open near gate distinguish the two ends. | A compact visiting block and a single lion on each end wall give the cheering figures more room. |
 
 ### What to compare

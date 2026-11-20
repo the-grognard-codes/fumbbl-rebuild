@@ -10,7 +10,9 @@ HERE = Path(__file__).resolve().parent
 ART = HERE.parent
 CELL_SIZE = 48
 BAY_ID = 6
-COLUMNS = tuple(pose["id"] for pose in json.loads((HERE / "poses.json").read_text(encoding="utf-8")))
+POSES = json.loads((HERE / "poses.json").read_text(encoding="utf-8"))
+COLUMNS = tuple(pose["id"] for pose in POSES)
+WARDROBES = {pose["id"]: pose["wardrobe"] for pose in POSES}
 spec = spec_from_file_location("seat_fit", ART / "build-empty-seating.py")
 fit = module_from_spec(spec)
 spec.loader.exec_module(fit)
@@ -21,25 +23,24 @@ class Seat(NamedTuple):
     x: int
     y: int
     supporter: str
-    neutral: bool
     first_fill: int
     standing_contact: tuple[int, int] | None = None
 
 
 # First fill is the lowest attendance at which this place is occupied.
 SEAT_PLAN = (
-    Seat("wall-bench", 6, 28, "bottle", False, 50),
-    Seat("wall-bench", 5, 46, "fist", True, 75),
-    Seat("wall-bench", 5, 56, "bottle", False, 100),
-    Seat("wall-bench", 6, 65, "folded", False, 50),
-    Seat("rear-bench", 19, 28, "fist", False, 75),
-    Seat("rear-bench", 19, 44, "food", True, 50),
-    Seat("rear-bench", 19, 55, "tankard", True, 100),
-    Seat("rear-bench", 19, 64, "bell", False, 50, standing_contact=(21, 72)),
-    Seat("inner-bench", 38, 29, "tankard", True, 50),
-    Seat("inner-bench", 38, 37, "pretzel", False, 100),
-    Seat("inner-bench", 38, 48, "clap", False, 75),
-    Seat("inner-bench", 38, 66, "bottle", False, 50),
+    Seat("wall-bench", 6, 28, "mug", 50),
+    Seat("wall-bench", 6, 46, "lookout", 75),
+    Seat("wall-bench", 6, 56, "chestnuts", 100),
+    Seat("wall-bench", 6, 65, "tambourine", 50),
+    Seat("rear-bench", 19, 28, "chestnuts", 75),
+    Seat("rear-bench", 19, 44, "cheer", 50),
+    Seat("rear-bench", 19, 55, "lookout", 100),
+    Seat("rear-bench", 19, 64, "horn", 50, standing_contact=(20, 72)),
+    Seat("inner-bench", 38, 29, "whistle", 50),
+    Seat("inner-bench", 38, 37, "program", 100),
+    Seat("inner-bench", 38, 48, "clap", 75),
+    Seat("inner-bench", 38, 66, "pie", 50),
 )
 STUDIES = [
     (key, f"{key.upper()} · {fill}% full", [seat for seat in SEAT_PLAN if seat.first_fill <= fill])
@@ -185,10 +186,11 @@ def build_study(mask, bay, atlas, palette, landmarks, study, planks):
     occupied = {(s.support, s.y) for s in layout}
     for slot in layout:
         pose, (x, y) = pose_at_seat(slot, occupied)
-        person = spectator(atlas, pose, kit_ramps(palette, slot.neutral))
+        neutral = WARDROBES[pose] == "neutral"
+        person = spectator(atlas, pose, kit_ramps(palette, neutral))
         seat, origin = place_pose(person, pose, slot.support, x, y, landmarks[pose], planks)
         seat["slot"] = {"x": slot.x, "y": slot.y}
-        seat["neutral"] = slot.neutral
+        seat["neutral"] = neutral
         pixels = checked_pixels(person, origin, mask, bay, f"{label} {pose}")
         placements.append((seat, person, origin, pixels))
 
@@ -254,6 +256,13 @@ def build():
             raise ValueError(f"Supporter sheet must be an indexed row of {len(COLUMNS)} {CELL_SIZE} px cells")
         if set(landmarks) != set(COLUMNS) or len(set(COLUMNS)) != len(COLUMNS):
             raise ValueError("Each atlas column needs a unique pose and its own landmarks")
+        for column, pose in enumerate(COLUMNS):
+            left = column * CELL_SIZE
+            indices = set(atlas.crop((left, 0, left + CELL_SIZE, CELL_SIZE)).tobytes())
+            materials = (bool(indices.intersection(range(1, 17))), bool(indices.intersection(range(17, 33))))
+            expected = {"team": (True, True), "neutral": (False, False)}[WARDROBES[pose]]
+            if materials != expected:
+                raise ValueError(f"{pose} does not have its declared {WARDROBES[pose]} wardrobe")
         studies = [build_study(mask, bay, atlas, palette, landmarks, study, supports[BAY_ID]) for study in STUDIES]
         kits = Image.new("RGBA", (atlas.width, 2 * CELL_SIZE))
         for row, neutral in enumerate((False, True)):

@@ -30,28 +30,25 @@ class BaySixPlacementTest(unittest.TestCase):
         cell = build.CELL_SIZE
         return self.atlas.crop((col * cell, 0, (col + 1) * cell, cell)).convert("RGBA").getchannel("A")
 
-    def test_new_supporters_can_use_either_kit_and_fit_the_rear_bench(self):
-        # One cheek and one hand per pose must stay on the fixed palette.
-        skin_samples = {
-            "seated-pretzel": ((22, 17), (23, 26)),
-            "seated-clap": ((23, 18), (27, 24)),
-            "seated-bell": ((22, 14), (29, 24)),
-            "standing-bell": ((22, 8), (31, 15)),
-        }
-        self.assertEqual(len(build.COLUMNS), 10)
-        self.assertEqual(len({pose.split("-", 1)[1] for pose in build.COLUMNS}), 8)
-        self.assertEqual(self.atlas.size, (10 * build.CELL_SIZE, build.CELL_SIZE))
-        for pose, samples in skin_samples.items():
+    def test_cast_has_ten_seated_people_two_standing_poses_and_three_fixed_wardrobes(self):
+        seated = {pose.removeprefix("seated-") for pose in build.COLUMNS if pose.startswith("seated-")}
+        standing = {pose.removeprefix("standing-") for pose in build.COLUMNS if pose.startswith("standing-")}
+        self.assertEqual(len(seated), 10)
+        self.assertEqual(standing, {"horn", "tambourine"})
+        self.assertTrue(standing <= seated)
+        self.assertEqual(self.atlas.size, (12 * build.CELL_SIZE, build.CELL_SIZE))
+        fixed_wardrobes = {"pie", "mug", "chestnuts"}
+        for pose in build.COLUMNS:
             with self.subTest(pose=pose):
+                team = pose.split("-", 1)[1] not in fixed_wardrobes
+                self.assertEqual(build.WARDROBES[pose], "team" if team else "neutral")
                 x = build.COLUMNS.index(pose) * build.CELL_SIZE
                 source = self.atlas.crop((x, 0, x + build.CELL_SIZE, build.CELL_SIZE))
                 home = build.spectator(self.atlas, pose, build.kit_ramps(self.palette, False))
                 neutral = build.spectator(self.atlas, pose, build.kit_ramps(self.palette, True))
                 indices = source.tobytes()
-                self.assertTrue(any(1 <= index <= 16 for index in indices))
-                self.assertTrue(any(17 <= index <= 32 for index in indices))
-                for point in samples:
-                    self.assertGreater(source.getpixel(point), 32)
+                self.assertEqual(any(1 <= index <= 16 for index in indices), team)
+                self.assertEqual(any(17 <= index <= 32 for index in indices), team)
                 for index, fixed, home_color, neutral_color in zip(
                         indices, source.convert("RGBA").get_flattened_data(),
                         home.get_flattened_data(), neutral.get_flattened_data(), strict=True):
@@ -59,6 +56,23 @@ class BaySixPlacementTest(unittest.TestCase):
                         self.assertEqual((home_color, neutral_color), (fixed, fixed))
                 _, origin = build.place_pose(home, pose, "rear-bench", 19, 50, self.landmarks[pose], self.planks)
                 self.assertTrue(build.checked_pixels(home, origin, self.mask, self.bay, pose))
+
+    def test_face_and_hand_midtones_are_fixed_in_both_stances_and_all_three_complexions(self):
+        samples = {
+            "seated-tambourine": ((22, 16), (22, 26)),
+            "standing-tambourine": ((24, 10), (26, 20)),
+            "seated-clap": ((23, 17), (27, 24)),
+            "seated-lookout": ((23, 14), (31, 16)),
+        }
+        midtones = {}
+        for pose, (cheek, hand) in samples.items():
+            start = build.COLUMNS.index(pose) * build.CELL_SIZE
+            for x, y in (cheek, hand):
+                self.assertGreater(self.atlas.getpixel((start + x, y)), 32, pose)
+            midtones[pose] = self.atlas.convert("RGB").getpixel((start + cheek[0], cheek[1]))
+        self.assertEqual(midtones["seated-tambourine"], midtones["standing-tambourine"])
+        for lighter, darker in (("seated-tambourine", "seated-clap"), ("seated-clap", "seated-lookout")):
+            self.assertTrue(all(a > b for a, b in zip(midtones[lighter], midtones[darker], strict=True)))
 
     def test_hips_knees_and_boot_soles_land_on_the_measured_benches(self):
         measured_edges = {"wall-bench": (0, 9), "rear-bench": (19, 27), "inner-bench": (38, 47)}
@@ -120,17 +134,17 @@ class BaySixPlacementTest(unittest.TestCase):
             previous = plan
 
     def test_standing_requires_the_immediately_northern_slot_to_be_vacant(self):
-        ringer = next(s for s in build.SEAT_PLAN if s.supporter == "bell")
-        row = sorted((s for s in build.SEAT_PLAN if s.support == ringer.support), key=lambda s: s.y)
-        north = row[row.index(ringer) - 1]
-        place = (ringer.support, ringer.y)
+        fan = next(s for s in build.SEAT_PLAN if s.standing_contact is not None)
+        row = sorted((s for s in build.SEAT_PLAN if s.support == fan.support), key=lambda s: s.y)
+        north = row[row.index(fan) - 1]
+        place = (fan.support, fan.y)
         above = (north.support, north.y)
-        standing = ("standing-bell", ringer.standing_contact)
-        seated = ("seated-bell", (ringer.x, ringer.y))
-        self.assertEqual(build.pose_at_seat(ringer, {place, ("inner-bench", north.y)}), standing)
-        self.assertEqual(build.pose_at_seat(ringer, {place, above}), seated)
+        standing = (f"standing-{fan.supporter}", fan.standing_contact)
+        seated = (f"seated-{fan.supporter}", (fan.x, fan.y))
+        self.assertEqual(build.pose_at_seat(fan, {place, ("inner-bench", north.y)}), standing)
+        self.assertEqual(build.pose_at_seat(fan, {place, above}), seated)
         for study, expected in zip(self.studies, (seated, standing, standing), strict=True):
-            seat = next(s for s in study["seats"] if s["pose"].endswith("-bell"))
+            seat = next(s for s in study["seats"] if s["support"] == fan.support and s["slot"]["y"] == fan.y)
             self.assertEqual((seat["pose"], (seat["x"], seat["y"])), expected)
             self.assertEqual(any(s["support"] == north.support and s["slot"]["y"] == north.y
                                  for s in study["seats"]), seat["stance"] == "seated")
@@ -143,7 +157,7 @@ class BaySixPlacementTest(unittest.TestCase):
             self.assertGreaterEqual(min(b - a for a, b in zip(contacts, contacts[1:])), 16)
 
     def test_wall_seat_rejects_an_unsupported_thigh_even_with_the_hip_on_timber(self):
-        pose = "seated-folded"
+        pose = "seated-tambourine"
         person = build.spectator(self.atlas, pose, build.kit_ramps(self.palette, False))
         plank_id, footprint = self.planks["wall-bench"]
         gap = footprint.copy()
@@ -152,33 +166,33 @@ class BaySixPlacementTest(unittest.TestCase):
             build.place_pose(person, pose, "wall-bench", 6, 40, self.landmarks[pose],
                              {"wall-bench": (plank_id, gap)})
 
-    def test_same_neighbour_in_another_kit_is_still_a_repeat(self):
+    def test_same_neighbour_in_another_stance_is_still_a_repeat(self):
         adjacent = (
-            build.Seat("rear-bench", 19, 28, "fist", False, 75),
-            build.Seat("rear-bench", 19, 62, "fist", True, 75, standing_contact=(19, 69)),
+            build.Seat("rear-bench", 19, 28, "tambourine", 75),
+            build.Seat("rear-bench", 19, 62, "tambourine", 75, standing_contact=(19, 69)),
         )
         with self.assertRaisesRegex(ValueError, "repeats adjacent supporters"):
             build.build_study(self.mask, self.bay, self.atlas, self.palette, self.landmarks,
                               ("b", "75%", adjacent), self.planks)
 
     def test_rejects_a_boot_suspended_beyond_the_bench(self):
-        pose = "standing-fist"
+        pose = "standing-tambourine"
         person = build.spectator(self.atlas, pose, (self.palette["teal"], self.palette["violet"]))
         with self.assertRaisesRegex(ValueError, "cannot land both boot soles"):
-            build.place_pose(person, pose, "rear-bench", 20, 46, self.landmarks[pose], self.planks)
+            build.place_pose(person, pose, "rear-bench", 26, 46, self.landmarks[pose], self.planks)
 
     def test_second_sole_cannot_land_in_a_plank_cutout(self):
-        pose = "standing-fist"
+        pose = "standing-tambourine"
         person = build.spectator(self.atlas, pose, (self.palette["teal"], self.palette["violet"]))
         plank_id, footprint = self.planks["rear-bench"]
         cutout = footprint.copy()
-        cutout.putpixel((27, 46), 0)
+        points = self.landmarks[pose]
+        cutout.putpixel((19 + points["otherSole"][0] - points["contact"][0], 46), 0)
         with self.assertRaisesRegex(ValueError, "cannot land both boot soles"):
             build.place_pose(person, pose, "rear-bench", 19, 46, self.landmarks[pose],
                              {"rear-bench": (plank_id, cutout)})
 
-    def test_timber_leaves_both_boot_fronts_visible(self):
-        # Row 41 crosses both shafts on every seated pose in this atlas.
+    def test_timber_leaves_both_foot_fronts_visible(self):
         for study in self.studies:
             for seat in study["seats"]:
                 if seat["stance"] != "seated":
@@ -186,39 +200,47 @@ class BaySixPlacementTest(unittest.TestCase):
                 pose = seat["pose"]
                 with self.subTest(study=study["id"], pose=pose):
                     person = build.spectator(self.atlas, pose, (self.palette["teal"], self.palette["violet"]))
-                    shafts = person.getchannel("A").crop((0, 41, person.width, 42)).tobytes()
+                    source = person.getchannel("A").tobytes()
                     origin = seat["origin"]["x"], seat["origin"]["y"]
                     build.tuck_behind_seat(person, origin, self.planks[seat["support"]][1],
                                            self.landmarks[pose]["behindSeat"])
-                    exposed = person.getchannel("A").crop((0, 41, person.width, 42)).tobytes()
-                    if seat["support"] == "wall-bench":
-                        self.assertEqual(exposed, shafts)
-                    else:
-                        self.assertLess(sum(exposed), sum(shafts))
-                    boots = [run for run in exposed.split(b"\x00") if run]
-                    self.assertEqual(len(boots), 2)
-                    self.assertGreaterEqual(min(map(len, boots)), 2)
+                    if seat["support"] != "wall-bench":
+                        self.assertLess(sum(person.getchannel("A").tobytes()), sum(source))
+                    left, right = self.landmarks[pose]["footFronts"]
+                    self.assertLess(left[0] + 1, right[0])
+                    for x, y in (left, right):
+                        self.assertEqual(person.getpixel((x, y))[3], 255)
+                        self.assertEqual(person.getpixel((x + 1, y))[3], 255)
 
-    def test_gap_in_timber_exposes_the_calf_behind_it(self):
-        pose = "seated-fist"
+    def calf_fixture(self):
+        pose = "seated-tambourine"
         person = build.spectator(self.atlas, pose, (self.palette["teal"], self.palette["violet"]))
         _, footprint = self.planks["rear-bench"]
-        _, origin = build.place_pose(person, pose, "rear-bench", 19, 28, self.landmarks[pose], self.planks)
+        _, origin = build.place_pose(person, pose, "rear-bench", 19, 45, self.landmarks[pose], self.planks)
+        back = self.landmarks[pose]["behindSeat"]
+        covered = [(x, y) for left, top, w, h in back for x in range(left, left + w) for y in range(top, top + h)
+                   if person.getpixel((x, y))[3] and footprint.getpixel((origin[0] + x, origin[1] + y))]
+        self.assertGreaterEqual(len(covered), 2)
+        return person, origin, footprint, back, covered
+
+    def test_gap_in_timber_exposes_the_calf_behind_it(self):
+        person, origin, footprint, back, (first, second, *_) = self.calf_fixture()
         gap = footprint.copy()
-        gap.putpixel((25, 29), 0)
-        original = person.getpixel((24, 38))
-        self.assertEqual(original[3], 255)
-        build.tuck_behind_seat(person, origin, gap, self.landmarks[pose]["behindSeat"])
-        self.assertEqual(person.getpixel((24, 38)), original)
-        self.assertEqual(person.getpixel((25, 38))[3], 0)
+        gap.putpixel((origin[0] + first[0], origin[1] + first[1]), 0)
+        original = person.getpixel(first)
+        build.tuck_behind_seat(person, origin, gap, back)
+        self.assertEqual(person.getpixel(first), original)
+        self.assertEqual(person.getpixel(second)[3], 0)
 
     def test_calf_behind_timber_still_must_fit_the_bay(self):
         # A calf tucked behind a plank is still part of the original silhouette.
-        point = self.bay["x"] + 25, self.bay["y"] + 29
+        _, origin, _, _, covered = self.calf_fixture()
+        x, y = covered[0]
+        point = self.bay["x"] + origin[0] + x, self.bay["y"] + origin[1] + y
         mask = self.mask.copy()
         mask.putpixel(point, 0)
-        single = (build.Seat("rear-bench", 19, 28, "fist", False, 75),)
-        with self.assertRaisesRegex(ValueError, "seated-fist crosses the bay") as rejected:
+        single = (build.Seat("rear-bench", 19, 45, "tambourine", 75),)
+        with self.assertRaisesRegex(ValueError, "seated-tambourine crosses the bay") as rejected:
             build.build_study(mask, self.bay, self.atlas, self.palette, self.landmarks,
                               ("b", "75%", single), self.planks)
         self.assertIn(str(point), str(rejected.exception))

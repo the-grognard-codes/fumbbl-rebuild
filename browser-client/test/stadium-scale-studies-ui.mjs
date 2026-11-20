@@ -17,18 +17,17 @@ const neutralPalette = [...ramp('slate'), ...ramp('brown')];
 const kitPairs = [...ramp('teal'), ...ramp('violet')].map((color, index) => [color, neutralPalette[index]]);
 const landmarks = JSON.parse(await readFile(resolve(artwork, 'bay-six/pose-landmarks.json'), 'utf8'));
 const posesManifest = JSON.parse(await readFile(resolve(artwork, 'bay-six/poses.json'), 'utf8'));
-const newPoses = [
-  { id: 'seated-pretzel', label: 'Pretzel' },
-  { id: 'seated-clap', label: 'Clapping' },
-  { id: 'seated-bell', label: 'Handbell' },
-  { id: 'standing-bell', label: 'Handbell' },
-];
+const poseById = new Map(posesManifest.map(pose => [pose.id, pose]));
 const poseColumns = posesManifest.map(({ id }) => id);
-const caption = ({ pose, neutral }) => [
-  pose.startsWith('standing-') ? 'Standing' : 'Seated',
-  posesManifest.find(({ id }) => id === pose).label,
-  neutral === undefined ? undefined : neutral ? 'Neutral kit' : 'Home kit',
-].filter(Boolean).join(' · ');
+const identity = pose => pose.slice(pose.indexOf('-') + 1);
+const rosterLabel = 'Inspect all ' + posesManifest.length + ' poses';
+const caption = ({ pose, neutral }) => {
+  const { label, wardrobe } = poseById.get(pose);
+  const stance = pose.startsWith('standing-') ? 'Standing' : 'Seated';
+  const clothing = wardrobe === 'neutral' ? 'Fixed clothing'
+    : neutral === undefined ? 'Team colors' : neutral ? 'Neutral kit' : 'Home kit';
+  return label + ' ' + stance + ' · ' + clothing;
+};
 const layout = JSON.parse(await readFile(resolve(artwork, 'empty-seating.json'), 'utf8'));
 const benchLayout = JSON.parse(await readFile(resolve(artwork, 'gatehouse-benches.json'), 'utf8'));
 const mask = await readFile(resolve(artwork, 'empty-seating.png'), 'base64');
@@ -88,14 +87,21 @@ function drawBenchReference(canvas, background, overlay) {
 }
 
 async function verifyFullRoster(page) {
-  const summary = page.getByText('Inspect all 10 poses', { exact: true });
+  const summary = page.getByText(rosterLabel, { exact: true });
   const roster = page.getByRole('list', { name: 'Full supporter roster' });
+  const reference = page.getByRole('link', { name: 'Artist reference' });
   assert.equal(await roster.isVisible(), false);
+  assert.equal(await reference.isVisible(), false);
   await summary.press('Enter');
   await roster.waitFor();
+  assert.equal(await reference.count(), 1);
+  const servedReference = await page.request.get(await reference.evaluate(link => link.href));
+  assert.equal(servedReference.status(), 200);
+  assert.match(servedReference.headers()['content-type'], /^image\/webp/);
+  assert.deepEqual(await servedReference.body(), await readFile(resolve(artwork, 'bay-six/cast-reference.webp')));
   assert.deepEqual(await roster.locator('figcaption').allTextContents(),
     poseColumns.map(pose => caption({ pose })));
-  const alternateKits = await roster.evaluate(async (list, { atlasPng, authoringPng, poseColumns, kitPairs }) => {
+  await roster.evaluate(async (list, { atlasPng, authoringPng, posesManifest, kitPairs }) => {
     const size = 48;
     async function decodedContext(bytes, width, height) {
       const image = new Image();
@@ -109,17 +115,16 @@ async function verifyFullRoster(page) {
       context.drawImage(image, 0, 0);
       return context;
     }
-    const width = size * poseColumns.length;
+    const width = size * posesManifest.length;
     const [source, kits] = await Promise.all([
       decodedContext(authoringPng, width, size), decodedContext(atlasPng, width, size * 2),
     ]);
     const canvases = list.querySelectorAll('canvas');
-    if (canvases.length !== poseColumns.length) throw Error('Roster is missing isolated poses');
+    if (canvases.length !== posesManifest.length) throw Error('Roster is missing isolated poses');
     const kitPalette = new Map(kitPairs);
     const rgb = (pixels, i) => pixels[i] * 65536 + pixels[i + 1] * 256 + pixels[i + 2];
     const uniquePoses = new Set();
-    const alternateKits = [];
-    for (const [column, pose] of poseColumns.entries()) {
+    for (const [column, { id: pose, wardrobe }] of posesManifest.entries()) {
       const x = column * size;
       const authoring = source.getImageData(x, 0, size, size).data;
       const home = kits.getImageData(x, 0, size, size).data;
@@ -133,7 +138,7 @@ async function verifyFullRoster(page) {
           recolored = true;
         }
       }
-      if (recolored) alternateKits.push(pose);
+      if (recolored !== (wardrobe === 'team')) throw Error('Kit rows do not match the wardrobe designation for ' + pose);
       if (!home.some((value, i) => i % 4 === 3 && value > 0)) throw Error('Empty roster pose ' + pose);
       uniquePoses.add(home.join(','));
       const enlarged = canvases[column];
@@ -149,13 +154,11 @@ async function verifyFullRoster(page) {
         }
       }
     }
-    if (uniquePoses.size !== poseColumns.length) throw Error('A roster pose duplicates another source sprite');
-    return alternateKits;
-  }, { atlasPng, authoringPng, poseColumns, kitPairs });
+    if (uniquePoses.size !== posesManifest.length) throw Error('A roster pose duplicates another source sprite');
+  }, { atlasPng, authoringPng, posesManifest, kitPairs });
   await roster.screenshot({ path: resolve(captures, 'west-bay-six-roster.png') });
   await summary.press('Enter');
   await roster.waitFor({ state: 'hidden' });
-  return alternateKits;
 }
 
 await mkdir(captures, { recursive: true });
@@ -173,15 +176,16 @@ try {
   assert.deepEqual(studies.map(({ id }) => id), ['a', 'b', 'c']);
   assert.equal(await select.inputValue(), 'b');
   await page.getByText('9 of 12 occupied', { exact: true }).waitFor();
-  assert.equal(new Set(poseColumns).size, 10);
-  assert.equal(new Set(poseColumns.map(id => id.slice(id.indexOf('-') + 1))).size, 8);
-  assert.deepEqual(posesManifest.slice(-4), newPoses);
-  const newSupportersInB = studies[1].seats
-    .filter(({ pose }) => newPoses.some(({ id }) => id === pose))
-    .map(({ pose }) => pose.split('-')[1]);
-  assert.ok(new Set(newSupportersInB).size >= 2, 'The preferred view seats at least two distinct new supporters');
-  assert.ok(studies.some(({ seats }) => seats.some(({ pose }) => pose === 'standing-bell')),
-    'At least one view displays the new standing supporter');
+  assert.equal(new Set(poseColumns).size, 12);
+  assert.equal(new Set(poseColumns.map(identity)).size, 10);
+  const pairs = Map.groupBy(posesManifest, ({ id }) => identity(id));
+  assert.deepEqual([...pairs].filter(([, poses]) => poses.length > 1).map(([id]) => id).sort(), ['horn', 'tambourine']);
+  for (const id of ['horn', 'tambourine']) {
+    assert.deepEqual(pairs.get(id).map(({ id }) => id).sort(), ['seated-' + id, 'standing-' + id]);
+  }
+  assert.deepEqual(posesManifest.filter(({ wardrobe }) => wardrobe === 'neutral')
+    .map(({ id }) => identity(id)).sort(), ['chestnuts', 'mug', 'pie']);
+  assert.equal(posesManifest.filter(({ wardrobe }) => wardrobe === 'team').length, 9);
   assert.deepEqual(await select.locator('option').allTextContents(),
     [...studies.map(({ label }) => label), 'Empty stadium', 'Show seating masks']);
   const rail = page.getByRole('checkbox', { name: 'Front rail' });
@@ -192,7 +196,7 @@ try {
   assert.equal(await markers.isChecked(), false);
   assert.equal(await benches.isChecked(), false);
   assert.equal(await benchKey.count(), 0);
-  const alternateKits = await verifyFullRoster(page);
+  await verifyFullRoster(page);
 
   await select.selectOption('empty');
   await page.getByLabel('Empty Gatehouse stadium').waitFor();
@@ -224,12 +228,8 @@ try {
   const fullPlan = new Map(studies[0].seats.map(seat => [seatKey(seat), seat]));
   const fullRows = Map.groupBy(fullPlan.values(), seat => seat.plankId);
   for (const row of fullRows.values()) row.sort((a, b) => a.slot.y - b.slot.y);
-  const fullPosesWithBothKits = poseColumns.filter(pose =>
-    [true, false].every(neutral => studies[0].seats.some(seat => seat.pose === pose && seat.neutral === neutral)));
   assert.equal(fullPlan.size, 12);
   assert.equal(fullPlan.size, studies[0].capacity);
-  assert.ok(fullPosesWithBothKits.length > 0, 'One pose appears in both kits so the inspector exercises the kit axis');
-  assert.ok(fullPosesWithBothKits.every(pose => alternateKits.includes(pose)), 'Both kit choices have visibly distinct colors');
   let previousLocations = new Set(fullPlan.keys());
   for (const [index, { id, label, seats, spacing, capacity }] of studies.entries()) {
     const percentage = [100, 75, 50][index];
@@ -242,16 +242,15 @@ try {
     previousLocations = locations;
     const vacant = [...fullPlan.values()].filter(seat => !locations.has(seatKey(seat)));
     const standing = seats.filter(seat => seat.stance === 'standing');
-    if (id === 'a') {
-      assert.equal(standing.length, 0, 'A fills every seat, so the bell ringer sits');
-      assert.ok(seats.some(({ pose }) => pose === 'seated-bell'));
-    } else {
-      assert.ok(standing.some(({ pose }) => pose === 'standing-bell'), id + ' includes the standing bell ringer');
-    }
+    const neutralSeats = seats.filter(({ neutral }) => neutral);
+    assert.equal(standing.length, id === 'a' ? 0 : 1);
+    assert.equal(neutralSeats.length, [4, 3, 2][index]);
+    assert.equal(new Set(neutralSeats.map(({ pose }) => identity(pose))).size, Math.min(3, neutralSeats.length));
     const seatsByPlank = new Map();
     for (const seat of seats) {
       const planned = fullPlan.get(seatKey(seat));
       assert.ok(planned, id + ' uses a fixed slot from A');
+      assert.equal(seat.neutral, poseById.get(seat.pose).wardrobe === 'neutral', id + ' uses the catalog wardrobe');
       assert.equal(seat.neutral, planned.neutral, id + ' preserves its kit');
       if (seat.stance === 'standing') {
         assert.equal(planned.pose, seat.pose.replace(/^standing-/, 'seated-'), id + ' preserves supporter identity across stances');
@@ -268,7 +267,11 @@ try {
       seatsByPlank.set(seat.plankId, row);
     }
     assert.equal(seatsByPlank.size, 3, id + ' uses three planks');
-    if (id === 'b') assert.ok([...seatsByPlank.values()].every(row => row.length === 3), '75% fills three seats per plank');
+    if (id === 'b') {
+      assert.equal(new Set(seats.map(({ pose }) => identity(pose))).size, seats.length, '75% seats nine distinct supporters');
+      assert.ok([...seatsByPlank.values()].every(row => row.length === 3 && row.filter(({ neutral }) => neutral).length === 1),
+        '75% seats two team supporters and one fixed supporter per plank');
+    }
     const nativeGaps = [...seatsByPlank.entries()].flatMap(([plankId, row]) => {
       row.sort((a, b) => a.y - b.y);
       return row.slice(1).map((seat, index) => {
@@ -542,10 +545,10 @@ try {
   await benches.check();
   await benchKey.waitFor();
   await page.getByText('Inspect full poses', { exact: true }).click();
-  await page.getByText('Inspect all 10 poses', { exact: true }).click();
+  await page.getByText(rosterLabel, { exact: true }).click();
   assert.equal(await page.locator('.bay-six-zoom').evaluate(element =>
     element.scrollWidth > element.clientWidth && document.documentElement.scrollWidth === window.innerWidth), true);
-  console.log('Bay 6 default, standing clearance, fixed slots, exact poses and crops, calf occlusion, rail and guides passed.');
+  console.log('Bay 6 default, 10 identities and 12 poses, fixed and team wardrobes, standing clearance, exact crops, rail and guides passed.');
 } finally {
   await browser?.close();await server.close();
 }

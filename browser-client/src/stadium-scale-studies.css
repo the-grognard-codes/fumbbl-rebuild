@@ -87,6 +87,7 @@
 .bay-six-poses summary { width: max-content; padding: 6px 0; color: #c1e9ff; cursor: pointer; }
 .bay-six-poses ol { display: flex; flex-wrap: wrap; gap: 12px; margin: 8px 0 0; padding: 0; list-style: none; }
 .bay-six-roster ol { max-width: 684px; }
+.bay-six-roster a { display: inline-block; margin-top: 12px; color: #c1e9ff; text-underline-offset: 3px; }
 .bay-six-poses figure { width: 104px; margin: 0; }
 .bay-six-poses canvas {
   display: block;
@@ -95,7 +96,8 @@
   background: #acb0af;
   image-rendering: pixelated;
 }
-.bay-six-poses figcaption { margin-top: 6px; color: #baccbf; font-size: .875rem; line-height: 1.35; }
+.bay-six-poses figcaption { margin-top: 6px; font-size: .875rem; line-height: 1.35; }
+.bay-six-poses figcaption span { display: block; margin-top: 2px; color: #baccbf; font-size: .8125rem; }
 .gatehouse-overview { max-width: 790px; }
 
 @media (max-width: 680px) {

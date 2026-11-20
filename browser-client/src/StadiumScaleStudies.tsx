@@ -3,6 +3,7 @@ import architectureUrl from '../../assets/game/references/stadiums/scale-studies
 import seatingUrl from '../../assets/game/references/stadiums/scale-studies/empty-seating.png';
 import seatingLayout from '../../assets/game/references/stadiums/scale-studies/empty-seating.json';
 import benchLayout from '../../assets/game/references/stadiums/scale-studies/gatehouse-benches.json';
+import artistReferenceUrl from '../../assets/game/references/stadiums/scale-studies/bay-six/cast-reference.webp';
 import poseColumns from '../../assets/game/references/stadiums/scale-studies/bay-six/poses.json';
 import seatingStudies from '../../assets/game/references/stadiums/scale-studies/bay-six/seats.json';
 import { playerArtPlacement, resolvePlayerArt } from './player-art.ts';
@@ -163,6 +164,9 @@ function drawCrop(target: HTMLCanvasElement | null, source: HTMLCanvasElement) {
 function SupporterPose({ atlas, pose, neutral }: { atlas: HTMLImageElement; pose: string; neutral?: boolean }) {
   const canvas = useRef<HTMLCanvasElement>(null);
   const column = poseColumns.findIndex(({ id }) => id === pose);
+  const { label, wardrobe } = poseColumns[column];
+  const clothing = wardrobe === 'neutral' ? 'Fixed clothing'
+    : neutral === undefined ? 'Team colors' : neutral ? 'Neutral kit' : 'Home kit';
   const row = neutral ? poseCellSize : 0;
   useLayoutEffect(() => {
     const context = canvas.current?.getContext('2d');
@@ -175,8 +179,9 @@ function SupporterPose({ atlas, pose, neutral }: { atlas: HTMLImageElement; pose
   return <li>
     <figure>
       <canvas ref={canvas} width={poseZoomSize} height={poseZoomSize} aria-hidden="true"/>
-      <figcaption>{pose.startsWith('standing-') ? 'Standing' : 'Seated'} · {poseColumns[column].label}
-        {neutral !== undefined && (neutral ? ' · Neutral kit' : ' · Home kit')}</figcaption>
+      <figcaption>{label}{' '}
+        <span>{pose.startsWith('standing-') ? 'Standing' : 'Seated'} · {clothing}</span>
+      </figcaption>
     </figure>
   </li>;
 }
@@ -286,6 +291,7 @@ export function StadiumScaleStudies() {
         <ol role="list" aria-label="Full supporter roster">
           {poseColumns.map(({ id }) => <SupporterPose key={id} atlas={layers.atlas} pose={id}/>)}
         </ol>
+        <a href={artistReferenceUrl} target="_blank" rel="noreferrer">Artist reference</a>
       </details>}
     </section>}
     <div className="scale-study-crop gatehouse-overview">

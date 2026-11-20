@@ -2,11 +2,13 @@
 
 ## West bay 6 · Crowd density review
 
-West bay 6 uses the approved 75% attendance, with nine supporters spread evenly across three benches. On the rear bench, the seat immediately north of the standing handbell ringer stays open so his raised bell has room. At full attendance the tankard drinker takes that seat and the ringer sits. The nearby blitzer gives a game-scale reference.
+West bay 6 opens at 75% attendance with nine different supporters, three on each bench. The copper-bearded dwarf stands with his drinking horn on the rear bench. The place immediately north of him stays empty. At full attendance he sits and another supporter takes that place. The barefoot halfling sits at the front of the inner bench. The nearby blitzer gives a game-scale reference.
 
-The 75% section includes the seated clapping supporter on the inner bench and the standing handbell ringer on the rear bench. At full attendance, the moustached supporter with a pretzel takes the seat just north of the clapping supporter. The ringer also has a seated pose. In the preview below the three complexions range from light olive-brown through warm medium brown to deep brown. Faces, hands, food and brass keep their colours across kits.
+![Previous cast and new cast in the same 75% west-bay view, with the blitzer at the same scale](../../assets/game/references/stadiums/scale-studies/bay-six/cast-on-pitch.webp)
 
-![New supporter poses at 3× pixel zoom, from left to right: seated with a pretzel, seated clapping, seated with a handbell and standing with a handbell](../../assets/game/references/stadiums/scale-studies/bay-six/roster-preview.webp)
+The new west-facing cast has ten seated poses and two standing alternates. Seven supporters wear two team-colour materials. The halfling with the pie, the elder with the tankard and the chestnut seller wear fixed neutral clothing. The light olive-brown tambourine player, medium-brown clapping supporter and deep-brown lookout keep their skin tones under either kit. The transparent artist sheet records the faces, clothing and props for future views. [Artist reference](../../assets/game/references/stadiums/scale-studies/bay-six/cast-reference.webp)
+
+![The twelve west-facing game sprites at 3× pixel zoom, with the seated and standing tambourine player and dwarf in the top row](../../assets/game/references/stadiums/scale-studies/bay-six/roster-preview.webp)
 
 | Gallery view | Occupied seats | Seated | Standing | Neutral clothing |
 | --- | ---: | ---: | ---: | ---: |
@@ -14,7 +16,7 @@ The 75% section includes the seated clapping supporter on the inner bench and th
 | B · 75% full | 9 of 12 | 8 | 1 | 3 |
 | C · 50% full | 6 of 12 | 5 | 1 | 2 |
 
-Open `/stadium-mockup` and use **Gallery view** to change attendance. Returning fans keep their seats and clothes. Compare the views at native size and 4×, or scroll down to see the whole pitch. **Seat markers** shows empty places as grey squares, hip or boot contacts as cyan crosses and seated knees as gold dots. **Inspect full poses** shows each occupied seat in its assigned kit before overlap. **Inspect all 10 poses** shows all eight supporters, including both stances for the cheering supporter and the handbell ringer.
+Open `/stadium-mockup` and use **Gallery view** to change attendance. Returning fans keep their seats and clothes. Compare the views at native size and 4×, or scroll down to see the whole pitch. **Seat markers** shows empty places as grey squares, hip or foot contacts as cyan crosses and seated knees as gold dots. **Inspect full poses** shows each occupied seat in its assigned kit before overlap. **Inspect all 12 poses** shows the entire cast, including both stances for the tambourine player and the dwarf.
 
 Turn off **Front rail** to inspect how each plank covers the back of a seated calf. This detail from the bench-fit proof shows the effect on the folded-arms pose.
 
