@@ -46,7 +46,7 @@ class MatchMemoryWorkloadTest {
 		fixture.session = null;
 		clearInvocations(fixture.server, fixture.server.getCommunication(), fixture.server.getDebugLog());
 		SetupSession resident = warmResident();
-		long residentBytes = resident == null ? 0 : resident.recoveryBytes();
+		long residentBytes = resident.recoveryBytes();
 		MatchMemoryBudget budget = new MatchMemoryBudget();
 		long incoming = codec.decodedBytes(stored) + new Utf8Size().bytes(change.json);
 		budget.requireDecodedBytes(incoming);
