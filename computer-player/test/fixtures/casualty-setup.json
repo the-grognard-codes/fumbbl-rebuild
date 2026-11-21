@@ -1,0 +1,1110 @@
+{
+  "projectionVersion": 4,
+  "half": 1,
+  "drive": 2,
+  "homeScore": 1,
+  "awayScore": 0,
+  "homeTurn": 4,
+  "awayTurn": 3,
+  "actions": [],
+  "turn": 4,
+  "turnMode": "SETUP",
+  "activePlayerId": null,
+  "ball": null,
+  "matchId": "00000000-0000-0000-0000-000000000021",
+  "revision": 170,
+  "callerRole": "home",
+  "phase": "SETUP",
+  "actor": "home",
+  "prompt": null,
+  "players": [
+    {
+      "id": "00000000-0000-0000-0000-000000000011:player1",
+      "name": "Player 1",
+      "slot": 1,
+      "art": {
+        "rosterId": "orc",
+        "positionId": "orc-lineman"
+      },
+      "number": 1,
+      "position": "Orc Lineman",
+      "ma": 5,
+      "st": 3,
+      "ag": 3,
+      "pa": 4,
+      "av": 10,
+      "skills": [
+        "Pro",
+        "Team Captain"
+      ],
+      "skillMarkers": {
+        "version": 1,
+        "entries": [
+          {
+            "id": "pro",
+            "category": "GENERAL",
+            "origin": "acquired"
+          }
+        ],
+        "details": [
+          "Pro",
+          "Team Captain"
+        ]
+      },
+      "conditions": [],
+      "offPitch": "pitch",
+      "role": "home",
+      "state": "is standing",
+      "status": "Standing",
+      "x": 12,
+      "y": 7,
+      "positionRace": "Orc",
+      "positionRole": "Lineman"
+    },
+    {
+      "id": "00000000-0000-0000-0000-000000000011:player2",
+      "name": "Player 2",
+      "slot": 2,
+      "art": {
+        "rosterId": "orc",
+        "positionId": "orc-lineman"
+      },
+      "number": 2,
+      "position": "Orc Lineman",
+      "ma": 5,
+      "st": 3,
+      "ag": 3,
+      "pa": 4,
+      "av": 10,
+      "skills": [],
+      "skillMarkers": {
+        "version": 1,
+        "entries": [],
+        "details": []
+      },
+      "conditions": [],
+      "offPitch": "pitch",
+      "role": "home",
+      "state": "is standing",
+      "status": "Standing",
+      "x": 9,
+      "y": 3,
+      "positionRace": "Orc",
+      "positionRole": "Lineman"
+    },
+    {
+      "id": "00000000-0000-0000-0000-000000000011:player3",
+      "name": "Player 3",
+      "slot": 3,
+      "art": {
+        "rosterId": "orc",
+        "positionId": "orc-lineman"
+      },
+      "number": 3,
+      "position": "Orc Lineman",
+      "ma": 5,
+      "st": 3,
+      "ag": 3,
+      "pa": 4,
+      "av": 10,
+      "skills": [],
+      "skillMarkers": {
+        "version": 1,
+        "entries": [],
+        "details": []
+      },
+      "conditions": [],
+      "offPitch": "pitch",
+      "role": "home",
+      "state": "is standing",
+      "status": "Standing",
+      "x": 9,
+      "y": 11,
+      "positionRace": "Orc",
+      "positionRole": "Lineman"
+    },
+    {
+      "id": "00000000-0000-0000-0000-000000000011:player4",
+      "name": "Player 4",
+      "slot": 4,
+      "art": {
+        "rosterId": "orc",
+        "positionId": "orc-lineman"
+      },
+      "number": 4,
+      "position": "Orc Lineman",
+      "ma": 5,
+      "st": 3,
+      "ag": 3,
+      "pa": 4,
+      "av": 10,
+      "skills": [],
+      "skillMarkers": {
+        "version": 1,
+        "entries": [],
+        "details": []
+      },
+      "conditions": [],
+      "offPitch": "pitch",
+      "role": "home",
+      "state": "is standing",
+      "status": "Standing",
+      "x": 9,
+      "y": 6,
+      "positionRace": "Orc",
+      "positionRole": "Lineman"
+    },
+    {
+      "id": "00000000-0000-0000-0000-000000000011:player5",
+      "name": "Player 5",
+      "slot": 5,
+      "art": {
+        "rosterId": "orc",
+        "positionId": "orc-lineman"
+      },
+      "number": 5,
+      "position": "Orc Lineman",
+      "ma": 5,
+      "st": 3,
+      "ag": 3,
+      "pa": 4,
+      "av": 10,
+      "skills": [],
+      "skillMarkers": {
+        "version": 1,
+        "entries": [],
+        "details": []
+      },
+      "conditions": [],
+      "offPitch": "pitch",
+      "role": "home",
+      "state": "is standing",
+      "status": "Standing",
+      "x": 9,
+      "y": 8,
+      "positionRace": "Orc",
+      "positionRole": "Lineman"
+    },
+    {
+      "id": "00000000-0000-0000-0000-000000000011:player6",
+      "name": "Player 6",
+      "slot": 6,
+      "art": {
+        "rosterId": "orc",
+        "positionId": "orc-blitzer"
+      },
+      "number": 6,
+      "position": "Orc Blitzer",
+      "ma": 6,
+      "st": 3,
+      "ag": 3,
+      "pa": 4,
+      "av": 10,
+      "skills": [
+        "Block",
+        "Break Tackle"
+      ],
+      "skillMarkers": {
+        "version": 1,
+        "entries": [
+          {
+            "id": "block",
+            "category": "GENERAL",
+            "origin": "base"
+          },
+          {
+            "id": "break-tackle",
+            "category": "STRENGTH",
+            "origin": "base"
+          }
+        ],
+        "details": [
+          "Block",
+          "Break Tackle"
+        ]
+      },
+      "conditions": [],
+      "offPitch": "pitch",
+      "role": "home",
+      "state": "is standing",
+      "status": "Standing",
+      "x": 10,
+      "y": 5,
+      "positionRace": "Orc",
+      "positionRole": "Blitzer"
+    },
+    {
+      "id": "00000000-0000-0000-0000-000000000011:player7",
+      "name": "Player 7",
+      "slot": 7,
+      "art": {
+        "rosterId": "orc",
+        "positionId": "orc-blitzer"
+      },
+      "number": 7,
+      "position": "Orc Blitzer",
+      "ma": 6,
+      "st": 3,
+      "ag": 3,
+      "pa": 4,
+      "av": 10,
+      "skills": [
+        "Block",
+        "Break Tackle"
+      ],
+      "skillMarkers": {
+        "version": 1,
+        "entries": [
+          {
+            "id": "block",
+            "category": "GENERAL",
+            "origin": "base"
+          },
+          {
+            "id": "break-tackle",
+            "category": "STRENGTH",
+            "origin": "base"
+          }
+        ],
+        "details": [
+          "Block",
+          "Break Tackle"
+        ]
+      },
+      "conditions": [],
+      "offPitch": "pitch",
+      "role": "home",
+      "state": "is standing",
+      "status": "Standing",
+      "x": 10,
+      "y": 9,
+      "positionRace": "Orc",
+      "positionRole": "Blitzer"
+    },
+    {
+      "id": "00000000-0000-0000-0000-000000000011:player8",
+      "name": "Player 8",
+      "slot": 8,
+      "art": {
+        "rosterId": "orc",
+        "positionId": "big-un-blocker"
+      },
+      "number": 8,
+      "position": "Big Un Blocker",
+      "ma": 5,
+      "st": 4,
+      "ag": 4,
+      "pa": 6,
+      "av": 10,
+      "skills": [
+        "Mighty Blow",
+        "Taunt",
+        "Thick Skull",
+        "Unsteady"
+      ],
+      "skillMarkers": {
+        "version": 1,
+        "entries": [
+          {
+            "id": "mighty-blow",
+            "category": "STRENGTH",
+            "origin": "base"
+          },
+          {
+            "id": "taunt",
+            "category": "GENERAL",
+            "origin": "base"
+          },
+          {
+            "id": "thick-skull",
+            "category": "STRENGTH",
+            "origin": "base"
+          },
+          {
+            "id": "unsteady",
+            "category": "TRAIT",
+            "origin": "base"
+          }
+        ],
+        "details": [
+          "Mighty Blow (+1)",
+          "Taunt",
+          "Thick Skull",
+          "Unsteady"
+        ]
+      },
+      "conditions": [],
+      "offPitch": "pitch",
+      "role": "home",
+      "state": "is standing",
+      "status": "Standing",
+      "x": 12,
+      "y": 6,
+      "positionRace": "Orc",
+      "positionRole": "Blocker"
+    },
+    {
+      "id": "00000000-0000-0000-0000-000000000011:player9",
+      "name": "Player 9",
+      "slot": 9,
+      "art": {
+        "rosterId": "orc",
+        "positionId": "big-un-blocker"
+      },
+      "number": 9,
+      "position": "Big Un Blocker",
+      "ma": 5,
+      "st": 4,
+      "ag": 4,
+      "pa": 6,
+      "av": 10,
+      "skills": [
+        "Mighty Blow",
+        "Taunt",
+        "Thick Skull",
+        "Unsteady"
+      ],
+      "skillMarkers": {
+        "version": 1,
+        "entries": [
+          {
+            "id": "mighty-blow",
+            "category": "STRENGTH",
+            "origin": "base"
+          },
+          {
+            "id": "taunt",
+            "category": "GENERAL",
+            "origin": "base"
+          },
+          {
+            "id": "thick-skull",
+            "category": "STRENGTH",
+            "origin": "base"
+          },
+          {
+            "id": "unsteady",
+            "category": "TRAIT",
+            "origin": "base"
+          }
+        ],
+        "details": [
+          "Mighty Blow (+1)",
+          "Taunt",
+          "Thick Skull",
+          "Unsteady"
+        ]
+      },
+      "conditions": [],
+      "offPitch": "casualty",
+      "role": "home",
+      "state": "has been seriously injured",
+      "status": "Seriously Injured",
+      "x": null,
+      "y": null,
+      "positionRace": "Orc",
+      "positionRole": "Blocker"
+    },
+    {
+      "id": "00000000-0000-0000-0000-000000000011:player10",
+      "name": "Player 10",
+      "slot": 10,
+      "art": {
+        "rosterId": "orc",
+        "positionId": "troll"
+      },
+      "number": 10,
+      "position": "Troll",
+      "ma": 4,
+      "st": 5,
+      "ag": 5,
+      "pa": 5,
+      "av": 10,
+      "skills": [
+        "Always Hungry",
+        "Loner",
+        "Mighty Blow",
+        "Projectile Vomit",
+        "Really Stupid",
+        "Regeneration",
+        "Throw Team-Mate"
+      ],
+      "skillMarkers": {
+        "version": 1,
+        "entries": [
+          {
+            "id": "always-hungry",
+            "category": "TRAIT",
+            "origin": "base"
+          },
+          {
+            "id": "loner",
+            "category": "TRAIT",
+            "origin": "base"
+          },
+          {
+            "id": "mighty-blow",
+            "category": "STRENGTH",
+            "origin": "base"
+          },
+          {
+            "id": "projectile-vomit",
+            "category": "TRAIT",
+            "origin": "base"
+          },
+          {
+            "id": "really-stupid",
+            "category": "TRAIT",
+            "origin": "base"
+          },
+          {
+            "id": "regeneration",
+            "category": "TRAIT",
+            "origin": "base"
+          },
+          {
+            "id": "throw-team-mate",
+            "category": "TRAIT",
+            "origin": "base"
+          }
+        ],
+        "details": [
+          "Always Hungry",
+          "Loner (4+)",
+          "Mighty Blow (+1)",
+          "Projectile Vomit",
+          "Really Stupid",
+          "Regeneration",
+          "Throw Team-Mate"
+        ]
+      },
+      "conditions": [],
+      "offPitch": "pitch",
+      "role": "home",
+      "state": "is standing",
+      "status": "Standing",
+      "x": 10,
+      "y": 2,
+      "positionRace": "Troll",
+      "positionRole": "Big Guy"
+    },
+    {
+      "id": "00000000-0000-0000-0000-000000000011:player11",
+      "name": "Player 11",
+      "slot": 11,
+      "art": {
+        "rosterId": "orc",
+        "positionId": "orc-thrower"
+      },
+      "number": 11,
+      "position": "Orc Thrower",
+      "ma": 6,
+      "st": 3,
+      "ag": 3,
+      "pa": 3,
+      "av": 9,
+      "skills": [
+        "Pass",
+        "Sure Hands"
+      ],
+      "skillMarkers": {
+        "version": 1,
+        "entries": [
+          {
+            "id": "pass",
+            "category": "PASSING",
+            "origin": "base"
+          },
+          {
+            "id": "sure-hands",
+            "category": "GENERAL",
+            "origin": "base"
+          }
+        ],
+        "details": [
+          "Pass",
+          "Sure Hands"
+        ]
+      },
+      "conditions": [],
+      "offPitch": "pitch",
+      "role": "home",
+      "state": "is standing",
+      "status": "Standing",
+      "x": 10,
+      "y": 12,
+      "positionRace": "Orc",
+      "positionRole": "Thrower"
+    },
+    {
+      "id": "cb9a3cd0-ac0b-36e7-8934-6ffe503d193b:player1",
+      "name": "Player 1",
+      "slot": 1,
+      "art": {
+        "rosterId": "human",
+        "positionId": "lineman"
+      },
+      "number": 1,
+      "position": "Human Lineman",
+      "ma": 6,
+      "st": 3,
+      "ag": 3,
+      "pa": 4,
+      "av": 9,
+      "skills": [
+        "Pro",
+        "Team Captain"
+      ],
+      "skillMarkers": {
+        "version": 1,
+        "entries": [
+          {
+            "id": "pro",
+            "category": "GENERAL",
+            "origin": "acquired"
+          }
+        ],
+        "details": [
+          "Pro",
+          "Team Captain"
+        ]
+      },
+      "conditions": [],
+      "offPitch": "reserve",
+      "role": "away",
+      "state": "is in reserve",
+      "status": "Reserve",
+      "x": null,
+      "y": null,
+      "positionRace": "Human",
+      "positionRole": "Lineman"
+    },
+    {
+      "id": "cb9a3cd0-ac0b-36e7-8934-6ffe503d193b:player2",
+      "name": "Player 2",
+      "slot": 2,
+      "art": {
+        "rosterId": "human",
+        "positionId": "lineman"
+      },
+      "number": 2,
+      "position": "Human Lineman",
+      "ma": 6,
+      "st": 3,
+      "ag": 3,
+      "pa": 4,
+      "av": 9,
+      "skills": [],
+      "skillMarkers": {
+        "version": 1,
+        "entries": [],
+        "details": []
+      },
+      "conditions": [],
+      "offPitch": "reserve",
+      "role": "away",
+      "state": "is in reserve",
+      "status": "Reserve",
+      "x": null,
+      "y": null,
+      "positionRace": "Human",
+      "positionRole": "Lineman"
+    },
+    {
+      "id": "cb9a3cd0-ac0b-36e7-8934-6ffe503d193b:player3",
+      "name": "Player 3",
+      "slot": 3,
+      "art": {
+        "rosterId": "human",
+        "positionId": "lineman"
+      },
+      "number": 3,
+      "position": "Human Lineman",
+      "ma": 6,
+      "st": 3,
+      "ag": 3,
+      "pa": 4,
+      "av": 9,
+      "skills": [],
+      "skillMarkers": {
+        "version": 1,
+        "entries": [],
+        "details": []
+      },
+      "conditions": [],
+      "offPitch": "reserve",
+      "role": "away",
+      "state": "is in reserve",
+      "status": "Reserve",
+      "x": null,
+      "y": null,
+      "positionRace": "Human",
+      "positionRole": "Lineman"
+    },
+    {
+      "id": "cb9a3cd0-ac0b-36e7-8934-6ffe503d193b:player4",
+      "name": "Player 4",
+      "slot": 4,
+      "art": {
+        "rosterId": "human",
+        "positionId": "lineman"
+      },
+      "number": 4,
+      "position": "Human Lineman",
+      "ma": 6,
+      "st": 3,
+      "ag": 3,
+      "pa": 4,
+      "av": 9,
+      "skills": [],
+      "skillMarkers": {
+        "version": 1,
+        "entries": [],
+        "details": []
+      },
+      "conditions": [],
+      "offPitch": "reserve",
+      "role": "away",
+      "state": "is in reserve",
+      "status": "Reserve",
+      "x": null,
+      "y": null,
+      "positionRace": "Human",
+      "positionRole": "Lineman"
+    },
+    {
+      "id": "cb9a3cd0-ac0b-36e7-8934-6ffe503d193b:player5",
+      "name": "Player 5",
+      "slot": 5,
+      "art": {
+        "rosterId": "human",
+        "positionId": "catcher"
+      },
+      "number": 5,
+      "position": "Human Catcher",
+      "ma": 8,
+      "st": 3,
+      "ag": 3,
+      "pa": 4,
+      "av": 8,
+      "skills": [
+        "Catch",
+        "Dodge"
+      ],
+      "skillMarkers": {
+        "version": 1,
+        "entries": [
+          {
+            "id": "catch",
+            "category": "AGILITY",
+            "origin": "base"
+          },
+          {
+            "id": "dodge",
+            "category": "AGILITY",
+            "origin": "base"
+          }
+        ],
+        "details": [
+          "Catch",
+          "Dodge"
+        ]
+      },
+      "conditions": [],
+      "offPitch": "reserve",
+      "role": "away",
+      "state": "is in reserve",
+      "status": "Reserve",
+      "x": null,
+      "y": null,
+      "positionRace": "Human",
+      "positionRole": "Catcher"
+    },
+    {
+      "id": "cb9a3cd0-ac0b-36e7-8934-6ffe503d193b:player6",
+      "name": "Player 6",
+      "slot": 6,
+      "art": {
+        "rosterId": "human",
+        "positionId": "catcher"
+      },
+      "number": 6,
+      "position": "Human Catcher",
+      "ma": 8,
+      "st": 3,
+      "ag": 3,
+      "pa": 4,
+      "av": 8,
+      "skills": [
+        "Catch",
+        "Dodge"
+      ],
+      "skillMarkers": {
+        "version": 1,
+        "entries": [
+          {
+            "id": "catch",
+            "category": "AGILITY",
+            "origin": "base"
+          },
+          {
+            "id": "dodge",
+            "category": "AGILITY",
+            "origin": "base"
+          }
+        ],
+        "details": [
+          "Catch",
+          "Dodge"
+        ]
+      },
+      "conditions": [],
+      "offPitch": "reserve",
+      "role": "away",
+      "state": "is in reserve",
+      "status": "Reserve",
+      "x": null,
+      "y": null,
+      "positionRace": "Human",
+      "positionRole": "Catcher"
+    },
+    {
+      "id": "cb9a3cd0-ac0b-36e7-8934-6ffe503d193b:player7",
+      "name": "Player 7",
+      "slot": 7,
+      "art": {
+        "rosterId": "human",
+        "positionId": "blitzer"
+      },
+      "number": 7,
+      "position": "Human Blitzer",
+      "ma": 7,
+      "st": 3,
+      "ag": 3,
+      "pa": 4,
+      "av": 9,
+      "skills": [
+        "Block",
+        "Tackle"
+      ],
+      "skillMarkers": {
+        "version": 1,
+        "entries": [
+          {
+            "id": "block",
+            "category": "GENERAL",
+            "origin": "base"
+          },
+          {
+            "id": "tackle",
+            "category": "GENERAL",
+            "origin": "base"
+          }
+        ],
+        "details": [
+          "Block",
+          "Tackle"
+        ]
+      },
+      "conditions": [],
+      "offPitch": "reserve",
+      "role": "away",
+      "state": "is in reserve",
+      "status": "Reserve",
+      "x": null,
+      "y": null,
+      "positionRace": "Human",
+      "positionRole": "Blitzer"
+    },
+    {
+      "id": "cb9a3cd0-ac0b-36e7-8934-6ffe503d193b:player8",
+      "name": "Player 8",
+      "slot": 8,
+      "art": {
+        "rosterId": "human",
+        "positionId": "blitzer"
+      },
+      "number": 8,
+      "position": "Human Blitzer",
+      "ma": 7,
+      "st": 3,
+      "ag": 3,
+      "pa": 4,
+      "av": 9,
+      "skills": [
+        "Block",
+        "Tackle"
+      ],
+      "skillMarkers": {
+        "version": 1,
+        "entries": [
+          {
+            "id": "block",
+            "category": "GENERAL",
+            "origin": "base"
+          },
+          {
+            "id": "tackle",
+            "category": "GENERAL",
+            "origin": "base"
+          }
+        ],
+        "details": [
+          "Block",
+          "Tackle"
+        ]
+      },
+      "conditions": [],
+      "offPitch": "reserve",
+      "role": "away",
+      "state": "is in reserve",
+      "status": "Reserve",
+      "x": null,
+      "y": null,
+      "positionRace": "Human",
+      "positionRole": "Blitzer"
+    },
+    {
+      "id": "cb9a3cd0-ac0b-36e7-8934-6ffe503d193b:player9",
+      "name": "Player 9",
+      "slot": 9,
+      "art": {
+        "rosterId": "human",
+        "positionId": "thrower"
+      },
+      "number": 9,
+      "position": "Human Thrower",
+      "ma": 6,
+      "st": 3,
+      "ag": 3,
+      "pa": 3,
+      "av": 9,
+      "skills": [
+        "Pass",
+        "Sure Hands"
+      ],
+      "skillMarkers": {
+        "version": 1,
+        "entries": [
+          {
+            "id": "pass",
+            "category": "PASSING",
+            "origin": "base"
+          },
+          {
+            "id": "sure-hands",
+            "category": "GENERAL",
+            "origin": "base"
+          }
+        ],
+        "details": [
+          "Pass",
+          "Sure Hands"
+        ]
+      },
+      "conditions": [],
+      "offPitch": "reserve",
+      "role": "away",
+      "state": "is in reserve",
+      "status": "Reserve",
+      "x": null,
+      "y": null,
+      "positionRace": "Human",
+      "positionRole": "Thrower"
+    },
+    {
+      "id": "cb9a3cd0-ac0b-36e7-8934-6ffe503d193b:player10",
+      "name": "Player 10",
+      "slot": 10,
+      "art": {
+        "rosterId": "human",
+        "positionId": "ogre"
+      },
+      "number": 10,
+      "position": "Ogre",
+      "ma": 5,
+      "st": 5,
+      "ag": 4,
+      "pa": 5,
+      "av": 10,
+      "skills": [
+        "Bone Head",
+        "Loner",
+        "Mighty Blow",
+        "Thick Skull",
+        "Throw Team-Mate"
+      ],
+      "skillMarkers": {
+        "version": 1,
+        "entries": [
+          {
+            "id": "bone-head",
+            "category": "TRAIT",
+            "origin": "base"
+          },
+          {
+            "id": "loner",
+            "category": "TRAIT",
+            "origin": "base"
+          },
+          {
+            "id": "mighty-blow",
+            "category": "STRENGTH",
+            "origin": "base"
+          },
+          {
+            "id": "thick-skull",
+            "category": "STRENGTH",
+            "origin": "base"
+          },
+          {
+            "id": "throw-team-mate",
+            "category": "TRAIT",
+            "origin": "base"
+          }
+        ],
+        "details": [
+          "Bone Head",
+          "Loner (3+)",
+          "Mighty Blow (+1)",
+          "Thick Skull",
+          "Throw Team-Mate"
+        ]
+      },
+      "conditions": [],
+      "offPitch": "reserve",
+      "role": "away",
+      "state": "is in reserve",
+      "status": "Reserve",
+      "x": null,
+      "y": null,
+      "positionRace": "Ogre",
+      "positionRole": "Big Guy"
+    },
+    {
+      "id": "cb9a3cd0-ac0b-36e7-8934-6ffe503d193b:player11",
+      "name": "Player 11",
+      "slot": 11,
+      "art": {
+        "rosterId": "human",
+        "positionId": "halfling"
+      },
+      "number": 11,
+      "position": "Halfling Hopeful",
+      "ma": 5,
+      "st": 2,
+      "ag": 3,
+      "pa": 4,
+      "av": 7,
+      "skills": [
+        "Dodge",
+        "Right Stuff",
+        "Stunty"
+      ],
+      "skillMarkers": {
+        "version": 1,
+        "entries": [
+          {
+            "id": "dodge",
+            "category": "AGILITY",
+            "origin": "base"
+          },
+          {
+            "id": "right-stuff",
+            "category": "TRAIT",
+            "origin": "base"
+          },
+          {
+            "id": "stunty",
+            "category": "TRAIT",
+            "origin": "base"
+          }
+        ],
+        "details": [
+          "Dodge",
+          "Right Stuff",
+          "Stunty"
+        ]
+      },
+      "conditions": [],
+      "offPitch": "reserve",
+      "role": "away",
+      "state": "is in reserve",
+      "status": "Reserve",
+      "x": null,
+      "y": null,
+      "positionRace": "Halfling",
+      "positionRole": "Lineman"
+    }
+  ],
+  "weather": "NICE",
+  "homeRerolls": 0,
+  "awayRerolls": 2,
+  "homeTeamName": "Acceptance home",
+  "awayTeamName": "Bogruk's Almost Best",
+  "homeTeamArt": {
+    "rosterId": "orc",
+    "league": "Badlands Brawl",
+    "colors": {
+      "version": 1,
+      "primary": "black",
+      "secondary": "orange"
+    }
+  },
+  "awayTeamArt": {
+    "rosterId": "human",
+    "league": "Old World Classic",
+    "colors": {
+      "version": 1,
+      "primary": "navy",
+      "secondary": "ivory"
+    }
+  },
+  "homeResources": {
+    "apothecaries": 0,
+    "assistantCoaches": 0,
+    "cheerleaders": 0
+  },
+  "awayResources": {
+    "apothecaries": 0,
+    "assistantCoaches": 0,
+    "cheerleaders": 0
+  },
+  "ballState": {
+    "version": 1,
+    "carrierPlayerId": null,
+    "inPlay": false,
+    "moving": false
+  },
+  "driveTracker": {
+    "version": 1,
+    "receivingRole": "away",
+    "phase": "KICKING_SETUP",
+    "secretWeapons": false,
+    "knockouts": false,
+    "event": null,
+    "eventComplete": false
+  },
+  "savedFormations": [
+    {
+      "name": "Chevron Defense",
+      "index": 0
+    },
+    {
+      "name": "Anchor Defense",
+      "index": 1
+    }
+  ],
+  "saveResume": {
+    "status": "ACTIVE",
+    "proposalId": null,
+    "proposer": null,
+    "expiresAt": null
+  },
+  "clock": {
+    "activeRole": null,
+    "turnElapsedMs": 0,
+    "homeReserveMs": 600000,
+    "awayReserveMs": 600000
+  }
+}

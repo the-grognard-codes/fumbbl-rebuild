@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Inspect experimental game results for the Moles Under the Pitch computer coaches.">
+  <title>Training Lab · Moles Under the Pitch</title>
+  <link rel="stylesheet" href="/assets/site.css">
+  <link rel="stylesheet" href="/assets/training.css">
+</head>
+<body class="training-page">
+  <!-- site-header -->
+  <main>
+    <div class="training-heading">
+      <div><h1>Training lab</h1><p>Explore experimental match results for Bogruk and Gobbo, the game's scripted computer coaches.</p></div>
+      <span id="connection" role="status">Read-only viewer</span>
+    </div>
+    <p>Game tests evaluate the current coaches with paired seeds and swapped sides. They leave the coaches and model weights unchanged.</p>
+    <p id="message" role="alert" hidden></p>
+    <div class="training-layout">
+      <section id="controls" hidden aria-labelledby="new-run-heading">
+        <h2 id="new-run-heading">New game test</h2>
+        <form id="run-form">
+          <fieldset id="settings"><legend>Match settings</legend>
+            <div class="field-pair"><label>Coach<select name="home"><option value="bogruk">Bogruk</option><option value="gobbo">Gobbo</option></select></label><label>Opponent<select name="away"><option value="gobbo">Gobbo</option><option value="bogruk">Bogruk</option></select></label></div>
+            <div class="field-pair"><label>Games<input name="games" type="number" value="20" min="2" max="10000" step="2" required></label><label>Seed<input name="seed" type="number" value="42" min="0" max="4294962295" required></label></div>
+            <label>Time limit (minutes)<input name="minutes" type="number" value="15" min="1" max="1440" required></label>
+            <label>Resource profile<select name="profile"><option value="low">Low · keep the machine responsive</option><option value="balanced">Balanced · moderate CPU use</option><option value="high">High · more CPU capacity</option></select></label>
+            <p class="hint">The harness checks free memory and CPU capacity before starting.</p>
+            <details><summary>Resource overrides</summary><div class="field-pair"><label>Workers<input name="workers" type="number" min="1" max="32" placeholder="Auto from profile"></label><label>Heap / worker (MiB)<input name="heapMiB" type="number" min="256" max="8192" step="128" value="768" required></label></div></details>
+          </fieldset>
+          <button id="start" type="submit">Start game test</button>
+        </form>
+        <p class="hint">Keep the launcher terminal open. Closing this page leaves the run active. Only runs started here can be stopped here.</p>
+      </section>
+      <div class="training-results">
+        <section id="active-section" hidden aria-labelledby="active-heading"><div class="section-title"><h2 id="active-heading">Current run</h2><button type="button" id="stop">Stop run</button></div><p id="active-status" role="status"></p><details><summary>Live harness log</summary><pre id="log"></pre></details></section>
+        <section aria-labelledby="history-heading"><div class="section-title"><h2 id="history-heading">Experiment runs</h2><button id="refresh" type="button" hidden>Refresh</button></div><p id="viewer-note">Open a saved summary to inspect its games, failures, throughput and configuration. Your file stays in this browser.</p><label class="import-label">Open a saved summary<input id="import" type="file" accept=".json,application/json"></label><p id="empty" hidden></p><div id="runs" class="run-list"></div></section>
+        <section id="detail" hidden aria-labelledby="detail-heading"><div class="section-title"><h2 id="detail-heading">Run results</h2><button id="download" type="button">Save summary</button></div><p id="run-id"></p><dl id="metrics"></dl><p id="run-note"></p><div class="table-scroll"><table><caption>Individual games · score in home / away order</caption><thead><tr><th>Game</th><th>Coaches</th><th>Seed</th><th>Score</th><th>Outcome</th></tr></thead><tbody id="games"></tbody></table></div><details><summary>Configuration and reproducibility</summary><pre id="config"></pre></details></section>
+      </div>
+    </div>
+    <section class="training-guide">
+      <h2>Computer opponent research</h2>
+      <p>Research is paused while development focuses on graphics, the game interface and teams. The longer-term plan is to study imitation learning first and use the evidence to guide four computer opponent tiers.</p>
+    </section>
+  </main>
+  <script type="module" src="/assets/training.js"></script>
+  <script type="module" src="/assets/account-menu.js"></script>
+</body>
+</html>

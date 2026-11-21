@@ -46,6 +46,17 @@ launcher reuses that configured JDK. The server uses Jetty 12. See the
 [Windows setup](docs/windows-development-setup.md), and
 [Ubuntu setup](docs/ubuntu-development-setup.md).
 
+## Experimental training lab
+
+The optional [training harness](computer-player/training/README.md) runs bounded
+local exhibitions and learning experiments. The [Training lab](computer-player/training/UI.md)
+provides local controls; the static site's `/training` page is a read-only viewer.
+Python and CUDA are optional and are not required to play the game or build the site.
+
+See the [opponent learning roadmap](docs/specs/computer-opponent-learning-roadmap.md)
+for the intended four difficulty tiers and imitation-first research plan. AI research
+is currently deferred while game polish, graphics, UI, and additional teams take priority.
+
 ## Components
 
 | Directory | Purpose |
