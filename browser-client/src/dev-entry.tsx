@@ -6,7 +6,9 @@ import './style.css';
 // authentication belong to the dev-local site, which mounts the V2 library.
 if (import.meta.env.DEV) {
   const route = location.pathname;
-  const Preview = route === '/pitch-preview'
+  const Preview = route === '/stadium-mockup'
+    ? lazy(() => import('./StadiumMockup').then(module => ({ default: module.StadiumMockup })))
+    : route === '/pitch-preview'
     ? lazy(() => new URLSearchParams(location.search).get('variant') === 'stadium-hybrid'
       ? import('./StadiumHybridPrototype').then(module => ({ default: module.StadiumHybridPrototype }))
       : import('./PitchPreview').then(module => ({ default: module.PitchPreview })))

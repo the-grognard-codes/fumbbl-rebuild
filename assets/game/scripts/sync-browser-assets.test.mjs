@@ -44,6 +44,7 @@ test('asset sync preserves live inputs on repeated builds and repairs stale deli
     { cwd: root, windowsHide: true, timeout: 30000 });
   await sync();
   const delivery = join(client, 'public/assets/game');
+  await assert.rejects(stat(join(delivery, 'pitch/stadiums/mockup')), { code: 'ENOENT' });
 
   await t.test('unchanged sync leaves every generated catalog and delivered asset untouched', async () => {
     const paths = [...await filesUnder(join(client, 'src')), ...await filesUnder(delivery)];

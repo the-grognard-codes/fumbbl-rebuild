@@ -1,0 +1,86 @@
+{
+  "version": 1,
+  "assets": [
+    {
+      "file": "architecture-v2.png",
+      "width": 1536,
+      "height": 1024,
+      "sha256": "935ffde657da74c73604ab31e1285716f2dff5711c33596e15ce0d8dbc9c20b0",
+      "tool": "built-in image_gen",
+      "reference": "assets/game/references/stadiums/concept-round-3/01-old-world-classic-human-home.webp",
+      "prompt": "Precise background extraction edit. Keep every sprite, position, size, stone texture, wood texture and hard outline exactly unchanged. Remove ALL the brown/grey atmospheric backdrop and all soft glow outside solid sprite silhouettes. Export actual transparent alpha, including between rows and inside the empty bench awning frame. The entire background must be zero alpha, NOT checkerboard pixels, NOT brown, NOT a painted backdrop. Only solid architecture, fire, barrels and benches remain. No added shadows, no new objects, no text. This is a game sprite atlas needing clean transparent gutters.",
+      "status": "review candidate; not owner accepted",
+      "parent": "../../../references/stadiums/old-world-classic-mockup/candidates/architecture-v1.png"
+    },
+    {
+      "file": "cloth-v1.png",
+      "width": 2172,
+      "height": 724,
+      "sha256": "395705cf5c36dc039f2f989a71872009ed911a3816b19b576f7d995a3948a3d8",
+      "tool": "built-in image_gen",
+      "reference": "assets/game/references/stadiums/concept-round-3/01-old-world-classic-human-home.webp",
+      "prompt": "Production pixel art cloth sprite atlas for this exact Old World Classic stadium. Transparent zero-alpha background, no atmospheric backdrop. Four isolated pieces in ONE horizontal row, wide transparent gutters: a long hanging blue heraldic banner with GOLD LION emblem and pointed bottom; a triangular blue pennant with gold edge facing right; a draped blue-and-gold striped bench awning cloth seen in front perspective; the same striped awning cloth seen exactly overhead. CLOTH ONLY, no poles, no stone, no wood, no people, no metal. Strong dark outlines, discrete blue shadow/base/highlight clusters, discrete gold shadow/base/highlight clusters, warm rich SNES-era pixel art matching reference. Clean silhouettes, detailed folds, no letters, no text. Use blue exclusively for primary cloth and gold exclusively for secondary cloth, keep outlines nearly black, so the engine can generate separate indexed recoloring regions without changing other materials. Four sprites separated, no overlap, generously padded canvas.",
+      "status": "review candidate; not owner accepted"
+    },
+    {
+      "file": "human-sides-v2.png",
+      "width": 1536,
+      "height": 1024,
+      "sha256": "24389997022205e286bc5919bda43f2c0bda150392b02a8af2731a85bf375940",
+      "tool": "built-in image_gen",
+      "reference": "../../../references/stadiums/old-world-classic-mockup/candidates/human-sides-v1.png",
+      "prompt": "Edit this game sprite atlas to double crowd density in both dimensions. Keep EXACT same four tall strip positions and extents, same transparent gutters, same blue/gold Human style, same orientations (right profile, left profile, exact overhead looking right, exact overhead looking left). Each strip must now have EIGHT heads across and THIRTY SIX ranks running down, with each spectator HALF the current width and height. Redraw at that smaller crisp pixel density rather than blur or rescale this image. Many varied faces, caps, beards, hair, mugs. Uniform head size. Preserve all four rectangular atlas slots. No walls, no backgrounds, no letters. Genuine transparent alpha. This is a dense crowd of tiny chibi spectators at game scale, not a character portrait sheet.",
+      "status": "review candidate; no owner visual acceptance"
+    },
+    {
+      "file": "orc-sides-v1.png",
+      "width": 1536,
+      "height": 1024,
+      "sha256": "8e362ada2078869adbe634b91597082f62513f9b1dea58f1e163a9dde4652786",
+      "tool": "built-in image_gen",
+      "reference": "human-sides-v2.png",
+      "prompt": "Edit this crowd game atlas into ORC VISITING SUPPORTERS. Preserve EXACT same four vertical strip layout, positions, widths, heights, head size, density and transparent gutters. Replace all Humans with expressive chibi green Orcs and a few smaller Goblins, tusks, varied olive green faces, rough leather caps, orange/brown jerseys and scarves, iron mugs. Keep dark outlines and crisp SNES pixel clusters. Strip 1 faces right, strip 2 faces left, strips 3 and 4 are EXACT 90-degree overhead with tops of heads only. Same roughly six to eight heads across and thirty ranks down per strip. No architecture, no background, no text, no labels. Genuine transparent zero-alpha backdrop. Change only spectator species and team clothes, keep compatible geometry.",
+      "status": "review candidate; no owner visual acceptance"
+    },
+    {
+      "file": "human-sides-indexed-v1.png",
+      "width": 1536,
+      "height": 1024,
+      "sha256": "2d503dc22344897018aebaa19cf930a9f131587872ee802704e59df4c8fc6527",
+      "tool": "built-in image_gen",
+      "reference": "human-sides-v2.png",
+      "prompt": "Precise palette preparation edit of this game atlas. Keep exact canvas, exact four strip locations and bounds, all spectator positions, face sizes, faces, skin, hair, caps and directions unchanged. Repaint ONLY yellow/gold CLOTHING trim, jersey stripes, scarf stripes, cloth hat trim to vivid MAGENTA/PINK with discrete dark/base/light shades. Keep primary clothing BLUE. Keep golden blond HAIR golden; hair is not cloth. This blue/magenta working palette is for automatic indexing of cloth in the game. No skin, hair, mugs, outlines or other materials may become blue or magenta. Keep true transparent alpha gutters. No new spectators, no layout changes, no text. The overhead panels must retain exactly their alignment.",
+      "status": "review candidate; no owner visual acceptance"
+    },
+    {
+      "file": "orc-sides-indexed-v1.png",
+      "width": 1536,
+      "height": 1024,
+      "sha256": "56ed6c757784d71983d49d60066695733738b9a755a1fdb34ca4ad3104f38eb2",
+      "tool": "built-in image_gen",
+      "reference": "orc-sides-v1.png",
+      "prompt": "Precise palette preparation edit of this Orc game atlas. Keep exact canvas, exact four strip locations and bounds, all spectator positions, face sizes, green skin, hair, tusks, directions and density unchanged. Repaint ONLY orange/brown CLOTHING (jerseys scarves cloth caps) to BLUE primary fabric with vivid MAGENTA secondary stripes/trim, with discrete shadow/base/highlight shades. Keep brown leather, hair and metal mugs neutral brown/grey. No skin, hair, mugs, outlines or other non-cloth material may become blue or magenta. This blue/magenta working palette is for automatic indexing and will render orange/brown in the game. Keep true transparent alpha gutters. No new spectators, no layout changes, no text. Overhead panels retain exact alignment.",
+      "status": "review candidate; no owner visual acceptance"
+    },
+    {
+      "file": "human-sides-gesture-v1.png",
+      "width": 1536,
+      "height": 1024,
+      "sha256": "0dc0855e9440f4617093334fa8e1c8a827995f19038d4d5642bfeffda4b7dda3",
+      "reference": "human-sides-indexed-v1.png",
+      "tool": "built-in image_gen",
+      "status": "Local rectangle only; full-sheet changes outside gesture rectangle are rejected",
+      "prompt": "Create ONE alternate gesture frame from this exact sprite atlas. Preserve exact 1536x1024 canvas, all four strips, positions, transparency, all pixels outside the bottom 120 pixels of the LEFTMOST strip. In ONLY the leftmost strip at source rectangle x=100..350, y=890..1010, make two spectators briefly cheer: one lifts a small mug about 12 pixels, another opens their mouth and lifts a fist about 10 pixels. Keep heads and bodies anchored at exactly their current positions. No sliding, no bobbing, no new characters, no changes anywhere else. Preserve blue primary and MAGENTA secondary cloth-marker palette; faces, hair, mugs and outlines retain their colors. Actual transparent alpha. This is an animation replacement patch, not a redesign."
+    },
+    {
+      "file": "human-ends-indexed-v2.png",
+      "width": 2172,
+      "height": 724,
+      "sha256": "d77ac4030808f4d056c91841a5c0f0249fac3c70f9cb263cce9c0b78ddb92ad1",
+      "reference": "../../../references/stadiums/old-world-classic-mockup/candidates/human-ends-indexed-v1.png",
+      "tool": "built-in image_gen",
+      "status": "Gallery candidate; no owner visual acceptance",
+      "prompt": "Background extraction only. Preserve all three crowd strips, every source pixel of people, exact 2172x724 canvas and position. Remove the ENTIRE grey beige backdrop around and between the people to truly zero alpha. NO grey background, NO glow, NO shadow halo, NO translucent backdrop. The outside silhouette around each head must be a clean hard cutout. Every gutter pixel between rows must have alpha=0. Preserve blue/magenta fabric marker colors and all faces/hair exactly. Export transparent PNG game sprite sheet. This is not a new rendering: only remove background."
+    }
+  ]
+}

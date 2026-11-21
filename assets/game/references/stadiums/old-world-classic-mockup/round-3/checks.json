@@ -1,0 +1,23 @@
+{
+  "cases": [
+    "home-30-0",
+    "home-30-26",
+    "home-40-0",
+    "home-40-26",
+    "home-50-0",
+    "home-50-26",
+    "home-90-0",
+    "home-90-26",
+    "away-30-0",
+    "away-30-26",
+    "away-40-0",
+    "away-40-26",
+    "away-50-0",
+    "away-50-26",
+    "away-90-0",
+    "away-90-26"
+  ],
+  "cellsPerCase": 390,
+  "playerAnchorParity": true,
+  "errors": []
+}
