@@ -52,6 +52,7 @@ export function renderUpdatesPage(entries) {
       <p>MUTP began as an educational project exploring AI-assisted development. Building a browser game puts that learning into practice through interface design, BB2025 rules, testing and match recovery.</p>
       <p>The browser interface evolves alongside a retained Java game engine. Local development offers a place to explore both, with separate development and production sign-in environments. MUTP accounts and services remain separate from FUMBBL.</p>
       <p>To explore the implementation, start with the <a href="${liveRepositoryUrl}/blob/main/README.md">local development setup</a> and the <a href="${liveRepositoryUrl}/blob/main/docs/development-and-release.md">build, test and release guide</a>.</p>
+      <p>Explore the computer coaches' evaluation work in the <a href="/training">Training lab</a>.</p>
     </section>
     <section class="development-history" id="history" aria-labelledby="history-title">
     <h2 id="history-title">Merged changes</h2>

@@ -4,6 +4,7 @@ import { createServer } from 'node:http';
 import { execFileSync, spawn } from 'node:child_process';
 import { EventEmitter, once } from 'node:events';
 import { test } from 'node:test';
+import { readFile } from 'node:fs/promises';
 import { solidDefenceState } from '../../browser-client/test/fixtures/solid-defence-state.ts';
 import { idleWorkerExitCode, observeWorkerClose, persistenceUnavailableExitCode } from '../src/worker-lifecycle.mjs';
 
@@ -82,6 +83,44 @@ function readFrames(socket, onMessage) {
     }
   });
 }
+
+for (const coach of ['bogruk','gobbo']) test(`${coach} normal transport repairs a rejected casualty formation`,{timeout:15000},async t=>{
+  const captured=JSON.parse(await readFile(new URL('./fixtures/casualty-setup.json',import.meta.url),'utf8'));
+  const current={...state,phase:'SETUP',turnMode:'SETUP',prompt:null,players:captured.players,savedFormations:captured.savedFormations,
+    homeTeamName:'Home',awayTeamName:'Away',homeResources:captured.homeResources,awayResources:captured.awayResources};
+  current.matchId=matchId;current.callerRole='away';current.actor='away';current.projectionVersion=4;
+  for(const player of current.players) { player.role=player.role==='home'?'away':'home';if(player.x!==null)player.x=25-player.x; }
+  current.computer={opponentId:coach==='bogruk'?'coach-bogruk-weak':'coach-bugman-random',policyVersion:coach==='bogruk'?'bogruk-v1':'random-v1',
+    seed:43,attackDirection:-1,movement:null,policyState:null,progress:{turnKey:'1:2:away:4',stalledTurns:0}};
+  const sockets=new Set();let confirmations=0,placements=0;
+  const server=createServer();
+  server.on('upgrade',(request,socket)=>{
+    sockets.add(socket);socket.on('error',()=>{});
+    const accept=createHash('sha1').update(`${request.headers['sec-websocket-key']}258EAFA5-E914-47DA-95CA-C5AB0DC85B11`).digest('base64');
+    socket.write(`HTTP/1.1 101 Switching Protocols\r\nUpgrade: websocket\r\nConnection: Upgrade\r\nSec-WebSocket-Accept: ${accept}\r\n\r\n`);
+    readFrames(socket,body=>{
+      if(body.type==='authenticateComputer') return send(socket,{version:2,type:'computerAuthentication',requestId:body.requestId,code:'ACCEPTED'});
+      if(body.operation==='confirm') {
+        confirmations++;
+        if(confirmations===1) return send(socket,{...response(body.requestId,current),code:'ILLEGAL_SETUP'});
+        const placed=current.players.filter(p=>p.role==='away' && p.x!==null);
+        assert.equal(placed.length,10);assert.equal(placed.filter(p=>p.x===13).length,3);
+        current.phase='FULL_TIME';delete current.savedFormations;
+      } else if(body.operation==='place') {
+        const player=current.players.find(p=>p.id===body.playerId);assert.notEqual(player.offPitch,'casualty');
+        player.x=body.to?.x??null;player.y=body.to?.y??null;player.offPitch=body.to?'pitch':'reserve';placements++;
+      }
+      if(body.operation!=='load')current.revision++;
+      send(socket,response(body.requestId,current));
+    });
+  });
+  server.listen(0,'127.0.0.1');await once(server,'listening');
+  const child=spawn(process.execPath,['src/main.mjs','--match',matchId,'--url',`ws://127.0.0.1:${server.address().port}/browser/v2`,'--origin',origin],{
+    cwd:new URL('..',import.meta.url),windowsHide:true,env:{...process.env,FFB_COMPUTER_SERVICE_TOKEN:'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'}});
+  t.after(async()=>{await stopChild(child);for(const socket of sockets)socket.destroy();server.close();});
+  let errors='';child.stderr.on('data',chunk=>{errors+=chunk;});
+  const [code]=await once(child,'exit');assert.equal(code,0,errors);assert.equal(confirmations,2);assert.ok(placements>0 && placements<=22);
+});
 
 for (const failureCode of ['PERSISTENCE_FAILED', 'COMPLETION_PENDING']) {
   test(`computer worker yields ${failureCode} to the daemon after one load`, { timeout: 5000 }, async t => {

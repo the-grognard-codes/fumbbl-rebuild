@@ -47,10 +47,12 @@ function setupDecision(state, setupVariant) {
   const available = state.players.filter(player => player.role === role && (player.offPitch === 'reserve' || player.offPitch === 'pitch'
     || !player.offPitch && !/knocked out|casualty|dead|killed|injur|hurt|banned|sent off|prevented|missing|stunned/i.test(player.state)));
   const eligible = available.slice(0, 11);
-  if (setupVariant > 0) {
-    const reserveIndex = Math.floor((setupVariant - 1) / 11) + 11;
+  // The first rejected saved formation needs rearrangement, not a spare player.
+  const replacementVariant = setupVariant - (state.savedFormations?.length ? 1 : 0);
+  if (replacementVariant > 0) {
+    const reserveIndex = Math.floor((replacementVariant - 1) / 11) + 11;
     if (reserveIndex >= available.length) return null;
-    eligible[10 - ((setupVariant - 1) % 11)] = available[reserveIndex];
+    eligible[10 - ((replacementVariant - 1) % 11)] = available[reserveIndex];
   }
   const desired = new Map(eligible.map((player, index) => {
     const x = index < 3 ? 12 : 10;

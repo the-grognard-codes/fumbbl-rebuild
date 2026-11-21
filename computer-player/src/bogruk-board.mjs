@@ -1,3 +1,4 @@
+import { BOGRUK_PARAMETERS } from './bogruk-parameters.mjs';
 // Estimates rank visible alternatives. The engine remains the authority for every roll and move.
 export const distance = (a, b) => Math.max(Math.abs(a.x - b.x), Math.abs(a.y - b.y));
 export const onPitch = player => Number.isInteger(player?.x) && Number.isInteger(player?.y);
@@ -6,14 +7,15 @@ export const prone = player => /prone|stunned|ground/i.test(player?.state ?? '')
 export const standing = player => onPitch(player) && !prone(player) && !/distracted|exhausted|fall|air|dragged|picked up/i.test(`${player.state} ${player.status ?? ''}`);
 export const probability = target => Math.max(1 / 6, Math.min(5 / 6, (7 - target) / 6));
 
-export function playerValue(player) {
-  return (player?.st ?? 3) * 9 + (player?.ma ?? 6) * 2 + (7 - (player?.ag || 6)) * 4
-    + (player?.skills?.length ?? 0) * 4 + (hasSkill(player, 'Block') ? 7 : 0);
+export function playerValue(player, parameters = BOGRUK_PARAMETERS) {
+  return (player?.st ?? 3) * parameters.valueStrength + (player?.ma ?? 6) * parameters.valueMovement + (7 - (player?.ag || 6)) * parameters.valueAgility
+    + (player?.skills?.length ?? 0) * parameters.valueSkill + (hasSkill(player, 'Block') ? parameters.valueBlock : 0);
 }
 
 export class BogrukBoard {
   constructor(state, bounds = {}) {
     this.state = state;
+    this.parameters = { ...BOGRUK_PARAMETERS, ...bounds.parameters };
     this.role = state.callerRole;
     this.direction = state.computer.attackDirection;
     this.endX = this.direction > 0 ? 25 : 0;
@@ -64,7 +66,7 @@ export class BogrukBoard {
         const step = this.stepRisk(player, from, to, from.steps.length + 1, movement.normalRemaining);
         const steps = [...from.steps, { ...to, ...step }];
         const next = { ...to, steps, risks: from.risks + step.risks, success: from.success * step.success, usedSkills: step.usedSkills,
-          cost: from.cost + 1 + step.risks * 12 + (1 - step.success) * 20 };
+          cost: from.cost + 1 + step.risks * this.parameters.pathRisk + (1 - step.success) * this.parameters.pathFailure };
         const key = `${to.x},${to.y}`;
         if (!best.has(key) || next.cost < best.get(key).cost) { best.set(key, next); queue.push(next); }
       }
@@ -136,8 +138,8 @@ export class BogrukBoard {
     const goodFace = defenderDodge ? 1 / 6 : 2 / 6;
     const knockdown = dice > 0 ? 1 - (1 - goodFace) ** dice : goodFace ** Math.abs(dice);
     const turnover = dice > 0 ? (ownBlock ? 1 / 6 : 2 / 6) ** dice : 1 - (ownBlock ? 5 / 6 : 4 / 6) ** Math.abs(dice);
-    return 18 + knockdown * 28 - turnover * 95 + (this.carrier?.id === defender.id ? 48 : 0)
-      + (hasSkill(attacker, 'Mighty Blow') ? 4 : 0) + (defender.y === 0 || defender.y === 14 ? 4 : 0);
+    return this.parameters.blockBase + knockdown * this.parameters.blockKnockdown - turnover * this.parameters.blockTurnover + (this.carrier?.id === defender.id ? this.parameters.blockCarrier : 0)
+      + (hasSkill(attacker, 'Mighty Blow') ? this.parameters.mightyBlow : 0) + (defender.y === 0 || defender.y === 14 ? this.parameters.surf : 0);
   }
 
   foulScore(attacker, defender, at = attacker) {
@@ -149,31 +151,31 @@ export class BogrukBoard {
     // Removal estimate: armour break * 15/36 KO-or-casualty; sending off roughly one double roll plus a possible second.
     const removal = breaks / 36 * 15 / 36;
     const sendingOff = hasSkill(attacker, 'Sneaky Git') ? breaks / 36 / 6 : 1 / 6 + breaks / 36 * 5 / 36;
-    return 8 + removal * playerValue(defender) - sendingOff * playerValue(attacker);
+    return this.parameters.foulBase + removal * playerValue(defender, this.parameters) * this.parameters.foulReward - sendingOff * playerValue(attacker, this.parameters) * this.parameters.foulRisk;
   }
 
   positionScore(player, node) {
     if (this.carrier?.id === player.id) {
       const advance = this.progress(player, node);
       if (advance <= 0) return -Infinity; // A detour is represented by its eventual forward endpoint, never a retreat objective.
-      return 58 + advance * 7 - this.marks(node, player.role).length * 9 - (node.y === 0 || node.y === 14 ? 5 : 0);
+      return this.parameters.carryBase + advance * this.parameters.carryAdvance - this.marks(node, player.role).length * this.parameters.carryMark - (node.y === 0 || node.y === 14 ? this.parameters.carrySideline : 0);
     }
     if (this.ball && !this.carrier) {
       const improvement = distance(player, this.ball) - distance(node, this.ball);
-      if (distance(node, this.ball) === 0 && !hasSkill(player, 'No Ball')) return 100 + (7 - (player.ag || 4)) * 4;
-      return improvement > 0 ? 25 + improvement * 4 - this.marks(node, player.role).length * 2 : -Infinity;
+      if (distance(node, this.ball) === 0 && !hasSkill(player, 'No Ball')) return this.parameters.pickupBase + (7 - (player.ag || 4)) * this.parameters.pickupAgility;
+      return improvement > 0 ? this.parameters.chaseBase + improvement * this.parameters.chaseAdvance - this.marks(node, player.role).length * this.parameters.chaseMark : -Infinity;
     }
     if (this.carrier?.role !== this.role && this.carrier) {
       const improvement = distance(player, this.carrier) - distance(node, this.carrier);
-      const pressure = distance(node, this.carrier) === 1 ? 18 : 0;
+      const pressure = distance(node, this.carrier) === 1 ? this.parameters.pressure : 0;
       // Get between the carrier and our end zone; this can require moving backward on defence.
-      const intercept = (node.x - this.carrier.x) * this.direction < 0 ? 5 : 0;
-      return improvement > 0 || pressure ? 25 + improvement * 4 + pressure + intercept : -Infinity;
+      const intercept = (node.x - this.carrier.x) * this.direction < 0 ? this.parameters.intercept : 0;
+      return improvement > 0 || pressure ? this.parameters.defendBase + improvement * this.parameters.defendAdvance + pressure + intercept : -Infinity;
     }
     if (this.carrier?.role === this.role) {
       const target = { x: Math.max(0, Math.min(25, this.carrier.x + this.direction * 2)), y: this.carrier.y };
       const improvement = distance(player, target) - distance(node, target);
-      return improvement > 0 ? 20 + improvement * 3 + Math.min(3, this.progress(player, node)) - this.marks(node, player.role).length * 3 : -Infinity;
+      return improvement > 0 ? this.parameters.supportBase + improvement * this.parameters.supportAdvance + Math.min(3, this.progress(player, node)) - this.marks(node, player.role).length * this.parameters.supportMark : -Infinity;
     }
     return -Infinity;
   }

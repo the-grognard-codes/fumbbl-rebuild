@@ -1,8 +1,9 @@
 import { BogrukBoard, distance, hasSkill, onPitch, playerValue, probability, prone, standing } from './bogruk-board.mjs';
 import { isComputerGameOperation } from './computer-operations.mjs';
+import { BOGRUK_PARAMETERS, validateParameters } from './bogruk-parameters.mjs';
 import { resourceDecision } from './resource-decision.mjs';
 
-export const BOGRUK_SETTINGS = Object.freeze({ riskChances: [0.3, 0.5, 0.7], maxActions: 192, maxPathExpansions: 1800 });
+export const BOGRUK_SETTINGS = Object.freeze({ riskChances: Object.freeze([0.3, 0.5, 0.7]), maxActions: 192, maxPathExpansions: 1800 });
 
 // Purpose-specific draws avoid a mutable RNG and remain identical across process restarts.
 export function policyRandom(seed, key) {
@@ -13,7 +14,7 @@ export function policyRandom(seed, key) {
 }
 
 export function chooseBogrukDecision(state, options = {}) {
-  const settings = { ...BOGRUK_SETTINGS, ...options };
+  const settings = { ...BOGRUK_SETTINGS, ...BOGRUK_PARAMETERS, ...options.parameters, ...options };
   const computer = state.computer;
   const turnKey = computer.progress.turnKey;
   const saved = computer.policyState;
@@ -37,10 +38,10 @@ export function chooseBogrukDecision(state, options = {}) {
     return result({ operation: 'choice', promptId: state.prompt.id, optionId }, 'Choose the offered pre-match option.', null);
   }
   if (state.actor !== role && state.reaction?.actor !== role) return result(null, 'Waiting for the other coach.');
-  if (state.phase === 'SETUP') return result(setup(state, options.setupVariant ?? 0), 'Spread the team and protect valuable players.', null);
+  if (state.phase === 'SETUP') return result(setup(state, options.setupVariant ?? 0, settings), 'Spread the team and protect valuable players.', null);
   const actions = state.actions.filter(action => action.actor === role);
   if (!actions.length) return result(null, 'No offered decision.');
-  const board = new BogrukBoard(state, { maxExpansions: settings.maxPathExpansions });
+  const board = new BogrukBoard(state, { maxExpansions: settings.maxPathExpansions, parameters: settings });
   const actionResult = (action, reason, plan = null, mistake = false) => result({ operation: 'action', actionId: action.id }, reason, plan, mistake);
   const resource = resourceDecision(actions, () => true);
   if (resource) return actionResult(resource, 'Use the offered resource or keep the least harmful injury.', memory.plan);
@@ -48,12 +49,12 @@ export function chooseBogrukDecision(state, options = {}) {
   if (event) return actionResult(event.action, 'Participate in the kickoff with a simple legal choice.', event.plan);
   const kick = actions.filter(action => action.kind === 'kickoff');
   if (kick.length) {
-    const depth = random('kick-depth') < 0.5 ? 3 : 9;
+    const depth = random('kick-depth') < settings.deepKickChance ? settings.shallowKick : settings.deepKick;
     const centre = { x: board.direction > 0 ? 13 + depth : 12 - depth, y: 3 + Math.floor(random('kick-width') * 9) };
     kick.sort((a, b) => distance(a.target, centre) - distance(b.target, centre) || a.id.localeCompare(b.id));
     return actionResult(kick[0], depth > 5 ? 'Try a deep kick.' : 'Try a shallow kick.');
   }
-  const prompt = promptDecision(state, actions, board, memory.plan, memory.actions >= settings.maxActions);
+  const prompt = promptDecision(state, actions, board, memory.plan, memory.actions >= settings.maxActions, options.onCandidates);
   if (prompt) return actionResult(prompt, 'Resolve the offered choice with basic judgment.', memory.plan);
 
   const candidates = [];
@@ -79,7 +80,7 @@ export function chooseBogrukDecision(state, options = {}) {
           if (!node || node.steps.length + Number(!foul) > board.movement(player).remaining) continue;
           const dice = board.blockDice(player, defender, node);
           const score = (foul ? board.foulScore(player, defender, node) : board.blockScore(player, defender, dice))
-            - (1 - node.success) * 50 - node.steps.length * 0.4;
+            - (1 - node.success) * settings.contactRisk - node.steps.length * settings.contactStep;
           add(action, score, foul ? 'Foul a reachable opponent.' : 'Pressure the opponent with a blitz.', planFor(player, foul ? 'foul' : 'blitz', node, defender.id), foul ? 'low-value foul' : dice < 2 ? 'risky block' : 'ordering');
         }
       } else if (action.kind === 'declarePass' || action.kind === 'declareHandOff') {
@@ -98,13 +99,13 @@ export function chooseBogrukDecision(state, options = {}) {
           if (!node.steps.length) continue;
           if (action.kind === 'secureBall' && distance(node, board.ball) !== 0) continue;
           const safeScore = board.carrier?.id === player.id && node.x === board.endX && node.risks === 0;
-          let score = safeScore ? 10000 - node.steps.length : board.positionScore(player, node) * node.success - (1 - node.success) * 35 - node.steps.length * 0.35;
-          if (board.carrier?.id === player.id && node.x === board.endX) score += 100 * node.success;
-          if (action.kind === 'secureBall') score += (probability(player.ag || 4) < 5 / 6 ? 8 : -2);
+          let score = safeScore ? settings.safeScore - node.steps.length : board.positionScore(player, node) * node.success - (1 - node.success) * settings.moveRisk - node.steps.length * settings.moveStep;
+          if (board.carrier?.id === player.id && node.x === board.endX) score += settings.touchdown * node.success;
+          if (action.kind === 'secureBall') score += (probability(player.ag || 4) < 5 / 6 ? settings.secureBonus : settings.securePenalty);
           add(action, score, safeScore ? 'Take the whole no-dice scoring route.' : board.carrier?.id === player.id ? 'Advance the ball.' : !board.carrier ? 'Pursue the loose ball.' : 'Move into useful support or defensive pressure.',
             planFor(player, action.kind === 'secureBall' ? 'secureBall' : 'move', node), node.risks ? 'movement gamble' : 'ordering', safeScore);
         }
-        if (action.kind === 'stand') add(action, 15, 'Stand up an available player.');
+        if (action.kind === 'stand') add(action, settings.standScore, 'Stand up an available player.');
       }
     } else if (action.kind === 'block' || action.kind === 'blitzTarget') {
       const defender = board.players.find(item => item.id === action.target?.playerId);
@@ -113,19 +114,19 @@ export function chooseBogrukDecision(state, options = {}) {
       if (!node) continue;
       const dice = board.blockDice(active, defender, node);
       const committedTarget = memory.plan?.playerId === active.id && memory.plan.targetPlayerId === defender.id;
-      add(action, board.blockScore(active, defender, dice) + 4 + (committedTarget ? 100 : 0) - (1 - (node.success ?? 1)) * 50,
+      add(action, board.blockScore(active, defender, dice) + settings.blockCommit + (committedTarget ? settings.planCommit : 0) - (1 - (node.success ?? 1)) * settings.contactRisk,
         'Block the selected opponent.', planFor(active, 'blitz', node, defender.id), dice < 2 ? 'risky block' : 'ordering');
     } else if (action.kind === 'foul' || action.kind === 'foulChainsaw') {
       const defender = board.players.find(item => item.id === action.target?.playerId);
       if (active && defender) add(action, board.foulScore(active, defender)
-        + (memory.plan?.playerId === active.id && memory.plan.targetPlayerId === defender.id ? 100 : 0),
+        + (memory.plan?.playerId === active.id && memory.plan.targetPlayerId === defender.id ? settings.planCommit : 0),
       'Weigh removal against a sending off.', null, 'low-value foul');
     } else if (action.kind === 'pass' || action.kind === 'handOff') {
       const catcher = board.own.find(item => item.id === action.target?.playerId || action.target?.x === item.x && action.target?.y === item.y);
       if (!active || !catcher || catcher.id === active.id) continue;
       const range = state.passing?.ranges?.[catcher.x]?.[catcher.y];
       if (action.kind === 'pass' && !['Q', 'S'].includes(range)) continue;
-      add(action, transferScore(board, active, catcher, action.kind === 'handOff', active) + 3, 'Transfer the ball to a useful teammate.', null, 'ordering');
+      add(action, transferScore(board, active, catcher, action.kind === 'handOff', active) + settings.transferCommit, 'Transfer the ball to a useful teammate.', null, 'ordering');
     }
   }
 
@@ -149,8 +150,8 @@ export function chooseBogrukDecision(state, options = {}) {
       const move = offeredMoves.find(action => action.target?.x === first.x && action.target?.y === first.y);
       if (!move) continue;
       const safeScore = board.carrier?.id === active.id && node.x === board.endX && node.risks === 0;
-      let score = safeScore ? 10000 - node.steps.length : board.positionScore(active, node) * node.success - (1 - node.success) * 35 - node.steps.length * 0.35;
-      if (board.carrier?.id === active.id && node.x === board.endX) score += 100 * node.success;
+      let score = safeScore ? settings.safeScore - node.steps.length : board.positionScore(active, node) * node.success - (1 - node.success) * settings.moveRisk - node.steps.length * settings.moveStep;
+      if (board.carrier?.id === active.id && node.x === board.endX) score += settings.touchdown * node.success;
       let plan = planFor(active, 'move', node);
       if (remembered && distance(node, remembered.target) === 0 && ['blitz', 'foul', 'pass', 'handOff', 'secureBall'].includes(remembered.kind)) {
         const target = board.players.find(player => player.id === remembered.targetPlayerId);
@@ -158,18 +159,19 @@ export function chooseBogrukDecision(state, options = {}) {
         if (target && ['pass', 'handOff'].includes(remembered.kind)) score = transferScore(board, active, target, remembered.kind === 'handOff', node);
         plan = remembered;
       }
-      add(move, score + (remembered && distance(node, remembered.target) === 0 ? 1 : 0), safeScore ? 'Finish the whole no-dice scoring route.' : 'Continue a purposeful activation.', plan, node.risks ? 'movement gamble' : 'ordering', safeScore);
+      add(move, score + (remembered && distance(node, remembered.target) === 0 ? settings.routeCommit : 0), safeScore ? 'Finish the whole no-dice scoring route.' : 'Continue a purposeful activation.', plan, node.risks ? 'movement gamble' : 'ordering', safeScore);
     }
   }
+  options.onCandidates?.(candidates);
   const sorted = candidates.filter(candidate => candidate.score > 0).sort((a, b) => b.score - a.score || a.action.id.localeCompare(b.action.id));
   if (sorted.length) {
     const best = sorted[0];
-    if (!best.safeScore && memory.actions < settings.maxActions && !memory.mistakeUsed && state.actor === role && settings.recklessness !== false) {
-      const chance = settings.riskChances[Math.min(2, computer.progress.stalledTurns)];
+    if (!best.safeScore && memory.actions < settings.maxActions && !memory.mistakeUsed && state.actor === role && settings.recklessness !== false && settings.recklessnessWeight > 0) {
+      const chance = (options.riskChances ?? [settings.riskChance0, settings.riskChance1, settings.riskChance2])[Math.min(2, computer.progress.stalledTurns)];
       const draw = options.random ? options.random('risk') : policyRandom(computer.seed, `${turnKey}:risk`);
       if (draw < chance) {
         const alternatives = sorted.filter(candidate => candidate.action.id !== best.action.id && candidate.category
-          && candidate.score < best.score - 1 && candidate.score >= Math.max(1, best.score - 120));
+          && candidate.score < best.score - 1 && candidate.score >= Math.max(1, best.score - settings.riskWindow));
         // Prefer a recognizable gamble over harmless tie-breaking, but never manufacture an impossible play.
         const gambles = alternatives.filter(candidate => candidate.category !== 'ordering');
         const pool = gambles.length ? gambles : alternatives;
@@ -250,11 +252,12 @@ function transferScore(board, passer, catcher, handOff, from) {
   const catchReroll = hasSkill(catcher, 'Catch') ? 1 - (1 - catchChance) ** 2 : catchChance;
   const throwReroll = !handOff && hasSkill(passer, 'Pass') ? 1 - (1 - passChance) ** 2 : passChance;
   const canActivate = board.state.actions.some(action => action.sourcePlayerId === catcher.id && ['select', 'stand'].includes(action.kind));
-  const scoringThreat = canActivate && Math.abs(board.endX - catcher.x) <= (catcher.ma ?? 6) ? 65 : 0;
-  return (38 + advance * 5 + safer * 8 + scoringThreat) * catchReroll * throwReroll - (1 - catchReroll * throwReroll) * 55;
+  const scoringThreat = canActivate && Math.abs(board.endX - catcher.x) <= (catcher.ma ?? 6) ? board.parameters.transferThreat : 0;
+  return (board.parameters.transferBase + advance * board.parameters.transferAdvance + safer * board.parameters.transferSafety + scoringThreat) * catchReroll * throwReroll - (1 - catchReroll * throwReroll) * board.parameters.transferRisk;
 }
 
-function promptDecision(state, actions, board, plan, exhausted) {
+function promptDecision(state, actions, board, plan, exhausted, observe) {
+  const weights = board.parameters;
   const regular = new Set(['select', 'stand', 'blitz', 'selectBlock', 'declareFoul', 'declarePass', 'declareHandOff', 'secureBall', 'move', 'jump', 'block', 'blitzTarget', 'foul', 'foulChainsaw', 'pass', 'handOff', 'endAction', 'endTurn', 'forgo', 'jumpMode']);
   if (actions.some(action => regular.has(action.kind))) return null;
   if (exhausted) {
@@ -272,53 +275,57 @@ function promptDecision(state, actions, board, plan, exhausted) {
   if (faces.length) {
     const faceScore = action => {
       const label = action.label.toUpperCase();
-      let score = label.includes('POW/PUSH') ? (activeSkill(defender, 'Dodge') && !activeSkill(attacker, 'Tackle') ? 25 : 65)
-        : /POW|DEFENDER DOWN/.test(label) ? 80 : /BOTH.DOWN/.test(label) ? (activeSkill(attacker, 'Block') ? 40 : -80)
-          : /SKULL|ATTACKER DOWN/.test(label) ? -100 : 20;
+      let score = label.includes('POW/PUSH') ? (activeSkill(defender, 'Dodge') && !activeSkill(attacker, 'Tackle') ? weights.faceDodge : weights.facePushPow)
+        : /POW|DEFENDER DOWN/.test(label) ? weights.facePow : /BOTH.DOWN/.test(label) ? (activeSkill(attacker, 'Block') ? weights.faceBothSafe : weights.faceBothRisk)
+          : /SKULL|ATTACKER DOWN/.test(label) ? weights.faceSkull : weights.facePush;
       if (attacker?.role !== state.callerRole) score = -score;
       return score;
     };
     faces.sort((a, b) => faceScore(b) - faceScore(a));
+    observe?.(faces.map(action => ({ action, score: faceScore(action) })));
     if (faceScore(faces[0]) >= 0) return faces[0];
     return actions.find(action => action.kind === 'reroll' && !/none|keep|do not/i.test(action.label)) ?? faces[0];
   }
   const rank = action => {
     const label = action.label.toLowerCase();
     if (action.kind === 'reroll' || action.kind === 'proTestReroll') return /do not|keep|none/.test(label) ? 0
-      : /pro|mascot/.test(label) ? 50 : /team/.test(label) ? 70 : 90;
+      : /pro|mascot/.test(label) ? weights.rerollPro : /team/.test(label) ? weights.rerollTeam : weights.rerollOther;
     if (action.kind === 'reactionEndPlayer' || action.id.endsWith('reaction-end-player') || action.id.endsWith('reaction-jump-mode')) return -1;
-    if (['skill', 'reactiveSkill', 'kickSkill', 'onTheBall'].includes(action.kind)) return /do not|decline|don't|not use|without/.test(label) ? 0 : 20;
-    if (action.kind === 'followUp') return action.target ? 20 - board.marks(action.target, state.callerRole).length * 10 + (attacker && board.carrier?.id === attacker.id ? board.progress(attacker, action.target) * 5 : 0) : 1;
-    if (action.kind === 'push') return action.target ? (action.target.y < 0 || action.target.y > 14 || action.target.x < 0 || action.target.x > 25 ? 100 : -board.marks(action.target, state.callerRole).length * 3 + (attacker ? board.progress(attacker, action.target) : 0)) : 0;
+    if (['skill', 'reactiveSkill', 'kickSkill', 'onTheBall'].includes(action.kind)) return /do not|decline|don't|not use|without/.test(label) ? 0 : weights.skillUse;
+    if (action.kind === 'followUp') return action.target ? weights.followBase - board.marks(action.target, state.callerRole).length * weights.followMark + (attacker && board.carrier?.id === attacker.id ? board.progress(attacker, action.target) * weights.followProgress : 0) : weights.followDecline;
+    if (action.kind === 'push') return action.target ? (action.target.y < 0 || action.target.y > 14 || action.target.x < 0 || action.target.x > 25 ? weights.pushSurf : -board.marks(action.target, state.callerRole).length * weights.pushMark + (attacker ? board.progress(attacker, action.target) : 0)) : 0;
     if (action.kind === 'touchback') {
       const player = board.own.find(item => item.id === action.target?.playerId);
-      return player ? 50 - (player.ag ?? 4) * 5 + (hasSkill(player, 'Sure Hands') ? 8 : 0) + (player.ma ?? 6) : 0;
+      return player ? weights.touchbackBase - (player.ag ?? 4) * weights.touchbackAgility + (hasSkill(player, 'Sure Hands') ? weights.touchbackSureHands : 0) + (player.ma ?? 6) : 0;
     }
     if (action.kind === 'kickoffMove' || action.kind === 'reactionMove' || action.kind === 'reactiveSquare') {
       const player = board.players.find(item => item.id === action.sourcePlayerId);
       return player && action.target && 'x' in action.target ? board.positionScore(player, action.target) : 0;
     }
-    if (action.kind === 'kickoffChoice') return /confirm|finish|decline/i.test(label) ? 10 : 5;
-    if (action.kind === 'apothecary') return /accept all|decline|do not|old/i.test(label) ? 0 : 15;
+    if (action.kind === 'kickoffChoice') return /confirm|finish|decline/i.test(label) ? weights.eventFinish : weights.eventOther;
+    if (action.kind === 'apothecary') return /accept all|decline|do not|old/i.test(label) ? 0 : weights.apothecaryUse;
     return 0;
   };
+  observe?.(actions.map(action => ({ action, score: rank(action) })).filter(candidate => Number.isFinite(candidate.score)));
   return [...actions].sort((a, b) => rank(b) - rank(a) || a.id.localeCompare(b.id))[0];
 }
 
-function setup(state, variant) {
+function setup(state, variant, parameters) {
   if (state.savedFormations?.length && variant === 0) return { operation: 'confirm' };
   const role = state.callerRole;
   const eligible = state.players.filter(player => player.role === role && (player.offPitch === 'reserve' || player.offPitch === 'pitch'
     || !player.offPitch && !/knocked out|casualty|dead|killed|injur|hurt|banned|sent off|prevented|missing|stunned/i.test(player.state)))
-    .sort((a, b) => playerValue(b) - playerValue(a) || a.id.localeCompare(b.id));
+    .sort((a, b) => playerValue(b, parameters) - playerValue(a, parameters) || a.id.localeCompare(b.id));
   let chosen = eligible.slice(0, 11);
-  if (variant > 0) {
-    const replacement = Math.floor((variant - 1) / 11) + 11;
+  // First repair the positions of the surviving players in a rejected saved formation.
+  const replacementVariant = variant - (state.savedFormations?.length ? 1 : 0);
+  if (replacementVariant > 0) {
+    const replacement = Math.floor((replacementVariant - 1) / 11) + 11;
     if (replacement >= eligible.length) return null;
-    chosen[10 - (variant - 1) % 11] = eligible[replacement];
+    chosen[10 - (replacementVariant - 1) % 11] = eligible[replacement];
   }
   // Three inexpensive players on the line; valuable runners/throwers stay deeper. Open lanes are intentional.
-  chosen = chosen.sort((a, b) => playerValue(a) - playerValue(b) || a.id.localeCompare(b.id));
+  chosen = chosen.sort((a, b) => playerValue(a, parameters) - playerValue(b, parameters) || a.id.localeCompare(b.id));
   const mirror = policyRandom(state.computer.seed, `${state.half}:${state.drive}:setup`) < 0.5;
   const positions = [{ x: 12, y: 4 }, { x: 12, y: 7 }, { x: 12, y: 10 },
     { x: 10, y: 2 }, { x: 10, y: 5 }, { x: 10, y: 9 }, { x: 10, y: 12 },
@@ -333,4 +340,9 @@ function setup(state, variant) {
   const missing = chosen.find(player => !onPitch(player));
   if (missing) return { operation: 'place', playerId: missing.id, to: desired.get(missing.id) };
   return { operation: 'confirm' };
+}
+
+export function createBogrukPolicy(parameters = {}) {
+ const frozen = validateParameters(parameters);
+ return (state, options = {}) => chooseBogrukDecision(state, { ...options, parameters: frozen });
 }

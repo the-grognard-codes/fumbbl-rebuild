@@ -43,7 +43,7 @@ class MatchMemoryWorkloadTest {
 		String stored = codec.encode(artifact);
 		artifact = null;
 		int revision = view.getInt("revision", -1);
-		fixture.session = null;
+		fixture.close();
 		clearInvocations(fixture.server, fixture.server.getCommunication(), fixture.server.getDebugLog());
 		SetupSession resident = warmResident();
 		long residentBytes = resident == null ? 0 : resident.recoveryBytes();
