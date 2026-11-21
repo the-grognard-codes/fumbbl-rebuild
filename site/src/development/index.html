@@ -27,16 +27,36 @@
     <section class="development-history" id="history" aria-labelledby="history-title">
     <h2 id="history-title">Merged changes</h2>
     <p>One entry per merged pull request. Follow its GitHub link for the implementation and review details.</p>
-    <p class="updates-coverage">199 merged pull requests · Latest merge November 12, 2026 · Newest first</p>
+    <p class="updates-coverage">204 merged pull requests · Latest merge November 15, 2026 · Newest first</p>
     <form id="updates-search" class="updates-tools" action="/development" method="get" hidden>
       <label>Search updates<input type="search" name="q" maxlength="200" placeholder="Topic, feature or PR number" autocomplete="off"></label>
       <label>Category<select name="category"><option value="">All updates</option><option>Gameplay</option><option>Design</option><option>Platform</option><option>Developer tools</option><option>Project notes</option></select></label>
       <div class="updates-tool-actions"><button type="submit">Find updates</button><button type="button" class="updates-clear" data-clear-updates>Clear filters</button></div>
     </form>
-    <p class="updates-status" id="updates-status" role="status">199 merged pull request updates, newest first.</p>
+    <p class="updates-status" id="updates-status" role="status">204 merged pull request updates, newest first.</p>
     <nav class="updates-pagination" aria-label="Updates pages, top" hidden></nav>
     <noscript><p>All updates are shown below. Use your browser's Find command to search the history.</p></noscript>
     <section class="updates-list" id="updates-list" aria-label="Merged pull request updates" tabindex="-1">
+    <article class="panel update-entry" id="pr-542" data-pr="542" data-category="Developer tools">
+      <div class="update-meta"><span class="update-category">Developer tools</span><time datetime="2026-11-15T08:19:46Z">November 15, 2026</time><a href="https://github.com/the-grognard-codes/fumbbl-rebuild/pull/542" target="_blank" rel="noreferrer">PR #542<span class="update-external" aria-hidden="true"> ↗</span></a></div>
+      <h3>Retain first-use and warm checkpoint measurements</h3><p>Added validated checkpoint measurement analysis with sample-qualified statistics, recovery checks and fixture sizes. The in-memory workload retains unsuccessful spike-reproduction evidence; intermittent live SQL and completion delays remain unresolved.</p>
+    </article>
+    <article class="panel update-entry" id="pr-538" data-pr="538" data-category="Gameplay">
+      <div class="update-meta"><span class="update-category">Gameplay</span><time datetime="2026-11-15T08:07:10Z">November 15, 2026</time><a href="https://github.com/the-grognard-codes/fumbbl-rebuild/pull/538" target="_blank" rel="noreferrer">PR #538<span class="update-external" aria-hidden="true"> ↗</span></a></div>
+      <h3>Keep long-match game logs within a fixed DOM bound</h3><p>The match log mounts at most 100 rows while Earlier, Later and Latest controls keep every event reachable. Historical reading stays stable as events arrive, and settled log dice use simpler faces. Matched live pan-latency measurements remain pending.</p>
+    </article>
+    <article class="panel update-entry" id="pr-539" data-pr="539" data-category="Developer tools">
+      <div class="update-meta"><span class="update-category">Developer tools</span><time datetime="2026-11-15T07:55:08Z">November 15, 2026</time><a href="https://github.com/the-grognard-codes/fumbbl-rebuild/pull/539" target="_blank" rel="noreferrer">PR #539<span class="update-external" aria-hidden="true"> ↗</span></a></div>
+      <h3>Verify recovery after journal compaction failures</h3><p>Added native-history tests for compaction conflicts and storage failures after genuine journal appends. They verify unchanged durable history, exact restoration, one successful retry and duplicate handling after restart.</p>
+    </article>
+    <article class="panel update-entry" id="pr-540" data-pr="540" data-category="Platform">
+      <div class="update-meta"><span class="update-category">Platform</span><time datetime="2026-11-15T07:44:12Z">November 15, 2026</time><a href="https://github.com/the-grognard-codes/fumbbl-rebuild/pull/540" target="_blank" rel="noreferrer">PR #540<span class="update-external" aria-hidden="true"> ↗</span></a></div>
+      <h3>Recognize loopback health probes and bound server restarts</h3><p>Local health checks now accept numeric IPv4 and IPv6 loopback addresses. Dev server restarts stop after three failures, unknown request log labels stay separate from protocol names, and valid match identifiers use canonical log context.</p>
+    </article>
+    <article class="panel update-entry" id="pr-537" data-pr="537" data-category="Gameplay">
+      <div class="update-meta"><span class="update-category">Gameplay</span><time datetime="2026-11-15T07:33:21Z">November 15, 2026</time><a href="https://github.com/the-grognard-codes/fumbbl-rebuild/pull/537" target="_blank" rel="noreferrer">PR #537<span class="update-external" aria-hidden="true"> ↗</span></a></div>
+      <h3>Publish final scores while result saving recovers</h3><p>Durable final match states now appear immediately while recoverable result writes retry automatically. Computer coaches use one retry schedule, and terminal result failures release resident memory and appear in lifecycle metrics. Live soak confirmation remains pending.</p>
+    </article>
     <article class="panel update-entry" id="pr-529" data-pr="529" data-category="Platform">
       <div class="update-meta"><span class="update-category">Platform</span><time datetime="2026-11-13T04:46:34Z">November 12, 2026</time><a href="https://github.com/the-grognard-codes/fumbbl-rebuild/pull/529" target="_blank" rel="noreferrer">PR #529<span class="update-external" aria-hidden="true"> ↗</span></a></div>
       <h3>Reduce long-match checkpoint pauses</h3><p>Full checkpoints now reuse serialization results to prepare the recovery journal cursor. Matched long-history tests showed shorter compaction pauses and verified that matches still recover exactly.</p>
