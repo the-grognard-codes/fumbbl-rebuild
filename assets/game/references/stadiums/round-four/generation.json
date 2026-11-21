@@ -35,7 +35,7 @@
   "preparation": "Run python prepare.py with Pillow 13. Gatehouse includes the approved neutral clothing revision for 75 home supporters and eight visitors. The one-bit mask excludes those garments from all team-colour ramps.",
   "sha256": {
     "candidate-01.webp": "7975ba7d99531b367467e03c580bca26e606f9e53ae58f1b724608e3d996cbfb",
-    "candidate-02.png": "91c1a2190cbfa23c6040932b30916a0b96ec4a96c82daeedf6299d911761e5cc",
+    "candidate-02.webp": "5f212289b0fb4a783176e4e4b93b226f32abfc81376a7c8bf883c0a83e72242c",
     "candidate-03.webp": "535ccbf0bf359f0ecd9daacd55b5aede8cd10908e20c6d792e6e7ca967d8e24f",
     "layout-base.png": "4ace1e85c04496081bdf842e7161bcf7773443a196ce4371467ac8a59f180924",
     "sources/scene-01.webp": "bf8b98cbb5684d364660b6692205b3cc7a768cb791218070e69a26fbf96ecc83",

@@ -10,8 +10,8 @@ from PIL import Image, ImageChops, ImageDraw, ImageEnhance, ImageFilter, ImageOp
 
 
 ROOT = Path(__file__).resolve().parent
-SOURCE = ROOT.parent / "candidate-02.png"
-SOURCE_HASH = "91c1a2190cbfa23c6040932b30916a0b96ec4a96c82daeedf6299d911761e5cc"
+SOURCE = ROOT.parent / "candidate-02.webp"
+SOURCE_HASH = "5f212289b0fb4a783176e4e4b93b226f32abfc81376a7c8bf883c0a83e72242c"
 WIDTH, HEIGHT = 1024, 1536
 PITCH = (272, 352, 752, 1184)
 SIDE_TOP, SIDE_BOTTOM = 132, 1312

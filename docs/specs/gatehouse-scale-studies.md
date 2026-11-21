@@ -1,5 +1,20 @@
 # Gatehouse scale and colour studies
 
+## Complete north and south cast
+
+Open `/stadium-mockup?view=end-poses&group=seated-a` for the new seated supporters. **Pose group** switches both ends of the stadium together. Each group shows three of nine places occupied, with a blitzer for scale and a 4× view for inspecting the silhouettes. [Artist sheet of all 24 drawings](../../assets/game/references/stadiums/scale-studies/end-stands/cast-angles.webp)
+
+| Group | Supporters |
+| --- | --- |
+| Horn, clap and pie | Approved dwarf, clapping supporter and halfling |
+| Tambourine, lookout and mug | Tambourine player, lookout shading his eyes and elder with a wooden tankard |
+| Program, whistle and chestnuts | Elf reading a match programme, whistle player and chestnut seller |
+| Cheer and standing supporters | Seated supporter raising a fist, standing tambourine player and standing dwarf raising his horn |
+
+![The three new groups seated or standing on the north and south benches, captured at twice game size](../../assets/game/references/stadiums/scale-studies/end-stands/cast-on-pitch.webp)
+
+The ten supporters have ten seated poses and two standing alternates at each end. The halfling, elder and chestnut seller wear neutral clothing throughout. Each seated rear silhouette meets the timber in one continuous curve. Each standing figure has two separate soles on one plank with room above for the full figure. Pixel checks cover all 24 poses under contrasting and identical kits, and the approved three pairs and their gallery inserts still match the original.
+
 ## North and south · 33% attendance
 
 Open `/stadium-mockup?view=ends` to see the same three seated supporters from opposite ends of one pitch. The north stand shows their faces, knees and feet. In the south stand their backs face the viewer, and the rounded seat of each supporter’s trousers rests on the timber. The clapping supporter turns her head a little toward midfield in both views. The dwarf watches straight ahead with his horn, and the halfling holds his pie. A blitzer at each goal line provides a game-scale reference.

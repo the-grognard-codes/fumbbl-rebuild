@@ -1,5 +1,6 @@
 from collections import Counter
 from copy import deepcopy
+from hashlib import sha256
 import unittest
 
 from PIL import Image
@@ -17,16 +18,24 @@ class EndStandTests(unittest.TestCase):
         cls.mask, cls.bays, cls.supports = build.geometry()
         cls.layout = build.read(build.HERE / "layout.json")
         cls.manifest = build.read(build.HERE / "placements.json")
+        cls.pose_layout = build.read(build.HERE / "pose-layout.json")
+        cls.proofs = build.read(build.HERE / "pose-placements.json")
         cls.landmarks = build.read(build.HERE / "pose-landmarks.json")
         cls.palette = {r["id"]: r["colors"] for r in build.read(
             build.ART.parents[2] / "team-colors/v1/delivery/manifest.json")["ramps"]}
         with Image.open(build.HERE / "supporters.png") as atlas:
             cls.atlas = atlas.copy()
 
-    def render(self, stand, layout, atlas):
+    def render(self, stand, layout, atlas, cast=build.CAST):
         bay_id = build.ANGLES[stand][0]
         return build.build_angle(stand, layout, atlas, self.palette, self.landmarks,
-                                 self.mask, self.bays[bay_id], self.supports[bay_id])
+                                 self.mask, self.bays[bay_id], self.supports[bay_id], cast)
+
+    def proof_layout(self, group, stand):
+        layout = self.layout[stand].copy()
+        if group != "approved":
+            layout["rows"] = self.pose_layout[group][stand]
+        return layout
 
     def test_only_team_fabric_changes_under_extreme_kits(self):
         hands_and_props = {
@@ -41,16 +50,21 @@ class EndStandTests(unittest.TestCase):
                 x = column * build.CELL_SIZE
                 cell = self.atlas.crop((x, 0, x + build.CELL_SIZE, build.CELL_SIZE))
                 indices = set(cell.tobytes())
-                team = not pose.endswith("-pie")
+                team = pose.split("-", 1)[1] not in build.NEUTRAL
                 self.assertEqual(bool(indices.intersection(range(1, 17))), team)
-                self.assertEqual(bool(indices.intersection(range(17, 33))), team)
-                protected = [self.landmarks[pose]["face"]]
-                if pose.startswith("north-"):
-                    protected.append((0, 38, 48, 48))  # Front-view calves and footwear.
+                if pose != "south-program":  # The elf's coat covers the second fabric from behind.
+                    self.assertEqual(bool(indices.intersection(range(17, 33))), team)
+                marks = self.landmarks[pose]
+                protected = [marks["face"]]
+                if "otherSole" in marks or pose.startswith("north-"):
+                    bottom = cell.getbbox()[3]
+                    for foot_x in range(cell.width):
+                        if cell.getpixel((foot_x, bottom - 1)):
+                            protected.append((foot_x, bottom - 4, foot_x + 1, bottom))
                 for area in protected:
                     self.assertFalse(set(cell.crop(area).tobytes()).intersection(range(1, 33)))
-                for sample in hands_and_props[pose]:
-                    self.assertGreater(cell.getpixel(sample), 32)
+                for sample in (*hands_and_props.get(pose, []), *marks.get("fixedSamples", [])):
+                    self.assertGreater(cell.getpixel(tuple(sample)), 32)
                 original = build.spectator(self.atlas, pose, self.palette)
                 for palette in (contrasting, identical):
                     painted = build.spectator(self.atlas, pose, palette)
@@ -91,22 +105,59 @@ class EndStandTests(unittest.TestCase):
                     self.assertEqual((origin_x + local_x, origin_y + local_y), coordinates(seat))
 
     def test_pngs_preserve_native_silhouettes_and_mask_fit(self):
-        for view in self.manifest:
-            stand = view["id"]
-            with self.subTest(stand=stand):
-                crowd, rail, generated = self.render(stand, self.layout[stand], self.atlas)
-                self.assertEqual(view, generated)
-                bay = self.bays[view["bayId"]]
-                for suffix, layer in (("", crowd), ("-rail", rail)):
-                    path = build.HERE / f"{stand}{suffix}.png"
-                    build.fit.check_insert(self.mask, bay, path)
-                    with Image.open(path) as png:
-                        self.assertEqual(layer.tobytes(), png.convert("RGBA").tobytes())
-                self.assertEqual(0, view["railOverlapPixels"])
-                with_rail = Image.alpha_composite(crowd, rail)
-                for seat in view["seats"]:
-                    with self.subTest(pose=seat["pose"]):
+        for group in self.proofs:
+            group_id = group["id"]
+            _, cast = build.GROUPS[group_id]
+            for view in group["views"]:
+                stand = view["id"]
+                with self.subTest(group=group_id, stand=stand):
+                    crowd, rail, generated = self.render(stand, self.proof_layout(group_id, stand), self.atlas, cast)
+                    recorded = {k: v for k, v in view.items() if k not in {"crowd", "rail"}}
+                    recorded["seats"] = [{k: v for k, v in seat.items() if k != "stance"} for seat in view["seats"]]
+                    self.assertEqual(recorded, generated)
+                    if group_id == "approved":
+                        self.assertIn(generated, self.manifest)
+                    bay = self.bays[view["bayId"]]
+                    for filename, layer in ((view["crowd"], crowd), (view["rail"], rail)):
+                        path = build.HERE / filename
+                        build.fit.check_insert(self.mask, bay, path)
+                        with Image.open(path) as png:
+                            self.assertEqual(layer.tobytes(), png.convert("RGBA").tobytes())
+                    self.assertEqual(0, view["railOverlapPixels"])
+                    with_rail = Image.alpha_composite(crowd, rail)
+                    for seat in view["seats"]:
                         self.check_source(seat, bay, crowd, with_rail)
+
+    def test_proof_groups_cover_each_pose_once(self):
+        self.assertEqual(["approved", "seated-a", "seated-b", "standing"], [group["id"] for group in self.proofs])
+        self.assertEqual((1152, 48), self.atlas.size)
+        seen = []
+        for group in self.proofs:
+            self.assertEqual(["north", "south"], [view["id"] for view in group["views"]])
+            north, south = group["views"]
+            self.assertCountEqual([seat["supporter"] for seat in north["seats"]],
+                                  [seat["supporter"] for seat in south["seats"]])
+            for view in (north, south):
+                self.assertEqual(9, view["capacity"])
+                self.assertEqual(3, len(view["seats"]))
+                for seat in view["seats"]:
+                    self.assertEqual(seat["pose"], build.COLUMNS[seat["column"]])
+                    self.assertEqual(seat["supporter"] in build.NEUTRAL, seat["neutral"])
+                    self.assertEqual("standing" if seat["supporter"].startswith("standing-") else "seated",
+                                     seat["stance"])
+                    seen.append(seat["pose"])
+        self.assertCountEqual(build.COLUMNS, seen)
+
+    def test_approved_proofs_preserve_the_reviewed_pixels(self):
+        approved = {
+            "north.png": "56e1593e26ee69b3dfe24ab0bed0c61f63eeb0911dccabba8c59f503d48d66d8",
+            "south.png": "cbb339a4320ddd111d4f53bbd51dd3061deeca7a85863a5504bd97c969ad5e26",
+            "north-rail.png": "98f58f7291fecbfae1a238a37235718d5b67bdcf978c77f2f30fa7195924b19a",
+            "south-rail.png": "4c4c611e0d3c10f1b1db70e72d5325b832a52ffc1b6a07869ea3a57a7aa1f046",
+        }
+        for filename, checksum in approved.items():
+            with self.subTest(filename=filename), Image.open(build.HERE / filename) as layer:
+                self.assertEqual(checksum, sha256(layer.convert("RGBA").tobytes()).hexdigest())
 
     def check_source(self, seat, bay, crowd, with_rail):
         cell = build.spectator(self.atlas, seat["pose"], self.palette)
@@ -136,40 +187,75 @@ class EndStandTests(unittest.TestCase):
             self.render("north", layout, self.atlas)
 
     def test_rear_silhouettes_have_one_continuous_seated_edge_on_timber(self):
-        view = next(view for view in self.manifest if view["id"] == "south")
-        planks = dict(self.supports[view["bayId"]].values())
-        for seat in view["seats"]:
-            with self.subTest(pose=seat["pose"]):
-                source = build.spectator(self.atlas, seat["pose"], self.palette).getchannel("A")
-                hip_x, hip_y = self.landmarks[seat["pose"]]["contact"]
-                edge_y = self.landmarks[seat["pose"]]["seatEdgeY"]
-                self.assertEqual(edge_y + 1, source.getbbox()[3])
-                self.assertLessEqual(edge_y - hip_y, 3)
-                self.assertGreater(edge_y, hip_y)
-                origin_x, origin_y = coordinates(seat["origin"])
-                plank = planks[seat["plankId"]]
-                self.assertGreater(source.getpixel((hip_x, hip_y)), 0)
-                for row in range(hip_y, edge_y + 1):
-                    span = [x for x in range(source.width) if source.getpixel((x, row))]
-                    self.assertGreaterEqual(len(span), 3)
-                    self.assertEqual(list(range(span[0], span[-1] + 1)), span)
-                    for x in span:
-                        self.assertGreater(plank.getpixel((origin_x + x, origin_y + row)), 0)
+        for group in self.proofs:
+            view = next(view for view in group["views"] if view["id"] == "south")
+            planks = dict(self.supports[view["bayId"]].values())
+            for seat in view["seats"]:
+                if seat["stance"] == "seated":
+                    with self.subTest(pose=seat["pose"]):
+                        self.check_rear_seat(seat, planks[seat["plankId"]])
+
+    def check_rear_seat(self, seat, plank):
+        source = build.spectator(self.atlas, seat["pose"], self.palette).getchannel("A")
+        hip_x, hip_y = self.landmarks[seat["pose"]]["contact"]
+        edge_y = self.landmarks[seat["pose"]]["seatEdgeY"]
+        self.assertEqual(edge_y + 1, source.getbbox()[3])
+        self.assertLessEqual(edge_y - hip_y, 3)
+        self.assertGreater(edge_y, hip_y)
+        origin_x, origin_y = coordinates(seat["origin"])
+        self.assertGreater(source.getpixel((hip_x, hip_y)), 0)
+        for row in range(hip_y, edge_y + 1):
+            span = [x for x in range(source.width) if source.getpixel((x, row))]
+            self.assertGreaterEqual(len(span), 3)
+            self.assertEqual(list(range(span[0], span[-1] + 1)), span)
+            for x in span:
+                self.assertGreater(plank.getpixel((origin_x + x, origin_y + row)), 0)
+
+    def test_both_standing_soles_touch_timber(self):
+        group = next(group for group in self.proofs if group["id"] == "standing")
+        for view in group["views"]:
+            planks = dict(self.supports[view["bayId"]].values())
+            standing = [seat for seat in view["seats"] if seat["stance"] == "standing"]
+            self.assertEqual(2, len(standing))
+            for seat in standing:
+                with self.subTest(pose=seat["pose"]):
+                    plank = planks[seat["plankId"]]
+                    marks = self.landmarks[seat["pose"]]
+                    sprite = build.spectator(self.atlas, seat["pose"], self.palette)
+                    left, right = (coordinates(foot) for foot in seat["feet"])
+                    self.assertNotIn("knee", seat)
+                    self.assertEqual(coordinates(seat), left)
+                    self.assertNotEqual(left[0], right[0])
+                    self.assertEqual(left[1], right[1])
+                    ox, oy = coordinates(seat["origin"])
+                    for screen, local in ((left, marks["contact"]), (right, marks["otherSole"])):
+                        self.assertEqual((screen[0] - ox, screen[1] - oy), tuple(local))
+                        self.assertEqual(sprite.getbbox()[3] - 1, local[1])
+                        self.assertGreater(sprite.getpixel(tuple(local))[3], 0)
+                        self.assertGreater(plank.getpixel(screen), 0)
+                    broken = plank.copy()
+                    broken.putpixel(right, 0)
+                    with self.assertRaisesRegex(ValueError, "sole off its plank"):
+                        build.place(sprite, seat["pose"], left, 1, marks, broken)
 
     def test_rear_feet_and_split_contours_are_rejected(self):
-        for pose in (pose for pose in build.COLUMNS if pose.startswith("south-")):
-            marks = self.landmarks[pose]
-            edge_y = marks["seatEdgeY"]
-            source = build.spectator(self.atlas, pose, self.palette).getchannel("A")
-            edge = [x for x in range(source.width) if source.getpixel((x, edge_y))]
-            x = build.COLUMNS.index(pose) * build.CELL_SIZE + edge[len(edge) // 2]
-            for pixel_y, value, reason in ((edge_y + 1, 33, "must end at its seated edge"),
-                                           (edge_y, 0, "split rear seat contour")):
-                with self.subTest(pose=pose, reason=reason):
-                    damaged = self.atlas.copy()
-                    damaged.putpixel((x, pixel_y), value)
-                    with self.assertRaisesRegex(ValueError, f"{pose} .*{reason}"):
-                        self.render("south", self.layout["south"], damaged)
+        for group, (_, cast) in build.GROUPS.items():
+            for supporter in cast:
+                pose = f"south-{supporter}"
+                marks = self.landmarks[pose]
+                if "seatEdgeY" not in marks:
+                    continue
+                edge_y = marks["seatEdgeY"]
+                source = build.spectator(self.atlas, pose, self.palette).getchannel("A")
+                edge = [x for x in range(source.width) if source.getpixel((x, edge_y))]
+                x = build.COLUMNS.index(pose) * build.CELL_SIZE + edge[len(edge) // 2]
+                for pixel_y, value, reason in ((edge_y + 1, 33, "must end at its seated edge"),
+                                               (edge_y, 0, "split rear seat contour")):
+                    with self.subTest(pose=pose, reason=reason):
+                        damaged = self.atlas.copy()
+                        damaged.putpixel((x, pixel_y), value)
+                        with self.assertRaisesRegex(ValueError, f"{pose} .*{reason}"):
+                            self.render("south", self.proof_layout(group, "south"), damaged, cast)
 
 
 if __name__ == "__main__":

@@ -6,8 +6,9 @@ import benchLayout from '../../assets/game/references/stadiums/scale-studies/gat
 import artistReferenceUrl from '../../assets/game/references/stadiums/scale-studies/bay-six/cast-reference.webp';
 import poseColumns from '../../assets/game/references/stadiums/scale-studies/bay-six/poses.json';
 import seatingStudies from '../../assets/game/references/stadiums/scale-studies/bay-six/seats.json';
+import castAnglesUrl from '../../assets/game/references/stadiums/scale-studies/end-stands/cast-angles.webp';
 import endReferenceUrl from '../../assets/game/references/stadiums/scale-studies/end-stands/artist-reference.webp';
-import endStudies from '../../assets/game/references/stadiums/scale-studies/end-stands/placements.json';
+import endPoseGroups from '../../assets/game/references/stadiums/scale-studies/end-stands/pose-placements.json';
 import type { Point } from './pitch-projection.ts';
 import { playerArtPlacement, resolvePlayerArt } from './player-art.ts';
 import { bowl, drawBowlGround } from './stadium-bowl-study.ts';
@@ -28,6 +29,7 @@ const studyImages = import.meta.glob<string>([
 const studyImageRoot = '../../assets/game/references/stadiums/scale-studies/bay-six/';
 const endImageRoot = '../../assets/game/references/stadiums/scale-studies/end-stands/';
 const endViewLabel = 'North and south · 33%';
+const endShowcaseLabel = 'North and south · Pose showcase';
 const poseCellSize = 48;
 const poseZoomSize = poseCellSize * 2;
 const benchColors = [
@@ -40,9 +42,10 @@ const benchColors = [
 const benchAlpha = 135;
 const maxPlanks = Math.max(...benchLayout.bays.map(({ planks }) => planks.length));
 type SeatSlot = { slot: Point; plankId: number };
-type Occupant = SeatSlot & Point & { knee?: Point; otherSole?: Point };
+type Occupant = SeatSlot & Point & { knee?: Point; otherSole?: Point; feet?: readonly Point[] };
 type Crop = Point & { width: number; height: number };
 type CropFrames = { native: Crop; detail: Crop };
+type EndPlacement = typeof endPoseGroups[number]['views'][number];
 const fullPlan = seatingStudies[0].seats;
 
 function seatKey({ slot, plankId }: SeatSlot) {
@@ -125,8 +128,17 @@ function drawScalePlayer(context: CanvasRenderingContext2D, player: Awaited<Retu
   context.drawImage(player.art, Math.round(at.x - player.offset.x), Math.round(at.y - player.offset.y), player.width, player.height);
 }
 
+async function loadEndSection(study: EndPlacement) {
+  const bounds = seatingLayout.bays.find(({ id }) => id === study.bayId)!;
+  const [crowd, rail] = await Promise.all([
+    image(studyImages[endImageRoot + study.crowd], bounds),
+    image(studyImages[endImageRoot + study.rail], bounds),
+  ]);
+  return { ...study, bounds, frames: endFrames(bounds, study.id === 'north'), crowd, rail };
+}
+
 async function loadLayers() {
-  const [architecture, seating, player, atlas, studies, ends] = await Promise.all([
+  const [architecture, seating, player, atlas, studies, showcases] = await Promise.all([
     image(architectureUrl, bowl),
     image(seatingUrl, bowl),
     loadScalePlayer(),
@@ -139,13 +151,9 @@ async function loadLayers() {
       ]);
       return { ...study, crowd, rail };
     })),
-    Promise.all(endStudies.map(async study => {
-      const bounds = seatingLayout.bays.find(({ id }) => id === study.bayId)!;
-      const [crowd, rail] = await Promise.all([
-        image(studyImages[endImageRoot + study.id + '.png'], bounds),
-        image(studyImages[endImageRoot + study.id + '-rail.png'], bounds),
-      ]);
-      return { ...study, bounds, frames: endFrames(bounds, study.id === 'north'), crowd, rail };
+    Promise.all(endPoseGroups.map(async group => {
+      const views = await Promise.all(group.views.map(loadEndSection));
+      return { id: group.id, views };
     })),
   ]);
   const stadium = drawingSurface();
@@ -165,7 +173,7 @@ async function loadLayers() {
     if (!bay) pixels.data[i+3] = 0;
   }
   context.putImageData(pixels, 0, 0);
-  return { stadium, overlay, benches, player, atlas, studies, ends };
+  return { stadium, overlay, benches, player, atlas, studies, showcases };
 }
 
 function drawSeatMarkers(context: CanvasRenderingContext2D, bounds: Point, slots: readonly SeatSlot[], seats: readonly Occupant[]) {
@@ -183,7 +191,7 @@ function drawSeatMarkers(context: CanvasRenderingContext2D, bounds: Point, slots
     context.fillStyle = '#ffe17b';
     context.fillRect(x, y, 1, 1);
   }
-  const contacts = seats.flatMap(seat => seat.otherSole ? [seat, seat.otherSole] : [seat]);
+  const contacts = seats.flatMap(seat => seat.feet ?? (seat.otherSole ? [seat, seat.otherSole] : [seat]));
   for (const contact of contacts) {
     const x = bounds.x + contact.x, y = bounds.y + contact.y;
     context.fillStyle = '#101820';
@@ -250,9 +258,15 @@ function SupporterPose({ atlas, pose, neutral }: { atlas: HTMLImageElement; pose
 }
 
 export function StadiumScaleStudies() {
+  const endQuery = new URLSearchParams(window.location.search);
   const [layers, setLayers] = useState<Awaited<ReturnType<typeof loadLayers>>>();
   const [failed, setFailed] = useState(false);
-  const [view, setView] = useState(() => new URLSearchParams(window.location.search).get('view') === 'ends' ? 'ends' : 'b');
+  const [view, setView] = useState(() => {
+    const requested = endQuery.get('view');
+    return requested === 'ends' || requested === 'end-poses' ? requested : 'b';
+  });
+  const [endGroup, setEndGroup] = useState(() =>
+    endPoseGroups.find(({ id }) => id === endQuery.get('group'))?.id ?? endPoseGroups[0].id);
   const [benches, setBenches] = useState(false);
   const [rail, setRail] = useState(true);
   const [markers, setMarkers] = useState(false);
@@ -263,7 +277,9 @@ export function StadiumScaleStudies() {
   const spacing = study?.spacing;
   const contactSpacing = spacing && (spacing.min === spacing.max ? spacing.min : `${spacing.min}–${spacing.max}`);
   const masked = view === 'masks';
-  const endView = view === 'ends';
+  const showcaseView = view === 'end-poses';
+  const endView = view === 'ends' || showcaseView;
+  const displayedEnds = layers?.showcases.find(({ id }) => id === (showcaseView ? endGroup : 'approved'))?.views;
   const controls = <div className="mockup-controls">
     <label><input type="checkbox" checked={rail} onChange={event => setRail(event.target.checked)}/>Front rail</label>
     <label><input type="checkbox" checked={markers} onChange={event => setMarkers(event.target.checked)}
@@ -297,8 +313,8 @@ export function StadiumScaleStudies() {
       if (markers) drawSeatMarkers(context, bay, fullPlan, variant.seats);
       drawReviewCrops(review.current, full, 'bay-six', westFrames);
     }
-    if (endView) {
-      for (const end of layers.ends) {
+    if (endView && displayedEnds) {
+      for (const end of displayedEnds) {
         const { bounds } = end;
         context.drawImage(end.crowd, bounds.x, bounds.y);
         if (rail) context.drawImage(end.rail, bounds.x, bounds.y);
@@ -307,7 +323,7 @@ export function StadiumScaleStudies() {
         drawReviewCrops(review.current, full, 'end-' + end.id, end.frames);
       }
     }
-  }, [layers, view, masked, endView, benches, rail, markers]);
+  }, [layers, view, masked, endView, displayedEnds, benches, rail, markers]);
 
   return <main className="stadium-mockup scale-studies gatehouse-bay-gallery">
     <header className="mockup-heading">
@@ -317,6 +333,7 @@ export function StadiumScaleStudies() {
           <select value={view} onChange={event => setView(event.target.value)}>
             {seatingStudies.map(({ id, label }) => <option key={id} value={id}>{label}</option>)}
             <option value="ends">{endViewLabel}</option>
+            <option value="end-poses">{endShowcaseLabel}</option>
             <option value="empty">Empty stadium</option>
             <option value="masks">Show seating masks</option>
           </select>
@@ -360,14 +377,22 @@ export function StadiumScaleStudies() {
       </details>}
     </section>}
     {endView && <section ref={review} className="bay-six-review" aria-labelledby="end-stands-heading">
-      <h2 id="end-stands-heading">North and south stands</h2>
+      <h2 id="end-stands-heading">{showcaseView ? 'North and south pose showcase' : 'North and south stands'}</h2>
       <div className="bay-six-toolbar">
-        <p><strong>{endStudies[0].seats.length} of {endStudies[0].capacity} occupied per bay</strong></p>
+        {showcaseView ? <div className="mockup-controls">
+          <label>Pose group
+            <select value={endGroup} onChange={event => setEndGroup(event.target.value)}>
+              {endPoseGroups.map(({ id, label }) => <option key={id} value={id}>{label}</option>)}
+            </select>
+          </label>
+        </div> : displayedEnds && <p><strong>{displayedEnds[0].seats.length} of {displayedEnds[0].capacity} occupied per bay</strong></p>}
         {controls}
-        <a className="end-stand-reference" href={endReferenceUrl} target="_blank" rel="noreferrer">View six full poses</a>
+        <a className="end-stand-reference" href={showcaseView ? castAnglesUrl : endReferenceUrl} target="_blank" rel="noreferrer">
+          {showcaseView ? 'View all 12 pose pairs' : 'View six full poses'}
+        </a>
       </div>
       {markerKey}
-      {layers?.ends.map(end => <section key={end.id} className="end-stand-review" aria-labelledby={'end-' + end.id + '-heading'}>
+      {displayedEnds?.map(end => <section key={end.id} className="end-stand-review" aria-labelledby={'end-' + end.id + '-heading'}>
         <h3 id={'end-' + end.id + '-heading'}>{end.label}</h3>
         <ReviewCrops id={'end-' + end.id} frames={end.frames}/>
       </section>)}

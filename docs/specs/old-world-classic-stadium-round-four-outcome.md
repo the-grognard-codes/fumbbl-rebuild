@@ -1,17 +1,17 @@
 # Old World Classic stadium, round four
 
-**Approved still: 02, Gatehouse.** On November 18, 2026, the owner selected the open near gate because it helps orient the viewer. The source for extraction is the approved 1024 × 1536 PNG, SHA-256 `91c1a2190cbfa23c6040932b30916a0b96ec4a96c82daeedf6299d911761e5cc`. [Approval record](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/572#issuecomment-6988171353)
+**Approved still: 02, Gatehouse.** On November 18, 2026, the owner selected the open near gate because it helps orient the viewer. The source for extraction is the approved 1024 × 1536 painting, stored in lossless WebP, SHA-256 `5f212289b0fb4a783176e4e4b93b226f32abfc81376a7c8bf883c0a83e72242c`. [Approval record](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/572#issuecomment-6988171353)
 
 | 01 · Drummers | 02 · Gatehouse | 03 · Lion wall |
 | --- | --- | --- |
-| [![Drummers](../../assets/game/references/stadiums/round-four/candidate-01.webp)](../../assets/game/references/stadiums/round-four/candidate-01.webp) | [![Gatehouse](../../assets/game/references/stadiums/round-four/candidate-02.png)](../../assets/game/references/stadiums/round-four/candidate-02.png) | [![Lion wall](../../assets/game/references/stadiums/round-four/candidate-03.webp)](../../assets/game/references/stadiums/round-four/candidate-03.webp) |
+| [![Drummers](../../assets/game/references/stadiums/round-four/candidate-01.webp)](../../assets/game/references/stadiums/round-four/candidate-01.webp) | [![Gatehouse](../../assets/game/references/stadiums/round-four/candidate-02.webp)](../../assets/game/references/stadiums/round-four/candidate-02.webp) | [![Lion wall](../../assets/game/references/stadiums/round-four/candidate-03.webp)](../../assets/game/references/stadiums/round-four/candidate-03.webp) |
 | Drummers flank the touchlines and a timber booth breaks up the far wall. | The broad far banners, alternating torch pillars and open near gate distinguish the two ends. | A compact visiting block and a single lion on each end wall give the cheering figures more room. |
 
 ### What to compare
 
 #### Approved neutral crowd clothing
 
-The owner approved the fixed umber, tan, warm grey and charcoal mix on November 18. It covers 75 home supporters and eight visitors. A native one-bit mask keeps all 20,082 selected garment pixels out of the team-colour ramps before the layers are cut for either coach end. The revised Gatehouse still is the gallery comparison target. [Earlier painting](https://github.com/the-grognard-codes/fumbbl-rebuild/blob/55db1cf9b/assets/game/references/stadiums/round-four/candidate-02.png) and [approved revision](../../assets/game/references/stadiums/round-four/candidate-02.png).
+The owner approved the fixed umber, tan, warm grey and charcoal mix on November 18. It covers 75 home supporters and eight visitors. A native one-bit mask keeps all 20,082 selected garment pixels out of the team-colour ramps before the layers are cut for either coach end. The revised Gatehouse still is the gallery comparison target. [Earlier painting](https://github.com/the-grognard-codes/fumbbl-rebuild/blob/55db1cf9b/assets/game/references/stadiums/round-four/candidate-02.png) and [approved revision](../../assets/game/references/stadiums/round-four/candidate-02.webp).
 
 Candidate 02 comes closest to the concept's foreground wall depth, hanging cloth and readable faces. Three differences remain visible. The sideline faces are larger and the bays repeat more regularly. The turf meets the apron at a sharper edge. Showing both end walls makes them more prominent than in the owner's cropped reference. The centre crop misses the red block at upper right, which is visible in the full still. Judge the face scale and wall rhythm using the cropped concept, then look at the full frame to judge the end walls. [Owner's concept](../../assets/game/references/stadiums/concept-round-3/01-old-world-classic-human-home.webp)
 
@@ -43,7 +43,7 @@ The game-service build passed all 29 tests on the pinned JDK and Maven. The game
 
 #### Final cut
 
-The home screenshot now matches the approved still in **all 1,572,864 pixels** at 100% zoom with the balanced turf, original colours, grid off and players off. An independent RGB comparison of the Chromium screenshot counted zero changes inside the pitch and zero in the 1,173,504 outside pixels. The cut script also checks a fresh reconstruction against the approved PNG. [Layer recipe and manifest](../../assets/game/references/stadiums/round-four/layers/manifest.json)
+The home screenshot now matches the approved still in **all 1,572,864 pixels** at 100% zoom with the balanced turf, original colours, grid off and players off. An independent RGB comparison of the Chromium screenshot counted zero changes inside the pitch and zero in the 1,173,504 outside pixels. The cut script also checks a fresh reconstruction against the approved painting. [Layer recipe and manifest](../../assets/game/references/stadiums/round-four/layers/manifest.json)
 
 The intended differences in the other views are visible below. First, the relocated away supporters use the destination's torch, wall and barrel. The visiting section moves from upper right to lower left, the gate stays at the bottom and the heraldry reads upright. Second, the calm preset reduces turf contrast across the 399,360 playable pixels with zero changes elsewhere. Third, changing the visitor or kits changes the crest, the selected cloth and the player uniforms. The Human visiting standard uses a lion taken from the same painting. The native balanced view retains the original visiting standard.
 
