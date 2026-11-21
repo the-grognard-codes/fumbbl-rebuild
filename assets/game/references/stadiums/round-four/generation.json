@@ -1,0 +1,47 @@
+{
+  "generator": "OpenAI built-in ImageGen",
+  "canvas": {
+    "width": 1024,
+    "height": 1536,
+    "pixelsPerSquare": 32,
+    "pitch": {
+      "x": 272,
+      "y": 352,
+      "width": 480,
+      "height": 832
+    }
+  },
+  "references": [
+    "layout-base.png",
+    "../concept-round-3/01-old-world-classic-human-home.webp",
+    "https://github.com/the-grognard-codes/fumbbl-rebuild/blob/c59391073/assets/game/pitch/stadiums/mockup/architecture-v2.png"
+  ],
+  "architectureSha256": "935ffde657da74c73604ab31e1285716f2dff5711c33596e15ce0d8dbc9c20b0",
+  "prompt": "Create ONE complete native 1024 Ã— 1536 portrait pixel-art painting for a 1990s fantasy sports game. Image 1 is the EXACT game-camera layout, image 2 is the owner's visual target in a cropped view, image 3 is reference for the masonry and timber. Paint from scratch over the layout, preserving the full extent of this viewport. At 32 pixels per game square the green playing field is EXACTLY x=272..751 y=352..1183, a straight-sided vertical 480Ã—832 rectangle. Its precise position is important; use the grid solely to locate the perimeter. No painted markings, lettering, numbers, grids, players or ball. Paint low-contrast living grass throughout that rectangle: gentle tuft clusters, subtle variations, no flowers or brown interruptions. A roughly 64px wide continuous packed ochre dirt apron immediately surrounds the field on four sides. Place benches parallel to sidelines, banded barrels, brass braziers on substantial stone pillars just outside the apron. Layered thick hand-hewn stone and dark timber retaining walls, large royal-blue cloths with gold heraldic lions hanging over the walls in front of the crowd. Small red/gold away supporters' block on upper RIGHT sideline only. Dominant home team ultramarine, ochre gold. Side stands left/right run VERTICALLY PARALLEL, joined by far/near end walls and crowd. Fill the outer frame with stands. Emulate the style target's densely packed expressive chibi human faces, clustered and overlapping unevenly on timber terraces: chunky noses, open mouths, raised hands, drums, mugs and scarves. Rich ink-dark occlusion and sunlit stone edges, limited-colour sharply clustered pixel shapes. SNES fake top down: flat overhead field, all spectators depicted as upright heads with readable faces and torsos in three-quarter views toward the action. No perspective convergence, horizon, vanishing point, giant square scoreboard, text, UI, modern equipment, oversize crest in turf, repeated rows of identical tiny coins. A single cohesive illustrated scene with coherent warm daylight. ",
+  "variants": [
+    "Emphasize lively cobalt-clad supporters in knots around drummers, short pennants and carved twin-beam gate at far end. Best fidelity to reference lighting and lively chibi faces.",
+    "Emphasize heavy ashlar walls, ochre trampled track, bold lion tapestries overlapping the parapet, widely staggered torch columns and animated blue crowd. Keep a modest near-end timber entry arch.",
+    "Emphasize close-packed hand-drawn chibi terrace portraits, individually striped bench cloths, lighter moss between stones and small mixed groups of cheering home supporters around the stadium corners. Keep the visiting group visibly compact."
+  ],
+  "date": "2026-11-18",
+  "trackPrompt": "Create a native 1024x1536 tileable FULL BLEED ground texture sample painted to match EXACTLY the ochre-gold sideline packed dirt track in this reference. Show ONLY a continuous, uniformly lit, trampled sandy ochre dirt surface occupying the entire frame, viewed from directly above. Match the artistic pixel scale of this native 1024x1536 reference: scattered small soft-edged pebbles 2?5 px wide, subtle darker footsteps and dry golden chips of soil in loose subtle clusters. No grass, no edges, no border, no rectangle, no lighting gradient, structures, props, crowd, field, lines or lettering. Fine, muted pixel-art brushwork. Used as an inpainting source for 30-70 px of dirt at the edge of these exact grounds.",
+  "sceneIds": [
+    "2a4ace03-4b0e-4308-ada0-2cfc84e73bc1",
+    "cc74401c-ed5c-4f2e-bfb3-68a76910f7ac",
+    "4e07c641-13d0-4ea6-b943-8c3422f2748c"
+  ],
+  "trackId": "f0e123d4-ef95-45e8-a527-6bb8e447099d",
+  "sourceFormat": "Native-size RGB archived in lossless WebP. No resizing. Each scene ID matches the corresponding variant.",
+  "preparation": "Run python prepare.py with Pillow 13. Gatehouse includes the approved neutral clothing revision for 75 home supporters and eight visitors. The one-bit mask excludes those garments from all team-colour ramps.",
+  "sha256": {
+    "candidate-01.webp": "7975ba7d99531b367467e03c580bca26e606f9e53ae58f1b724608e3d996cbfb",
+    "candidate-02.webp": "5f212289b0fb4a783176e4e4b93b226f32abfc81376a7c8bf883c0a83e72242c",
+    "candidate-03.webp": "535ccbf0bf359f0ecd9daacd55b5aede8cd10908e20c6d792e6e7ca967d8e24f",
+    "layout-base.png": "4ace1e85c04496081bdf842e7161bcf7773443a196ce4371467ac8a59f180924",
+    "sources/scene-01.webp": "bf8b98cbb5684d364660b6692205b3cc7a768cb791218070e69a26fbf96ecc83",
+    "sources/scene-02.webp": "c042befb394466c146f8b8252c7abbff2615a02971a3c1166b266c9a39b46ba5",
+    "sources/scene-03.webp": "2233438e115784956d3c6c79621b6451bd42e6daf6bb28239baff27c784bccb6",
+    "sources/track.webp": "e3f1ef1b9a418ef421ca59c8eff1093024a8eee47723314151cc35184d6997cf",
+    "neutral-clothing-mask.png": "753a076885b53cf43421c4608c508c645d2f88dda438bd6adfea02ee19e14c7d"
+  }
+}

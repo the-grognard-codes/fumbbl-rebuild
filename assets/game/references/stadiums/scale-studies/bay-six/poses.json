@@ -1,0 +1,14 @@
+[
+  { "id": "seated-tambourine", "label": "Tambourine player", "wardrobe": "team" },
+  { "id": "standing-tambourine", "label": "Tambourine player", "wardrobe": "team" },
+  { "id": "seated-horn", "label": "Dwarf · Drinking horn", "wardrobe": "team" },
+  { "id": "standing-horn", "label": "Dwarf · Drinking horn", "wardrobe": "team" },
+  { "id": "seated-pie", "label": "Halfling · Hand pie", "wardrobe": "neutral" },
+  { "id": "seated-clap", "label": "Clapping supporter", "wardrobe": "team" },
+  { "id": "seated-lookout", "label": "Lookout", "wardrobe": "team" },
+  { "id": "seated-program", "label": "Elf · Match programme", "wardrobe": "team" },
+  { "id": "seated-mug", "label": "Elder · Wooden tankard", "wardrobe": "neutral" },
+  { "id": "seated-whistle", "label": "Whistle player", "wardrobe": "team" },
+  { "id": "seated-chestnuts", "label": "Chestnut seller", "wardrobe": "neutral" },
+  { "id": "seated-cheer", "label": "Cheering supporter", "wardrobe": "team" }
+]

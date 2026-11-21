@@ -1,0 +1,302 @@
+{
+  "seated-tambourine": {
+    "contact": [
+      19,
+      37
+    ],
+    "knee": [
+      29,
+      34
+    ],
+    "behindSeat": [
+      [
+        22,
+        38,
+        3,
+        8
+      ]
+    ],
+    "footFronts": [
+      [
+        27,
+        44
+      ],
+      [
+        31,
+        44
+      ]
+    ]
+  },
+  "standing-tambourine": {
+    "contact": [
+      21,
+      45
+    ],
+    "otherSole": [
+      27,
+      45
+    ]
+  },
+  "seated-horn": {
+    "contact": [
+      18,
+      37
+    ],
+    "knee": [
+      28,
+      34
+    ],
+    "behindSeat": [
+      [
+        23,
+        38,
+        2,
+        8
+      ]
+    ],
+    "footFronts": [
+      [
+        28,
+        43
+      ],
+      [
+        33,
+        43
+      ]
+    ]
+  },
+  "standing-horn": {
+    "contact": [
+      19,
+      45
+    ],
+    "otherSole": [
+      26,
+      45
+    ]
+  },
+  "seated-pie": {
+    "contact": [
+      19,
+      38
+    ],
+    "knee": [
+      28,
+      34
+    ],
+    "behindSeat": [
+      [
+        22,
+        39,
+        2,
+        7
+      ]
+    ],
+    "footFronts": [
+      [
+        27,
+        44
+      ],
+      [
+        31,
+        43
+      ]
+    ]
+  },
+  "seated-clap": {
+    "contact": [
+      18,
+      38
+    ],
+    "knee": [
+      28,
+      34
+    ],
+    "behindSeat": [
+      [
+        23,
+        39,
+        2,
+        7
+      ]
+    ],
+    "footFronts": [
+      [
+        28,
+        44
+      ],
+      [
+        32,
+        44
+      ]
+    ]
+  },
+  "seated-lookout": {
+    "contact": [
+      18,
+      36
+    ],
+    "knee": [
+      28,
+      34
+    ],
+    "behindSeat": [
+      [
+        22,
+        37,
+        2,
+        9
+      ]
+    ],
+    "footFronts": [
+      [
+        27,
+        44
+      ],
+      [
+        32,
+        43
+      ]
+    ]
+  },
+  "seated-program": {
+    "contact": [
+      18,
+      36
+    ],
+    "knee": [
+      28,
+      34
+    ],
+    "behindSeat": [
+      [
+        22,
+        37,
+        2,
+        9
+      ]
+    ],
+    "footFronts": [
+      [
+        27,
+        44
+      ],
+      [
+        32,
+        43
+      ]
+    ]
+  },
+  "seated-mug": {
+    "contact": [
+      18,
+      37
+    ],
+    "knee": [
+      28,
+      34
+    ],
+    "behindSeat": [
+      [
+        22,
+        38,
+        3,
+        8
+      ]
+    ],
+    "footFronts": [
+      [
+        27,
+        44
+      ],
+      [
+        32,
+        44
+      ]
+    ]
+  },
+  "seated-whistle": {
+    "contact": [
+      18,
+      37
+    ],
+    "knee": [
+      28,
+      35
+    ],
+    "behindSeat": [
+      [
+        23,
+        38,
+        2,
+        8
+      ]
+    ],
+    "footFronts": [
+      [
+        28,
+        44
+      ],
+      [
+        33,
+        44
+      ]
+    ]
+  },
+  "seated-chestnuts": {
+    "contact": [
+      17,
+      36
+    ],
+    "knee": [
+      27,
+      34
+    ],
+    "behindSeat": [
+      [
+        22,
+        37,
+        2,
+        9
+      ]
+    ],
+    "footFronts": [
+      [
+        27,
+        44
+      ],
+      [
+        33,
+        43
+      ]
+    ]
+  },
+  "seated-cheer": {
+    "contact": [
+      18,
+      37
+    ],
+    "knee": [
+      28,
+      34
+    ],
+    "behindSeat": [
+      [
+        23,
+        38,
+        2,
+        8
+      ]
+    ],
+    "footFronts": [
+      [
+        27,
+        44
+      ],
+      [
+        33,
+        44
+      ]
+    ]
+  }
+}

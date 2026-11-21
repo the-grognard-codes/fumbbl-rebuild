@@ -1,0 +1,149 @@
+{
+  "stadiumArtwork": "empty-gatehouse.webp",
+  "seatingMask": "empty-seating.png",
+  "nativeCanvas": {
+    "x": 0,
+    "y": 0,
+    "width": 790,
+    "height": 1188
+  },
+  "offLimitsMaskValue": 0,
+  "insertCanvas": "bay-bounds",
+  "bays": [
+    {
+      "id": 1,
+      "stand": "north",
+      "x": 33,
+      "y": 28,
+      "width": 149,
+      "height": 72,
+      "pixelCount": 9883
+    },
+    {
+      "id": 2,
+      "stand": "north",
+      "x": 244,
+      "y": 28,
+      "width": 301,
+      "height": 72,
+      "pixelCount": 20755
+    },
+    {
+      "id": 3,
+      "stand": "north",
+      "x": 607,
+      "y": 28,
+      "width": 149,
+      "height": 72,
+      "pixelCount": 9855
+    },
+    {
+      "id": 4,
+      "stand": "west",
+      "x": 21,
+      "y": 131,
+      "width": 66,
+      "height": 248,
+      "pixelCount": 15328
+    },
+    {
+      "id": 5,
+      "stand": "west",
+      "x": 22,
+      "y": 435,
+      "width": 65,
+      "height": 95,
+      "pixelCount": 5692
+    },
+    {
+      "id": 6,
+      "stand": "west",
+      "x": 22,
+      "y": 589,
+      "width": 65,
+      "height": 74,
+      "pixelCount": 4810
+    },
+    {
+      "id": 7,
+      "stand": "west",
+      "x": 22,
+      "y": 719,
+      "width": 65,
+      "height": 324,
+      "pixelCount": 20155
+    },
+    {
+      "id": 8,
+      "stand": "east",
+      "x": 703,
+      "y": 131,
+      "width": 66,
+      "height": 248,
+      "pixelCount": 15328
+    },
+    {
+      "id": 9,
+      "stand": "east",
+      "x": 703,
+      "y": 435,
+      "width": 66,
+      "height": 95,
+      "pixelCount": 5766
+    },
+    {
+      "id": 10,
+      "stand": "east",
+      "x": 703,
+      "y": 589,
+      "width": 66,
+      "height": 74,
+      "pixelCount": 4884
+    },
+    {
+      "id": 11,
+      "stand": "east",
+      "x": 703,
+      "y": 719,
+      "width": 66,
+      "height": 324,
+      "pixelCount": 20474
+    },
+    {
+      "id": 12,
+      "stand": "south",
+      "x": 28,
+      "y": 1070,
+      "width": 152,
+      "height": 91,
+      "pixelCount": 12371
+    },
+    {
+      "id": 13,
+      "stand": "south",
+      "x": 244,
+      "y": 1070,
+      "width": 78,
+      "height": 91,
+      "pixelCount": 7098
+    },
+    {
+      "id": 14,
+      "stand": "south",
+      "x": 464,
+      "y": 1070,
+      "width": 82,
+      "height": 91,
+      "pixelCount": 7462
+    },
+    {
+      "id": 15,
+      "stand": "south",
+      "x": 613,
+      "y": 1070,
+      "width": 149,
+      "height": 91,
+      "pixelCount": 12030
+    }
+  ]
+}

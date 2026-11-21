@@ -1,0 +1,112 @@
+.mockup-scale-link {
+  display: inline-flex;
+  align-items: center;
+  min-height: 36px;
+  padding: 0 10px;
+  border: 1px solid #f0ca7b;
+  color: #f0ca7b;
+  font-weight: 700;
+}
+.scale-studies { min-width: 0; max-width: 878px; }
+.scale-study-header { display: block; }
+.scale-study-header > a, .scale-study-controls > a { color: #c1e9ff; text-underline-offset: 3px; }
+.scale-study-header > a { display: inline-block; margin-bottom: 12px; }
+.scale-study-controls { margin-bottom: 16px; }
+.scale-study-comparisons {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 24px 14px;
+  max-width: 846px;
+}
+.scale-study-variant { min-width: 0; margin: 0; }
+.scale-study-variant figcaption {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  padding: 8px 0;
+  border-top: 1px solid #62655e;
+  line-height: 1.3;
+}
+.scale-study-variant figcaption > :nth-child(2) { font-size: .9375rem; }
+.scale-study-variant-id { color: #f0ca7b; font-weight: 700; }
+.scale-study-variant strong { margin-left: auto; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.scale-study-crop { position: relative; overflow: hidden; background: #342c24; }
+.scale-study-crop canvas { display: block; width: 100%; height: auto; image-rendering: pixelated; }
+.scale-study-player { position: absolute; image-rendering: pixelated; max-width: none; }
+.scale-study-inspector { margin-top: 30px; }
+.scale-study-inspector h2 { margin: 0; font-size: 1.25rem; }
+.scale-study-stand {
+  display: grid;
+  justify-items: center;
+  max-width: 416px;
+  padding: 24px;
+  border: 1px solid #62655e;
+}
+.scale-study-stand[data-background="Checkerboard"] {
+  background: conic-gradient(#989b99 25%, #c2c3bf 0 50%, #989b99 0 75%, #c2c3bf 0) 0 0 / 24px 24px;
+}
+.scale-study-stand[data-background="Light"] { background: #f2f0e8; }
+.scale-study-stand[data-background="Dark"] { background: #1a1b20; }
+.scale-study-stand canvas { display: block; max-width: 100%; height: auto; image-rendering: pixelated; }
+
+.gatehouse-bay-gallery { max-width: 1028px; }
+.gatehouse-bay-gallery .mockup-controls select { width: auto; max-width: min(280px, 68vw); }
+.gatehouse-bench-key {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 18px;
+  margin: 0 0 16px;
+  padding: 0;
+  list-style: none;
+  color: #baccbf;
+  font-size: .875rem;
+}
+.gatehouse-bench-key li { display: flex; align-items: center; gap: 6px; }
+.gatehouse-bench-key span { width: 12px; height: 12px; }
+.bay-six-review { margin-bottom: 24px; }
+.bay-six-review h2 { margin: 0; }
+.bay-six-toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 24px; margin: 6px 0 10px; }
+.bay-six-toolbar p { margin: 0; font-size: .9375rem; }
+.bay-six-toolbar label, .gatehouse-bench-toggle { min-height: 32px; cursor: pointer; }
+.gatehouse-bay-gallery input[type=checkbox] { width: auto; margin: 0; accent-color: #f0ca7b; }
+.bay-six-review .bay-six-marker-key { margin-top: 0; font-size: .875rem; }
+.bay-six-marker-key span:first-child { color: #80f5ff; }
+.bay-six-marker-key span:nth-of-type(2) { color: #ffe17b; }
+.bay-six-marker-key span:nth-of-type(3) { color: #d4cdc1; }
+.bay-six-crops {
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr);
+  align-items: start;
+  gap: 16px;
+}
+.bay-six-crops figure { min-width: 0; margin: 0; }
+.bay-six-crops figcaption { margin-bottom: 6px; color: #baccbf; font-size: .875rem; }
+.bay-six-crops canvas { display: block; image-rendering: pixelated; }
+.bay-six-zoom { max-width: max-content; overflow-x: auto; }
+.end-stand-reference { color: #c1e9ff; font-size: .875rem; text-underline-offset: 3px; }
+.end-stand-review + .end-stand-review { margin-top: 20px; }
+.end-stand-review h3 { margin: 12px 0 8px; font-size: 1.125rem; }
+.bay-six-poses { margin-top: 12px; }
+.bay-six-poses summary { width: max-content; padding: 6px 0; color: #c1e9ff; cursor: pointer; }
+.bay-six-poses ol { display: flex; flex-wrap: wrap; gap: 12px; margin: 8px 0 0; padding: 0; list-style: none; }
+.bay-six-roster ol { max-width: 684px; }
+.bay-six-roster a { display: inline-block; margin-top: 12px; color: #c1e9ff; text-underline-offset: 3px; }
+.bay-six-poses figure { width: 104px; margin: 0; }
+.bay-six-poses canvas {
+  display: block;
+  box-sizing: content-box;
+  padding: 4px;
+  background: #acb0af;
+  image-rendering: pixelated;
+}
+.bay-six-poses figcaption { margin-top: 6px; font-size: .875rem; line-height: 1.35; }
+.bay-six-poses figcaption span { display: block; margin-top: 2px; color: #baccbf; font-size: .8125rem; }
+.gatehouse-overview { max-width: 790px; }
+
+@media (max-width: 680px) {
+  .scale-study-comparisons { grid-template-columns: minmax(0, 416px); }
+  .bay-six-crops { grid-template-columns: minmax(0, 1fr); }
+}
+
+.bowl-detail { max-width: 416px; }
+#stepped-bowl summary { cursor: pointer; padding: 12px 0; }

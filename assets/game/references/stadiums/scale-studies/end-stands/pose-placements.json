@@ -1,0 +1,1194 @@
+[
+  {
+    "id": "approved",
+    "label": "Horn, clap and pie",
+    "views": [
+      {
+        "id": "north",
+        "label": "North stand \u00b7 Front view",
+        "bayId": 1,
+        "facing": "front",
+        "capacity": 9,
+        "slots": [
+          {
+            "plankId": 12,
+            "slot": {
+              "x": 34,
+              "y": 25
+            }
+          },
+          {
+            "plankId": 12,
+            "slot": {
+              "x": 58,
+              "y": 25
+            }
+          },
+          {
+            "plankId": 12,
+            "slot": {
+              "x": 82,
+              "y": 25
+            }
+          },
+          {
+            "plankId": 12,
+            "slot": {
+              "x": 106,
+              "y": 25
+            }
+          },
+          {
+            "plankId": 12,
+            "slot": {
+              "x": 130,
+              "y": 25
+            }
+          },
+          {
+            "plankId": 13,
+            "slot": {
+              "x": 38,
+              "y": 48
+            }
+          },
+          {
+            "plankId": 13,
+            "slot": {
+              "x": 68,
+              "y": 48
+            }
+          },
+          {
+            "plankId": 13,
+            "slot": {
+              "x": 99,
+              "y": 48
+            }
+          },
+          {
+            "plankId": 13,
+            "slot": {
+              "x": 130,
+              "y": 48
+            }
+          }
+        ],
+        "seats": [
+          {
+            "supporter": "horn",
+            "pose": "north-horn",
+            "column": 0,
+            "plankId": 12,
+            "slot": {
+              "x": 34,
+              "y": 25
+            },
+            "x": 34,
+            "y": 25,
+            "knee": {
+              "x": 34,
+              "y": 29
+            },
+            "origin": {
+              "x": 14,
+              "y": -8
+            },
+            "neutral": false,
+            "stance": "seated"
+          },
+          {
+            "supporter": "pie",
+            "pose": "north-pie",
+            "column": 2,
+            "plankId": 12,
+            "slot": {
+              "x": 106,
+              "y": 25
+            },
+            "x": 106,
+            "y": 25,
+            "knee": {
+              "x": 106,
+              "y": 29
+            },
+            "origin": {
+              "x": 86,
+              "y": -8
+            },
+            "neutral": true,
+            "stance": "seated"
+          },
+          {
+            "supporter": "clap",
+            "pose": "north-clap",
+            "column": 1,
+            "plankId": 13,
+            "slot": {
+              "x": 68,
+              "y": 48
+            },
+            "x": 68,
+            "y": 48,
+            "knee": {
+              "x": 68,
+              "y": 53
+            },
+            "origin": {
+              "x": 48,
+              "y": 16
+            },
+            "neutral": false,
+            "stance": "seated"
+          }
+        ],
+        "railOverlapPixels": 0,
+        "crowd": "north.png",
+        "rail": "north-rail.png"
+      },
+      {
+        "id": "south",
+        "label": "South stand \u00b7 Back view",
+        "bayId": 12,
+        "facing": "back",
+        "capacity": 9,
+        "slots": [
+          {
+            "plankId": 122,
+            "slot": {
+              "x": 47,
+              "y": 25
+            }
+          },
+          {
+            "plankId": 122,
+            "slot": {
+              "x": 86,
+              "y": 25
+            }
+          },
+          {
+            "plankId": 122,
+            "slot": {
+              "x": 128,
+              "y": 24
+            }
+          },
+          {
+            "plankId": 123,
+            "slot": {
+              "x": 43,
+              "y": 47
+            }
+          },
+          {
+            "plankId": 123,
+            "slot": {
+              "x": 83,
+              "y": 47
+            }
+          },
+          {
+            "plankId": 123,
+            "slot": {
+              "x": 124,
+              "y": 47
+            }
+          },
+          {
+            "plankId": 124,
+            "slot": {
+              "x": 39,
+              "y": 70
+            }
+          },
+          {
+            "plankId": 124,
+            "slot": {
+              "x": 79,
+              "y": 70
+            }
+          },
+          {
+            "plankId": 124,
+            "slot": {
+              "x": 122,
+              "y": 70
+            }
+          }
+        ],
+        "seats": [
+          {
+            "supporter": "pie",
+            "pose": "south-pie",
+            "column": 5,
+            "plankId": 122,
+            "slot": {
+              "x": 128,
+              "y": 24
+            },
+            "x": 128,
+            "y": 24,
+            "knee": {
+              "x": 128,
+              "y": 21
+            },
+            "origin": {
+              "x": 108,
+              "y": -13
+            },
+            "neutral": true,
+            "stance": "seated"
+          },
+          {
+            "supporter": "horn",
+            "pose": "south-horn",
+            "column": 3,
+            "plankId": 123,
+            "slot": {
+              "x": 43,
+              "y": 47
+            },
+            "x": 43,
+            "y": 47,
+            "knee": {
+              "x": 43,
+              "y": 44
+            },
+            "origin": {
+              "x": 23,
+              "y": 10
+            },
+            "neutral": false,
+            "stance": "seated"
+          },
+          {
+            "supporter": "clap",
+            "pose": "south-clap",
+            "column": 4,
+            "plankId": 124,
+            "slot": {
+              "x": 79,
+              "y": 70
+            },
+            "x": 79,
+            "y": 70,
+            "knee": {
+              "x": 79,
+              "y": 67
+            },
+            "origin": {
+              "x": 59,
+              "y": 33
+            },
+            "neutral": false,
+            "stance": "seated"
+          }
+        ],
+        "railOverlapPixels": 0,
+        "crowd": "south.png",
+        "rail": "south-rail.png"
+      }
+    ]
+  },
+  {
+    "id": "seated-a",
+    "label": "Tambourine, lookout and mug",
+    "views": [
+      {
+        "id": "north",
+        "label": "North stand \u00b7 Front view",
+        "bayId": 1,
+        "facing": "front",
+        "capacity": 9,
+        "slots": [
+          {
+            "plankId": 12,
+            "slot": {
+              "x": 34,
+              "y": 27
+            }
+          },
+          {
+            "plankId": 12,
+            "slot": {
+              "x": 58,
+              "y": 27
+            }
+          },
+          {
+            "plankId": 12,
+            "slot": {
+              "x": 82,
+              "y": 27
+            }
+          },
+          {
+            "plankId": 12,
+            "slot": {
+              "x": 106,
+              "y": 27
+            }
+          },
+          {
+            "plankId": 12,
+            "slot": {
+              "x": 130,
+              "y": 27
+            }
+          },
+          {
+            "plankId": 13,
+            "slot": {
+              "x": 38,
+              "y": 48
+            }
+          },
+          {
+            "plankId": 13,
+            "slot": {
+              "x": 68,
+              "y": 48
+            }
+          },
+          {
+            "plankId": 13,
+            "slot": {
+              "x": 99,
+              "y": 48
+            }
+          },
+          {
+            "plankId": 13,
+            "slot": {
+              "x": 130,
+              "y": 48
+            }
+          }
+        ],
+        "seats": [
+          {
+            "supporter": "tambourine",
+            "pose": "north-tambourine",
+            "column": 6,
+            "plankId": 12,
+            "slot": {
+              "x": 34,
+              "y": 27
+            },
+            "x": 34,
+            "y": 27,
+            "knee": {
+              "x": 34,
+              "y": 32
+            },
+            "origin": {
+              "x": 13,
+              "y": -5
+            },
+            "neutral": false,
+            "stance": "seated"
+          },
+          {
+            "supporter": "mug",
+            "pose": "north-mug",
+            "column": 12,
+            "plankId": 12,
+            "slot": {
+              "x": 106,
+              "y": 27
+            },
+            "x": 106,
+            "y": 27,
+            "knee": {
+              "x": 106,
+              "y": 32
+            },
+            "origin": {
+              "x": 85,
+              "y": -5
+            },
+            "neutral": true,
+            "stance": "seated"
+          },
+          {
+            "supporter": "lookout",
+            "pose": "north-lookout",
+            "column": 8,
+            "plankId": 13,
+            "slot": {
+              "x": 68,
+              "y": 48
+            },
+            "x": 68,
+            "y": 48,
+            "knee": {
+              "x": 68,
+              "y": 53
+            },
+            "origin": {
+              "x": 47,
+              "y": 16
+            },
+            "neutral": false,
+            "stance": "seated"
+          }
+        ],
+        "railOverlapPixels": 0,
+        "crowd": "seated-a-north.png",
+        "rail": "north-rail.png"
+      },
+      {
+        "id": "south",
+        "label": "South stand \u00b7 Back view",
+        "bayId": 12,
+        "facing": "back",
+        "capacity": 9,
+        "slots": [
+          {
+            "plankId": 122,
+            "slot": {
+              "x": 47,
+              "y": 25
+            }
+          },
+          {
+            "plankId": 122,
+            "slot": {
+              "x": 86,
+              "y": 25
+            }
+          },
+          {
+            "plankId": 122,
+            "slot": {
+              "x": 128,
+              "y": 24
+            }
+          },
+          {
+            "plankId": 123,
+            "slot": {
+              "x": 43,
+              "y": 47
+            }
+          },
+          {
+            "plankId": 123,
+            "slot": {
+              "x": 83,
+              "y": 47
+            }
+          },
+          {
+            "plankId": 123,
+            "slot": {
+              "x": 124,
+              "y": 47
+            }
+          },
+          {
+            "plankId": 124,
+            "slot": {
+              "x": 39,
+              "y": 70
+            }
+          },
+          {
+            "plankId": 124,
+            "slot": {
+              "x": 79,
+              "y": 70
+            }
+          },
+          {
+            "plankId": 124,
+            "slot": {
+              "x": 122,
+              "y": 70
+            }
+          }
+        ],
+        "seats": [
+          {
+            "supporter": "tambourine",
+            "pose": "south-tambourine",
+            "column": 7,
+            "plankId": 123,
+            "slot": {
+              "x": 43,
+              "y": 47
+            },
+            "x": 43,
+            "y": 47,
+            "knee": {
+              "x": 43,
+              "y": 44
+            },
+            "origin": {
+              "x": 21,
+              "y": 10
+            },
+            "neutral": false,
+            "stance": "seated"
+          },
+          {
+            "supporter": "mug",
+            "pose": "south-mug",
+            "column": 13,
+            "plankId": 123,
+            "slot": {
+              "x": 124,
+              "y": 47
+            },
+            "x": 124,
+            "y": 47,
+            "knee": {
+              "x": 124,
+              "y": 44
+            },
+            "origin": {
+              "x": 102,
+              "y": 10
+            },
+            "neutral": true,
+            "stance": "seated"
+          },
+          {
+            "supporter": "lookout",
+            "pose": "south-lookout",
+            "column": 9,
+            "plankId": 124,
+            "slot": {
+              "x": 79,
+              "y": 70
+            },
+            "x": 79,
+            "y": 70,
+            "knee": {
+              "x": 79,
+              "y": 67
+            },
+            "origin": {
+              "x": 56,
+              "y": 33
+            },
+            "neutral": false,
+            "stance": "seated"
+          }
+        ],
+        "railOverlapPixels": 0,
+        "crowd": "seated-a-south.png",
+        "rail": "south-rail.png"
+      }
+    ]
+  },
+  {
+    "id": "seated-b",
+    "label": "Program, whistle and chestnuts",
+    "views": [
+      {
+        "id": "north",
+        "label": "North stand \u00b7 Front view",
+        "bayId": 1,
+        "facing": "front",
+        "capacity": 9,
+        "slots": [
+          {
+            "plankId": 12,
+            "slot": {
+              "x": 34,
+              "y": 27
+            }
+          },
+          {
+            "plankId": 12,
+            "slot": {
+              "x": 58,
+              "y": 27
+            }
+          },
+          {
+            "plankId": 12,
+            "slot": {
+              "x": 82,
+              "y": 27
+            }
+          },
+          {
+            "plankId": 12,
+            "slot": {
+              "x": 106,
+              "y": 27
+            }
+          },
+          {
+            "plankId": 12,
+            "slot": {
+              "x": 130,
+              "y": 27
+            }
+          },
+          {
+            "plankId": 13,
+            "slot": {
+              "x": 38,
+              "y": 48
+            }
+          },
+          {
+            "plankId": 13,
+            "slot": {
+              "x": 68,
+              "y": 48
+            }
+          },
+          {
+            "plankId": 13,
+            "slot": {
+              "x": 99,
+              "y": 48
+            }
+          },
+          {
+            "plankId": 13,
+            "slot": {
+              "x": 130,
+              "y": 48
+            }
+          }
+        ],
+        "seats": [
+          {
+            "supporter": "program",
+            "pose": "north-program",
+            "column": 10,
+            "plankId": 12,
+            "slot": {
+              "x": 34,
+              "y": 27
+            },
+            "x": 34,
+            "y": 27,
+            "knee": {
+              "x": 34,
+              "y": 32
+            },
+            "origin": {
+              "x": 13,
+              "y": -5
+            },
+            "neutral": false,
+            "stance": "seated"
+          },
+          {
+            "supporter": "chestnuts",
+            "pose": "north-chestnuts",
+            "column": 16,
+            "plankId": 12,
+            "slot": {
+              "x": 106,
+              "y": 27
+            },
+            "x": 106,
+            "y": 27,
+            "knee": {
+              "x": 106,
+              "y": 32
+            },
+            "origin": {
+              "x": 85,
+              "y": -5
+            },
+            "neutral": true,
+            "stance": "seated"
+          },
+          {
+            "supporter": "whistle",
+            "pose": "north-whistle",
+            "column": 14,
+            "plankId": 13,
+            "slot": {
+              "x": 68,
+              "y": 48
+            },
+            "x": 68,
+            "y": 48,
+            "knee": {
+              "x": 68,
+              "y": 53
+            },
+            "origin": {
+              "x": 47,
+              "y": 16
+            },
+            "neutral": false,
+            "stance": "seated"
+          }
+        ],
+        "railOverlapPixels": 0,
+        "crowd": "seated-b-north.png",
+        "rail": "north-rail.png"
+      },
+      {
+        "id": "south",
+        "label": "South stand \u00b7 Back view",
+        "bayId": 12,
+        "facing": "back",
+        "capacity": 9,
+        "slots": [
+          {
+            "plankId": 122,
+            "slot": {
+              "x": 47,
+              "y": 25
+            }
+          },
+          {
+            "plankId": 122,
+            "slot": {
+              "x": 86,
+              "y": 25
+            }
+          },
+          {
+            "plankId": 122,
+            "slot": {
+              "x": 128,
+              "y": 24
+            }
+          },
+          {
+            "plankId": 123,
+            "slot": {
+              "x": 43,
+              "y": 47
+            }
+          },
+          {
+            "plankId": 123,
+            "slot": {
+              "x": 83,
+              "y": 47
+            }
+          },
+          {
+            "plankId": 123,
+            "slot": {
+              "x": 124,
+              "y": 47
+            }
+          },
+          {
+            "plankId": 124,
+            "slot": {
+              "x": 39,
+              "y": 70
+            }
+          },
+          {
+            "plankId": 124,
+            "slot": {
+              "x": 79,
+              "y": 70
+            }
+          },
+          {
+            "plankId": 124,
+            "slot": {
+              "x": 122,
+              "y": 70
+            }
+          }
+        ],
+        "seats": [
+          {
+            "supporter": "program",
+            "pose": "south-program",
+            "column": 11,
+            "plankId": 123,
+            "slot": {
+              "x": 43,
+              "y": 47
+            },
+            "x": 43,
+            "y": 47,
+            "knee": {
+              "x": 43,
+              "y": 44
+            },
+            "origin": {
+              "x": 21,
+              "y": 10
+            },
+            "neutral": false,
+            "stance": "seated"
+          },
+          {
+            "supporter": "chestnuts",
+            "pose": "south-chestnuts",
+            "column": 17,
+            "plankId": 123,
+            "slot": {
+              "x": 124,
+              "y": 47
+            },
+            "x": 124,
+            "y": 47,
+            "knee": {
+              "x": 124,
+              "y": 44
+            },
+            "origin": {
+              "x": 102,
+              "y": 10
+            },
+            "neutral": true,
+            "stance": "seated"
+          },
+          {
+            "supporter": "whistle",
+            "pose": "south-whistle",
+            "column": 15,
+            "plankId": 124,
+            "slot": {
+              "x": 79,
+              "y": 70
+            },
+            "x": 79,
+            "y": 70,
+            "knee": {
+              "x": 79,
+              "y": 67
+            },
+            "origin": {
+              "x": 57,
+              "y": 33
+            },
+            "neutral": false,
+            "stance": "seated"
+          }
+        ],
+        "railOverlapPixels": 0,
+        "crowd": "seated-b-south.png",
+        "rail": "south-rail.png"
+      }
+    ]
+  },
+  {
+    "id": "standing",
+    "label": "Cheer and standing supporters",
+    "views": [
+      {
+        "id": "north",
+        "label": "North stand \u00b7 Front view",
+        "bayId": 1,
+        "facing": "front",
+        "capacity": 9,
+        "slots": [
+          {
+            "plankId": 12,
+            "slot": {
+              "x": 34,
+              "y": 28
+            }
+          },
+          {
+            "plankId": 12,
+            "slot": {
+              "x": 58,
+              "y": 28
+            }
+          },
+          {
+            "plankId": 12,
+            "slot": {
+              "x": 82,
+              "y": 28
+            }
+          },
+          {
+            "plankId": 12,
+            "slot": {
+              "x": 106,
+              "y": 28
+            }
+          },
+          {
+            "plankId": 12,
+            "slot": {
+              "x": 130,
+              "y": 28
+            }
+          },
+          {
+            "plankId": 13,
+            "slot": {
+              "x": 38,
+              "y": 48
+            }
+          },
+          {
+            "plankId": 13,
+            "slot": {
+              "x": 68,
+              "y": 48
+            }
+          },
+          {
+            "plankId": 13,
+            "slot": {
+              "x": 99,
+              "y": 48
+            }
+          },
+          {
+            "plankId": 13,
+            "slot": {
+              "x": 130,
+              "y": 48
+            }
+          }
+        ],
+        "seats": [
+          {
+            "supporter": "cheer",
+            "pose": "north-cheer",
+            "column": 18,
+            "plankId": 12,
+            "slot": {
+              "x": 82,
+              "y": 28
+            },
+            "x": 82,
+            "y": 28,
+            "knee": {
+              "x": 82,
+              "y": 33
+            },
+            "origin": {
+              "x": 60,
+              "y": -4
+            },
+            "neutral": false,
+            "stance": "seated"
+          },
+          {
+            "supporter": "standing-tambourine",
+            "pose": "north-standing-tambourine",
+            "column": 20,
+            "plankId": 13,
+            "slot": {
+              "x": 38,
+              "y": 48
+            },
+            "x": 38,
+            "y": 48,
+            "feet": [
+              {
+                "x": 38,
+                "y": 48
+              },
+              {
+                "x": 46,
+                "y": 48
+              }
+            ],
+            "origin": {
+              "x": 18,
+              "y": 3
+            },
+            "neutral": false,
+            "stance": "standing"
+          },
+          {
+            "supporter": "standing-horn",
+            "pose": "north-standing-horn",
+            "column": 22,
+            "plankId": 13,
+            "slot": {
+              "x": 130,
+              "y": 48
+            },
+            "x": 130,
+            "y": 48,
+            "feet": [
+              {
+                "x": 130,
+                "y": 48
+              },
+              {
+                "x": 141,
+                "y": 48
+              }
+            ],
+            "origin": {
+              "x": 112,
+              "y": 3
+            },
+            "neutral": false,
+            "stance": "standing"
+          }
+        ],
+        "railOverlapPixels": 0,
+        "crowd": "standing-north.png",
+        "rail": "north-rail.png"
+      },
+      {
+        "id": "south",
+        "label": "South stand \u00b7 Back view",
+        "bayId": 12,
+        "facing": "back",
+        "capacity": 9,
+        "slots": [
+          {
+            "plankId": 122,
+            "slot": {
+              "x": 47,
+              "y": 25
+            }
+          },
+          {
+            "plankId": 122,
+            "slot": {
+              "x": 86,
+              "y": 25
+            }
+          },
+          {
+            "plankId": 122,
+            "slot": {
+              "x": 128,
+              "y": 24
+            }
+          },
+          {
+            "plankId": 123,
+            "slot": {
+              "x": 43,
+              "y": 47
+            }
+          },
+          {
+            "plankId": 123,
+            "slot": {
+              "x": 83,
+              "y": 47
+            }
+          },
+          {
+            "plankId": 123,
+            "slot": {
+              "x": 124,
+              "y": 47
+            }
+          },
+          {
+            "plankId": 124,
+            "slot": {
+              "x": 39,
+              "y": 70
+            }
+          },
+          {
+            "plankId": 124,
+            "slot": {
+              "x": 79,
+              "y": 70
+            }
+          },
+          {
+            "plankId": 124,
+            "slot": {
+              "x": 122,
+              "y": 70
+            }
+          }
+        ],
+        "seats": [
+          {
+            "supporter": "standing-tambourine",
+            "pose": "south-standing-tambourine",
+            "column": 21,
+            "plankId": 123,
+            "slot": {
+              "x": 43,
+              "y": 47
+            },
+            "x": 43,
+            "y": 47,
+            "feet": [
+              {
+                "x": 43,
+                "y": 47
+              },
+              {
+                "x": 50,
+                "y": 47
+              }
+            ],
+            "origin": {
+              "x": 21,
+              "y": 2
+            },
+            "neutral": false,
+            "stance": "standing"
+          },
+          {
+            "supporter": "cheer",
+            "pose": "south-cheer",
+            "column": 19,
+            "plankId": 123,
+            "slot": {
+              "x": 83,
+              "y": 47
+            },
+            "x": 83,
+            "y": 47,
+            "knee": {
+              "x": 83,
+              "y": 44
+            },
+            "origin": {
+              "x": 61,
+              "y": 10
+            },
+            "neutral": false,
+            "stance": "seated"
+          },
+          {
+            "supporter": "standing-horn",
+            "pose": "south-standing-horn",
+            "column": 23,
+            "plankId": 124,
+            "slot": {
+              "x": 122,
+              "y": 70
+            },
+            "x": 122,
+            "y": 70,
+            "feet": [
+              {
+                "x": 122,
+                "y": 70
+              },
+              {
+                "x": 130,
+                "y": 70
+              }
+            ],
+            "origin": {
+              "x": 102,
+              "y": 25
+            },
+            "neutral": false,
+            "stance": "standing"
+          }
+        ],
+        "railOverlapPixels": 0,
+        "crowd": "standing-south.png",
+        "rail": "south-rail.png"
+      }
+    ]
+  }
+]

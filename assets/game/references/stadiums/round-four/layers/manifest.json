@@ -1,0 +1,298 @@
+{
+  "width": 1024,
+  "height": 1536,
+  "pixelsPerSquare": 32,
+  "pitch": {
+    "x": 272,
+    "y": 352,
+    "width": 480,
+    "height": 832
+  },
+  "sourceSha256": "5f212289b0fb4a783176e4e4b93b226f32abfc81376a7c8bf883c0a83e72242c",
+  "layers": [
+    {
+      "id": "far-end",
+      "role": "ends",
+      "image": "far-end.webp",
+      "home": {
+        "x": 0,
+        "y": 0
+      },
+      "away": {
+        "x": 0,
+        "y": 0,
+        "flipX": true
+      },
+      "mask": "far-end-cloth.png",
+      "team": "home"
+    },
+    {
+      "id": "near-end",
+      "role": "ends",
+      "image": "near-end.webp",
+      "home": {
+        "x": 0,
+        "y": 1184
+      },
+      "away": {
+        "x": 0,
+        "y": 1184,
+        "flipX": true
+      },
+      "mask": "near-end-cloth.png",
+      "team": "home"
+    },
+    {
+      "id": "left-stand",
+      "role": "sides",
+      "image": "left-stand.webp",
+      "home": {
+        "x": 0,
+        "y": 132
+      },
+      "away": {
+        "x": 752,
+        "y": 132,
+        "flipX": true
+      },
+      "mask": "left-stand-cloth.png",
+      "team": "home"
+    },
+    {
+      "id": "right-stand",
+      "role": "sides",
+      "image": "right-stand.webp",
+      "home": {
+        "x": 752,
+        "y": 132
+      },
+      "away": {
+        "x": 0,
+        "y": 132,
+        "flipX": true
+      },
+      "mask": "right-stand-cloth.png",
+      "team": "home"
+    },
+    {
+      "id": "ends-emblems",
+      "role": "emblem",
+      "image": "ends-emblems.webp",
+      "home": {
+        "x": 308,
+        "y": 135
+      },
+      "away": {
+        "x": 304,
+        "y": 135,
+        "flipX": false,
+        "image": "ends-emblems-away.webp"
+      },
+      "group": "ends"
+    },
+    {
+      "id": "sides-emblems",
+      "role": "emblem",
+      "image": "sides-emblems.webp",
+      "home": {
+        "x": 24,
+        "y": 403
+      },
+      "away": {
+        "x": 25,
+        "y": 403,
+        "flipX": false,
+        "image": "sides-emblems-away.webp"
+      },
+      "group": "sides"
+    },
+    {
+      "id": "visiting-section",
+      "role": "visitor",
+      "image": "visiting-section.webp",
+      "home": {
+        "x": 818,
+        "y": 133
+      },
+      "away": {
+        "x": 0,
+        "y": 1024,
+        "flipX": false,
+        "image": "visiting-section-away.webp",
+        "mask": "visiting-section-away-cloth.png"
+      },
+      "mask": "visiting-section-cloth.png",
+      "team": "away"
+    },
+    {
+      "id": "visiting-standard",
+      "role": "emblem",
+      "image": "visiting-standard.webp",
+      "home": {
+        "x": 973,
+        "y": 231
+      },
+      "away": {
+        "x": 8,
+        "y": 1122,
+        "flipX": false
+      },
+      "group": "visitor",
+      "humanImage": "visiting-standard-human.webp"
+    },
+    {
+      "id": "balanced-turf",
+      "role": "turf",
+      "image": "balanced-turf.webp",
+      "home": {
+        "x": 272,
+        "y": 352
+      },
+      "away": {
+        "x": 272,
+        "y": 352,
+        "flipX": false
+      },
+      "calmImage": "calm-turf.webp"
+    }
+  ],
+  "verification": {
+    "nativeOutsidePitchDifferentPixels": 0,
+    "nativeInsidePitchDifferentPixels": 0,
+    "outsidePitchPixels": 1173504,
+    "visitorDifferentPixels": {
+      "home": {
+        "fallback": 69862,
+        "humanCrest": 1500
+      },
+      "away": {
+        "fallback": 22256,
+        "humanCrest": 1500
+      }
+    },
+    "maskPixels": {
+      "far-end-cloth": {
+        "0": 339012,
+        "4": 2810,
+        "5": 2833,
+        "6": 2544,
+        "7": 5873,
+        "8": 4506,
+        "9": 1096,
+        "10": 405,
+        "11": 150,
+        "12": 107,
+        "13": 51,
+        "14": 9,
+        "15": 6,
+        "21": 11,
+        "22": 13,
+        "23": 36,
+        "24": 34,
+        "25": 44,
+        "26": 55,
+        "27": 59,
+        "28": 81,
+        "29": 77,
+        "30": 125,
+        "31": 399,
+        "32": 112
+      },
+      "near-end-cloth": {
+        "0": 336319,
+        "4": 3451,
+        "5": 3801,
+        "6": 3427,
+        "7": 6708,
+        "8": 3151,
+        "9": 1364,
+        "10": 942,
+        "11": 622,
+        "12": 320,
+        "13": 170,
+        "14": 96,
+        "15": 69,
+        "16": 8
+      },
+      "left-stand-cloth": {
+        "0": 301963,
+        "4": 2082,
+        "5": 2230,
+        "6": 1841,
+        "7": 4613,
+        "8": 3979,
+        "9": 1183,
+        "10": 684,
+        "11": 232,
+        "12": 184,
+        "13": 113,
+        "14": 26,
+        "15": 10,
+        "21": 1,
+        "22": 5,
+        "23": 23,
+        "24": 28,
+        "25": 43,
+        "26": 203,
+        "27": 497,
+        "28": 327,
+        "29": 280,
+        "30": 178,
+        "31": 127,
+        "32": 108
+      },
+      "right-stand-cloth": {
+        "0": 302781,
+        "4": 1733,
+        "5": 2018,
+        "6": 1774,
+        "7": 3712,
+        "8": 4415,
+        "9": 1125,
+        "10": 649,
+        "11": 297,
+        "12": 167,
+        "13": 151,
+        "14": 47,
+        "15": 31,
+        "22": 6,
+        "23": 25,
+        "24": 24,
+        "25": 96,
+        "26": 370,
+        "27": 440,
+        "28": 277,
+        "29": 346,
+        "30": 281,
+        "31": 109,
+        "32": 86
+      },
+      "visiting-section-cloth": {
+        "0": 74752,
+        "4": 21,
+        "5": 342,
+        "6": 548,
+        "7": 1839,
+        "8": 489,
+        "9": 51,
+        "10": 18,
+        "11": 8,
+        "12": 5,
+        "13": 1
+      },
+      "visiting-section-away-cloth": {
+        "0": 75957,
+        "4": 10,
+        "5": 198,
+        "6": 347,
+        "7": 1324,
+        "8": 199,
+        "9": 24,
+        "10": 8,
+        "11": 3,
+        "12": 3,
+        "13": 1
+      }
+    }
+  }
+}

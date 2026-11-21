@@ -1,0 +1,147 @@
+{
+  "generator": "OpenAI built-in ImageGen",
+  "sourceImageId": "7c59a4f6-67c1-461c-ba37-173c9f3f42b5",
+  "posteriorRevision": {
+    "generator": "OpenAI built-in ImageGen",
+    "sourceImageId": "d201fac8-fd8c-4bde-b63e-e4e4eedcae61",
+    "referenceRevision": "598b65a5f1410f17edd7467ea06075dfeaaa9f7d",
+    "prompt": "Edit the BOTTOM ROW ONLY from the reference. Deliver three isolated seated BACK-VIEW sprites in one evenly spaced horizontal row, LEFT dwarf, CENTER clapping woman, RIGHT halfling. Omit the anterior poses. All three complete figures are seen directly from behind, actually sitting on a flat invisible bench facing AWAY. Match the exact original back-view upper bodies from the reference. Correct only their SEATED POSTERIORS: instead of two separated vertical stubs of trouser legs or heels, draw one continuous shallow, wide, gently rounded fabric-covered bottom, slightly flattened at its weight-bearing contact, subtly shaded as a single form underneath the existing coat hem. No visible gap, seam dividing two legs, thighs, kneecaps, shins, feet, ankles, heels, or boots whatsoever from this camera. Both legs are completely hidden forward on the far side of the seat. The back and clothed buttocks make the entire visible silhouette. Do not depict plank, chair, shadows or scenery. Preserve the short rounded jackets and design above the seat. The imperial-violet/cloaked white-haired old dwarf at left has a gilded teal tunic hem over a slim strip of walnut-brown trouser seat, holding the ivory horn at screen left. Woman with dark bun, single ivory streak and ochre ribbon at center is clapping with head looking very slightly screen RIGHT, one earring and a sliver of cheek; teal belted tunic falls onto a narrow slate-grey trouser seat. The short curly-haired halfling at right in fixed neutral brown waistcoat over rolled ivory sleeves sits on a muted olive-brown trouser seat. A single small shadow line grounds each flattened bottom. Same slight chibi fantasy sports pixel-art styling, light, ages, colors, proportions and gestures. Keep generous transparent margins around and between all three. Each figure should look anatomically complete from this seated camera. Transparent true-alpha background. No labels or extra poses.",
+    "registration": "Only the fabric seat beneath each existing rear coat hem comes from the revised drawing. The upper bodies, head angles and front views retain their approved pixels. The seat colours use fixed palette indices."
+  },
+  "styleReference": "../bay-six/cast-reference.webp",
+  "prompt": "Use case: identity-preserve. Make a brand-new six-sprite turnaround sheet for the attached approved fantasy spectator cast. Match the identity, strong readable chibi 16-bit illustration silhouettes, facial proportions, accessories, clean dark outlines, light from upper left, saturated teal primary and violet secondary cloth of the reference. THREE equal columns by TWO equal rows, transparent true alpha, all SIX isolated figures have generous empty margins, absolutely no labels, seats, shadows, ground or background. Wide canvas 3:2. All are SITTING on an invisible horizontal bench, thighs horizontal, knees bent 90 degrees, lower legs hang down. Whole heads to soles intact. Same orthographic game camera for both rows, slightly raised 15–20 degrees, enough to see the crown, shoulders, tops of thighs. They are full-body action-figure turnarounds, game-readable at only 33–37 pixels tall. Entire torso, pelvis, feet square to each end stand. Top row faces directly TOWARD viewer (south). Bottom row is a proper 180-degree turn of these same sitting people seen from directly BEHIND (north): backs, napes, heels, distinct seat-bottom and hanging heels below coat, no faces or front-facing knee panels on the backs. Keep size and clothes consistent between the rows. Col 1: the reference's old stout silver-white swept-haired copper-red twin-braided beard dwarf from its top row third sprite. Turquoise teal embroidered tunic, small violet shoulder cape, brown pants and walnut buckled boots; carries a small ivory drinking horn in his LEFT hand, visible to screen RIGHT on front, LEFT on back. Laughs, looking straight out in front row. Full hair/back of violet cape in back row, copper beard visible only at side edges. Col 2: the reference's clapping medium-brown woman from its second row second sprite. Lively smile, dark high bun with stunning single silver streak, ochre ribbon, gold hoops, teal belted tunic, violet neck scarf, grey trousers and dark grey ankle boots, two separate hands mid-clap. Both versions turn only the HEAD a LITTLE toward the viewer's RIGHT while both shoulders remain square to camera. In back view show one ear plus a sliver of right cheek only, bun and streak dominate. Col 3: the barefoot small adult halfling from its second row first sprite: curly chestnut hair, brown waistcoat, rolled ivory sleeves, olive-brown trousers and short hairy bare feet. He looks down at a small hand pie held between two hands, wears strictly neutral warm colors. Back view see back of curly head, brown waistcoat, elbows and bare heels; pie may be naturally hidden. Highest priority: separately drawn front-facing and BACK-facing seated figures, clean anatomical legs, all six bodies separate, same three unique identities. No new characters or other angles.",
+  "reference": "artist-reference.webp",
+  "fullCast": {
+    "reference": "cast-angles.webp",
+    "referenceRevision": "fc629a5f79ccb0544da29ef0be0c1e795c8c5404",
+    "styleReferences": [
+      "artist-reference.webp",
+      "../bay-six/cast-reference.webp"
+    ],
+    "sharedPairedSheetPrompt": "Create one transparent 3-column by 2-row six-sprite turnaround sheet, using image 1 as exact drawing, camera angle and anatomy guide, image 2 as identities to rotate. Match the silhouette quality & clean dark outlines of the first sheet, same 16-bit slight chibi illustrated spectator cast seen slightly from above. Six evenly spaced isolated characters, no text, benches, shadows or background. Whole figures, margins all around every figure. Top row directly facing camera, bottom row same subjects and gestures seen directly BEHIND; bodies square to the pitch. Subtle head direction may vary. Seated front view both knees bent resting at the near edge of an invisible bench, both shins dangling, complete boots visible. Seated REAR VIEW no visible leg tops, knees, calves, boot stubs or heels: the forward-pointing legs disappear completely beyond the bench. End each SEATED rear character at one continuous, rounded, gently flattened fabric-covered bottom beneath the coat, exactly like image 1. Standing characters, if requested, show both complete legs and boots from both views. Preserve image 2 identities, costumes, skin tones, hair styles, fixed leather, prop and metal colors. Team clothes are teal green-blue main cloth and violet secondary cloth. Use those pigments exclusively for fabric, no colored outlines or halo. Back lighting consistent with front. Rear drawings reverse left/right properly.",
+    "batches": [
+      {
+        "id": "company",
+        "sourceImageId": "c00b0410-10fc-4636-a569-a3c5ff5d35a2",
+        "prompt": "All three are SEATED. Left column the tambourine player, image 2 row 1 column 1: light olive-brown skin, long dark braid with an ivory forelock, round gold earrings, teal quilted gold-fastened jacket, violet shoulder shawl/sash, brown trousers, grey boots. Taps a small golden wood tambourine with both hands to one side of the torso, near rim visible over shoulder from behind. Center the deep brown-skinned lookout, row 2 column 3, short black curls with silver temples, ivory rolled sleeves, teal lace-up vest, violet scarf, chestnut tall boots. He shades his eyes with one hand at his brow facing toward play (back view elbow seen out to the side). Right the pale blonde elf, row 2 column 4, pointed ears, long plait, teal gold-piped coat, violet vest, charcoal trousers, lace-up shoes. Holds a parchment match programme in front with both hands. Keep elf recognisable from behind by plait and pointed ears."
+      },
+      {
+        "id": "refreshments",
+        "sourceImageId": "8a1802d1-c6ec-4264-9fca-45ef022dcc06",
+        "prompt": "All three are SEATED. Left column the elderly woman with wire spectacles, a long white braid and carved wooden tankard, row 3 column 1 of image 2. Entirely neutral warm grey-brown fringed shawl, cream long skirt, brown lace-up boots. Back of shawl/skirt ends in single soft seated outline. Center the copper curly-haired young freckled whistle player, row 3 column 2, puts silver whistle to lips on cord, teal jacket, violet shoulder cape, cream sleeves/trousers, reddish brown lace boots. Right the stocky middle-aged balding chestnut seller, black horseshoe hair and bushy black moustache, row 3 col 3. Fully neutral brown patched tunic, soot-grey scarf, tan trousers, dark charcoal buckled shoes, small brown hip pouch. Holds small paper cone of roasted chestnuts with one hand, lifts chestnut to mouth with the other. He and elder contain absolutely NO team pigments or colorful accessories."
+      },
+      {
+        "id": "cheering",
+        "sourceImageId": "f6df793b-3d01-482f-8bd9-41e79229cb90",
+        "prompt": "Left column is SEATED in BOTH rows: dark pixie cut, ivory headband, gold earrings, excited fist raised, tan/olive skin, teal split sleeve tunic, violet waist sash, tan trousers, charcoal lace-up boots, image 2 row 3 col 4. Her rear ends in the single bench-resting bottom of image 1, no legs or shoes. Center column is STANDING in BOTH rows: tambourine player image 2 row 1 col 2. Light olive-brown skin, long dark braid with ivory streak, gold hoops, teal jacquard jacket and violet shawl/sash, brown trousers, grey turned-down ankle boots. Playing gold-rimmed tambourine high at chest with both hands. Right column is STANDING in BOTH rows: stout silver-haired dwarf with copper twin-braided beard, image 2 row 1 col 4, standing with a big smile raises small ivory drinking horn high in his left hand, purple mantle/teal gold-trimmed tunic, brown trousers and sturdy walnut buckled boots. Distinguish short dwarf from taller tambourine player. Straight-legged balanced standing silhouettes with boots visible from both directions, faces wholly away in bottom row."
+      },
+      {
+        "id": "refinements",
+        "sourceImageId": "11dad081-39e5-4914-954a-15d61bbc19de",
+        "prompt": "Front-view sprites for the NORTH stand. Draw one 3-column by 2-row transparent six-figure sheet, reading across: top tambourine player seated, lookout seated, elf with programme seated. Bottom elder seated, chestnut seller seated, tambourine player standing. Use image 1 as the primary FRONT-facing anatomy and CAMERA reference (its TOP row). Use image 2 only to copy costumes, complexion and identities. The spectators must be recognisable from the front, ORTHOGRAPHIC EN FACE, head and body facing the viewer as if our camera is on the field and the audience is watching us! Show both eyes, both ears, symmetric shoulders directly facing the viewer, two legs square to camera. Keep the faces distinctly different. No profile heads or figures all looking off the same side of the sheet. Some subtle different eye directions. All seated poses show both thighs, bent knees and boots with empty space underneath, floating seated without furniture. Just the sixth figure stands straight on both boots. Each figure isolated within generous margins with nothing drawn below the boot soles, true transparency. Slight chibi high-quality fantasy pixel-sprite style in the approved end sheet. Preserve small-scale bold outlines, teal & violet clothes only on team fans. Top left: olive brown skinned woman, dark braid, ivory forelock and gold earrings, teal quilted jacket, violet sash, brown trousers and charcoal boots, smiles AT VIEWER over her golden tambourine held to her RIGHT (our LEFT). Top middle: deep brown man with silver temples, short curls, teal vest over cream sleeves, violet scarf, tan trousers and brown boots. Peers STRAIGHT TOWARD US under his shading left hand. Top right: pale blonde braided elf, long pointed ears, teal gold piped coat and violet vest, grey trousers, charcoal lace shoes. Glance DOWN toward a parchment match programme held a touch to the viewer's LEFT. Bottom left: ivory braided elder, wire rim spectacles, all neutral grey-brown fringed shawl over long cream dress, brown footwear, lifts carved wooden tankard with a warm straight-ahead smile. Bottom middle: bald stocky man, black horseshoe hair and moustache, neutral patched brown tunic, dark grey scarf, tan trousers and black buckle boots. Cradles his paper cone of chestnuts, studying a nut in his hand to our LEFT. Bottom right: the woman from the upper left stands up holding her tambourine in mid-beat, front-facing exactly, full tall body and both charcoal boots visible. No scenery, labels or shadows. 3:2 aspect ratio."
+      }
+    ],
+    "registration": "The front-only refinement supplies six of the new front poses. The rear tambourine poses and chestnut seller are mirrored to register the instruments and hip pouch. Each cropped drawing is reduced once to its native height. Cloth uses the existing two kit ramps; skin, hair, shoes, neutral outfits and props use the fixed palette. The approved first six cells are copied directly.",
+    "artistSheetRows": [
+      [
+        "north-horn",
+        "north-clap",
+        "north-pie",
+        "north-tambourine",
+        "north-lookout",
+        "north-mug"
+      ],
+      [
+        "south-horn",
+        "south-clap",
+        "south-pie",
+        "south-tambourine",
+        "south-lookout",
+        "south-mug"
+      ],
+      [
+        "north-program",
+        "north-whistle",
+        "north-chestnuts",
+        "north-cheer",
+        "north-standing-tambourine",
+        "north-standing-horn"
+      ],
+      [
+        "south-program",
+        "south-whistle",
+        "south-chestnuts",
+        "south-cheer",
+        "south-standing-tambourine",
+        "south-standing-horn"
+      ]
+    ]
+  },
+  "indexedSheet": "supporters.png",
+  "cellSize": [
+    48,
+    48
+  ],
+  "columns": [
+    "north-horn",
+    "north-clap",
+    "north-pie",
+    "south-horn",
+    "south-clap",
+    "south-pie",
+    "north-tambourine",
+    "south-tambourine",
+    "north-lookout",
+    "south-lookout",
+    "north-program",
+    "south-program",
+    "north-mug",
+    "south-mug",
+    "north-whistle",
+    "south-whistle",
+    "north-chestnuts",
+    "south-chestnuts",
+    "north-cheer",
+    "south-cheer",
+    "north-standing-tambourine",
+    "south-standing-tambourine",
+    "north-standing-horn",
+    "south-standing-horn"
+  ],
+  "figureHeights": [
+    35,
+    37,
+    33,
+    28,
+    30,
+    26,
+    37,
+    30,
+    37,
+    30,
+    37,
+    30,
+    37,
+    30,
+    37,
+    30,
+    37,
+    30,
+    37,
+    30,
+    43,
+    43,
+    39,
+    39
+  ],
+  "transparentIndex": 0,
+  "primaryRange": [
+    1,
+    16
+  ],
+  "secondaryRange": [
+    17,
+    32
+  ],
+  "fixedRangeStart": 33
+}
