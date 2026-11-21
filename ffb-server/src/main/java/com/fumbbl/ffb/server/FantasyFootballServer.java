@@ -11,6 +11,7 @@ import com.fumbbl.ffb.server.commandline.InifileParamFilterResult;
 import com.fumbbl.ffb.server.db.JdbcRequestConnections;
 import com.fumbbl.ffb.server.local.BrowserV2Runtime;
 import com.fumbbl.ffb.server.local.BrowserV2TransportPolicy;
+import com.fumbbl.ffb.server.match.MatchSafetyJournal;
 import com.fumbbl.ffb.server.net.ServerCommunication;
 import com.fumbbl.ffb.server.util.rng.Fortuna;
 
@@ -21,6 +22,7 @@ import org.eclipse.jetty.server.ServerConnector;
 
 import java.io.File;
 import java.io.FileInputStream;
+import java.nio.file.Path;
 import java.util.Map;
 import java.util.Properties;
 /** Hosts V2 browser matches on a single engine worker. */
@@ -31,6 +33,7 @@ public class FantasyFootballServer implements IFactorySource {
 	private DebugLog debugLog;
 	private Fortuna fortuna;
 	private ServerCommunication communication;
+	private MatchSafetyJournal matchSafety;
 	private Server httpServer;
 	private JdbcRequestConnections jdbcConnections;
 	private boolean resourcesStopped;
@@ -52,6 +55,7 @@ public class FantasyFootballServer implements IFactorySource {
 	public Fortuna getFortuna() { return fortuna; }
 	public void setFortuna(Fortuna fortuna) { this.fortuna = fortuna; }
 	public ServerCommunication getCommunication() { return communication; }
+	public MatchSafetyJournal getMatchSafety() { return matchSafety; }
 	public void setCommunication(ServerCommunication communication) { this.communication = communication; }
 	public String getProperty(String name) { return properties.getProperty(name); }
 	public String[] getPropertyKeys() { return properties.stringPropertyNames().toArray(new String[0]); }
@@ -70,6 +74,7 @@ public class FantasyFootballServer implements IFactorySource {
 			Integer.parseInt(properties.getProperty(IServerProperty.SERVER_LOG_LEVEL, "1")));
 		fortuna = new Fortuna();
 		Class.forName(getProperty(IServerProperty.DB_DRIVER));
+		matchSafety = new MatchSafetyJournal(Path.of(properties.getProperty(IServerProperty.BACKUP_DIR, logFolder.getPath()), "match-safety.json"));
 		communication = new ServerCommunication(this);
 		new Thread(communication, "browser-engine").start();
 		httpServer = new Server();
@@ -117,6 +122,9 @@ public class FantasyFootballServer implements IFactorySource {
 		catch (RuntimeException exception) { if (failure == null) failure = exception; else failure.addSuppressed(exception); }
 		// An undrained worker still needs socket deadlines. A later successful stop closes them.
 		if (engineStopped && jdbcConnections != null) jdbcConnections.close();
+		if (engineStopped && matchSafety != null) {
+			matchSafety.close();
+		}
 		if (failure != null) throw failure;
 		resourcesStopped = true;
 		System.err.println("Browser server shut down; engine queue drained.");

@@ -2,9 +2,16 @@
 
 ## Unreleased
 
+- Keep active matches resident during result reads and computer inventory checks. Recovery timers back off under pressure and resume when quarantine expires. If a decision exceeds the recovery limit, end the match at its last recorded score.
+
+- Match-memory recovery pauses now cover coach and observer reconnects after OOM; safety tracking never waits on disk, and server size stops have neutral replay attribution.
+
+- End size-limited matches at their current score with a recorded result, evict cold checkpointed engines according to actual history size while preserving the 32-slot ceiling, and briefly pause automatic reloads only after confirmed heap exhaustion.
+
 - Add an experimental Training lab at `/training`, with read-only hosted results viewing and explicit local evaluation controls. Keep optional learning tools separate from normal game startup and document the deferred opponent-learning roadmap.
 
 - Record GitHub App token expiry in UTC, so gh refreshes tokens on time instead of failing with Bad credentials, and add a setup script for running Codex as the app on another machine.
+
 - Park computer coaches while they wait for a human turn, wake them on match changes, and release their engine after 30 idle minutes. Active computer matches expire after one hour waiting for a human decision. Mutually saved matches keep their 30-day retention and release their computer slot until resume.
 
 - Open match tabs show when the server timer abandons a match and disable play on that match.

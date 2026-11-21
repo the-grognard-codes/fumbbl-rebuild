@@ -332,6 +332,8 @@ function Play({ options }: { options: { url: string; getToken: () => Promise<str
         && !(message.type === 'error' && message.code === 'REPLAY_UNSUPPORTED')
         && !['READY', 'INVITED', 'UNAVAILABLE', 'ILLEGAL_SETUP'].includes(message.code)) setError(message.code === 'NOT_FOUND' && matchRoute
           ? 'This match is unavailable for this account. Return to game setup and choose one of your current games.'
+          : message.code === 'MATCH_SIZE_LIMIT' ? 'The safe size limit has been reached for this match. Other matches remain available.'
+          : message.code === 'MATCH_QUARANTINED' ? "This match is unavailable after a server memory failure. Reloads are paused for up to 30 minutes; an administrator can clear the pause. Other matches are available."
           : message.code.replaceAll('_', ' '));
       redraw(value => value + 1);
     } });

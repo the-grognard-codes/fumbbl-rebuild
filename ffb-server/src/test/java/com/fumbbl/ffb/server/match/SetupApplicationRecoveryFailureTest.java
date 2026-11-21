@@ -28,6 +28,14 @@ class SetupApplicationRecoveryFailureTest {
 	private static final String ID = "12345678-1234-1234-1234-123456789abc";
 	private static final String INVALID = "{\"payload\":{},\"sha256\":\"invalid\"}";
 
+	@Test void oversizedRecoveryIsRefusedBeforeNativeRestoreAndOnlyBlocksItsOwnMatch() throws Exception {
+		Fixture fixture = new Fixture();
+		fixture.recovery.records.put(ID, new RecoveryRepository.Record(ID, 1, "x".repeat(65 * 1024 * 1024)));
+		assertEquals("MATCH_SIZE_LIMIT", fixture.load(ID));
+		assertEquals("MATCH_SIZE_LIMIT", fixture.load(ID));
+		assertEquals("SESSION_UNAVAILABLE", fixture.load("00000000-0000-0000-0000-000000000222"));
+	}
+
 	@Test void unchangedCorruptionIsNotReconstructedOrFetchedByOtherAuthorizedCallers() throws Exception {
 		Fixture fixture = new Fixture();
 		try (MockedConstruction<JsonDigest> digests = digests()) {

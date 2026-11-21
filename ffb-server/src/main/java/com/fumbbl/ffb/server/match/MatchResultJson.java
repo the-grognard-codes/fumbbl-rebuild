@@ -37,7 +37,10 @@ public final class MatchResultJson {
             artifact.add("eventCount", events.size());
             return response(id, "ACCEPTED", artifact, event);
         } catch (MatchService.Failure failure) { return response(id, failure.code, JsonValue.NULL, JsonValue.NULL); }
-        catch (SQLException failure) { return response(id, "PERSISTENCE_FAILED", JsonValue.NULL, JsonValue.NULL); }
+        catch (SQLException failure) {
+            new MatchPersistenceLog().rejected("result-load", request.getString("matchId", null), id, failure);
+            return response(id, "PERSISTENCE_FAILED", JsonValue.NULL, JsonValue.NULL);
+        }
         catch (RuntimeException failure) { return response(id, "INVALID_REQUEST", JsonValue.NULL, JsonValue.NULL); }
     }
 

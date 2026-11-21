@@ -15,14 +15,21 @@ public final class JdbcMatchRepository implements MatchRepository {
 	public interface Connections { Connection open() throws SQLException; }
 	private final Connections connections;
 	private final BoundedJsonStorageCodec codec;
+	private final MatchMemoryBudget memoryBudget;
 
 	public JdbcMatchRepository(Connections connections) {
+		this(connections, new MatchMemoryBudget());
+	}
+	public JdbcMatchRepository(Connections connections, MatchMemoryBudget memoryBudget) {
 		this(connections, new BoundedJsonStorageCodec(BoundedJsonStorageCodec.PREPARED_ENCODED_LIMIT,
-			BoundedJsonStorageCodec.PREPARED_DECODED_LIMIT));
+			BoundedJsonStorageCodec.PREPARED_DECODED_LIMIT), memoryBudget);
 	}
 
 	JdbcMatchRepository(Connections connections, BoundedJsonStorageCodec codec) {
-		this.connections = connections; this.codec = codec;
+		this(connections, codec, new MatchMemoryBudget());
+	}
+	JdbcMatchRepository(Connections connections, BoundedJsonStorageCodec codec, MatchMemoryBudget memoryBudget) {
+		this.connections = connections; this.codec = codec; this.memoryBudget = memoryBudget;
 	}
 
 	@Override
@@ -31,7 +38,7 @@ public final class JdbcMatchRepository implements MatchRepository {
 			"SELECT match_id,document_version,document_json FROM ffb_prepared_matches WHERE match_id=?")) {
 			query.setString(1, id);
 			try (ResultSet rows = query.executeQuery()) {
-				return rows.next() ? new Record(rows.getString(1), rows.getInt(2), codec.decode(rows.getString(3))) : null;
+				return rows.next() ? new Record(rows.getString(1), rows.getInt(2), codec.decodeForActivation(rows.getString(3), memoryBudget)) : null;
 			}
 		}
 	}

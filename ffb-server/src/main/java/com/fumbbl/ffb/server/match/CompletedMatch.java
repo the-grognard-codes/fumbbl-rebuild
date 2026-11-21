@@ -1,14 +1,7 @@
 package com.fumbbl.ffb.server.match;
 
-import com.eclipsesource.json.Json;
 import com.eclipsesource.json.JsonObject;
-import com.eclipsesource.json.JsonValue;
 
-import java.io.IOException;
-import java.io.Writer;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
 
 /** Immutable, canonical terminal match artifact. */
 public final class CompletedMatch {
@@ -55,10 +48,9 @@ public final class CompletedMatch {
 	}
 	private static String canonical(JsonObject artifact) {
 		if (artifact == null) throw new IllegalArgumentException("Invalid completed match");
-		BoundedWriter writer = new BoundedWriter();
-		try { write(artifact, writer, 0); return writer.text.toString(); }
-		catch (IOException impossible) { throw new IllegalStateException(impossible); }
+		return new CanonicalJson().encode(artifact, MAX_BYTES, 64, () -> new IllegalArgumentException("Invalid completed match"));
 	}
+
 	private static void depth(String text) {
 		boolean quoted = false, escaped = false; int depth = 0;
 		for (int index = 0; index < text.length(); index++) {
@@ -69,39 +61,5 @@ public final class CompletedMatch {
 			else if (ch == '}' || ch == ']') depth--;
 		}
 		if (quoted || depth != 0) throw new IllegalArgumentException();
-	}
-	private static void write(JsonValue value, BoundedWriter writer, int depth) throws IOException {
-		if (!value.isObject() && !value.isArray()) { value.writeTo(writer); return; }
-		if (++depth > 64) throw new IllegalArgumentException("Invalid completed match");
-		boolean first = true;
-		if (value.isArray()) {
-			writer.write('[');
-			for (JsonValue item : value.asArray()) { if (!first) writer.write(','); first = false; write(item, writer, depth); }
-			writer.write(']');
-		} else {
-			JsonObject object = value.asObject(); List<String> names = new ArrayList<String>(object.names()); Collections.sort(names);
-			writer.write('{');
-			for (String name : names) {
-				if (!first) writer.write(','); first = false;
-				Json.value(name).writeTo(writer); writer.write(':'); write(object.get(name), writer, depth);
-			}
-			writer.write('}');
-		}
-	}
-	private static final class BoundedWriter extends Writer {
-		private final StringBuilder text = new StringBuilder();
-		private long bytes;
-		private boolean highSurrogate;
-		@Override public void write(int value) {
-			char ch = (char) value;
-			bytes += Character.isLowSurrogate(ch) && highSurrogate ? 3 : ch < 0x80 ? 1 : ch < 0x800 ? 2 : Character.isSurrogate(ch) ? 1 : 3;
-			highSurrogate = Character.isHighSurrogate(ch);
-			if (bytes > MAX_BYTES) throw new IllegalArgumentException("Invalid completed match");
-			text.append(ch);
-		}
-		@Override public void write(char[] chars, int offset, int length) { for (int index = offset; index < offset + length; index++) write(chars[index]); }
-		@Override public void write(String value, int offset, int length) { for (int index = offset; index < offset + length; index++) write(value.charAt(index)); }
-		@Override public void flush() { }
-		@Override public void close() { }
 	}
 }

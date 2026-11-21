@@ -390,7 +390,7 @@ class BrowserRequestTimingTest {
 		for (boolean failSave : new boolean[] { false, true }) {
 			lines.clear(); nanos.set(0);
 			MatchService matches = mock(MatchService.class);
-			RecoveryRepository recovery = mock(RecoveryRepository.class);
+			RecoveryRepository recovery = mock(RecoveryRepository.class, org.mockito.Mockito.CALLS_REAL_METHODS);
 			// The clock-aware apply overload is package-private to the match application.
 			SetupSession session = mock(SetupSession.class, call -> {
 				if ("apply".equals(call.getMethod().getName()) && call.getArguments().length == 3) {
@@ -432,7 +432,7 @@ class BrowserRequestTimingTest {
 
 	@Test void applicationSeparatesFailedRestoreFromEngineAndCheckpoint() throws Exception {
 		MatchService matches = mock(MatchService.class);
-		RecoveryRepository recovery = mock(RecoveryRepository.class);
+		RecoveryRepository recovery = mock(RecoveryRepository.class, org.mockito.Mockito.CALLS_REAL_METHODS);
 		SetupApplication application = new SetupApplication(mock(FantasyFootballServer.class), matches, recovery, false,
 			Clock.fixed(Instant.ofEpochMilli(2000000000000L), ZoneOffset.UTC));
 		MatchDocument document = new MatchDocument(MATCH, 3, "away", MatchDocument.Lifecycle.ACTIVATED,

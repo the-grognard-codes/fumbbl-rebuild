@@ -63,6 +63,20 @@ final class BoundedJsonStorageCodec {
 	String decode(String stored) {
 		try (BrowserRequestTiming.Scope ignored = timing.span(BrowserRequestTiming.Phase.STORAGE_DECODE)) { return decodeMeasured(stored); }
 	}
+
+	/** Checks the stored decoded size before inflating the artifact. */
+	String decodeForActivation(String stored, MatchMemoryBudget budget) {
+		budget.requireDecodedBytes(decodedBytes(stored));
+		return decode(stored);
+	}
+
+	long decodedBytes(String stored) {
+		if (stored == null || stored.length() > encodedLimit) throw new IllegalArgumentException("Stored JSON encoded limit");
+		if (!hasCodecHeader(stored)) return new Utf8Size().bytes(stored);
+		int expected = JsonObject.readFrom(stored).getInt("decodedBytes", -1);
+		if (expected < 0) throw new IllegalArgumentException("Invalid storage length");
+		return expected;
+	}
 	/** Lobby callers preflight decoded allocation before base64 or gzip allocation. */
 	String decode(String stored, LobbyReadBudget budget) {
 		int expected = hasCodecHeader(stored) ? JsonObject.readFrom(stored).getInt("decodedBytes", -1)

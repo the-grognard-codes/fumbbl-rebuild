@@ -15,6 +15,7 @@ public interface IServerProperty {
 	String SERVER_LOG_FILE_SPLIT = "server.log.file.split";
 
 	String SERVER_TEST = "server.test";
+	String BACKUP_DIR = "backup.dir";
 
 	String DB_DRIVER = "db.driver";
 	String DB_URL = "db.url";
