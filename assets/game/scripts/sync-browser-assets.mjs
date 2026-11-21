@@ -1,5 +1,4 @@
 import './build-stadium-jigsaw.mjs';
-import './build-stadium-mockup.mjs';
 import './build-modular-stadium-catalog.mjs';
 import './build-stadium-catalog.mjs';
 import { createHash } from 'node:crypto';
@@ -17,6 +16,7 @@ const check = process.argv.includes('--check');
 if (process.argv.length > (check ? 3 : 2) || (process.argv[2] && !check)) {
   throw new Error('Usage: node sync-browser-assets.mjs [--check]');
 }
+if (check) await import('./build-stadium-mockup.mjs');
 const readJson = async path => JSON.parse((await readFile(path, 'utf8')).replace(/^\uFEFF/, ''));
 
 async function pngVisibleBounds(path) {
@@ -150,9 +150,10 @@ for (const [sourcePath, deliveryPath] of inputs) {
   const source = resolve(gameRoot, sourcePath);
   const files = (await stat(source)).isDirectory() ? await filesUnder(source) : [source];
   for (const file of files) {
-    // Authoring instructions and source calls belong in the repository, not public delivery.
-    if (sourcePath === 'pitch' && (relative(source,file).split(/[\\/]/).includes('source') || file.endsWith('README.md'))) continue;
     const suffix = file === source ? '' : relative(source, file);
+    // Authoring instructions and source calls belong in the repository, not public delivery.
+    if (sourcePath === 'pitch' && (suffix.split(/[\\/]/).includes('source') || file.endsWith('README.md')
+      || suffix.replaceAll('\\', '/').startsWith('stadiums/mockup/'))) continue;
     const target = resolve(deliveryRoot, deliveryPath, suffix);
     expected.set(target, file);
   }

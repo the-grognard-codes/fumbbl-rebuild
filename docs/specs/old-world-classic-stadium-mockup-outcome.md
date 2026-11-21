@@ -3,6 +3,10 @@
 Issue [#566](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/566),
 branch `codex/566-old-world-classic-mockup`, base `85e2c839b`.
 
+This gallery preserves the third stadium concept round for historical review.
+Its assets load through the local development route and are excluded from the
+production asset package.
+
 The dev-only gallery, modular art candidates, material pipeline and review
 tooling are implemented. **This is not a visually accepted production stadium.**
 Generation improved the sources over several rounds, but has not reached the

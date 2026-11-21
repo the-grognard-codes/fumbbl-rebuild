@@ -12,6 +12,7 @@ import './stadium-mockup.css';
 import { StadiumMockupCloth, mockupColorPair } from './StadiumMockupCloth.tsx';
 import { useStadiumMockupColors } from './use-stadium-mockup-colors.ts';
 import { StadiumMockupLife } from './StadiumMockupLife.tsx';
+import { mockupAsset } from './stadium-mockup-assets.ts';
 
 const points = (values: readonly Point[]) => values.map(point => `${point.x},${point.y}`).join(' ');
 const layerNames = ['architecture', 'crowd', 'props', 'cloth', 'gestures', 'players'] as const;
@@ -48,8 +49,15 @@ export function StadiumMockup() {
   }, []);
   const camera = new PitchProjection({ ...size, end, focus, zoom, mode: angle === 90 ? 'top-down' : 'perspective', perspectiveElevation: (angle === 90 ? 40 : angle) as PerspectiveElevation });
   const modules = mockupModules(camera, visitor);
-  const sourceFor = (module: typeof modules[number]) => module.role !== 'crowd' ? `${import.meta.env.BASE_URL}assets/game/pitch/stadiums/jigsaw/${module.art.file}`
-    : (module.art.file.includes('human-ends') ? endColors : module.art.file.includes('orc-') ? orcColors : humanColors)?.[module.team ?? 'home'] ?? `${import.meta.env.BASE_URL}assets/game/pitch/stadiums/jigsaw/${module.art.file}`;
+  const sourceFor = (module: typeof modules[number]) => {
+    const { file } = module.art;
+    const original = file.startsWith('../mockup/')
+      ? mockupAsset(file.slice('../mockup/'.length))
+      : `${import.meta.env.BASE_URL}assets/game/pitch/stadiums/jigsaw/${file}`;
+    if (module.role !== 'crowd') return original;
+    const recolored = file.includes('human-ends') ? endColors : file.includes('orc-') ? orcColors : humanColors;
+    return recolored?.[module.team ?? 'home'] ?? original;
+  };
   const turfUrl = `${import.meta.env.BASE_URL}assets/game/pitch/stadium-v1.png`;
   const imageUrls = [turfUrl, ...new Set(modules.map(sourceFor)), ...(gestureColors ? [gestureColors.home] : [])];
   const images = useMockupImages(imageUrls, colorError);

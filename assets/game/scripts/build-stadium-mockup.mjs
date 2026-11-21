@@ -1,6 +1,6 @@
 import { readFile, readdir } from 'node:fs/promises';
 import { createHash } from 'node:crypto';
-import { gzipSync } from 'node:zlib';
+import { gunzipSync, gzipSync } from 'node:zlib';
 import { readRgbaPng } from './png-art.mjs';
 import { AssetOutput } from './asset-output.mjs';
 
@@ -25,10 +25,9 @@ for (let pixel = 0; pixel < indices.length; pixel++) {
   const secondary = file === 'cloth-v1' ? r > b * 1.5 && g > b * 1.3 && r > g * .9 : r > g * 1.6 && b > g * 1.4 && r > b * .7;
   if (primary || secondary) indices[pixel] = (secondary ? 16 : 0) + 1 + Math.min(15, Math.floor(Math.max(r, g, b) / 256 * 16));
 }
-const bytes = gzipSync(indices, { level: 9 });
 const target = new URL(file + '-indices.bin.gz', root);
 if (process.argv.includes('--check')) {
-  if (!(await readFile(target)).equals(bytes)) throw Error('Stadium cloth indices are stale');
-} else await new AssetOutput().write(target, bytes);
+  if (!gunzipSync(await readFile(target)).equals(indices)) throw Error(`Stadium cloth indices are stale: ${file}`);
+} else await new AssetOutput().write(target, gzipSync(indices, { level: 9 }));
 }
 console.log('Validated Old World Classic mockup sources and cloth indices.');

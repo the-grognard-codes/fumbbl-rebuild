@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react';
 import { recolorTeamImage } from './team-color-art.ts';
 import type { TeamColors } from './team-colors.ts';
+import { mockupAsset } from './stadium-mockup-assets.ts';
 
-const base = `${import.meta.env.BASE_URL}assets/game/pitch/stadiums/mockup/`;
 export function useStadiumMockupColors(file: string, home: TeamColors, away: TeamColors, onError: () => void) {
   const key = `${file}:${home.primary}:${home.secondary}:${away.primary}:${away.secondary}`;
   const [sources, setSources] = useState<{ home: string; away: string; key: string } | null>(null);
@@ -10,11 +10,11 @@ export function useStadiumMockupColors(file: string, home: TeamColors, away: Tea
     let disposed = false;
     const urls: string[] = [], abort = new AbortController();
     (async () => {
-      const response = await fetch(base + file + '-indices.bin.gz', { signal: abort.signal });
+      const response = await fetch(mockupAsset(file + '-indices.bin.gz'), { signal: abort.signal });
       if (!response.ok) throw Error('Missing cloth indices');
       const bytes = new Uint8Array(await response.arrayBuffer());
       const indices = bytes[0] === 31 && bytes[1] === 139 ? new Uint8Array(await new Response(new Blob([bytes]).stream().pipeThrough(new DecompressionStream('gzip'))).arrayBuffer()) : bytes;
-      const artResponse = await fetch(base + file + '.png', { signal: abort.signal });
+      const artResponse = await fetch(mockupAsset(file + '.png'), { signal: abort.signal });
       if (!artResponse.ok) throw Error('Missing colour source');
       const bitmap = await createImageBitmap(await artResponse.blob());
       try {
