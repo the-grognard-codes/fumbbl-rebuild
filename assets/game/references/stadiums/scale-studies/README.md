@@ -14,7 +14,7 @@ python -B assets/game/references/stadiums/scale-studies/build-empty-seating.py -
 
 ## West bay 6 supporter proofs
 
-The [crowd builder](bay-six/build.py) assigns four places to each of planks 61, 62 and 63. Each supporter keeps their seat and wardrobe across attendance levels. The approved 75% layout fills three places per plank. A supporter with a standing pose can use it when the next physical seat above them on the same plank is vacant. When that seat fills, the supporter sits. Neighbors along a plank use different spectator sprites at every attendance level. Each attendance exports as one transparent section image.
+The [crowd builder](bay-six/build.py) assigns three permanent seats to each of planks 61, 62 and 63. At 100%, 66% and 33% attendance, each bench holds three, two and one supporter respectively. The same nine anchors also locate empty seats in the gallery. Returning supporters keep their seat and wardrobe. A supporter can stand when the next seat above them on their plank is vacant. When that seat fills, they sit. One third of the occupied seats have fixed neutral outfits at every attendance. Each layout exports as one transparent section image.
 
 Bay 6 is a 65 × 74 px west stand at native (22, 589). Its occupied bench tops span local x=0–9, 19–27 and 38–47. On the wall bench the hip sits 5–6 px from the back. At least seven consecutive pixels of upper thigh and hip rest over the wood, and the calves hang beyond the lip. On the other two benches the hip meets the back and the knee projects up to two pixels past the front.
 

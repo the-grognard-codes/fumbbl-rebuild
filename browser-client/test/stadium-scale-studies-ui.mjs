@@ -175,7 +175,8 @@ try {
   const select = page.getByLabel('Gallery view');
   assert.deepEqual(studies.map(({ id }) => id), ['a', 'b', 'c']);
   assert.equal(await select.inputValue(), 'b');
-  await page.getByText('9 of 12 occupied', { exact: true }).waitFor();
+  await page.getByText('6 of 9 occupied', { exact: true }).waitFor();
+  assert.equal(await select.locator('option:checked').textContent(), 'B · 66% full');
   assert.equal(new Set(poseColumns).size, 12);
   assert.equal(new Set(poseColumns.map(identity)).size, 10);
   const pairs = Map.groupBy(posesManifest, ({ id }) => identity(id));
@@ -187,7 +188,7 @@ try {
     .map(({ id }) => identity(id)).sort(), ['chestnuts', 'mug', 'pie']);
   assert.equal(posesManifest.filter(({ wardrobe }) => wardrobe === 'team').length, 9);
   assert.deepEqual(await select.locator('option').allTextContents(),
-    [...studies.map(({ label }) => label), 'Empty stadium', 'Show seating masks']);
+    ['A · 100% full', 'B · 66% full', 'C · 33% full', 'Empty stadium', 'Show seating masks']);
   const rail = page.getByRole('checkbox', { name: 'Front rail' });
   const markers = page.getByRole('checkbox', { name: 'Seat markers' });
   const benches = page.getByRole('checkbox', { name: 'Bench tops' });
@@ -228,13 +229,15 @@ try {
   const fullPlan = new Map(studies[0].seats.map(seat => [seatKey(seat), seat]));
   const fullRows = Map.groupBy(fullPlan.values(), seat => seat.plankId);
   for (const row of fullRows.values()) row.sort((a, b) => a.slot.y - b.slot.y);
-  assert.equal(fullPlan.size, 12);
+  assert.equal(fullPlan.size, 9);
   assert.equal(fullPlan.size, studies[0].capacity);
   let previousLocations = new Set(fullPlan.keys());
   for (const [index, { id, label, seats, spacing, capacity }] of studies.entries()) {
-    const percentage = [100, 75, 50][index];
+    const seatsPerPlank = [3, 2, 1][index];
+    const percentage = [100, 66, 33][index];
     assert.equal(capacity, fullPlan.size);
-    assert.equal(seats.length * 100, capacity * percentage);
+    assert.equal(seats.length, seatsPerPlank * 3);
+    assert.equal(Math.floor(seats.length * 100 / capacity), percentage);
     assert.ok(label.includes(percentage + '%'));
     const locations = new Set(seats.map(seatKey));
     assert.equal(locations.size, seats.length);
@@ -244,8 +247,8 @@ try {
     const standing = seats.filter(seat => seat.stance === 'standing');
     const neutralSeats = seats.filter(({ neutral }) => neutral);
     assert.equal(standing.length, id === 'a' ? 0 : 1);
-    assert.equal(neutralSeats.length, [4, 3, 2][index]);
-    assert.equal(new Set(neutralSeats.map(({ pose }) => identity(pose))).size, Math.min(3, neutralSeats.length));
+    assert.equal(neutralSeats.length, seatsPerPlank);
+    assert.equal(new Set(neutralSeats.map(({ pose }) => identity(pose))).size, neutralSeats.length);
     const seatsByPlank = new Map();
     for (const seat of seats) {
       const planned = fullPlan.get(seatKey(seat));
@@ -267,11 +270,8 @@ try {
       seatsByPlank.set(seat.plankId, row);
     }
     assert.equal(seatsByPlank.size, 3, id + ' uses three planks');
-    if (id === 'b') {
-      assert.equal(new Set(seats.map(({ pose }) => identity(pose))).size, seats.length, '75% seats nine distinct supporters');
-      assert.ok([...seatsByPlank.values()].every(row => row.length === 3 && row.filter(({ neutral }) => neutral).length === 1),
-        '75% seats two team supporters and one fixed supporter per plank');
-    }
+    assert.ok([...seatsByPlank.values()].every(row => row.length === seatsPerPlank),
+      id + ' fills the same number of seats on each plank');
     const nativeGaps = [...seatsByPlank.entries()].flatMap(([plankId, row]) => {
       row.sort((a, b) => a.y - b.y);
       return row.slice(1).map((seat, index) => {
@@ -280,7 +280,8 @@ try {
         return seat.y - previous.y;
       });
     });
-    assert.deepEqual(spacing, { min: Math.min(...nativeGaps), max: Math.max(...nativeGaps) });
+    const expectedSpacing = nativeGaps.length ? { min: Math.min(...nativeGaps), max: Math.max(...nativeGaps) } : null;
+    assert.deepEqual(spacing ?? null, expectedSpacing);
     await select.selectOption(id);
     await page.getByLabel('Gatehouse stadium with ' + label + ' in west bay 6').waitFor();
     const [crowdPng, railPng] = await Promise.all(['.png', '-rail.png'].map(suffix =>
@@ -334,8 +335,12 @@ try {
     await poses.waitFor();
     assert.deepEqual(await poses.locator('figcaption').allTextContents(), seats.map(caption));
     assert.ok(await review.getByText(`${seats.length} of ${capacity} occupied`, { exact: true }).isVisible());
-    const spacingLabel = spacing.min === spacing.max ? String(spacing.min) : `${spacing.min}–${spacing.max}`;
-    assert.ok(await review.getByText(spacingLabel + ' px spacing along planks', { exact: false }).isVisible());
+    if (spacing) {
+      const spacingLabel = spacing.min === spacing.max ? String(spacing.min) : `${spacing.min}–${spacing.max}`;
+      assert.ok(await review.getByText(spacingLabel + ' px spacing along planks', { exact: false }).isVisible());
+    } else {
+      assert.equal(await review.getByText('spacing along planks', { exact: false }).count(), 0);
+    }
     for (const { pose, stance, origin, knee, otherSole, plankId, x, y } of seats) {
       const local = landmarks[pose];
       if (stance === 'standing') {
@@ -548,7 +553,7 @@ try {
   await page.getByText(rosterLabel, { exact: true }).click();
   assert.equal(await page.locator('.bay-six-zoom').evaluate(element =>
     element.scrollWidth > element.clientWidth && document.documentElement.scrollWidth === window.innerWidth), true);
-  console.log('Bay 6 default, 10 identities and 12 poses, fixed and team wardrobes, standing clearance, exact crops, rail and guides passed.');
+  console.log('Bay 6 nine seats, default 66% attendance, 12 poses, fixed slots, exact crops, rail and guides passed.');
 } finally {
   await browser?.close();await server.close();
 }

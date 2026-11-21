@@ -112,12 +112,16 @@ class BaySixPlacementTest(unittest.TestCase):
 
     def test_attendance_leaves_existing_supporters_in_the_same_seats_and_kits(self):
         previous = None
-        for study, occupied, neutrals in zip(self.studies, (12, 9, 6), (4, 3, 2), strict=True):
+        for study, occupied, neutrals in zip(self.studies, (9, 6, 3), (3, 2, 1), strict=True):
             plan = {(s["plankId"], s["slot"]["x"], s["slot"]["y"]): s for s in study["seats"]}
-            self.assertEqual(study["capacity"], 12)
+            self.assertEqual(study["capacity"], 9)
             self.assertEqual(len(plan), len(study["seats"]))
             self.assertEqual(len(plan), occupied)
+            self.assertEqual(len({s["pose"].split("-", 1)[1] for s in plan.values()}), occupied)
             self.assertEqual(sum(s["neutral"] for s in plan.values()), neutrals)
+            self.assertEqual({s["plankId"] for s in plan.values()}, {61, 62, 63})
+            for plank in (61, 62, 63):
+                self.assertEqual(sum(s["plankId"] == plank for s in plan.values()), occupied // 3)
             for supporter in plan.values():
                 if not supporter["neutral"]:
                     col = build.COLUMNS.index(supporter["pose"]) * build.CELL_SIZE
@@ -149,12 +153,53 @@ class BaySixPlacementTest(unittest.TestCase):
             self.assertEqual(any(s["support"] == north.support and s["slot"]["y"] == north.y
                                  for s in study["seats"]), seat["stance"] == "seated")
 
-    def test_preferred_crowd_has_three_spaced_contacts_on_each_occupied_plank(self):
-        preferred = self.studies[1]["seats"]
+    def test_attendance_spreads_contacts_and_vacancies_along_the_planks(self):
+        full, preferred, sparse = self.studies
+        self.assertEqual(full["spacing"], {"min": 16, "max": 20})
+        self.assertEqual(preferred["spacing"], {"min": 18, "max": 44})
+        self.assertIsNone(sparse["spacing"])
+        self.assertIsNone(sparse["pitch"])
+        vacancies = set()
+        sparse_positions = set()
+        expected_gaps = {"wall-bench": 18, "rear-bench": 44, "inner-bench": 19}
         for support in ("wall-bench", "rear-bench", "inner-bench"):
-            contacts = sorted(seat["y"] for seat in preferred if seat["support"] == support)
-            self.assertEqual(len(contacts), 3)
-            self.assertGreaterEqual(min(b - a for a, b in zip(contacts, contacts[1:])), 16)
+            slots = sorted(s["slot"]["y"] for s in full["seats"] if s["support"] == support)
+            preferred_on_plank = [s for s in preferred["seats"] if s["support"] == support]
+            contacts = sorted(s["y"] for s in preferred_on_plank)
+            self.assertEqual(contacts[1] - contacts[0], expected_gaps[support])
+            occupied = {s["slot"]["y"] for s in preferred_on_plank}
+            vacancies.update(i for i, y in enumerate(slots) if y not in occupied)
+            sparse_slot = next(s["slot"]["y"] for s in sparse["seats"] if s["support"] == support)
+            sparse_positions.add(slots.index(sparse_slot))
+        self.assertGreater(len(vacancies), 1)
+        self.assertEqual(sparse_positions, {0, 1, 2})
+
+    def test_face_cores_survive_overlapping_supporters(self):
+        face_bounds = {
+            "seated-tambourine": (20, 13, 26, 20), "standing-tambourine": (20, 9, 27, 16),
+            "seated-program": (20, 13, 26, 20), "seated-horn": (20, 13, 27, 19),
+            "standing-horn": (20, 10, 27, 16), "seated-pie": (20, 17, 26, 24),
+            "seated-clap": (22, 14, 28, 21), "seated-lookout": (19, 13, 26, 19),
+            "seated-mug": (20, 13, 26, 20), "seated-whistle": (20, 13, 26, 19),
+            "seated-chestnuts": (20, 12, 26, 19), "seated-cheer": (20, 13, 27, 20),
+        }
+        for study in self.studies:
+            foreground = set()
+            for seat in reversed(study["seats"]):
+                pose = seat["pose"]
+                with self.subTest(study=study["id"], pose=pose):
+                    origin = seat["origin"]["x"], seat["origin"]["y"]
+                    person = build.spectator(self.atlas, pose, build.kit_ramps(self.palette, seat["neutral"]))
+                    if seat["stance"] == "seated":
+                        build.tuck_behind_seat(person, origin, self.planks[seat["support"]][1],
+                                               self.landmarks[pose]["behindSeat"])
+                    visible = build.checked_pixels(person, origin, self.mask, self.bay, pose)
+                    left, top, right, bottom = face_bounds[pose]
+                    core = {(x, y) for x, y in visible
+                            if left <= x - origin[0] < right and top <= y - origin[1] < bottom}
+                    self.assertTrue(core)
+                    self.assertFalse(core & foreground)
+                    foreground.update(visible)
 
     def test_wall_seat_rejects_an_unsupported_thigh_even_with_the_hip_on_timber(self):
         pose = "seated-tambourine"

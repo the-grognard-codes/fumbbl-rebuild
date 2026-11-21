@@ -29,22 +29,19 @@ class Seat(NamedTuple):
 
 # First fill is the lowest attendance at which this place is occupied.
 SEAT_PLAN = (
-    Seat("wall-bench", 6, 28, "mug", 50),
-    Seat("wall-bench", 6, 46, "lookout", 75),
-    Seat("wall-bench", 6, 56, "chestnuts", 100),
-    Seat("wall-bench", 6, 65, "tambourine", 50),
-    Seat("rear-bench", 19, 28, "chestnuts", 75),
-    Seat("rear-bench", 19, 44, "cheer", 50),
-    Seat("rear-bench", 19, 55, "lookout", 100),
-    Seat("rear-bench", 19, 64, "horn", 50, standing_contact=(20, 72)),
-    Seat("inner-bench", 38, 29, "whistle", 50),
-    Seat("inner-bench", 38, 37, "program", 100),
-    Seat("inner-bench", 38, 48, "clap", 75),
-    Seat("inner-bench", 38, 66, "pie", 50),
+    Seat("wall-bench", 6, 28, "mug", 33),
+    Seat("wall-bench", 6, 46, "lookout", 66),
+    Seat("wall-bench", 6, 65, "tambourine", 100),
+    Seat("rear-bench", 19, 28, "chestnuts", 66),
+    Seat("rear-bench", 19, 44, "cheer", 100),
+    Seat("rear-bench", 19, 64, "horn", 33, standing_contact=(20, 72)),
+    Seat("inner-bench", 38, 29, "whistle", 66),
+    Seat("inner-bench", 38, 48, "clap", 33),
+    Seat("inner-bench", 38, 66, "pie", 100),
 )
 STUDIES = [
     (key, f"{key.upper()} · {fill}% full", [seat for seat in SEAT_PLAN if seat.first_fill <= fill])
-    for key, fill in (("a", 100), ("b", 75), ("c", 50))
+    for key, fill in (("a", 100), ("b", 66), ("c", 33))
 ]
 
 
@@ -219,10 +216,11 @@ def build_study(mask, bay, atlas, palette, landmarks, study, planks):
     rail = handrail(size)
     rail_pixels = checked_pixels(rail, (0, 0), mask, bay, f"{label} rail")
     rail_overlap = crowd_pixels & rail_pixels
+    spacing = {"min": min(gaps), "max": max(gaps)} if gaps else None
 
     return crowd, rail, {
         "id": key, "label": label, "capacity": len(SEAT_PLAN), "height": max(seat["height"] for seat in seats),
-        "pitch": min(gaps), "spacing": {"min": min(gaps), "max": max(gaps)}, "seats": seats,
+        "pitch": spacing["min"] if spacing is not None else None, "spacing": spacing, "seats": seats,
         "overlapPixels": len(overlap_pixels), "railOverlapPixels": len(rail_overlap),
     }
 

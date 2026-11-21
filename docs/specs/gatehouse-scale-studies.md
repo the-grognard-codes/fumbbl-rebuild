@@ -2,19 +2,21 @@
 
 ## West bay 6 · Crowd density review
 
-West bay 6 opens at 75% attendance with nine different supporters, three on each bench. The copper-bearded dwarf stands with his drinking horn on the rear bench. The place immediately north of him stays empty. At full attendance he sits and another supporter takes that place. The barefoot halfling sits at the front of the inner bench. The nearby blitzer gives a game-scale reference.
+West bay 6 has nine seats arranged across three benches. The gallery opens at 66% attendance with two supporters on each bench. Select 100% to see all nine places filled or 33% to see one supporter per bench. The same blitzer stands at the touchline in every view for a game-scale comparison.
 
-![Previous cast and new cast in the same 75% west-bay view, with the blitzer at the same scale](../../assets/game/references/stadiums/scale-studies/bay-six/cast-on-pitch.webp)
+![The nine-seat bay at 100%, 66% and 33% attendance, at pitch scale and pixel zoom](../../assets/game/references/stadiums/scale-studies/bay-six/cast-on-pitch.webp)
 
 The new west-facing cast has ten seated poses and two standing alternates. Seven supporters wear two team-colour materials. The halfling with the pie, the elder with the tankard and the chestnut seller wear fixed neutral clothing. The light olive-brown tambourine player, medium-brown clapping supporter and deep-brown lookout keep their skin tones under either kit. The transparent artist sheet records the faces, clothing and props for future views. [Artist reference](../../assets/game/references/stadiums/scale-studies/bay-six/cast-reference.webp)
 
 ![The twelve west-facing game sprites at 3× pixel zoom, with the seated and standing tambourine player and dwarf in the top row](../../assets/game/references/stadiums/scale-studies/bay-six/roster-preview.webp)
 
-| Gallery view | Occupied seats | Seated | Standing | Neutral clothing |
-| --- | ---: | ---: | ---: | ---: |
-| A · 100% full | 12 of 12 | 12 | 0 | 4 |
-| B · 75% full | 9 of 12 | 8 | 1 | 3 |
-| C · 50% full | 6 of 12 | 5 | 1 | 2 |
+| Gallery view | Occupied seats | Supporters per bench | Neutral outfits |
+| --- | ---: | ---: | ---: |
+| A · 100% full | 9 of 9 | 3 | 3 |
+| B · 66% full | 6 of 9 | 2 | 2 |
+| C · 33% full | 3 of 9 | 1 | 1 |
+
+All nine supporters in the full bay keep the seat they occupied in the approved cast preview. The dwarf sits when the bay is full and stands to raise his horn in the other two views, where the seat above him is vacant. At 33%, the elder, dwarf and clapping supporter occupy different positions along their benches.
 
 Open `/stadium-mockup` and use **Gallery view** to change attendance. Returning fans keep their seats and clothes. Compare the views at native size and 4×, or scroll down to see the whole pitch. **Seat markers** shows empty places as grey squares, hip or foot contacts as cyan crosses and seated knees as gold dots. **Inspect full poses** shows each occupied seat in its assigned kit before overlap. **Inspect all 12 poses** shows the entire cast, including both stances for the tambourine player and the dwarf.
 

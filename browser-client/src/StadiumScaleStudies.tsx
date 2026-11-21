@@ -256,7 +256,8 @@ export function StadiumScaleStudies() {
     {study && <section className="bay-six-review" aria-labelledby="bay-six-heading">
       <h2 id="bay-six-heading">West bay 6</h2>
       <div className="bay-six-toolbar">
-        <p>{study.label} · <strong>{study.seats.length} of {study.capacity} occupied</strong> · {contactSpacing} px spacing along planks
+        <p>{study.label} · <strong>{study.seats.length} of {study.capacity} occupied</strong>
+          {spacing && ` · ${contactSpacing} px spacing along planks`}
           {standing > 0 && ` · ${study.seats.length - standing} seated, ${standing} standing`}</p>
         <div className="mockup-controls">
           <label><input type="checkbox" checked={rail} onChange={event => setRail(event.target.checked)}/>Front rail</label>
