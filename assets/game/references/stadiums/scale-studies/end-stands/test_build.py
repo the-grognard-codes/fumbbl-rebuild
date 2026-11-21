@@ -44,7 +44,10 @@ class EndStandTests(unittest.TestCase):
                 team = not pose.endswith("-pie")
                 self.assertEqual(bool(indices.intersection(range(1, 17))), team)
                 self.assertEqual(bool(indices.intersection(range(17, 33))), team)
-                for area in (self.landmarks[pose]["face"], (0, 38, 48, 48)):
+                protected = [self.landmarks[pose]["face"]]
+                if pose.startswith("north-"):
+                    protected.append((0, 38, 48, 48))  # Front-view calves and footwear.
+                for area in protected:
                     self.assertFalse(set(cell.crop(area).tobytes()).intersection(range(1, 33)))
                 for sample in hands_and_props[pose]:
                     self.assertGreater(cell.getpixel(sample), 32)
@@ -87,7 +90,7 @@ class EndStandTests(unittest.TestCase):
                     origin_x, origin_y = coordinates(seat["origin"])
                     self.assertEqual((origin_x + local_x, origin_y + local_y), coordinates(seat))
 
-    def test_pngs_preserve_raw_fit_and_only_occlude_rear_calves(self):
+    def test_pngs_preserve_native_silhouettes_and_mask_fit(self):
         for view in self.manifest:
             stand = view["id"]
             with self.subTest(stand=stand):
@@ -99,16 +102,15 @@ class EndStandTests(unittest.TestCase):
                     build.fit.check_insert(self.mask, bay, path)
                     with Image.open(path) as png:
                         self.assertEqual(layer.tobytes(), png.convert("RGBA").tobytes())
-                self.assertEqual(stand == "south", view["railOverlapPixels"] > 0)
+                self.assertEqual(0, view["railOverlapPixels"])
+                with_rail = Image.alpha_composite(crowd, rail)
                 for seat in view["seats"]:
                     with self.subTest(pose=seat["pose"]):
-                        self.check_source(seat, bay, stand, crowd, rail)
+                        self.check_source(seat, bay, crowd, with_rail)
 
-    def check_source(self, seat, bay, stand, crowd, rail):
+    def check_source(self, seat, bay, crowd, with_rail):
         cell = build.spectator(self.atlas, seat["pose"], self.palette)
         ox, oy = coordinates(seat["origin"])
-        marks = self.landmarks[seat["pose"]]
-        hidden = 0
         for y in range(cell.height):
             for x in range(cell.width):
                 original = cell.getpixel((x, y))
@@ -116,23 +118,16 @@ class EndStandTests(unittest.TestCase):
                     continue
                 screen = ox + x, oy + y
                 self.assertEqual(bay["id"], self.mask.getpixel((bay["x"] + screen[0], bay["y"] + screen[1])))
-                if crowd.getpixel(screen) != original:
-                    hidden += 1
-                    self.assertGreater(y, marks["contact"][1])
-                if rail.getpixel(screen)[3]:
-                    self.assertGreater(y, marks["contact"][1])
-                for probe in (marks["face"], marks.get("gesture")):
-                    if probe and probe[0] <= x < probe[2] and probe[1] <= y < probe[3]:
-                        self.assertEqual(original, crowd.getpixel(screen))
-                        self.assertEqual(0, rail.getpixel(screen)[3])
-        self.assertEqual(seat["behindSeatPixels"], hidden)
-        self.assertEqual(stand == "south", hidden > 0)
+                self.assertEqual(original, crowd.getpixel(screen))
+                self.assertEqual(original, with_rail.getpixel(screen))
 
     def test_untrimmed_pose_crossing_mask_is_rejected(self):
-        damaged = self.atlas.copy()
-        damaged.putpixel((0, 0), 1)
-        with self.assertRaisesRegex(ValueError, "north-horn crosses bay 1"):
-            self.render("north", self.layout["north"], damaged)
+        for stand, pose, bay_id in (("north", "north-horn", 1), ("south", "south-pie", 12)):
+            with self.subTest(stand=stand):
+                damaged = self.atlas.copy()
+                damaged.putpixel((build.COLUMNS.index(pose) * build.CELL_SIZE, 0), 1)
+                with self.assertRaisesRegex(ValueError, f"{pose} crosses bay {bay_id}"):
+                    self.render(stand, self.layout[stand], damaged)
 
     def test_empty_place_on_unusable_board_is_rejected(self):
         layout = deepcopy(self.layout["north"])
@@ -140,21 +135,41 @@ class EndStandTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "unsupported vacant seat"):
             self.render("north", layout, self.atlas)
 
-    def test_bench_face_cannot_erase_the_seat_contact(self):
-        layout = deepcopy(self.layout["south"])
-        layout["rows"][0]["boardFace"] = [31, 24, 149, 31]
-        with self.assertRaisesRegex(ValueError, "south-pie .*only below the hip"):
-            self.render("south", layout, self.atlas)
+    def test_rear_silhouettes_have_one_continuous_seated_edge_on_timber(self):
+        view = next(view for view in self.manifest if view["id"] == "south")
+        planks = dict(self.supports[view["bayId"]].values())
+        for seat in view["seats"]:
+            with self.subTest(pose=seat["pose"]):
+                source = build.spectator(self.atlas, seat["pose"], self.palette).getchannel("A")
+                hip_x, hip_y = self.landmarks[seat["pose"]]["contact"]
+                edge_y = self.landmarks[seat["pose"]]["seatEdgeY"]
+                self.assertEqual(edge_y + 1, source.getbbox()[3])
+                self.assertLessEqual(edge_y - hip_y, 3)
+                self.assertGreater(edge_y, hip_y)
+                origin_x, origin_y = coordinates(seat["origin"])
+                plank = planks[seat["plankId"]]
+                self.assertGreater(source.getpixel((hip_x, hip_y)), 0)
+                for row in range(hip_y, edge_y + 1):
+                    span = [x for x in range(source.width) if source.getpixel((x, row))]
+                    self.assertGreaterEqual(len(span), 3)
+                    self.assertEqual(list(range(span[0], span[-1] + 1)), span)
+                    for x in span:
+                        self.assertGreater(plank.getpixel((origin_x + x, origin_y + row)), 0)
 
-    def test_rear_halfling_has_no_detached_heel_pixels(self):
-        crowd, _, manifest = self.render("south", self.layout["south"], self.atlas)
-        seat = next(seat for seat in manifest["seats"] if seat["supporter"] == "pie")
-        source = build.spectator(self.atlas, seat["pose"], self.palette)
-        left, _, right, bottom = source.getbbox()
-        ox, oy = coordinates(seat["origin"])
-        self.assertTrue(source.crop((left, bottom - 2, right, bottom)).getbbox())
-        heel_area = crowd.crop((ox + left, oy + bottom - 2, ox + right, oy + bottom))
-        self.assertIsNone(heel_area.getbbox())
+    def test_rear_feet_and_split_contours_are_rejected(self):
+        for pose in (pose for pose in build.COLUMNS if pose.startswith("south-")):
+            marks = self.landmarks[pose]
+            edge_y = marks["seatEdgeY"]
+            source = build.spectator(self.atlas, pose, self.palette).getchannel("A")
+            edge = [x for x in range(source.width) if source.getpixel((x, edge_y))]
+            x = build.COLUMNS.index(pose) * build.CELL_SIZE + edge[len(edge) // 2]
+            for pixel_y, value, reason in ((edge_y + 1, 33, "must end at its seated edge"),
+                                           (edge_y, 0, "split rear seat contour")):
+                with self.subTest(pose=pose, reason=reason):
+                    damaged = self.atlas.copy()
+                    damaged.putpixel((x, pixel_y), value)
+                    with self.assertRaisesRegex(ValueError, f"{pose} .*{reason}"):
+                        self.render("south", self.layout["south"], damaged)
 
 
 if __name__ == "__main__":

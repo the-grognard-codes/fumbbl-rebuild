@@ -70,7 +70,7 @@ def screened_region(pixels, origin, region):
     return {(x, y) for x, y in pixels if left <= x - ox < right and top <= y - oy < bottom}
 
 
-def place(person, pose, anchor, directions, landmarks, footprint):
+def place(person, pose, anchor, direction, landmarks, footprint):
     alpha = person.getchannel("A")
     contact, knee = (tuple(landmarks[key]) for key in ("contact", "knee"))
     for point in (contact, knee):
@@ -82,29 +82,31 @@ def place(person, pose, anchor, directions, landmarks, footprint):
     ox, oy = x - contact[0], y - contact[1]
     knee_x, knee_y = ox + knee[0], oy + knee[1]
     lip = y
-    while contains(footprint, knee_x, lip + directions):
-        lip += directions
+    while contains(footprint, knee_x, lip + direction):
+        lip += direction
     # From behind, the knee landmark projects under the tunic onto the bench top.
-    lip_tolerance = 1 if directions == 1 else 5
-    if (directions * (knee_y - y) <= 0 or directions * (knee_y - lip) < -lip_tolerance
+    lip_tolerance = 1 if direction == 1 else 5
+    if (direction * (knee_y - y) <= 0 or direction * (knee_y - lip) < -lip_tolerance
             or not contains(footprint, knee_x, lip)):
         raise ValueError(f"{pose} thigh must reach the pitch-facing plank lip")
+    if direction < 0:
+        check_rear_seat(alpha, pose, (ox, oy), contact, landmarks["seatEdgeY"], footprint)
     return (ox, oy), (knee_x, knee_y)
 
 
-def tuck(person, origin, pixels, board_face, footprint):
-    """Reveal the painted near face of the support in front of rear-view calves."""
-    if board_face is None:
-        return set()
-    left, top, right, bottom = board_face
-    if (not (0 <= left < right <= footprint.width and 0 < top < bottom <= footprint.height)
-            or not all(contains(footprint, x, top - 1) for x in range(left, right))):
-        raise ValueError("The bench face must follow its own timber top")
-    hidden = screened_region(pixels, (0, 0), board_face)
+def check_rear_seat(alpha, pose, origin, contact, edge_y, footprint):
+    """Require the complete rear seat contour to rest on the measured bench top."""
+    if not 1 <= edge_y - contact[1] <= 3 or alpha.getbbox()[3] != edge_y + 1:
+        raise ValueError(f"{pose} must end at its seated edge")
     ox, oy = origin
-    for x, y in hidden:
-        person.putpixel((x - ox, y - oy), (0, 0, 0, 0))
-    return hidden
+    previous = {contact[0]}
+    for y in range(contact[1], edge_y + 1):
+        span = {x for x in range(alpha.width) if alpha.getpixel((x, y))}
+        if not span & previous or len(span) != max(span) - min(span) + 1:
+            raise ValueError(f"{pose} has a split rear seat contour at row {y}")
+        if any(not contains(footprint, ox + x, oy + y) for x in span):
+            raise ValueError(f"{pose} rear seat contour extends off its plank")
+        previous = span
 
 
 def handrail(size, shape):
@@ -131,7 +133,7 @@ def build_angle(stand, layout, atlas, palette, landmarks, mask, bay, supports):
     size = bay["width"], bay["height"]
     if bay["id"] != bay_id or bay["stand"] != stand:
         raise ValueError(f"Bay {bay['id']} is not the authored {stand} bay")
-    prepared, slots = [], []
+    prepared, slots, vacancies = [], [], []
     used_planks = set()
     tiles = {supporter: spectator(atlas, f"{stand}-{supporter}", palette) for supporter in CAST}
     for row in layout["rows"]:
@@ -145,22 +147,12 @@ def build_angle(stand, layout, atlas, palette, landmarks, mask, bay, supports):
         for index, anchor in enumerate(row["anchors"]):
             slots.append({"plankId": plank_id, "slot": point(anchor)})
             if index not in occupants:
-                # Vacancies represent usable seats, with an entire native pose fitting the board and mask.
-                for supporter in CAST:
-                    pose = f"{stand}-{supporter}"
-                    try:
-                        origin, _ = place(tiles[supporter], pose, anchor, direction, landmarks[pose], footprint)
-                        checked_pixels(tiles[supporter], origin, mask, bay, pose)
-                    except ValueError:
-                        continue
-                    break
-                else:
-                    raise ValueError(f"{stand} has an unsupported vacant seat at {anchor}")
+                vacancies.append((anchor, footprint))
                 continue
 
             supporter = occupants[index]
             pose = f"{stand}-{supporter}"
-            person = tiles[supporter].copy()
+            person = tiles[supporter]
             marks = landmarks[pose]
             origin, knee = place(person, pose, anchor, direction, marks, footprint)
             alpha = checked_pixels(person, origin, mask, bay, pose)
@@ -171,38 +163,45 @@ def build_angle(stand, layout, atlas, palette, landmarks, mask, bay, supports):
             seat = {"supporter": supporter, "pose": pose, "column": COLUMNS.index(pose),
                     "plankId": plank_id, "slot": point(anchor), **point(anchor), "knee": point(knee),
                     "origin": point(origin), "neutral": supporter == "pie"}
-            prepared.append((max(y for _, y in alpha), seat, person, origin, alpha, face, gesture,
-                             row.get("boardFace"), footprint))
+            prepared.append((max(y for _, y in alpha), seat, person, origin, alpha, face | gesture))
 
     if len(slots) != 9 or len({(s["slot"]["x"], s["slot"]["y"]) for s in slots}) != 9:
         raise ValueError(f"{stand} needs nine unique planned places")
     if sorted(p[1]["supporter"] for p in prepared) != sorted(CAST):
         raise ValueError(f"{stand} must show the horn, clapper and pie supporter once each")
 
-    # Fit the face, gesture and complete silhouette before clearing any visible pixels.
+    # Vacancies also need an entire pose that fits their plank and bay mask.
+    for anchor, footprint in vacancies:
+        for supporter in CAST:
+            pose = f"{stand}-{supporter}"
+            try:
+                origin, _ = place(tiles[supporter], pose, anchor, direction, landmarks[pose], footprint)
+                checked_pixels(tiles[supporter], origin, mask, bay, pose)
+            except ValueError:
+                continue
+            break
+        else:
+            raise ValueError(f"{stand} has an unsupported vacant seat at {anchor}")
+
+    # Composite only after every full silhouette has passed the mask check.
     crowd = Image.new("RGBA", size)
-    protected, occupied, upper = set(), set(), set()
+    protected, occupied, rail_protected = set(), set(), set()
     seats = []
     prepared.sort(key=lambda entry: entry[0])
-    for _, seat, person, origin, original, face, gesture, board_face, footprint in prepared:
-        hidden = tuck(person, origin, original, board_face, footprint)
-        visible = original - hidden
-        if any(y <= seat["y"] for _, y in hidden):
-            raise ValueError(f"{seat['pose']} bench face may occlude only below the hip")
-        if (face | gesture) & hidden or visible & protected:
+    for _, seat, person, origin, visible, features in prepared:
+        if visible & protected:
             raise ValueError(f"{seat['pose']} obscures a face or gesture")
         crowd.alpha_composite(person, origin)
         occupied.update(visible)
-        protected.update(face | gesture)
-        upper.update(p for p in visible if p[1] <= seat["y"])
-        seat["behindSeatPixels"] = len(hidden)
+        protected.update(features)
+        rail_protected.update(visible if facing == "back" else (p for p in visible if p[1] <= seat["y"]))
         seats.append(seat)
 
     rail = handrail(size, layout["rail"])
     rail_pixels = checked_pixels(rail, (0, 0), mask, bay, f"{stand} rail")
     covered = rail_pixels & occupied
-    if covered & (protected | upper):
-        raise ValueError(f"{stand} rail may occlude only lower bodies")
+    if covered & (protected | rail_protected):
+        raise ValueError(f"{stand} rail overlaps a protected part of the crowd")
     return crowd, rail, {"id": stand, "label": layout["label"], "bayId": bay_id,
                          "facing": facing, "capacity": len(slots), "slots": slots, "seats": seats,
                          "railOverlapPixels": len(covered)}

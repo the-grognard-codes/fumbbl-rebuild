@@ -14,9 +14,11 @@ python -B assets/game/references/stadiums/scale-studies/build-empty-seating.py -
 
 ## North and south supporter angles
 
-The [six full poses](end-stands/artist-reference.webp) show the dwarf with the horn, the clapping supporter and the halfling with the pie. The [native sheet](end-stands/supporters.png) has six 48 × 48 cells in one strip. Its first three cells face the viewer from the north stand and its last three face away from the viewer from the south stand. The figures measure 35, 37 and 33 pixels tall in both directions. The primary and secondary cloth use the west cast’s 1–16 and 17–32 palette indices. Every visible halfling pixel has a fixed colour. [Generation prompt and sheet order](end-stands/generation.json)
+The six drawings show the dwarf with the horn, the clapping supporter and the halfling with the pie. The native sheet has six 48 × 48 cells in one strip. The first three figures face the viewer from the north stand and measure 35, 37 and 33 pixels tall. The three rear views end at the seat of the trousers and measure 28, 30 and 26 pixels. The primary and secondary cloth use the west cast’s 1–16 and 17–32 palette indices. The trousers beneath the rear coat hems and the halfling’s entire outfit use fixed colours. [Artist reference](end-stands/artist-reference.webp) · [Native sheet](end-stands/supporters.png) · [Generation prompts and sheet order](end-stands/generation.json)
 
-The [seat plan](end-stands/layout.json) gives permanent, bay-local hip anchors. The [landmarks](end-stands/pose-landmarks.json) give native hip, knee, head and visible gesture positions. The south knee projects under the tunic. The south bench face covers the portions of each lower leg behind the painted timber. The handrail has its own transparent insert. Run the following from the repository root with Pillow to reproduce and check both bay inserts.
+The seat plan gives hip anchors relative to each bay. The landmarks locate each hip, knee, head and visible gesture. The south knee projects under the tunic. Each rear sprite ends in one continuous curve resting on the measured plank top, including when the separate handrail is hidden. [Seat plan](end-stands/layout.json) · [Landmarks](end-stands/pose-landmarks.json)
+
+Run these commands from the repository root with Pillow to reproduce and check both bay inserts.
 
 ```text
 python -B assets/game/references/stadiums/scale-studies/end-stands/build.py

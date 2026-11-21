@@ -90,8 +90,7 @@
           "x": 14,
           "y": -8
         },
-        "neutral": false,
-        "behindSeatPixels": 0
+        "neutral": false
       },
       {
         "supporter": "pie",
@@ -112,8 +111,7 @@
           "x": 86,
           "y": -8
         },
-        "neutral": true,
-        "behindSeatPixels": 0
+        "neutral": true
       },
       {
         "supporter": "clap",
@@ -134,8 +132,7 @@
           "x": 48,
           "y": 16
         },
-        "neutral": false,
-        "behindSeatPixels": 0
+        "neutral": false
       }
     ],
     "railOverlapPixels": 0
@@ -151,14 +148,14 @@
         "plankId": 122,
         "slot": {
           "x": 47,
-          "y": 26
+          "y": 25
         }
       },
       {
         "plankId": 122,
         "slot": {
           "x": 86,
-          "y": 26
+          "y": 25
         }
       },
       {
@@ -231,8 +228,7 @@
           "x": 108,
           "y": -13
         },
-        "neutral": true,
-        "behindSeatPixels": 61
+        "neutral": true
       },
       {
         "supporter": "horn",
@@ -253,8 +249,7 @@
           "x": 23,
           "y": 10
         },
-        "neutral": false,
-        "behindSeatPixels": 49
+        "neutral": false
       },
       {
         "supporter": "clap",
@@ -275,10 +270,9 @@
           "x": 59,
           "y": 33
         },
-        "neutral": false,
-        "behindSeatPixels": 41
+        "neutral": false
       }
     ],
-    "railOverlapPixels": 10
+    "railOverlapPixels": 0
   }
 ]

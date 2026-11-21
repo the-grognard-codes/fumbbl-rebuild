@@ -2,7 +2,7 @@
   "north-horn": {"contact": [20, 33], "knee": [20, 37], "face": [19, 15, 28, 21], "gesture": [31, 17, 35, 23]},
   "north-clap": {"contact": [20, 32], "knee": [20, 37], "face": [23, 16, 29, 21], "gesture": [24, 24, 29, 28]},
   "north-pie": {"contact": [20, 33], "knee": [20, 37], "face": [19, 18, 27, 24], "gesture": [21, 25, 27, 28]},
-  "south-horn": {"contact": [20, 37], "knee": [20, 34], "face": [19, 14, 28, 19], "gesture": [13, 17, 16, 23]},
-  "south-clap": {"contact": [20, 37], "knee": [20, 34], "face": [20, 13, 30, 21], "gesture": [28, 23, 31, 26]},
-  "south-pie": {"contact": [20, 37], "knee": [20, 34], "face": [19, 16, 28, 22]}
+  "south-horn": {"contact": [20, 37], "knee": [20, 34], "seatEdgeY": 38, "face": [19, 14, 28, 19], "gesture": [13, 17, 16, 23]},
+  "south-clap": {"contact": [20, 37], "knee": [20, 34], "seatEdgeY": 38, "face": [20, 13, 30, 21], "gesture": [28, 23, 31, 26]},
+  "south-pie": {"contact": [20, 37], "knee": [20, 34], "seatEdgeY": 38, "face": [19, 16, 28, 22]}
 }

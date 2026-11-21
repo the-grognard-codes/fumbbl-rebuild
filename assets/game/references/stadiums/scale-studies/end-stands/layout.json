@@ -11,9 +11,9 @@
     "label": "South stand · Back view",
     "rail": [25, 73, 144],
     "rows": [
-      {"plank": "row-2", "anchors": [[47, 26], [86, 26], [128, 24]], "occupants": {"2": "pie"}, "boardFace": [31, 27, 149, 33]},
-      {"plank": "row-3", "anchors": [[43, 47], [83, 47], [124, 47]], "occupants": {"0": "horn"}, "boardFace": [15, 51, 149, 56]},
-      {"plank": "row-4", "anchors": [[39, 70], [79, 70], [122, 70]], "occupants": {"1": "clap"}, "boardFace": [12, 74, 149, 79]}
+      {"plank": "row-2", "anchors": [[47, 25], [86, 25], [128, 24]], "occupants": {"2": "pie"}},
+      {"plank": "row-3", "anchors": [[43, 47], [83, 47], [124, 47]], "occupants": {"0": "horn"}},
+      {"plank": "row-4", "anchors": [[39, 70], [79, 70], [122, 70]], "occupants": {"1": "clap"}}
     ]
   }
 }
