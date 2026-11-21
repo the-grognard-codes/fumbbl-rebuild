@@ -9,6 +9,7 @@ const root = fileURLToPath(new URL('../', import.meta.url));
 const captures = process.env.STADIUM_MOCKUP_OUTPUT || resolve(root, '../.tools/stadium-mockup');
 const artwork = resolve(root, '../assets/game/references/stadiums/scale-studies');
 const studies = JSON.parse(await readFile(resolve(artwork, 'bay-six/seats.json'), 'utf8'));
+const ends = JSON.parse(await readFile(resolve(artwork, 'end-stands/placements.json'), 'utf8'));
 const [atlasPng, authoringPng] = await Promise.all(['supporter-kits.png', 'supporters.png'].map(file =>
   readFile(resolve(artwork, 'bay-six', file), 'base64')));
 const { ramps } = JSON.parse(await readFile(resolve(artwork, '../../../team-colors/v1/delivery/manifest.json'), 'utf8'));
@@ -161,6 +162,127 @@ async function verifyFullRoster(page) {
   await roster.waitFor({ state: 'hidden' });
 }
 
+async function verifyEndStands(page, original) {
+  const picker = page.getByLabel('Gallery view');
+  const rail = page.getByRole('checkbox', { name: 'Front rail' });
+  const markers = page.getByRole('checkbox', { name: 'Seat markers' });
+  const stadium = page.locator('canvas[data-ready="true"]');
+  const review = page.getByRole('region', { name: 'North and south stands' });
+  assert.deepEqual(ends.map(({ id, bayId, facing }) => [id, bayId, facing]), [
+    ['north', 1, 'front'], ['south', 12, 'back'],
+  ]);
+  const sections = await Promise.all(ends.map(async end => {
+    assert.equal(end.capacity, 9);
+    assert.equal(new Set(end.slots.map(seatKey)).size, 9);
+    assert.equal(new Set(end.seats.map(seatKey)).size, 3);
+    const available = new Set(end.slots.map(seatKey));
+    assert.ok(end.seats.every(seat => available.has(seatKey(seat))));
+    const bounds = layout.bays.find(({ id }) => id === end.bayId);
+    const [crowd, railArt] = await Promise.all([end.id + '.png', end.id + '-rail.png']
+      .map(name => readFile(resolve(artwork, 'end-stands', name), 'base64')));
+    return { ...end, bounds, crowd, railArt };
+  }));
+
+  async function verifyDraw(withRail) {
+    return stadium.evaluate(async (full, { sections, original, withRail }) => {
+      async function decode(src) {
+        const image = new Image();
+        image.src = src;
+        await image.decode();
+        return image;
+      }
+      function surface(width, height) {
+        const canvas = document.createElement('canvas');
+        canvas.width = width;
+        canvas.height = height;
+        return canvas.getContext('2d');
+      }
+      const ground = await decode(original);
+      const frame = full.getContext('2d');
+      const groundSurface = surface(full.width, full.height);
+      groundSurface.drawImage(ground, 0, 0);
+      return Promise.all(sections.map(async ({ id, bounds, crowd, railArt }) => {
+        const { x, y, width, height } = bounds;
+        const expected = surface(width, height);
+        const [people, guard] = await Promise.all([crowd, railArt].map(data => decode('data:image/png;base64,' + data)));
+        expected.drawImage(ground, -x, -y);
+        expected.drawImage(people, 0, 0);
+        if (withRail) expected.drawImage(guard, 0, 0);
+        const actual = frame.getImageData(x, y, width, height).data;
+        if (!expected.getImageData(0, 0, width, height).data.every((value, i) => value === actual[i])) {
+          throw Error(id + ' uses incorrect stand or rail art');
+        }
+
+        const native = document.querySelector('#end-' + id + '-native-canvas');
+        const zoom = document.querySelector('#end-' + id + '-zoom-canvas');
+        const pitchY = id === 'north' ? 169 : 969;
+        const frameY = id === 'north' ? y - 12 : pitchY - 8;
+        const nativePixels = frame.getImageData(x - 12, frameY, native.width, native.height).data;
+        const nativeContext = native.getContext('2d');
+        if (!nativeContext.getImageData(0, 0, native.width, native.height).data.every((value, i) => value === nativePixels[i])) {
+          throw Error(id + ' native crop is not an exact stadium crop');
+        }
+        const turf = groundSurface.getImageData(156, pitchY, 32, 32).data;
+        const withBlitzer = nativeContext.getImageData(156 - (x - 12), pitchY - frameY, 32, 32).data;
+        if (turf.filter((value, i) => value !== withBlitzer[i]).length < 100) throw Error(id + ' native crop is missing its blitzer');
+
+        const detailWidth = width + 16;
+        const detailHeight = height + 16;
+        if (zoom.width !== detailWidth * 4 || zoom.height !== detailHeight * 4) throw Error(id + ' has the wrong pixel zoom');
+        const detail = frame.getImageData(x - 8, y - 8, detailWidth, detailHeight).data;
+        const pixels = zoom.getContext('2d').getImageData(0, 0, zoom.width, zoom.height).data;
+        for (let yy = 0; yy < zoom.height; yy++) {
+          for (let xx = 0; xx < zoom.width; xx++) {
+            const source = (Math.floor(yy / 4) * detailWidth + Math.floor(xx / 4)) * 4;
+            const target = (yy * zoom.width + xx) * 4;
+            if (detail.subarray(source, source + 4).some((value, i) => value !== pixels[target + i])) {
+              throw Error(id + ' detail crop does not replicate native pixels');
+            }
+          }
+        }
+        return expected.canvas.toDataURL();
+      }));
+    }, { sections, original, withRail });
+  }
+
+  await picker.selectOption('ends');
+  await page.getByLabel('Gatehouse stadium with north and south supporters').waitFor();
+  await review.getByText('3 of 9 occupied per bay', { exact: true }).waitFor();
+  const reference = review.getByRole('link', { name: 'View six full poses', exact: true });
+  assert.ok(await reference.isVisible());
+  const servedReference = await page.request.get(await reference.evaluate(link => link.href));
+  assert.equal(servedReference.status(), 200);
+  assert.match(servedReference.headers()['content-type'], /^image\/webp/);
+  assert.deepEqual(await servedReference.body(), await readFile(resolve(artwork, 'end-stands/artist-reference.webp')));
+  for (const name of ['North stand · Front view', 'South stand · Back view']) {
+    await review.getByRole('heading', { name, exact: true }).waitFor();
+  }
+  assert.equal(await rail.isChecked(), true);
+  assert.equal(await markers.isChecked(), false);
+  const withRail = await verifyDraw(true);
+  await review.screenshot({ path: resolve(captures, 'end-stands-review.png') });
+  await stadium.screenshot({ path: resolve(captures, 'end-stands-full.png') });
+  await rail.uncheck();
+  const withoutRail = await verifyDraw(false);
+  for (const [i, { id }] of sections.entries()) assert.notEqual(withRail[i], withoutRail[i], id + ' changes when rail is toggled');
+  await rail.check();
+  await markers.check();
+  assert.equal(await stadium.evaluate((full, sections) => {
+    const frame = full.getContext('2d');
+    return sections.every(({ bounds, slots, seats }) => {
+      const color = ({ x, y }) => frame.getImageData(bounds.x + x, bounds.y + y, 1, 1).data.join(',');
+      const key = ({ slot, plankId }) => plankId + ':' + slot.x + ',' + slot.y;
+      const occupied = new Set(seats.map(key));
+      return seats.every(seat => color(seat) === '128,245,255,255' && color(seat.knee) === '255,225,123,255') &&
+        slots.every(slot => occupied.has(key(slot)) ||
+          color({ x: slot.slot.x - 1, y: slot.slot.y - 1 }) === '212,205,193,255');
+    });
+  }, sections), true, 'Both ends show three contacts and six vacant seat markers');
+  await review.screenshot({ path: resolve(captures, 'end-stands-guides.png') });
+  await markers.uncheck();
+  assert.deepEqual(await verifyDraw(true), withRail);
+}
+
 await mkdir(captures, { recursive: true });
 const server = await createServer({ root, server: { host: '127.0.0.1', port: 0 } });
 await server.listen();
@@ -188,7 +310,7 @@ try {
     .map(({ id }) => identity(id)).sort(), ['chestnuts', 'mug', 'pie']);
   assert.equal(posesManifest.filter(({ wardrobe }) => wardrobe === 'team').length, 9);
   assert.deepEqual(await select.locator('option').allTextContents(),
-    ['A · 100% full', 'B · 66% full', 'C · 33% full', 'Empty stadium', 'Show seating masks']);
+    ['A · 100% full', 'B · 66% full', 'C · 33% full', 'North and south · 33%', 'Empty stadium', 'Show seating masks']);
   const rail = page.getByRole('checkbox', { name: 'Front rail' });
   const markers = page.getByRole('checkbox', { name: 'Seat markers' });
   const benches = page.getByRole('checkbox', { name: 'Bench tops' });
@@ -543,6 +665,16 @@ try {
   assert.equal(await benches.isChecked(), true);
   await benches.uncheck();
   await page.waitForFunction(src=>document.querySelector('canvas').toDataURL()===src,original);
+  await verifyEndStands(page, original);
+  await page.goto(url + '?view=ends');
+  await canvas.waitFor();
+  assert.equal(await select.inputValue(), 'ends');
+  await page.getByRole('region', { name: 'North and south stands' }).waitFor();
+  await page.setViewportSize({ width: 360, height: 800 });
+  assert.equal(await page.locator('.bay-six-zoom').evaluateAll(elements =>
+    elements.length === 2 && elements.every(element => element.scrollWidth > element.clientWidth) &&
+    document.documentElement.scrollWidth === window.innerWidth), true);
+  await page.setViewportSize({ width: 1200, height: 960 });
   await page.goto(url+'?view=scale');
   await canvas.waitFor();
   assert.equal(await select.inputValue(), 'b');
@@ -553,7 +685,7 @@ try {
   await page.getByText(rosterLabel, { exact: true }).click();
   assert.equal(await page.locator('.bay-six-zoom').evaluate(element =>
     element.scrollWidth > element.clientWidth && document.documentElement.scrollWidth === window.innerWidth), true);
-  console.log('Bay 6 nine seats, default 66% attendance, 12 poses, fixed slots, exact crops, rail and guides passed.');
+  console.log('West and end stand attendance, both end faces, exact crops on one pitch, rail controls and all seat markers passed.');
 } finally {
   await browser?.close();await server.close();
 }

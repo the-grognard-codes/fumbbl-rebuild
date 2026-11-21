@@ -12,6 +12,17 @@ To obtain a native 790 × 1188 grayscale PNG for an art editor, run the followin
 python -B assets/game/references/stadiums/scale-studies/build-empty-seating.py --export-bench-mask gatehouse-plank-ids.png
 ```
 
+## North and south supporter angles
+
+The [six full poses](end-stands/artist-reference.webp) show the dwarf with the horn, the clapping supporter and the halfling with the pie. The [native sheet](end-stands/supporters.png) has six 48 × 48 cells in one strip. Its first three cells face the viewer from the north stand and its last three face away from the viewer from the south stand. The figures measure 35, 37 and 33 pixels tall in both directions. The primary and secondary cloth use the west cast’s 1–16 and 17–32 palette indices. Every visible halfling pixel has a fixed colour. [Generation prompt and sheet order](end-stands/generation.json)
+
+The [seat plan](end-stands/layout.json) gives permanent, bay-local hip anchors. The [landmarks](end-stands/pose-landmarks.json) give native hip, knee, head and visible gesture positions. The south knee projects under the tunic. The south bench face covers the portions of each lower leg behind the painted timber. The handrail has its own transparent insert. Run the following from the repository root with Pillow to reproduce and check both bay inserts.
+
+```text
+python -B assets/game/references/stadiums/scale-studies/end-stands/build.py
+python -B assets/game/references/stadiums/scale-studies/end-stands/test_build.py
+```
+
 ## West bay 6 supporter proofs
 
 The [crowd builder](bay-six/build.py) assigns three permanent seats to each of planks 61, 62 and 63. At 100%, 66% and 33% attendance, each bench holds three, two and one supporter respectively. The same nine anchors also locate empty seats in the gallery. Returning supporters keep their seat and wardrobe. A supporter can stand when the next seat above them on their plank is vacant. When that seat fills, they sit. One third of the occupied seats have fixed neutral outfits at every attendance. Each layout exports as one transparent section image.

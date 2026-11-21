@@ -1,0 +1,38 @@
+{
+  "generator": "OpenAI built-in ImageGen",
+  "sourceImageId": "7c59a4f6-67c1-461c-ba37-173c9f3f42b5",
+  "styleReference": "../bay-six/cast-reference.webp",
+  "prompt": "Use case: identity-preserve. Make a brand-new six-sprite turnaround sheet for the attached approved fantasy spectator cast. Match the identity, strong readable chibi 16-bit illustration silhouettes, facial proportions, accessories, clean dark outlines, light from upper left, saturated teal primary and violet secondary cloth of the reference. THREE equal columns by TWO equal rows, transparent true alpha, all SIX isolated figures have generous empty margins, absolutely no labels, seats, shadows, ground or background. Wide canvas 3:2. All are SITTING on an invisible horizontal bench, thighs horizontal, knees bent 90 degrees, lower legs hang down. Whole heads to soles intact. Same orthographic game camera for both rows, slightly raised 15–20 degrees, enough to see the crown, shoulders, tops of thighs. They are full-body action-figure turnarounds, game-readable at only 33–37 pixels tall. Entire torso, pelvis, feet square to each end stand. Top row faces directly TOWARD viewer (south). Bottom row is a proper 180-degree turn of these same sitting people seen from directly BEHIND (north): backs, napes, heels, distinct seat-bottom and hanging heels below coat, no faces or front-facing knee panels on the backs. Keep size and clothes consistent between the rows. Col 1: the reference's old stout silver-white swept-haired copper-red twin-braided beard dwarf from its top row third sprite. Turquoise teal embroidered tunic, small violet shoulder cape, brown pants and walnut buckled boots; carries a small ivory drinking horn in his LEFT hand, visible to screen RIGHT on front, LEFT on back. Laughs, looking straight out in front row. Full hair/back of violet cape in back row, copper beard visible only at side edges. Col 2: the reference's clapping medium-brown woman from its second row second sprite. Lively smile, dark high bun with stunning single silver streak, ochre ribbon, gold hoops, teal belted tunic, violet neck scarf, grey trousers and dark grey ankle boots, two separate hands mid-clap. Both versions turn only the HEAD a LITTLE toward the viewer's RIGHT while both shoulders remain square to camera. In back view show one ear plus a sliver of right cheek only, bun and streak dominate. Col 3: the barefoot small adult halfling from its second row first sprite: curly chestnut hair, brown waistcoat, rolled ivory sleeves, olive-brown trousers and short hairy bare feet. He looks down at a small hand pie held between two hands, wears strictly neutral warm colors. Back view see back of curly head, brown waistcoat, elbows and bare heels; pie may be naturally hidden. Highest priority: separately drawn front-facing and BACK-facing seated figures, clean anatomical legs, all six bodies separate, same three unique identities. No new characters or other angles.",
+  "reference": "artist-reference.webp",
+  "indexedSheet": "supporters.png",
+  "cellSize": [
+    48,
+    48
+  ],
+  "columns": [
+    "north-horn",
+    "north-clap",
+    "north-pie",
+    "south-horn",
+    "south-clap",
+    "south-pie"
+  ],
+  "figureHeights": [
+    35,
+    37,
+    33,
+    35,
+    37,
+    33
+  ],
+  "transparentIndex": 0,
+  "primaryRange": [
+    1,
+    16
+  ],
+  "secondaryRange": [
+    17,
+    32
+  ],
+  "fixedRangeStart": 33
+}

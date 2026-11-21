@@ -83,6 +83,9 @@
 .bay-six-crops figcaption { margin-bottom: 6px; color: #baccbf; font-size: .875rem; }
 .bay-six-crops canvas { display: block; image-rendering: pixelated; }
 .bay-six-zoom { max-width: max-content; overflow-x: auto; }
+.end-stand-reference { color: #c1e9ff; font-size: .875rem; text-underline-offset: 3px; }
+.end-stand-review + .end-stand-review { margin-top: 20px; }
+.end-stand-review h3 { margin: 12px 0 8px; font-size: 1.125rem; }
 .bay-six-poses { margin-top: 12px; }
 .bay-six-poses summary { width: max-content; padding: 6px 0; color: #c1e9ff; cursor: pointer; }
 .bay-six-poses ol { display: flex; flex-wrap: wrap; gap: 12px; margin: 8px 0 0; padding: 0; list-style: none; }

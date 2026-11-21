@@ -1,0 +1,19 @@
+{
+  "north": {
+    "label": "North stand · Front view",
+    "rail": [15, 66, 141],
+    "rows": [
+      {"plank": "row-2", "anchors": [[34, 25], [58, 25], [82, 25], [106, 25], [130, 25]], "occupants": {"0": "horn", "3": "pie"}},
+      {"plank": "row-3", "anchors": [[38, 48], [68, 48], [99, 48], [130, 48]], "occupants": {"1": "clap"}}
+    ]
+  },
+  "south": {
+    "label": "South stand · Back view",
+    "rail": [25, 73, 144],
+    "rows": [
+      {"plank": "row-2", "anchors": [[47, 26], [86, 26], [128, 24]], "occupants": {"2": "pie"}, "boardFace": [31, 27, 149, 33]},
+      {"plank": "row-3", "anchors": [[43, 47], [83, 47], [124, 47]], "occupants": {"0": "horn"}, "boardFace": [15, 51, 149, 56]},
+      {"plank": "row-4", "anchors": [[39, 70], [79, 70], [122, 70]], "occupants": {"1": "clap"}, "boardFace": [12, 74, 149, 79]}
+    ]
+  }
+}

@@ -23,6 +23,8 @@ The earlier modular gallery split crowds into bands. Its overhead rendering show
 
 The native frame is 1024 × 1536 at 32 pixels per square. The playable rectangle starts at (272, 352) and ends just before (752, 1184). The raw paintings extended grass into the apron. A painted ochre ground sample fills the excess grass and the original grass fills the exact playable rectangle at 80% contrast. All source rasters and final pixels are native size. The preparation script works on the complete still, and lives beside the lossless source images, prompts and input references. [Layout capture](../../assets/game/references/stadiums/round-four/layout-base.png) · [Generation record](../../assets/game/references/stadiums/round-four/generation.json) · [Ground preparation](../../assets/game/references/stadiums/round-four/prepare.py)
 
+The original 640 × 960 neutral-clothing preview is archived alongside its full-size approved painting. [Historical preview](https://github.com/the-grognard-codes/moles-under-the-pitch/blob/8d27925bb2445ff7bc0e01b42be457c7d14b937f/assets/game/references/stadiums/round-four/neutral-crowd-preview.webp)
+
 ### Review gallery and validation
 
 From `browser-client`, run `npm run dev:stadium` and open `/stadium-mockup`. Full-resolution stills are also linked above. The gallery exercises both coach ends, pan and zoom, Human and Orc teams and colour pairs. Delivery excludes review assets. The UI drivers write evidence under the ignored `.tools/` directory.

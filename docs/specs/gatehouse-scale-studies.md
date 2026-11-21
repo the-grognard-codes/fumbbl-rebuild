@@ -1,5 +1,15 @@
 # Gatehouse scale and colour studies
 
+## North and south · 33% attendance
+
+Open `/stadium-mockup?view=ends` to see the same three seated supporters from opposite ends of one pitch. The north stand shows faces, knees and hanging boots. The south stand shows backs, shoulders and the timber in front of the lower legs. The clapping supporter turns her head a little toward midfield in both views. The dwarf watches straight ahead with his horn, and the halfling holds his pie. The blitzer at each goal line uses the same scale as the west-bay comparison.
+
+![North and south stands at native size beside a blitzer and at 2× detail](../../assets/game/references/stadiums/scale-studies/end-stands/on-pitch.webp)
+
+Each bay has three of nine places occupied, including one fixed neutral outfit. North bay 1 has room for complete seated figures on two inner planks, with five and four places. The top and bottom planks have too little clearance for a full silhouette. South bay 12 has three usable planks with three places each. **Seat markers** shows the occupied and vacant places. **Front rail** toggles the rail independently of the painted bench edge. **View six full poses** opens the drawings with the legs and feet exposed. [Artist sheet](../../assets/game/references/stadiums/scale-studies/end-stands/artist-reference.webp)
+
+The seating checks validate each complete source against its bay before the foreground covers any pixels. Native and 4× browser views confirmed the head turns, timber contact and rear occlusion. These two drawings per supporter keep the bodies square to the pitch. The west-facing cast remains the side-view reference for later stands.
+
 ## West bay 6 · Crowd density review
 
 West bay 6 has nine seats arranged across three benches. The gallery opens at 66% attendance with two supporters on each bench. Select 100% to see all nine places filled or 33% to see one supporter per bench. The same blitzer stands at the touchline in every view for a game-scale comparison.
