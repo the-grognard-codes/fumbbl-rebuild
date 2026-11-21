@@ -154,6 +154,48 @@ try {
   await opener.click(); await menu.getByRole('tab', { name: 'Game Options', exact: true }).click();
   assert.equal(await menu.getByRole('button', { name: 'Request Match Pause', exact: true }).isDisabled(), true);
   assert.equal(await menu.getByRole('button', { name: 'Concede match', exact: true }).isDisabled(), true);
+  await page.keyboard.press('Escape');
+
+  // The kickoff splash is presented before the pitch advances to the regular turn.
+  const defending = { ...state, matchId: 'solid-defence-splash', revision: 0, phase: 'PLAY',
+    callerRole: 'home', actor: 'away', turnMode: 'SOLID_DEFENCE', actions: [], prompt: null,
+    kickoff: { version: 1, event: 'SOLID_DEFENCE', actor: 'away', stage: 'movement', allowed: 5, completed: 0, selected: 5 } };
+  const playing = { ...defending, revision: 1, turnMode: 'REGULAR', kickoff: null };
+  await page.evaluate(view => { window.hudRecords = []; window.publishHud(view); }, defending);
+  await banner.waitFor();
+  assert.match(await banner.textContent(), /Redeploy the selected players/);
+  await page.evaluate(({ defending, playing }) => {
+    window.hudRecords = [
+      { index: 0, revision: 0, kind: 'START', actor: 'system', at: 0, decision: null, state: defending, native: [] },
+      { index: 1, revision: 1, kind: 'ACTION', actor: 'away', at: 1, decision: null, state: playing,
+        native: [{ commandNr: 1, matchAnnouncements: { version: 1, events: [
+          { kind: 'kickoff', team: 'away', turn: 4, half: 2, reason: 'The kicking team may setup D3+3 of its players again.',
+            headline: 'Solid Defence', code: 'SOLID_DEFENCE', teamSpecific: true }
+        ] } }] }
+    ];
+    window.publishHud(playing);
+  }, { defending, playing });
+  const splash = page.locator('.match-splash-kickoff');
+  await splash.waitFor();
+  assert.equal(await banner.count(), 0, 'The previous step does not overlap the kickoff splash');
+  if (evidence) await page.screenshot({ path: `${evidence}/solid-defence-splash.png`, animations: 'disabled' });
+  await page.keyboard.press('Escape');
+  await splash.waitFor({ state: 'detached' });
+  assert.equal(await banner.count(), 0, 'The completed step does not flash between the exit and regular play');
+
+  await page.evaluate(view => {
+    window.publishHud({ ...view, saveResume: { status: 'ABANDONED', proposalId: null, proposer: null, expiresAt: null } });
+  }, playing);
+  const abandoned = page.getByRole('alert').filter({ hasText: 'This match was abandoned and can no longer be resumed.' });
+  for (const [width, height] of [[1237, 617], [640, 330]]) {
+    await page.setViewportSize({ width, height });
+    await abandoned.waitFor();
+    await opener.click();
+    await menu.getByRole('tab', { name: 'Game Options' }).click();
+    assert.equal(await menu.getByRole('button', { name: 'Concede match', exact: true }).isDisabled(), true);
+    assert.equal(await menu.getByRole('button', { name: 'Request Match Pause', exact: true }).count(), 0);
+    await page.keyboard.press('Escape');
+  }
   assert.deepEqual(await page.evaluate(() => window.hudIntents), [], 'Presentation checks submitted no game actions');
   assert.deepEqual(errors, []);
   console.log('PASS: MUTP menu across six tabs/four viewports, keyboard focus, log sizes, live preferences/reading position, reload and denied storage; setup/kickoff-only broadcasts with intact dedicated decisions.');

@@ -82,7 +82,7 @@ rendered non-secret configuration with the results.
    Reuse authorized local secret files through environment variables, without
    printing their contents or copying credentials into evidence.
 3. Build the server, start only this project's database, run its schema-bootstrap
-   service, and start its server. Confirm schema marker 9 and server health.
+   service, and start its server. Confirm schema marker 10 and server health.
    Do not change the shared stack or its managed-state file.
 4. Copy the local Hosting artifact into an ignored directory. Set its public
    gameWebSocketUrl to ws://127.0.0.1:22236/browser/v2. Start an owned proxy from

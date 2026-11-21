@@ -29,13 +29,9 @@ final class RetainedConcession {
     boolean unsupported() {
         int version = payload.getInt("recoveryVersion", -1);
         String runtime = payload.getString("runtimeVersion", "");
-        boolean supported = version == 2 && (SetupSession.LEGACY_RUNTIME.equals(runtime) || SetupSession.DEFAULT_SETUP_RUNTIME.equals(runtime))
-            || version == 3 && SetupSession.SAVE_RESUME_RUNTIME.equals(runtime)
-            || version == 4 && SetupSession.TRANSCRIPT_RUNTIME.equals(runtime)
-            || version == 5 && SetupSession.ROUTE_RUNTIME.equals(runtime)
-            || version == 6 && SetupSession.CHAT_RUNTIME.equals(runtime);
-        return !supported || !CompletedMatch.ENGINE_VERSION.equals(payload.getString("engineVersion", null))
-            || payload.getInt("replayVersion", -1) != (version >= 4 ? 2 : 1);
+        return version != SetupSession.STAGED_RECOVERY_VERSION || !SetupSession.STAGED_RUNTIME.equals(runtime)
+            || !CompletedMatch.ENGINE_VERSION.equals(payload.getString("engineVersion", null))
+            || payload.getInt("replayVersion", -1) != 2;
     }
 
     JsonObject view(String role) {

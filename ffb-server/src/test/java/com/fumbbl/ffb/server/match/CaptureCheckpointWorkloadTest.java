@@ -28,28 +28,14 @@ class CaptureCheckpointWorkloadTest {
 	@Test void longMatchColdLoadAndBudgetRefusedWriteReconcileAtTheDurableRevision() throws Exception {
 		SetupSessionMovementTest.Fixture fixture = new SetupSessionMovementTest.Fixture(0, true);
 		JsonObject view = fixture.session.reply("opening", "ACCEPTED", false, "home").get("state").asObject();
-		for (int index = 0; !"SETUP".equals(view.getString("phase", null)) && index < 12; index++)
-			view = fixture.session.apply(view.getString("actor", null), next(fixture, view, index)).get("state").asObject();
-		assertEquals("SETUP", view.getString("phase", null));
 		String id = fixture.document.matchId;
-		String role = view.getString("actor", null);
-		view = fixture.session.reply("opening", "ACCEPTED", false, role).get("state").asObject();
-		String playerId = null;
-		JsonObject origin = null;
-		for (JsonValue value : view.get("players").asArray()) {
-			JsonObject player = value.asObject();
-			if (role.equals(player.getString("role", null)) && player.get("x").isNumber() && player.get("y").isNumber()) {
-				playerId = player.getString("id", null);
-				origin = new JsonObject().add("x", player.get("x")).add("y", player.get("y"));
-				break;
-			}
-		}
-		assertTrue(playerId != null, () -> "Expected a placed player in the setup projection");
-		JsonObject alternate = new JsonObject().add("x", "home".equals(role) ? 1 : 24).add("y", 0);
 		fixture.session.startSaveResumeRetention(System.currentTimeMillis());
-		for (int index = view.getInt("revision", 0); index < 268; index++) {
-			JsonObject request = placement(fixture, view, index, playerId, index % 2 == 0 ? alternate : origin);
-			view = fixture.session.apply(role, request).get("state").asObject();
+		for (int index = 0; index < 268; index++) {
+			JsonObject request = next(fixture, view, index, true);
+			JsonObject reply = fixture.session.apply(view.getString("actor", null), request);
+			assertEquals("ACCEPTED", reply.getString("code", null), request::toString);
+			view = reply.get("state").asObject();
+			assertEquals(index + 1, view.getInt("revision", -1), request::toString);
 		}
 		String base = fixture.session.recoveryArtifact();
 		assertTrue(base.getBytes(java.nio.charset.StandardCharsets.UTF_8).length >= 440 * 1024);
@@ -57,19 +43,22 @@ class CaptureCheckpointWorkloadTest {
 		BrowserRequestTiming timing = new BrowserRequestTiming();
 		Memory recovery = new Memory(new RecoveryRepository.Record(id, 268, base));
 		MatchService matches = mock(MatchService.class);
-		when(matches.load(role, id)).thenReturn(new MatchService.Result(fixture.document, false));
-		when(matches.loadForSetup(role, id)).thenReturn(new MatchService.Result(fixture.document, false));
+		for (String role : new String[] { "home", "away" }) {
+			when(matches.load(role, id)).thenReturn(new MatchService.Result(fixture.document, false));
+			when(matches.loadForSetup(role, id)).thenReturn(new MatchService.Result(fixture.document, false));
+		}
 		SetupApplication application = new SetupApplication(fixture.server, matches, recovery);
 		for (int index = 268; index < 275; index++) {
-			JsonObject request = placement(fixture, view, index, playerId, index % 2 == 0 ? alternate : origin);
-			JsonObject accepted = application.handle(role, request);
+			JsonObject request = next(fixture, view, index, true);
+			JsonObject accepted = application.handle(view.getString("actor", null), request);
 			assertEquals("ACCEPTED", accepted.getString("code", null));
 			view = accepted.get("state").asObject();
 		}
 		assertEquals(7, recovery.entries.size());
 		assertEquals(275, view.getInt("revision", -1));
 		long committed = recovery.generation;
-		JsonObject action = placement(fixture, view, 275, playerId, origin);
+		String role = view.getString("actor", null);
+		JsonObject action = next(fixture, view, 275, true);
 		JsonObject load = fixture.request("load", "cold-load", view).remove("expectedRevision");
 		CaptureRequestProbe probe = new CaptureRequestProbe();
 		recovery.beforeWrite = () -> {
@@ -96,10 +85,6 @@ class CaptureCheckpointWorkloadTest {
 		assertEquals(276, accepted.get("state").asObject().getInt("revision", -1));
 		assertTrue(probe.measure(action, nanos::get, () -> application.handle(role, action)).response().getBoolean("duplicate", false));
 		assertEquals(committed + 1, recovery.generation);
-	}
-
-	private JsonObject placement(SetupSessionMovementTest.Fixture fixture, JsonObject view, int index, String playerId, JsonObject square) {
-		return fixture.request("place", "long-" + index, view).add("playerId", playerId).add("to", square);
 	}
 
 	@Test void nativeActionsRemainRecoverableAcrossRepeatedJournalCompaction() throws Exception {
@@ -133,7 +118,7 @@ class CaptureCheckpointWorkloadTest {
 			int compactions = 0;
 			JsonArray samples = new JsonArray();
 			for (int index = 0; index < 36; index++) {
-				JsonObject request = next(fixture, view, index);
+				JsonObject request = next(fixture, view, index, false);
 				String browserFixture = System.getProperty("capture.browserFixture", System.getenv("CAPTURE_BROWSER_FIXTURE"));
 				if (browserFixture != null && repeat == 0 && "PLAY".equals(view.getString("phase", null))
 					&& "REGULAR".equals(view.getString("turnMode", null)) && !Files.exists(Path.of(browserFixture)))
@@ -202,7 +187,7 @@ class CaptureCheckpointWorkloadTest {
 		}
 	}
 
-	private JsonObject next(SetupSessionMovementTest.Fixture fixture, JsonObject view, int index) {
+	private JsonObject next(SetupSessionMovementTest.Fixture fixture, JsonObject view, int index, boolean usePlayers) {
 		JsonObject request = fixture.request("action", "capture-" + index, view);
 		if ("SETUP".equals(view.getString("phase", null))) return request.set("operation", "confirm");
 		if (!view.get("prompt").isNull()) {
@@ -210,10 +195,19 @@ class CaptureCheckpointWorkloadTest {
 			return request.set("operation", "choice").add("promptId", prompt.get("id"))
 				.add("optionId", "coin".equals(prompt.getString("kind", null)) ? "heads" : "receive");
 		}
-		JsonObject selected = null;
-		for (JsonValue value : view.get("actions").asArray())
-			if ("endTurn".equals(value.asObject().getString("kind", null))) selected = value.asObject();
-		if (selected == null) selected = view.get("actions").asArray().get(0).asObject();
-		return request.add("actionId", selected.get("id"));
+		JsonArray actions = view.get("actions").asArray();
+		for (String suffix : List.of(":decline-event", ":confirm-solid-defence", ":end-event")) {
+			for (JsonValue value : actions) {
+				JsonObject option = value.asObject();
+				if (option.getString("id", "").endsWith(suffix)) return request.add("actionId", option.get("id"));
+			}
+		}
+		boolean regular = "REGULAR".equals(view.getString("turnMode", ""));
+		List<String> preferred = usePlayers && regular ? List.of("endAction", "select", "endTurn") : List.of("endTurn");
+		for (String kind : preferred) for (JsonValue value : actions) {
+			JsonObject option = value.asObject();
+			if (kind.equals(option.getString("kind", ""))) return request.add("actionId", option.get("id"));
+		}
+		return request.add("actionId", actions.get(0).asObject().get("id"));
 	}
 }

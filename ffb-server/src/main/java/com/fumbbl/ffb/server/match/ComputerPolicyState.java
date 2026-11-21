@@ -9,6 +9,8 @@ import java.util.HashSet;
 /** Bounded private coach memory and progress observed from authoritative resolved states. */
 final class ComputerPolicyState {
 
+	private final String role;
+	private final boolean home;
 	private JsonValue policyState = JsonValue.NULL;
 	private String turnKey = "initial";
 	private int stalledTurns;
@@ -19,9 +21,14 @@ final class ComputerPolicyState {
 	private boolean hadPossession;
 	private boolean progressed;
 
-	ComputerPolicyState() { }
+	ComputerPolicyState(String role) {
+		if (!"home".equals(role) && !"away".equals(role)) throw new IllegalArgumentException("Invalid computer role");
+		this.role = role;
+		home = "home".equals(role);
+	}
 
-	ComputerPolicyState(JsonObject saved) {
+	ComputerPolicyState(String role, JsonObject saved) {
+		this(role);
 		exact(saved, "version", "policyState", "turnKey", "stalledTurns", "drive", "possession", "position",
 			"ownTurnOpen", "hadPossession", "progressed");
 		if (saved.getInt("version", -1) != 1) throw new IllegalArgumentException("Unsupported computer memory");
@@ -33,7 +40,7 @@ final class ComputerPolicyState {
 		possession = saved.get("possession").asString();
 		if (!Arrays.asList("none", "home", "away").contains(possession)) throw new IllegalArgumentException("Invalid possession");
 		position = saved.get("position").isNull() ? null : number(saved.get("position"), 0, 25);
-		if ((position != null) != "away".equals(possession)) throw new IllegalArgumentException("Invalid progress position");
+		if ((position != null) != role.equals(possession)) throw new IllegalArgumentException("Invalid progress position");
 		ownTurnOpen = saved.get("ownTurnOpen").asBoolean();
 		hadPossession = saved.get("hadPossession").asBoolean();
 		progressed = saved.get("progressed").asBoolean();
@@ -74,8 +81,9 @@ final class ComputerPolicyState {
 
 	/** Called for both teams, including automatic reactive deadlines; no policy request is necessary. */
 	void observe(JsonObject view, boolean normalHomePlaying) {
-		String nextKey = view.getInt("half", 1) + ":" + view.getInt("drive", 1) + ":" + view.getInt("awayTurn", 0);
 		int nextDrive = view.getInt("drive", 1);
+		int ownTurnNumber = view.getInt(home ? "homeTurn" : "awayTurn", 0);
+		String nextKey = view.getInt("half", 1) + ":" + nextDrive + ":" + ownTurnNumber;
 		if (drive != nextDrive) {
 			stalledTurns = 0; possession = "none"; position = null;
 			ownTurnOpen = false; hadPossession = false; progressed = false;
@@ -91,7 +99,10 @@ final class ComputerPolicyState {
 			JsonObject player = value.asObject();
 			if (carrier != null && carrier.equals(player.getString("id", null))) {
 				nextPossession = player.getString("role", "none");
-				if ("away".equals(nextPossession) && !player.get("x").isNull()) nextPosition = 25 - player.getInt("x", 25);
+				if (role.equals(nextPossession) && !player.get("x").isNull()) {
+					int x = player.get("x").asInt();
+					nextPosition = home ? x : 25 - x;
+				}
 			}
 		}
 		if (!possession.equals(nextPossession)) {
@@ -100,14 +111,14 @@ final class ComputerPolicyState {
 			stalledTurns = 0;
 			if (ownTurnOpen) progressed = true;
 		}
-		boolean ownTurn = !normalHomePlaying && "PLAY".equals(view.getString("phase", null))
-			&& view.getInt("awayTurn", 0) > 0 && view.get("kickoff") == null;
+		boolean ownTurn = home == normalHomePlaying && "PLAY".equals(view.getString("phase", null))
+			&& ownTurnNumber > 0 && view.get("kickoff") == null;
 		if (ownTurnOpen && (!ownTurn || !turnKey.equals(nextKey))) {
-			if ("away".equals(nextPossession) && hadPossession && !progressed) stalledTurns = Math.min(255, stalledTurns + 1);
+			if (role.equals(nextPossession) && hadPossession && !progressed) stalledTurns = Math.min(255, stalledTurns + 1);
 			ownTurnOpen = false; hadPossession = false; progressed = false;
 		}
 		if (ownTurn && !ownTurnOpen) { ownTurnOpen = true; progressed = false; }
-		if (ownTurn && "away".equals(nextPossession)) hadPossession = true;
+		if (ownTurn && role.equals(nextPossession)) hadPossession = true;
 		turnKey = nextKey;
 		possession = nextPossession;
 		position = nextPosition;

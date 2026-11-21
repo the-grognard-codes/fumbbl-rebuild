@@ -44,7 +44,7 @@ class BrowserSchemaMariaDbTest {
 			try (ResultSet tables = sql.executeQuery("SHOW TABLES")) { while (tables.next()) actual.add(tables.getString(1)); }
 			try (ResultSet version = sql.executeQuery("SELECT version FROM ffb_local_schema")) {
 				version.next();
-				assertEquals(9, version.getInt(1));
+				assertEquals(10, version.getInt(1));
 			}
 		}
 		assertEquals(new HashSet<>(Arrays.asList("ffb_local_schema", "ffb_saved_teams", "ffb_prepared_matches",

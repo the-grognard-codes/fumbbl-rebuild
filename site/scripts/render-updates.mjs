@@ -5,6 +5,10 @@ import { renderSiteHeader } from './site-header.mjs';
 
 const escape = value => String(value).replace(/[&<>"']/g, character => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[character]);
 const date = new Intl.DateTimeFormat('en-US', { timeZone: 'America/New_York', year: 'numeric', month: 'long', day: 'numeric' });
+const originalRepositoryUrl = 'https://github.com/the-grognard-codes/fumbbl-rebuild';
+const renamedRepositoryUrl = 'https://github.com/the-grognard-codes/moles-under-the-pitch';
+const liveRepositoryUrl = originalRepositoryUrl;
+const repositoryUrls = [originalRepositoryUrl, renamedRepositoryUrl];
 
 export function validateUpdates(entries) {
   if (!Array.isArray(entries) || !entries.length) throw Error('Updates must contain merged PR entries.');
@@ -12,7 +16,7 @@ export function validateUpdates(entries) {
   let previous = Infinity;
   for (const entry of entries) {
     if (!Number.isSafeInteger(entry.number) || entry.number < 1 || numbers.has(entry.number)
-      || entry.url !== `https://github.com/the-grognard-codes/fumbbl-rebuild/pull/${entry.number}`
+      || !repositoryUrls.some(url => entry.url === `${url}/pull/${entry.number}`)
       || !updateCategories.includes(entry.category) || typeof entry.title !== 'string' || !entry.title.trim()
       || typeof entry.summary !== 'string' || !entry.summary.trim() || !Number.isFinite(Date.parse(entry.mergedAt))
       || Date.parse(entry.mergedAt) > previous) throw Error(`Invalid or unsorted update: PR #${entry.number}`);
@@ -41,13 +45,14 @@ export function renderUpdatesPage(entries) {
   <main class="updates-page">
     <div class="updates-intro"><h1>Development</h1>
       <p>The learning, design and engineering behind Moles Under the Pitch, from its educational roots to the latest game improvements.</p>
-      <p class="development-links"><a href="#learning">Learning by building</a><a href="#history">Merged changes</a><a href="https://github.com/the-grognard-codes/fumbbl-rebuild">Source on GitHub</a></p>
+      <p class="development-links"><a href="#learning">Learning by building</a><a href="#history">Merged changes</a><a href="${liveRepositoryUrl}">Source on GitHub</a></p>
     </div>
     <section class="development-background" id="learning" aria-labelledby="learning-title">
       <h2 id="learning-title">Learning by building a game</h2>
       <p>MUTP began as an educational project exploring AI-assisted development. Building a browser game puts that learning into practice through interface design, BB2025 rules, testing and match recovery.</p>
       <p>The browser interface evolves alongside a retained Java game engine. Local development offers a place to explore both, with separate development and production sign-in environments. MUTP accounts and services remain separate from FUMBBL.</p>
-      <p>To explore the implementation, start with the <a href="https://github.com/the-grognard-codes/fumbbl-rebuild/blob/main/README.md">local development setup</a> and the <a href="https://github.com/the-grognard-codes/fumbbl-rebuild/blob/main/docs/development-and-release.md">build, test and release guide</a>.</p>
+      <p>To explore the implementation, start with the <a href="${liveRepositoryUrl}/blob/main/README.md">local development setup</a> and the <a href="${liveRepositoryUrl}/blob/main/docs/development-and-release.md">build, test and release guide</a>.</p>
+      <p>Explore the computer coaches' evaluation work in the <a href="/training">Training lab</a>.</p>
     </section>
     <section class="development-history" id="history" aria-labelledby="history-title">
     <h2 id="history-title">Merged changes</h2>

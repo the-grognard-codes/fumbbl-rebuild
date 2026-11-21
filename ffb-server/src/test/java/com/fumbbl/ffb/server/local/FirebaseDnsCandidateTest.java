@@ -32,6 +32,8 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class FirebaseDnsCandidateTest {
+	private static final long RESPONSE_TEST_TIMEOUT_NANOS = TimeUnit.SECONDS.toNanos(5);
+
 	@Test void silentDnsServerReturnsWithNoChannelOrBackgroundLookupLeftRunning() throws Exception {
 		try (DnsServer server = new DnsServer(query -> null)) {
 			FirebaseDnsCandidate dns = new FirebaseDnsCandidate(server.address());
@@ -57,7 +59,7 @@ class FirebaseDnsCandidateTest {
 		})) {
 			FirebaseDnsCandidate dns = new FirebaseDnsCandidate(server.address());
 			assertEquals(List.of(new InetSocketAddress(InetAddress.getByAddress(new byte[] {127, 0, 0, 2}), 443)),
-				dns.resolve("provider.invalid", 443, System.nanoTime() + 500_000_000L));
+				dns.resolve("provider.invalid", 443, System.nanoTime() + RESPONSE_TEST_TIMEOUT_NANOS));
 			assertEquals(0, dns.activeChannels()); assertEquals(1, server.queries.get());
 		}
 	}
@@ -71,9 +73,10 @@ class FirebaseDnsCandidateTest {
 			return answer;
 		})) {
 			FirebaseDnsCandidate dns = new FirebaseDnsCandidate(server.address());
-			assertEquals(1, dns.resolve("[::1]", 443, System.nanoTime() + 500_000_000L).size());
+			assertEquals(1, dns.resolve("[::1]", 443, System.nanoTime() + RESPONSE_TEST_TIMEOUT_NANOS).size());
 			assertEquals(0, server.queries.get());
-			assertEquals(16, dns.resolve("ipv6-provider.invalid", 443, System.nanoTime() + 500_000_000L).getFirst().getAddress().getAddress().length);
+			assertEquals(16, dns.resolve("ipv6-provider.invalid", 443, System.nanoTime() + RESPONSE_TEST_TIMEOUT_NANOS)
+				.getFirst().getAddress().getAddress().length);
 			assertEquals(2, server.queries.get()); assertEquals(0, dns.activeChannels());
 		}
 	}
@@ -86,7 +89,9 @@ class FirebaseDnsCandidateTest {
 				return answer;
 			})) {
 				FirebaseDnsCandidate dns = new FirebaseDnsCandidate(server.address());
-				assertThrows(IOException.class, () -> dns.resolve("provider.invalid", 443, System.nanoTime() + 500_000_000L));
+				IOException failure = assertThrows(IOException.class,
+					() -> dns.resolve("provider.invalid", 443, System.nanoTime() + RESPONSE_TEST_TIMEOUT_NANOS));
+				assertEquals(cycle ? "DNS answer alias cycle" : "DNS response does not match question", failure.getMessage());
 				assertEquals(0, dns.activeChannels()); assertEquals(1, server.queries.get());
 			}
 		}

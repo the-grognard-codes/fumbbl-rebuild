@@ -154,6 +154,7 @@ final class ReactiveDecision {
     boolean due(long now) { return key != null && now >= expiresAt; }
     boolean pending() { return key != null; }
     String actor() { return actor; }
+    long expiresAt() { return expiresAt; }
     String id() { return id; }
     boolean normalHome() { return normalHome; }
 

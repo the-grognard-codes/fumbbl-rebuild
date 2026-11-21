@@ -17,7 +17,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class DefaultSetupSessionTest {
 	@Test void unavailablePlayersStayOffPitchAndAvailablePlayersKeepRosterOrder() throws Exception {
 		MatchDocument document = document(12); TestServer server = new TestServer();
-		SetupSession session = new SetupSession(server.getServer(), document, -3, true, true);
+		SetupSession session = SetupSession.startRecoverable(server.getServer(), document, -3, true, false);
 		choose(session);
 		com.fumbbl.ffb.model.Game game = engine(session).getGame();
 		for (com.fumbbl.ffb.model.Team team : new com.fumbbl.ffb.model.Team[] {game.getTeamHome(), game.getTeamAway()}) {
@@ -37,7 +37,7 @@ class DefaultSetupSessionTest {
 
 	@Test void defaultFormationReturnsForBothSidesAtHalftimeWithoutAutoConfirming() throws Exception {
 		MatchDocument document = document(12); TestServer server = new TestServer();
-		SetupSession session = new SetupSession(server.getServer(), document, -3, true, true);
+		SetupSession session = SetupSession.startRecoverable(server.getServer(), document, -3, true, false);
 		// Match construction rolls weather; heat exhausts players before the halftime formation.
 		engine(session).getGame().getFieldModel().setWeather(Weather.NICE);
 		choices(session); int setups = 0;
@@ -66,11 +66,11 @@ class DefaultSetupSessionTest {
 		Field field = SetupSession.class.getDeclaredField("state"); field.setAccessible(true);
 		return (com.fumbbl.ffb.server.GameState) field.get(session);
 	}
-	@Test void bothSidesGetFirstElevenWithThreeOnLineEightBehindAndTwelfthInReserve() throws Exception {
+	@Test void bothSidesUseRoleTemplatesAndKeepTwelfthInReserve() throws Exception {
 		MatchDocument document = document(12);
 		TestServer server = new TestServer();
-		SetupSession session = new SetupSession(server.getServer(), document, -3, true, true);
-		assertEquals(SetupSession.DEFAULT_SETUP_RUNTIME, payload(session).getString("runtimeVersion", null));
+		SetupSession session = SetupSession.startRecoverable(server.getServer(), document, -3, true, false);
+		assertEquals(SetupSession.STAGED_RUNTIME, payload(session).getString("runtimeVersion", null));
 		choices(session);
 		for (int side = 0; side < 2; side++) {
 			assertLayout(session);
@@ -87,9 +87,9 @@ class DefaultSetupSessionTest {
 		assertEquals(4, view(session).getInt("revision", -1), "Template belongs to the triggering authoritative mutation");
 	}
 
-	@Test void manualAdjustmentAndRemovalSurviveReadsRecoveryAndTransitionRequestRetry() throws Exception {
+	@Test void unconfirmedRemovalIsDiscardedOnRecoveryAndTransitionRequestIsDeduplicated() throws Exception {
 		MatchDocument document = document(11); TestServer server = new TestServer();
-		SetupSession session = new SetupSession(server.getServer(), document, -3, true, true);
+		SetupSession session = SetupSession.startRecoverable(server.getServer(), document, -3, true, false);
 		choose(session);
 		JsonObject choiceView = view(session), choice = choice(choiceView);
 		String chooser = choiceView.getString("actor", null);
@@ -106,34 +106,33 @@ class DefaultSetupSessionTest {
 		assertEquals(before, session.recoveryArtifact());
 		SetupSession restored = new SetupSession(server.getServer(), document, before);
 		assertEquals(before, restored.recoveryArtifact());
-		assertTrue(player(view(restored), actor, 4).get("x").isNull());
-		assertEquals("ILLEGAL_SETUP", restored.apply(actor, request(view(restored), "confirm")).getString("code", null));
+		assertTrue(!player(view(restored), actor, 4).get("x").isNull());
+		assertEquals("ACCEPTED", restored.apply(actor, request(view(restored), "confirm")).getString("code", null));
 	}
 
-	@Test void legacyCheckpointRetainsManualSetupAndItsExactFormat() throws Exception {
+	@Test void currentCheckpointRetainsManualSetupAndItsExactFormat() throws Exception {
 		MatchDocument document = document(11); TestServer server = new TestServer();
 		SetupSession original = new SetupSession(server.getServer(), document, -3, true);
 		String before = original.recoveryArtifact();
 		SetupSession restored = new SetupSession(server.getServer(), document, before);
 		assertEquals(before, restored.recoveryArtifact());
 		choices(restored);
-		assertEquals(SetupSession.LEGACY_RUNTIME, payload(restored).getString("runtimeVersion", null));
+		assertEquals(SetupSession.STAGED_RUNTIME, payload(restored).getString("runtimeVersion", null));
 		for (JsonValue player : view(restored).get("players").asArray()) assertTrue(player.asObject().get("x").isNull());
 	}
 
-	private void assertLayout(SetupSession session) {
+	private void assertLayout(SetupSession session) throws Exception {
 		JsonObject snapshot = view(session); String actor = snapshot.getString("actor", null);
 		assertEquals("SETUP", snapshot.getString("phase", null));
-		int[] rows = {6, 7, 8, 3, 4, 5, 6, 8, 9, 10, 11};
-		for (int slot = 1; slot <= 12; slot++) {
-			JsonObject player = player(snapshot, actor, slot);
-			if (slot == 12) { assertTrue(player.get("x").isNull()); continue; }
-			assertTrue(!player.get("x").isNull(), "Expected deployed slot " + slot + " for " + actor + " at revision "
-				+ snapshot.getInt("revision", -1) + ": " + player);
-			int x = slot <= 3 ? 12 : 11;
-			assertEquals("home".equals(actor) ? x : 25 - x, player.getInt("x", -1));
-			assertEquals(rows[slot - 1], player.getInt("y", -1));
+		boolean receiving = engine(session).getGame().isSetupOffense();
+		var jerseys = java.util.stream.IntStream.rangeClosed(1, 12).boxed().toList();
+		var template = new com.fumbbl.ffb.server.team.bb2025.TeamFormations().fallback(jerseys, receiving);
+		for (var assignment : template.players()) {
+			JsonObject player = player(snapshot, actor, assignment.jerseyNumber());
+			assertEquals("home".equals(actor) ? 12 - assignment.depth() : 13 + assignment.depth(), player.getInt("x", -1));
+			assertEquals("home".equals(actor) ? assignment.column() : 14 - assignment.column(), player.getInt("y", -1));
 		}
+		assertTrue(player(snapshot, actor, 12).get("x").isNull());
 	}
 	private JsonObject player(JsonObject snapshot, String role, int slot) {
 		for (JsonValue value : snapshot.get("players").asArray()) {

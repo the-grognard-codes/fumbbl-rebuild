@@ -130,6 +130,29 @@ class SetupApplicationCheckpointTest {
 		}
 	}
 
+	@Test void stagedRequestsSkipCheckpointUntilConfirmation() throws Exception {
+		try (Fixture fixture = new Fixture()) {
+			fixture.application.handle("home", load());
+			SetupSession session = fixture.session();
+			JsonObject stage = new JsonObject().add("type", "stagedPlacement").add("stageSeq", 1);
+			for (int i = 1; i <= 10; i++) {
+				JsonObject placement = request("placement-" + i).set("operation", "place").remove("actionId")
+					.add("playerId", "player").add("to", new JsonObject().add("x", 8).add("y", 7));
+				when(session.isStagedRequest(placement)).thenReturn(true);
+				when(session.stagedPlacement()).thenReturn(stage);
+				SetupApplication.HandleOutcome outcome = fixture.application.handleWithOutcome("home", placement);
+				assertEquals("ACCEPTED", outcome.response().getString("code", null));
+				assertSame(stage, outcome.placement());
+				assertFalse(outcome.publish());
+			}
+			verify(fixture.recovery, never()).save(any(RecoveryRepository.Record.class), anyLong());
+			verify(session, never()).recoveryArtifact();
+			assertTrue(fixture.application.handleWithOutcome("home", request("confirm").set("operation", "confirm").remove("actionId")).publish());
+			verify(fixture.recovery).save(any(RecoveryRepository.Record.class), eq(4L));
+			verify(session).recoveryArtifact();
+		}
+	}
+
 	@Test void failedConflictingAndUnknownCommitsReleaseFingerprintsBeforeRetry() throws Exception {
 		for (String failure : new String[] {"PERSISTENCE_FAILED", "RECOVERY_CONFLICT", "MATCH_OUTCOME_UNKNOWN"}) {
 			try (Fixture fixture = new Fixture()) {
@@ -501,6 +524,7 @@ class SetupApplicationCheckpointTest {
 		final AtomicReference<RecoveryRepository.Record> durable = new AtomicReference<>(new RecoveryRepository.Record(MATCH, 4, "before"));
 		final AtomicReference<String> artifact = new AtomicReference<>();
 		final AtomicInteger executed = new AtomicInteger();
+		final MockedConstruction<RecoveryCheckpoint> validation;
 		final MockedConstruction<SetupSession> construction;
 		final SetupApplication application;
 		String failure;
@@ -524,8 +548,12 @@ class SetupApplicationCheckpointTest {
 				if ("MATCH_OUTCOME_UNKNOWN".equals(failure)) throw new RecoveryRepository.OutcomeUnknown(record, new SQLException("unknown"));
 				return true;
 			});
+			validation = mockConstruction(RecoveryCheckpoint.class, (checkpoint, context) ->
+				when(checkpoint.validate(anyString())).thenAnswer(call -> {
+					artifact.set(normalizedArtifact == null ? call.getArgument(0) : normalizedArtifact);
+					return mock(RecoveryCheckpoint.Validated.class);
+				}));
 			construction = mockConstruction(SetupSession.class, (session, context) -> {
-				artifact.set(normalizedArtifact == null ? (String) context.arguments().get(2) : normalizedArtifact);
 				when(session.recoveryArtifact()).thenAnswer(call -> artifact.get());
 				when(session.reply(anyString(), anyString(), anyBoolean(), anyString())).thenReturn(reply(false));
 				when(session.decorateSaveResume(any(JsonObject.class))).thenAnswer(call -> call.getArgument(0));
@@ -541,6 +569,9 @@ class SetupApplicationCheckpointTest {
 		SetupApplication newApplication() { return new SetupApplication(server, matches, recovery, false, Clock.fixed(Instant.ofEpochMilli(NOW), ZoneOffset.UTC)); }
 		SetupSession session() { return construction.constructed().get(construction.constructed().size() - 1); }
 		int mapSize(String name) throws Exception { Field field = SetupApplication.class.getDeclaredField(name); field.setAccessible(true); return ((Map<?, ?>) field.get(application)).size(); }
-		@Override public void close() { construction.close(); }
+		@Override public void close() {
+			construction.close();
+			validation.close();
+		}
 	}
 }

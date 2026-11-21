@@ -10,6 +10,7 @@
     "proof:sprites:export": "node ../assets/game/scripts/build-sprite-proof.mjs && node ../assets/game/scripts/build-sprite-animation-proof.mjs",
     "proof:sprites:check": "node ../assets/game/scripts/build-sprite-proof.mjs --check && node ../assets/game/scripts/build-sprite-animation-proof.mjs --check && node --test test/sprite-proof.test.ts test/sprite-proof-animation.test.ts",
     "review:sprites": "node test/sprite-proof-ui.mjs",
+    "review:splashes": "node test/splash-review-ui.mjs",
     "mockups:legacy-prompts": "node prototypes/legacy-prompts/serve.mjs",
     "mockups:skill-prompts": "node prototypes/skill-prompts/serve.mjs",
     "mockups:limited-actions": "node prototypes/limited-actions/serve.mjs",

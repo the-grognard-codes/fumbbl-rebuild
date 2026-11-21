@@ -37,6 +37,10 @@ public final class MatchPersistenceLog {
 			"pending-completion", matchId, null, failure);
 	}
 
+	void coldComputerLoadFallback(String phase, String matchId, RuntimeException failure) {
+		write("COLD_COMPUTER_LOAD_FALLBACK", phase, matchId, null, failure);
+	}
+
 	private void write(String code, String phase, String matchId, String requestId, Exception failure) {
 		String message = failure.getMessage();
 		String sql = failure instanceof SQLException sqlFailure

@@ -46,8 +46,15 @@ try {
   const overlay = page.getByLabel('Performance diagnostics', { exact: true }); await overlay.waitFor();
   await page.bringToFront();
   await page.waitForFunction(() => window.diagnosticService.snapshot().samples.some(sample => sample.kind === 'frame'));
-  await page.evaluate(() => window.diagnosticService.reset());
-  await page.evaluate(() => { const until = performance.now() + 90; while (performance.now() < until) { /* Controlled main-thread stall. */ } });
+  await page.evaluate(() => new Promise(resolve => {
+    window.diagnosticService.reset();
+    // Let the sampler record a frame before blocking the next one.
+    requestAnimationFrame(() => {
+      const until = performance.now() + 90;
+      while (performance.now() < until) { /* Controlled main-thread stall. */ }
+      requestAnimationFrame(resolve);
+    });
+  }));
   await page.waitForFunction(() => window.diagnosticService.snapshot().samples.some(sample => sample.kind === 'frame' && sample.value >= 60));
   await page.evaluate(() => {
     const d = window.diagnosticService; d.connection(true); d.server = 'enabled';
